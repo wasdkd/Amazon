@@ -369,6 +369,7 @@ flex: 0 0 100%;
                     if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
                     if (selectedSeason !== "all" && p.season !== selectedSeason) return false;
                     if (p.timestamp > 0 && (p.timestamp < startTimestamp || p.timestamp > endTimestamp)) return false;
+                    if (sortBy === "sales" && p.sales < 200) return false;
                     return true;
                 });
 
