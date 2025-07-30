@@ -458,6 +458,58 @@ flex: 0 0 100%;
                     filterProducts();
                 }
             });
+            
+            // ===== 筛选记忆功能（新增） =====
+function saveFilters() {
+    const filters = {
+        sortBy: document.getElementById("sortBy").value,
+        company: document.getElementById("companyFilter").value,
+        brand: document.getElementById("brandFilter").value,
+        category: document.getElementById("categoryFilter").value,
+        season: document.getElementById("seasonFilter").value,
+        startDate: document.getElementById("startDate").value,
+        endDate: document.getElementById("endDate").value
+    };
+    localStorage.setItem("amazonFilters", JSON.stringify(filters));
+}
+
+function loadFilters() {
+    const saved = localStorage.getItem("amazonFilters");
+    if (!saved) return;
+
+    try {
+        const filters = JSON.parse(saved);
+        if (filters.sortBy) document.getElementById("sortBy").value = filters.sortBy;
+        if (filters.company) document.getElementById("companyFilter").value = filters.company;
+        if (filters.brand) document.getElementById("brandFilter").value = filters.brand;
+        if (filters.category) document.getElementById("categoryFilter").value = filters.category;
+        if (filters.season) document.getElementById("seasonFilter").value = filters.season;
+        if (filters.startDate) document.getElementById("startDate").value = filters.startDate;
+        if (filters.endDate) document.getElementById("endDate").value = filters.endDate;
+    } catch (e) {
+        console.warn("筛选记忆数据解析失败", e);
+    }
+}
+
+// 页面加载完成后恢复筛选
+document.addEventListener("DOMContentLoaded", function () {
+    loadFilters();
+    updateAllFilters();
+    filterProducts(); // 应用筛选
+});
+
+// 监听所有筛选器变化并保存
+document.addEventListener("change", function (e) {
+    const targetIds = ["sortBy", "companyFilter", "brandFilter", "categoryFilter", "seasonFilter", "startDate", "endDate"];
+    if (targetIds.includes(e.target.id)) {
+        saveFilters();
+    }
+});
+
+// 重置筛选时也清除 localStorage
+function resetFilters() {
+    localStorage.removeItem("amazonFilters");
+}
             </script><style>
 #imageOverlay {
 display: none;
