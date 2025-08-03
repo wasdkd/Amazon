@@ -69,7 +69,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 7px 20px rgba(0, 0, 0, 0.08);
-            padding: 28px 20px;
+            padding: 20px 20px;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -136,11 +136,49 @@
 
         footer {
             text-align: center;
-            margin-top: 40px;
+            margin-top: 1px;
             color: #7f8c8d;
             font-size: 0.9rem;
-            padding-top: 18px;
+            padding-top: 1px;
             border-top: 1px solid #eee;
+        }
+
+        .statistics {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #1a2a6c;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #b21f1f;
+            font-size: 1.1rem;
+        }
+
+        .baidu-stats h3 {
+            color: #1a2a6c;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .baidu-stats p {
+            text-align: center;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
         @media (max-width: 1200px) {
@@ -192,6 +230,11 @@
             .container {
                 padding: 20px;
             }
+
+            .statistics {
+                flex-direction: column;
+                align-items: center;
+            }
         }
     </style>
 </head>
@@ -233,7 +276,7 @@
                 <h2>ABA关键词分析</h2>
                 <p>查看ABA关键词月搜索量变化趋势</p>
                 <a href="https://wasdkd.github.io/Amazon/AbaKeyword" class="link-btn">ABA-月度</a>
-				<a href="https://wasdkd.github.io/Amazon/AbaKeyword2" class="link-btn">ABA-周度</a> <br>
+                <a href="https://wasdkd.github.io/Amazon/AbaKeyword2" class="link-btn">ABA-周度</a> <br>
                 <a href="https://wasdkd.github.io/Amazon/KeywordFiltering" class="link-btn">筛选-月度</a>
                 <a href="https://wasdkd.github.io/Amazon/KeywordFiltering2" class="link-btn">筛选-周度</a>
             </div>
@@ -245,8 +288,7 @@
                 <p>查看ABA关键词TOP3产品信息</p>
                 <a href="#" class="link-btn">领星ABA--未上传</a>
             </div>
-
-            <!-- 占位卡片，您可以替换为实际内容 -->
+                        <!-- 占位卡片，您可以替换为实际内容 -->
 <!--            <div class="card">-->
 <!--                <i class="fas fa-border-all"></i>-->
 <!--                <h2>新增功能</h2>-->
@@ -271,8 +313,44 @@
 
         <footer>
             <p>© 2025 市场分析 | 前台导航系统 v2.0</p>
+
+            <!-- 百度统计访问数据展示 -->
+            <div class="statistics">
+                <div class="stat-box">
+                    <div class="stat-label">今日访问</div>
+                    <div class="stat-value" id="todayVisits">加载中...</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">总访问量</div>
+                    <div class="stat-value" id="totalVisits">加载中...</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">独立访客</div>
+                    <div class="stat-value" id="uniqueVisitors">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 百度统计代码 -->
+            <script>
+                // 百度统计代码 - 需要替换为你的实际统计ID
+                var _hmt = _hmt || [];
+                (function() {
+                    var hm = document.createElement("script");
+                     hm.src = "https://hm.baidu.com/hm.js?ffb491ac5524cd937e870d25b321f38f";
+                    var s = document.getElementsByTagName("script")[0];
+                    s.parentNode.insertBefore(hm, s);
+                })();
+
+                // 模拟统计数据显示
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(function() {
+                        document.getElementById('todayVisits').textContent = '';
+                        document.getElementById('totalVisits').textContent = '';
+                        document.getElementById('uniqueVisitors').textContent = '';
+                    }, 1500);
+                });
+            </script>
         </footer>
     </div>
 </body>
 </html>
-
