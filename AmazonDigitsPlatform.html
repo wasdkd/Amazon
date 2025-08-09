@@ -236,10 +236,77 @@
                 align-items: center;
             }
         }
+
+        /* 密码输入框样式 */
+        .password-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .password-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .password-content h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .password-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .password-content button {
+            background: linear-gradient(to right, #1a2a6c, #b21f1f);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        .password-content button:hover {
+            opacity: 0.9;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- 密码输入模态框 -->
+    <div id="passwordModal" class="password-modal">
+        <div class="password-content">
+            <h2>请输入访问密码</h2>
+            <input type="password" id="passwordInput" placeholder="请输入密码">
+            <button onclick="checkPassword()">确认</button>
+            <div id="errorMessage" class="error-message">密码错误，请重试</div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display:none;">
         <header>
             <h1>亚马逊数据分析可视化平台</h1>
             <p class="subtitle">可点击下方对应按钮进行访问</p>
@@ -288,7 +355,7 @@
                 <p>查看ABA关键词TOP3产品信息</p>
                 <a href="https://wasdkd.github.io/Amazon/LingXABA" class="link-btn">领星ABA</a>
             </div>
-			
+
 			<div class="card">
                 <i class="fas fa-border-all"></i>
                 <h2>站外产品监控</h2>
@@ -327,5 +394,49 @@
             </script>
         </footer>
     </div>
+
+    <script>
+        // 设置正确的密码
+        const correctPassword = "123456"; // 请将此处替换为你的实际密码
+
+        // 页面加载时检查是否已通过验证
+        window.onload = function() {
+            // 检查 localStorage 中是否有密码验证标记
+            if (!localStorage.getItem('authenticated')) {
+                // 如果没有验证过，显示密码输入框
+                document.getElementById('passwordModal').style.display = 'block';
+                document.getElementById('mainContent').style.display = 'none';
+            } else {
+                // 如果已经验证过，显示主内容
+                document.getElementById('passwordModal').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            }
+        };
+
+        // 检查密码
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (password === correctPassword) {
+                // 密码正确，设置验证标记并隐藏模态框
+                localStorage.setItem('authenticated', 'true');
+                document.getElementById('passwordModal').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            } else {
+                // 密码错误，显示错误信息
+                errorMessage.style.display = 'block';
+                // 清空输入框
+                document.getElementById('passwordInput').value = '';
+            }
+        }
+
+        // 允许按回车键提交密码
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && document.getElementById('passwordModal').style.display === 'block') {
+                checkPassword();
+            }
+        });
+    </script>
 </body>
 </html>
