@@ -43,10 +43,9 @@
         h1 {
             font-size: 2.8rem;
             color: #2c3e50;
-            margin-bottom: 10px;
+            margin-bottom: 3px;
             background: linear-gradient(to right, #1a2a6c, #b21f1f);
             -webkit-background-clip: text;
-            /*background-clip: text;*/
             -webkit-text-fill-color: transparent;
             color: transparent;
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
@@ -101,7 +100,6 @@
             margin-bottom: 20px;
             background: linear-gradient(to right, #1a2a6c, #b21f1f);
             -webkit-background-clip: text;
-            /*background-clip: text;*/
             -webkit-text-fill-color: transparent;
             color: transparent;
         }
@@ -140,6 +138,17 @@
             background: linear-gradient(to right, #2c3e99, #d12c2c);
         }
 
+        .link-btn.disabled {
+            background: linear-gradient(to right, #7f8c8d, #95a5a6);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .link-btn.disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
         footer {
             text-align: center;
             margin-top: 20px;
@@ -161,7 +170,7 @@
             }
 
             .subtitle {
-                font-size: 1rem;
+                font-size: 0.5rem;
             }
 
             .container {
@@ -316,7 +325,6 @@
             color: #4caf50;
         }
 
-
         .hash-info code {
             display: block;
             margin-top: 8px;
@@ -327,7 +335,6 @@
             word-break: break-all;
             font-size: 0.85rem;
         }
-
 
         .hash-generator input {
             flex: 1;
@@ -345,7 +352,22 @@
             cursor: pointer;
         }
 
+        .warning-banner {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+            color: white;
+            width: 50%;
 
+            padding: 5px;
+            text-align: center;
+            border-radius: 6px;
+            margin: 2px auto;
+            box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+        }
+
+        .warning-banner i {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
@@ -370,8 +392,18 @@
         <header>
             <h1>亚马逊数据分析可视化平台</h1>
             <p class="subtitle">可点击下方对应按钮进行访问</p>
-            <div class="security-note">
-                <i class="fas fa-lock"></i> 本平台的部分链接受密码保护，首次访问需要输入密码
+<!--            <div class="security-note">-->
+<!--                <i class="fas fa-lock"></i> 本平台的所有链接受密码保护，首次访问需要输入密码-->
+<!--            </div>-->
+
+            <!-- 未认证警告 -->
+            <div id="unauthenticatedWarning" class="warning-banner" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i> 您尚未通过安全验证，无法访问任何模块！
+            </div>
+
+            <!-- 认证成功提示 -->
+            <div id="authenticatedSuccess" class="warning-banner" style="background: linear-gradient(to right, #27ae60, #2ecc71); display: none;">
+                <i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问所有模块
             </div>
         </header>
 
@@ -425,33 +457,45 @@
                 <p>查看站外产品信息</p>
                 <a href="https://wasdkd.github.io/Amazon/Outside" class="link-btn protected-link">站外产品</a>
             </div>
-
-<!--            <div class="card">-->
-<!--                <i class="fas fa-photo-video"></i>-->
-<!--                <h2>新增功能</h2>-->
-<!--                <p>待添加内容</p>-->
-<!--                <a href="#" class="link-btn">功能链接</a>-->
-<!--            </div>-->
-
-<!--            <div class="card">-->
-<!--                <i class="fas fa-icons"></i>-->
-<!--                <h2>新增功能</h2>-->
-<!--                <p>待添加内容</p>-->
-<!--                <a href="#" class="link-btn">功能链接</a>-->
-<!--            </div>-->
         </div>
 
         <footer>
-            <p>© 2025 市场分析 | 前台导航系统 v2.0 | 安全版本</p>
+            <p>© 2025 市场分析 | 前台导航系统 v2.1 | 增强安全版本</p>
         </footer>
     </div>
 
     <script>
         const correctHash = "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e";
         let targetLink = null; // 存储用户点击的链接
+        const protectedModules = [
+            'ShopProductImages',
+            'TOP100SuperItems',
+            'CategoryMarketAnalysis',
+            'AbaKeyword',
+            'AbaKeyword2',
+            'KeywordFiltering',
+            'KeywordFiltering2',
+            'LingXABA',
+            'Outside'
+        ];
+
+        // 检查当前URL是否指向受保护模块
+        function isProtectedModule() {
+            const currentPath = window.location.pathname.split('/').pop();
+            return protectedModules.some(module => currentPath.includes(module));
+        }
 
         // 页面加载时执行
         window.onload = function() {
+            // 检查是否是直接访问模块页面
+            if (isProtectedModule()) {
+                // 检查是否已认证
+                if (!sessionStorage.getItem('authenticated')) {
+                    // 未认证，重定向到首页
+                    window.location.href = 'https://wasdkd.github.io/Amazon/AmazonDigitsPlatform';
+                }
+                return;
+            }
 
             // 添加密码可见性切换
             document.getElementById('togglePassword').addEventListener('click', function() {
@@ -503,7 +547,20 @@
                 }
             });
 
+            // 检查认证状态并更新UI
+            updateAuthStatusUI();
         };
+
+        // 更新认证状态UI
+        function updateAuthStatusUI() {
+            if (sessionStorage.getItem('authenticated')) {
+                document.getElementById('authenticatedSuccess').style.display = 'block';
+                document.getElementById('unauthenticatedWarning').style.display = 'none';
+            } else {
+                document.getElementById('authenticatedSuccess').style.display = 'none';
+                document.getElementById('unauthenticatedWarning').style.display = 'block';
+            }
+        }
 
         // SHA-256哈希函数
         async function sha256(message) {
@@ -547,6 +604,9 @@
                     // 清空密码框
                     document.getElementById('passwordInput').value = '';
 
+                    // 更新UI
+                    updateAuthStatusUI();
+
                     // 跳转到目标链接
                     if (targetLink) {
                         window.location.href = targetLink;
@@ -566,14 +626,14 @@
             }
         }
 
-        // 百度统计代码 - 需要替换为你的实际统计ID
-                var _hmt = _hmt || [];
-                (function() {
-                    var hm = document.createElement("script");
-                     hm.src = "https://hm.baidu.com/hm.js?ffb491ac5524cd937e870d25b321f38f";
-                    var s = document.getElementsByTagName("script")[0];
-                    s.parentNode.insertBefore(hm, s);
-                })();
+        // 百度统计代码
+        var _hmt = _hmt || [];
+        (function() {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?ffb491ac5524cd937e870d25b321f38f";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
     </script>
 </body>
 </html>
