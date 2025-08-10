@@ -6,7 +6,6 @@
     <title>亚马逊数据分析可视化平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 保留所有之前的CSS样式 */
         * {
             margin: 0;
             padding: 0;
@@ -31,7 +30,6 @@
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
             overflow: hidden;
             padding: 40px;
-            position: relative;
         }
 
         header {
@@ -45,7 +43,7 @@
         h1 {
             font-size: 2.8rem;
             color: #2c3e50;
-            margin-bottom: 10px;
+            margin-bottom: 3px;
             background: linear-gradient(to right, #1a2a6c, #b21f1f);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -153,10 +151,10 @@
 
         footer {
             text-align: center;
-            margin-top: 5px;
+            margin-top: 20px;
             color: #7f8c8d;
             font-size: 0.9rem;
-            padding-top: 2px;
+            padding-top: 20px;
             border-top: 1px solid #eee;
         }
 
@@ -172,7 +170,7 @@
             }
 
             .subtitle {
-                font-size: 1rem;
+                font-size: 0.5rem;
             }
 
             .container {
@@ -323,10 +321,42 @@
             font-size: 0.9rem;
         }
 
+        .security-level i {
+            color: #4caf50;
+        }
+
+        .hash-info code {
+            display: block;
+            margin-top: 8px;
+            padding: 10px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow-x: auto;
+            word-break: break-all;
+            font-size: 0.85rem;
+        }
+
+        .hash-generator input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .hash-generator button {
+            background: #1a2a6c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+
         .warning-banner {
             background: linear-gradient(to right, #e74c3c, #c0392b);
             color: white;
             width: 50%;
+
             padding: 5px;
             text-align: center;
             border-radius: 6px;
@@ -337,34 +367,6 @@
         .warning-banner i {
             margin-right: 8px;
             font-size: 1.2rem;
-        }
-
-        .auth-success {
-            background: linear-gradient(to right, #27ae60, #2ecc71);
-        }
-
-        .auth-info {
-            background: linear-gradient(to right, #3498db, #2980b9);
-        }
-
-        .logout-btn {
-            display: inline-block;
-            padding: 8px 15px;
-            background: linear-gradient(to right, #7f8c8d, #95a5a6);
-            color: white;
-            text-decoration: none;
-            border-radius: 30px;
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            margin-top: 1px;
-            cursor: pointer;
-            border: none;
-        }
-
-        .logout-btn:hover {
-            background: linear-gradient(to right, #95a5a6, #7f8c8d);
-            transform: translateY(-2px);
         }
     </style>
 </head>
@@ -390,11 +392,18 @@
         <header>
             <h1>亚马逊数据分析可视化平台</h1>
             <p class="subtitle">可点击下方对应按钮进行访问</p>
-
-            <!-- 认证状态提示 -->
-            <div id="authStatus" class="warning-banner auth-info" style="display: none;">
-                <i class="fas fa-info-circle"></i> <span id="authStatusText">正在验证访问权限...</span>
+            <!-- 未认证警告 -->
+            <div id="unauthenticatedWarning" class="warning-banner" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i> 您尚未通过安全验证，无法访问任何模块！
             </div>
+
+            <!-- 认证成功提示 -->
+            <div id="authenticatedSuccess" class="warning-banner" style="background: linear-gradient(to right, #27ae60, #2ecc71); display: none;">
+                <i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问所有模块
+            </div>
+<!--            <div class="security-note">-->
+<!--                <i class="fas fa-lock"></i> 本平台的所有链接受密码保护，首次访问需要输入密码-->
+<!--            </div>-->
         </header>
 
         <div class="dashboard">
@@ -403,7 +412,7 @@
                 <i class="fas fa-users"></i>
                 <h2>店铺监控</h2>
                 <p>查看店铺产品图信息</p>
-                <a href="#" class="link-btn protected-link" data-module="ShopProductImages">店铺信息</a>
+                <a href="https://wasdkd.github.io/Amazon/ShopProductImages" class="link-btn protected-link">店铺信息</a>
             </div>
 
             <!-- 卡片2 -->
@@ -411,7 +420,7 @@
                 <i class="fas fa-calendar-alt"></i>
                 <h2>TOP100超级单品</h2>
                 <p>查看TOP100超级单品</p>
-                <a href="#" class="link-btn protected-link" data-module="TOP100SuperItems">超级单品</a>
+                <a href="https://wasdkd.github.io/Amazon/TOP100SuperItems" class="link-btn protected-link">超级单品</a>
             </div>
 
             <!-- 卡片3 -->
@@ -419,7 +428,7 @@
                 <i class="fas fa-file-contract"></i>
                 <h2>品类市场分析</h2>
                 <p>查看品类市场分析</p>
-                <a href="#" class="link-btn protected-link" data-module="CategoryMarketAnalysis">品类分析</a>
+                <a href="https://wasdkd.github.io/Amazon/CategoryMarketAnalysis#report-1" class="link-btn protected-link">品类分析</a>
             </div>
 
             <!-- 卡片4 -->
@@ -427,10 +436,10 @@
                 <i class="fas fa-chart-line"></i>
                 <h2>ABA关键词分析</h2>
                 <p>查看ABA关键词月搜索量变化趋势</p>
-                <a href="#" class="link-btn protected-link" data-module="AbaKeyword">ABA-月度</a>
-                <a href="#" class="link-btn protected-link" data-module="AbaKeyword2">ABA-周度</a> <br>
-                <a href="#" class="link-btn protected-link" data-module="KeywordFiltering">筛选-月度</a>
-                <a href="#" class="link-btn protected-link" data-module="KeywordFiltering2">筛选-周度</a>
+                <a href="https://wasdkd.github.io/Amazon/AbaKeyword" class="link-btn protected-link">ABA-月度</a>
+                <a href="https://wasdkd.github.io/Amazon/AbaKeyword2" class="link-btn protected-link">ABA-周度</a> <br>
+                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering" class="link-btn protected-link">筛选-月度</a>
+                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering2" class="link-btn protected-link">筛选-周度</a>
             </div>
 
             <!-- 新增行的卡片 -->
@@ -438,41 +447,25 @@
                 <i class="fas fa-images"></i>
                 <h2>领星ABA关键词</h2>
                 <p>查看ABA关键词TOP3产品信息</p>
-                <a href="#" class="link-btn protected-link" data-module="LingXABA">领星ABA</a>
+                <a href="https://wasdkd.github.io/Amazon/LingXABA" class="link-btn protected-link">领星ABA</a>
             </div>
 
             <div class="card">
                 <i class="fas fa-border-all"></i>
                 <h2>站外产品监控</h2>
                 <p>查看站外产品信息</p>
-                <a href="#" class="link-btn protected-link" data-module="Outside">站外产品</a>
+                <a href="https://wasdkd.github.io/Amazon/Outside" class="link-btn protected-link">站外产品</a>
             </div>
         </div>
 
         <footer>
-            <div id="authStatusFooter" style="margin-bottom: 15px; display: none;">
-                <button id="logoutBtn" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> 安全退出
-                </button>
-            </div>
-            <p>© 2025 市场分析 | 前台导航系统 v2.3 | 增强安全版本</p>
+            <p>© 2025 市场分析 | 前台导航系统 v2.1 | 增强安全版本</p>
         </footer>
     </div>
 
+    <script src="auth.js"></script>
     <script>
-        const correctHash = "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e";
-        const protectedModules = {
-            'ShopProductImages': 'https://wasdkd.github.io/Amazon/ShopProductImages',
-            'TOP100SuperItems': 'https://wasdkd.github.io/Amazon/TOP100SuperItems',
-            'CategoryMarketAnalysis': 'https://wasdkd.github.io/Amazon/CategoryMarketAnalysis#report-1',
-            'AbaKeyword': 'https://wasdkd.github.io/Amazon/AbaKeyword',
-            'AbaKeyword2': 'https://wasdkd.github.io/Amazon/AbaKeyword2',
-            'KeywordFiltering': 'https://wasdkd.github.io/Amazon/KeywordFiltering',
-            'KeywordFiltering2': 'https://wasdkd.github.io/Amazon/KeywordFiltering2',
-            'LingXABA': 'https://wasdkd.github.io/Amazon/LingXABA',
-            'Outside': 'https://wasdkd.github.io/Amazon/Outside'
-        };
-        const homePage = "https://wasdkd.github.io/Amazon/AmazonDigitsPlatform";
+        let targetLink = null; // 存储用户点击的链接
 
         // 页面加载时执行
         window.onload = function() {
@@ -497,19 +490,17 @@
             document.getElementById('closeModal').addEventListener('click', function() {
                 document.getElementById('passwordModal').style.display = 'none';
                 document.getElementById('errorMessage').classList.remove('show');
+                targetLink = null; // 清除目标链接
             });
 
             // 为所有受保护的链接添加点击事件
             const protectedLinks = document.querySelectorAll('.protected-link');
             protectedLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const module = this.dataset.module;
-
                     // 检查是否已经验证过
                     if (!sessionStorage.getItem('authenticated')) {
-                        // 存储目标模块
-                        sessionStorage.setItem('targetModule', module);
+                        e.preventDefault(); // 阻止默认跳转
+                        targetLink = this.href; // 存储目标链接
                         // 显示密码输入框
                         document.getElementById('passwordModal').style.display = 'block';
                         // 清空之前的输入和错误信息
@@ -517,9 +508,6 @@
                         document.getElementById('errorMessage').classList.remove('show');
                         // 聚焦到密码输入框
                         document.getElementById('passwordInput').focus();
-                    } else {
-                        // 已经认证，直接跳转
-                        window.location.href = protectedModules[module];
                     }
                 });
             });
@@ -531,85 +519,19 @@
                 }
             });
 
-            // 添加退出功能
-            document.getElementById('logoutBtn').addEventListener('click', function() {
-                sessionStorage.removeItem('authenticated');
-                updateAuthStatusUI();
-                showAuthStatus("您已安全退出系统", "auth-info");
-            });
-
             // 检查认证状态并更新UI
             updateAuthStatusUI();
-
-            // 检查URL参数中是否有重定向请求
-            checkRedirectRequest();
         };
-
-        // 检查重定向请求
-        function checkRedirectRequest() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect');
-
-            if (redirect && sessionStorage.getItem('authenticated')) {
-                // 如果已认证且有重定向请求，跳转到目标模块
-                if (protectedModules[redirect]) {
-                    window.location.href = protectedModules[redirect];
-                } else {
-                    showAuthStatus("请求的模块不存在", "warning");
-                }
-            }
-        }
 
         // 更新认证状态UI
         function updateAuthStatusUI() {
-            const authStatus = document.getElementById('authStatus');
-            const authStatusText = document.getElementById('authStatusText');
-            const authStatusFooter = document.getElementById('authStatusFooter');
-
             if (sessionStorage.getItem('authenticated')) {
-                authStatus.style.display = 'block';
-                authStatus.className = 'warning-banner auth-success';
-                authStatusText.innerHTML = '<i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问所有模块';
-                authStatusFooter.style.display = 'block';
+                document.getElementById('authenticatedSuccess').style.display = 'block';
+                document.getElementById('unauthenticatedWarning').style.display = 'none';
             } else {
-                authStatus.style.display = 'block';
-                authStatus.className = 'warning-banner';
-                authStatusText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 您尚未通过安全验证，无法访问任何模块！';
-                authStatusFooter.style.display = 'none';
+                document.getElementById('authenticatedSuccess').style.display = 'none';
+                document.getElementById('unauthenticatedWarning').style.display = 'block';
             }
-        }
-
-        // 显示认证状态消息
-        function showAuthStatus(message, type) {
-            const authStatus = document.getElementById('authStatus');
-            const authStatusText = document.getElementById('authStatusText');
-
-            authStatus.style.display = 'block';
-            authStatus.className = `warning-banner ${type === 'auth-info' ? 'auth-info' : ''}`;
-            authStatusText.innerHTML = message;
-
-            // 3秒后自动隐藏
-            setTimeout(() => {
-                if (!sessionStorage.getItem('authenticated')) {
-                    authStatus.style.display = 'block';
-                }
-            }, 3000);
-        }
-
-        // SHA-256哈希函数
-        async function sha256(message) {
-            // 将消息编码为UTF-8
-            const msgBuffer = new TextEncoder().encode(message);
-
-            // 使用Web Crypto API计算哈希
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-
-            // 将ArrayBuffer转换为字节数组
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-
-            // 将字节转换为十六进制字符串
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
         }
 
         // 检查密码
@@ -628,9 +550,9 @@
 
             try {
                 // 计算输入密码的SHA-256哈希
-                const inputHash = await sha256(password);
+                const inputHash = await AuthModule.sha256(password);
 
-                if (inputHash === correctHash) {
+                if (inputHash === AuthModule.CONFIG.correctHash) {
                     // 密码正确，设置验证标记
                     sessionStorage.setItem('authenticated', 'true');
                     // 隐藏模态框
@@ -640,17 +562,11 @@
 
                     // 更新UI
                     updateAuthStatusUI();
-                    showAuthStatus('<i class="fas fa-check-circle"></i> 验证成功！正在跳转...', 'auth-success');
 
-                    // 获取目标模块并跳转
-                    const targetModule = sessionStorage.getItem('targetModule');
-                    if (targetModule && protectedModules[targetModule]) {
-                        setTimeout(() => {
-                            window.location.href = protectedModules[targetModule];
-                        }, 1000);
+                    // 跳转到目标链接
+                    if (targetLink) {
+                        window.location.href = targetLink;
                     }
-                    // 清除存储的目标模块
-                    sessionStorage.removeItem('targetModule');
                 } else {
                     // 密码错误，显示错误信息
                     errorMessage.textContent = "密码错误，请重试";
