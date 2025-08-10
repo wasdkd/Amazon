@@ -30,6 +30,7 @@
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
             overflow: hidden;
             padding: 40px;
+            position: relative;
         }
 
         header {
@@ -43,7 +44,7 @@
         h1 {
             font-size: 2.8rem;
             color: #2c3e50;
-            margin-bottom: 3px;
+            margin-bottom: 10px;
             background: linear-gradient(to right, #1a2a6c, #b21f1f);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -151,10 +152,10 @@
 
         footer {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 5px;
             color: #7f8c8d;
             font-size: 0.9rem;
-            padding-top: 20px;
+            padding-top: 2px;
             border-top: 1px solid #eee;
         }
 
@@ -170,7 +171,7 @@
             }
 
             .subtitle {
-                font-size: 0.5rem;
+                font-size: 1rem;
             }
 
             .container {
@@ -368,6 +369,69 @@
             margin-right: 8px;
             font-size: 1.2rem;
         }
+
+        .auth-success {
+            background: linear-gradient(to right, #27ae60, #2ecc71);
+        }
+
+        .auth-info {
+            background: linear-gradient(to right, #3498db, #2980b9);
+        }
+
+        .logout-btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background: linear-gradient(to right, #7f8c8d, #95a5a6);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            margin-top: 1px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .logout-btn:hover {
+            background: linear-gradient(to right, #95a5a6, #7f8c8d);
+            transform: translateY(-2px);
+        }
+
+        .security-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .security-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .security-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+
+        .security-item i {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #1a2a6c;
+        }
     </style>
 </head>
 <body>
@@ -396,14 +460,9 @@
 <!--                <i class="fas fa-lock"></i> 本平台的所有链接受密码保护，首次访问需要输入密码-->
 <!--            </div>-->
 
-            <!-- 未认证警告 -->
-            <div id="unauthenticatedWarning" class="warning-banner" style="display: none;">
-                <i class="fas fa-exclamation-triangle"></i> 您尚未通过安全验证，无法访问任何模块！
-            </div>
-
-            <!-- 认证成功提示 -->
-            <div id="authenticatedSuccess" class="warning-banner" style="background: linear-gradient(to right, #27ae60, #2ecc71); display: none;">
-                <i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问所有模块
+            <!-- 认证状态提示 -->
+            <div id="authStatus" class="warning-banner auth-info" style="display: none;">
+                <i class="fas fa-info-circle"></i> <span id="authStatusText">正在验证访问权限...</span>
             </div>
         </header>
 
@@ -459,8 +518,40 @@
             </div>
         </div>
 
+        <!-- 安全信息区域 -->
+<!--        <div class="security-section">-->
+<!--            <h3><i class="fas fa-shield-alt"></i> 平台安全信息</h3>-->
+<!--            <div class="security-grid">-->
+<!--                <div class="security-item">-->
+<!--                    <i class="fas fa-key"></i>-->
+<!--                    <h4>访问控制</h4>-->
+<!--                    <p>所有受保护页面需要密码验证后才能访问</p>-->
+<!--                </div>-->
+<!--                <div class="security-item">-->
+<!--                    <i class="fas fa-lock"></i>-->
+<!--                    <h4>数据加密</h4>-->
+<!--                    <p>使用SHA-256加密存储密码</p>-->
+<!--                </div>-->
+<!--                <div class="security-item">-->
+<!--                    <i class="fas fa-redo"></i>-->
+<!--                    <h4>会话管理</h4>-->
+<!--                    <p>关闭浏览器后需要重新验证</p>-->
+<!--                </div>-->
+<!--                <div class="security-item">-->
+<!--                    <i class="fas fa-exclamation-triangle"></i>-->
+<!--                    <h4>安全重定向</h4>-->
+<!--                    <p>未验证访问直接跳转回首页</p>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
         <footer>
-            <p>© 2025 市场分析 | 前台导航系统 v2.1 | 增强安全版本</p>
+            <div id="authStatusFooter" style="margin-bottom: 15px; display: none;">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> 安全退出
+                </button>
+            </div>
+            <p>© 2025 市场分析 | 前台导航系统 v2.2 | 增强安全版本</p>
         </footer>
     </div>
 
@@ -478,10 +569,11 @@
             'LingXABA',
             'Outside'
         ];
+        const homePage = "https://wasdkd.github.io/Amazon/AmazonDigitsPlatform";
 
         // 检查当前URL是否指向受保护模块
         function isProtectedModule() {
-            const currentPath = window.location.pathname.split('/').pop();
+            const currentPath = window.location.pathname;
             return protectedModules.some(module => currentPath.includes(module));
         }
 
@@ -492,7 +584,7 @@
                 // 检查是否已认证
                 if (!sessionStorage.getItem('authenticated')) {
                     // 未认证，重定向到首页
-                    window.location.href = 'https://wasdkd.github.io/Amazon/AmazonDigitsPlatform';
+                    window.location.href = homePage;
                 }
                 return;
             }
@@ -547,19 +639,51 @@
                 }
             });
 
+            // 添加退出功能
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                sessionStorage.removeItem('authenticated');
+                updateAuthStatusUI();
+                showAuthStatus("您已安全退出系统", "auth-info");
+            });
+
             // 检查认证状态并更新UI
             updateAuthStatusUI();
         };
 
         // 更新认证状态UI
         function updateAuthStatusUI() {
+            const authStatus = document.getElementById('authStatus');
+            const authStatusText = document.getElementById('authStatusText');
+            const authStatusFooter = document.getElementById('authStatusFooter');
+
             if (sessionStorage.getItem('authenticated')) {
-                document.getElementById('authenticatedSuccess').style.display = 'block';
-                document.getElementById('unauthenticatedWarning').style.display = 'none';
+                authStatus.style.display = 'block';
+                authStatus.className = 'warning-banner auth-success';
+                authStatusText.innerHTML = '<i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问所有模块';
+                authStatusFooter.style.display = 'block';
             } else {
-                document.getElementById('authenticatedSuccess').style.display = 'none';
-                document.getElementById('unauthenticatedWarning').style.display = 'block';
+                authStatus.style.display = 'block';
+                authStatus.className = 'warning-banner';
+                authStatusText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 您尚未通过安全验证，无法访问任何模块！';
+                authStatusFooter.style.display = 'none';
             }
+        }
+
+        // 显示认证状态消息
+        function showAuthStatus(message, type) {
+            const authStatus = document.getElementById('authStatus');
+            const authStatusText = document.getElementById('authStatusText');
+
+            authStatus.style.display = 'block';
+            authStatus.className = `warning-banner ${type}`;
+            authStatusText.innerHTML = message;
+
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                if (!sessionStorage.getItem('authenticated')) {
+                    authStatus.style.display = 'block';
+                }
+            }, 3000);
         }
 
         // SHA-256哈希函数
@@ -606,10 +730,13 @@
 
                     // 更新UI
                     updateAuthStatusUI();
+                    showAuthStatus('<i class="fas fa-check-circle"></i> 验证成功！正在跳转...', 'auth-success');
 
                     // 跳转到目标链接
                     if (targetLink) {
-                        window.location.href = targetLink;
+                        setTimeout(() => {
+                            window.location.href = targetLink;
+                        }, 1000);
                     }
                 } else {
                     // 密码错误，显示错误信息
