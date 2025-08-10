@@ -6,6 +6,7 @@
     <title>亚马逊数据分析可视化平台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* 保留所有之前的CSS样式 */
         * {
             margin: 0;
             padding: 0;
@@ -322,42 +323,10 @@
             font-size: 0.9rem;
         }
 
-        .security-level i {
-            color: #4caf50;
-        }
-
-        .hash-info code {
-            display: block;
-            margin-top: 8px;
-            padding: 10px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow-x: auto;
-            word-break: break-all;
-            font-size: 0.85rem;
-        }
-
-        .hash-generator input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .hash-generator button {
-            background: #1a2a6c;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 10px 15px;
-            cursor: pointer;
-        }
-
         .warning-banner {
             background: linear-gradient(to right, #e74c3c, #c0392b);
             color: white;
             width: 50%;
-
             padding: 5px;
             text-align: center;
             border-radius: 6px;
@@ -397,41 +366,6 @@
             background: linear-gradient(to right, #95a5a6, #7f8c8d);
             transform: translateY(-2px);
         }
-
-        .security-section {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 25px;
-            border: 1px solid #e9ecef;
-        }
-
-        .security-section h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .security-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .security-item {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-        }
-
-        .security-item i {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: #1a2a6c;
-        }
     </style>
 </head>
 <body>
@@ -456,9 +390,6 @@
         <header>
             <h1>亚马逊数据分析可视化平台</h1>
             <p class="subtitle">可点击下方对应按钮进行访问</p>
-<!--            <div class="security-note">-->
-<!--                <i class="fas fa-lock"></i> 本平台的所有链接受密码保护，首次访问需要输入密码-->
-<!--            </div>-->
 
             <!-- 认证状态提示 -->
             <div id="authStatus" class="warning-banner auth-info" style="display: none;">
@@ -472,7 +403,7 @@
                 <i class="fas fa-users"></i>
                 <h2>店铺监控</h2>
                 <p>查看店铺产品图信息</p>
-                <a href="https://wasdkd.github.io/Amazon/ShopProductImages" class="link-btn protected-link">店铺信息</a>
+                <a href="#" class="link-btn protected-link" data-module="ShopProductImages">店铺信息</a>
             </div>
 
             <!-- 卡片2 -->
@@ -480,7 +411,7 @@
                 <i class="fas fa-calendar-alt"></i>
                 <h2>TOP100超级单品</h2>
                 <p>查看TOP100超级单品</p>
-                <a href="https://wasdkd.github.io/Amazon/TOP100SuperItems" class="link-btn protected-link">超级单品</a>
+                <a href="#" class="link-btn protected-link" data-module="TOP100SuperItems">超级单品</a>
             </div>
 
             <!-- 卡片3 -->
@@ -488,7 +419,7 @@
                 <i class="fas fa-file-contract"></i>
                 <h2>品类市场分析</h2>
                 <p>查看品类市场分析</p>
-                <a href="https://wasdkd.github.io/Amazon/CategoryMarketAnalysis#report-1" class="link-btn protected-link">品类分析</a>
+                <a href="#" class="link-btn protected-link" data-module="CategoryMarketAnalysis">品类分析</a>
             </div>
 
             <!-- 卡片4 -->
@@ -496,10 +427,10 @@
                 <i class="fas fa-chart-line"></i>
                 <h2>ABA关键词分析</h2>
                 <p>查看ABA关键词月搜索量变化趋势</p>
-                <a href="https://wasdkd.github.io/Amazon/AbaKeyword" class="link-btn protected-link">ABA-月度</a>
-                <a href="https://wasdkd.github.io/Amazon/AbaKeyword2" class="link-btn protected-link">ABA-周度</a> <br>
-                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering" class="link-btn protected-link">筛选-月度</a>
-                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering2" class="link-btn protected-link">筛选-周度</a>
+                <a href="#" class="link-btn protected-link" data-module="AbaKeyword">ABA-月度</a>
+                <a href="#" class="link-btn protected-link" data-module="AbaKeyword2">ABA-周度</a> <br>
+                <a href="#" class="link-btn protected-link" data-module="KeywordFiltering">筛选-月度</a>
+                <a href="#" class="link-btn protected-link" data-module="KeywordFiltering2">筛选-周度</a>
             </div>
 
             <!-- 新增行的卡片 -->
@@ -507,43 +438,16 @@
                 <i class="fas fa-images"></i>
                 <h2>领星ABA关键词</h2>
                 <p>查看ABA关键词TOP3产品信息</p>
-                <a href="https://wasdkd.github.io/Amazon/LingXABA" class="link-btn protected-link">领星ABA</a>
+                <a href="#" class="link-btn protected-link" data-module="LingXABA">领星ABA</a>
             </div>
 
             <div class="card">
                 <i class="fas fa-border-all"></i>
                 <h2>站外产品监控</h2>
                 <p>查看站外产品信息</p>
-                <a href="https://wasdkd.github.io/Amazon/Outside" class="link-btn protected-link">站外产品</a>
+                <a href="#" class="link-btn protected-link" data-module="Outside">站外产品</a>
             </div>
         </div>
-
-        <!-- 安全信息区域 -->
-<!--        <div class="security-section">-->
-<!--            <h3><i class="fas fa-shield-alt"></i> 平台安全信息</h3>-->
-<!--            <div class="security-grid">-->
-<!--                <div class="security-item">-->
-<!--                    <i class="fas fa-key"></i>-->
-<!--                    <h4>访问控制</h4>-->
-<!--                    <p>所有受保护页面需要密码验证后才能访问</p>-->
-<!--                </div>-->
-<!--                <div class="security-item">-->
-<!--                    <i class="fas fa-lock"></i>-->
-<!--                    <h4>数据加密</h4>-->
-<!--                    <p>使用SHA-256加密存储密码</p>-->
-<!--                </div>-->
-<!--                <div class="security-item">-->
-<!--                    <i class="fas fa-redo"></i>-->
-<!--                    <h4>会话管理</h4>-->
-<!--                    <p>关闭浏览器后需要重新验证</p>-->
-<!--                </div>-->
-<!--                <div class="security-item">-->
-<!--                    <i class="fas fa-exclamation-triangle"></i>-->
-<!--                    <h4>安全重定向</h4>-->
-<!--                    <p>未验证访问直接跳转回首页</p>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
 
         <footer>
             <div id="authStatusFooter" style="margin-bottom: 15px; display: none;">
@@ -551,44 +455,27 @@
                     <i class="fas fa-sign-out-alt"></i> 安全退出
                 </button>
             </div>
-            <p>© 2025 市场分析 | 前台导航系统 v2.2 | 增强安全版本</p>
+            <p>© 2025 市场分析 | 前台导航系统 v2.3 | 增强安全版本</p>
         </footer>
     </div>
 
     <script>
         const correctHash = "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e";
-        let targetLink = null; // 存储用户点击的链接
-        const protectedModules = [
-            'ShopProductImages',
-            'TOP100SuperItems',
-            'CategoryMarketAnalysis',
-            'AbaKeyword',
-            'AbaKeyword2',
-            'KeywordFiltering',
-            'KeywordFiltering2',
-            'LingXABA',
-            'Outside'
-        ];
+        const protectedModules = {
+            'ShopProductImages': 'https://wasdkd.github.io/Amazon/ShopProductImages',
+            'TOP100SuperItems': 'https://wasdkd.github.io/Amazon/TOP100SuperItems',
+            'CategoryMarketAnalysis': 'https://wasdkd.github.io/Amazon/CategoryMarketAnalysis#report-1',
+            'AbaKeyword': 'https://wasdkd.github.io/Amazon/AbaKeyword',
+            'AbaKeyword2': 'https://wasdkd.github.io/Amazon/AbaKeyword2',
+            'KeywordFiltering': 'https://wasdkd.github.io/Amazon/KeywordFiltering',
+            'KeywordFiltering2': 'https://wasdkd.github.io/Amazon/KeywordFiltering2',
+            'LingXABA': 'https://wasdkd.github.io/Amazon/LingXABA',
+            'Outside': 'https://wasdkd.github.io/Amazon/Outside'
+        };
         const homePage = "https://wasdkd.github.io/Amazon/AmazonDigitsPlatform";
-
-        // 检查当前URL是否指向受保护模块
-        function isProtectedModule() {
-            const currentPath = window.location.pathname;
-            return protectedModules.some(module => currentPath.includes(module));
-        }
 
         // 页面加载时执行
         window.onload = function() {
-            // 检查是否是直接访问模块页面
-            if (isProtectedModule()) {
-                // 检查是否已认证
-                if (!sessionStorage.getItem('authenticated')) {
-                    // 未认证，重定向到首页
-                    window.location.href = homePage;
-                }
-                return;
-            }
-
             // 添加密码可见性切换
             document.getElementById('togglePassword').addEventListener('click', function() {
                 const input = document.getElementById('passwordInput');
@@ -610,17 +497,19 @@
             document.getElementById('closeModal').addEventListener('click', function() {
                 document.getElementById('passwordModal').style.display = 'none';
                 document.getElementById('errorMessage').classList.remove('show');
-                targetLink = null; // 清除目标链接
             });
 
             // 为所有受保护的链接添加点击事件
             const protectedLinks = document.querySelectorAll('.protected-link');
             protectedLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const module = this.dataset.module;
+
                     // 检查是否已经验证过
                     if (!sessionStorage.getItem('authenticated')) {
-                        e.preventDefault(); // 阻止默认跳转
-                        targetLink = this.href; // 存储目标链接
+                        // 存储目标模块
+                        sessionStorage.setItem('targetModule', module);
                         // 显示密码输入框
                         document.getElementById('passwordModal').style.display = 'block';
                         // 清空之前的输入和错误信息
@@ -628,6 +517,9 @@
                         document.getElementById('errorMessage').classList.remove('show');
                         // 聚焦到密码输入框
                         document.getElementById('passwordInput').focus();
+                    } else {
+                        // 已经认证，直接跳转
+                        window.location.href = protectedModules[module];
                     }
                 });
             });
@@ -648,7 +540,25 @@
 
             // 检查认证状态并更新UI
             updateAuthStatusUI();
+
+            // 检查URL参数中是否有重定向请求
+            checkRedirectRequest();
         };
+
+        // 检查重定向请求
+        function checkRedirectRequest() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect');
+
+            if (redirect && sessionStorage.getItem('authenticated')) {
+                // 如果已认证且有重定向请求，跳转到目标模块
+                if (protectedModules[redirect]) {
+                    window.location.href = protectedModules[redirect];
+                } else {
+                    showAuthStatus("请求的模块不存在", "warning");
+                }
+            }
+        }
 
         // 更新认证状态UI
         function updateAuthStatusUI() {
@@ -675,7 +585,7 @@
             const authStatusText = document.getElementById('authStatusText');
 
             authStatus.style.display = 'block';
-            authStatus.className = `warning-banner ${type}`;
+            authStatus.className = `warning-banner ${type === 'auth-info' ? 'auth-info' : ''}`;
             authStatusText.innerHTML = message;
 
             // 3秒后自动隐藏
@@ -732,12 +642,15 @@
                     updateAuthStatusUI();
                     showAuthStatus('<i class="fas fa-check-circle"></i> 验证成功！正在跳转...', 'auth-success');
 
-                    // 跳转到目标链接
-                    if (targetLink) {
+                    // 获取目标模块并跳转
+                    const targetModule = sessionStorage.getItem('targetModule');
+                    if (targetModule && protectedModules[targetModule]) {
                         setTimeout(() => {
-                            window.location.href = targetLink;
+                            window.location.href = protectedModules[targetModule];
                         }, 1000);
                     }
+                    // 清除存储的目标模块
+                    sessionStorage.removeItem('targetModule');
                 } else {
                     // 密码错误，显示错误信息
                     errorMessage.textContent = "密码错误，请重试";
