@@ -15,7 +15,8 @@
             'KeywordFiltering',
             'KeywordFiltering2',
             'LingXABA',
-            'Outside'
+            'Outside',
+			'Patent'
         ],
 
         // 首页URL
