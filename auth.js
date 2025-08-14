@@ -16,7 +16,9 @@
             'KeywordFiltering2',
             'LingXABA',
             'Outside',
-			'Patent'
+            'Patent',
+            'NewReleases',
+            'BestSellers'
         ],
 
         // 首页URL
@@ -45,12 +47,37 @@
         return hashHex;
     }
 
+    // 检查用户是否已认证且未过期
+    function isAuthenticated() {
+        const authData = localStorage.getItem('authenticated');
+        if (!authData) return false;
+
+        try {
+            const { timestamp } = JSON.parse(authData);
+            // 检查认证是否在3小时内（与首页设置的时间一致）
+            const now = new Date().getTime();
+            const threeHours = 3 * 60 * 60 * 1000; // 3小时的毫秒数
+
+            if (now - timestamp < threeHours) {
+                return true;
+            } else {
+                // 认证过期，清除认证信息
+                localStorage.removeItem('authenticated');
+                return false;
+            }
+        } catch (e) {
+            // 数据格式错误，清除认证信息
+            localStorage.removeItem('authenticated');
+            return false;
+        }
+    }
+
     // 检查认证状态
     function checkAuth() {
         // 检查是否是受保护的模块页面
         if (isProtectedModule()) {
             // 检查是否已认证
-            if (!sessionStorage.getItem('authenticated')) {
+            if (!isAuthenticated()) {
                 // 未认证，重定向到首页
                 window.location.href = CONFIG.homeUrl;
                 return false;
