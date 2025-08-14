@@ -525,7 +525,8 @@
             s.parentNode.insertBefore(hm, s);
         })();
     </script>
-    <script>        let targetLink = null; // 存储用户点击的链接
+    <script>
+        let targetLink = null; // 存储用户点击的链接
 
         // 页面加载时执行
         window.onload = function() {
@@ -567,7 +568,7 @@
             protectedLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
                     // 检查是否已经验证过
-                    if (!isAuthenticated()) {
+                    if (!sessionStorage.getItem('authenticated')) {
                         e.preventDefault(); // 阻止默认跳转
                         targetLink = this.href; // 存储目标链接
                         // 显示密码输入框
@@ -592,34 +593,9 @@
             updateAuthStatusUI();
         };
 
-        // 检查用户是否已认证且未过期
-        function isAuthenticated() {
-            const authData = localStorage.getItem('authenticated');
-            if (!authData) return false;
-
-            try {
-                const { timestamp } = JSON.parse(authData);
-                // 检查认证是否在24小时内
-                const now = new Date().getTime();
-                const oneDay = 3 * 60 * 60 * 1000; // 3小时的毫秒数
-
-                if (now - timestamp < oneDay) {
-                    return true;
-                } else {
-                    // 认证过期，清除认证信息
-                    localStorage.removeItem('authenticated');
-                    return false;
-                }
-            } catch (e) {
-                // 数据格式错误，清除认证信息
-                localStorage.removeItem('authenticated');
-                return false;
-            }
-        }
-
         // 更新认证状态UI
         function updateAuthStatusUI() {
-            if (isAuthenticated()) {
+            if (sessionStorage.getItem('authenticated')) {
                 document.getElementById('authenticatedSuccess').style.display = 'block';
                 document.getElementById('unauthenticatedWarning').style.display = 'none';
             } else {
@@ -647,12 +623,8 @@
                 const inputHash = await AuthModule.sha256(password);
 
                 if (inputHash === AuthModule.CONFIG.correctHash) {
-                    // 密码正确，设置验证标记和时间戳
-                    const authData = {
-                        authenticated: true,
-                        timestamp: new Date().getTime()
-                    };
-                    localStorage.setItem('authenticated', JSON.stringify(authData));
+                    // 密码正确，设置验证标记
+                    sessionStorage.setItem('authenticated', 'true');
                     // 隐藏模态框
                     document.getElementById('passwordModal').style.display = 'none';
                     // 清空密码框
