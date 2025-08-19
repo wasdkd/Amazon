@@ -80,7 +80,7 @@
                         margin-bottom: 15px;
                     }
                     .chart-block {
-                                flex: 0 0 calc(20% - 12px);  /* 改为每行5个 */
+                                flex: 0 0 calc(14.2857% - 12px);  /* 改为每行5个 */
                                 background-color: white;
                                 border: 1px solid #ddd;
                                 border-radius: 5px;
@@ -88,7 +88,7 @@
                                 box-shadow: 0 2px 5px rgba(0,0,0,0.1);
                                 transition: transform 0.2s;
                                 box-sizing: border-box;
-                                max-width: 20%;
+                                max-width: 14.2857%;
                             }
                     .chart-block:hover {
                         transform: translateY(-5px);
@@ -96,35 +96,35 @@
                     }
                     .product-image {
                         width: 100%;
-                        height: 480px;
+                        height: 350px;
                         object-fit: contain;
                         background-color: #f8f8f8;
                     }
                     @media (max-width: 1800px) {
-                                .chart-block {
-                                    flex: 0 0 calc(20% - 12px);  /* 改为每行5个 */
-                                }
-                            }
-                            @media (max-width: 1200px) {
-                                .chart-block {
-                                    flex: 0 0 calc(25% - 12px);  /* 改为每行4个 */
-                                }
-                            }
-                            @media (max-width: 900px) {
-                                .chart-block {
-                                    flex: 0 0 calc(33.333% - 12px);  /* 改为每行3个 */
-                                }
-                            }
-                            @media (max-width: 600px) {
-                                .chart-block {
-                                    flex: 0 0 calc(50% - 12px);  /* 改为每行2个 */
-                                }
-                            }
-                            @media (max-width: 400px) {
-                                .chart-block {
-                                    flex: 0 0 100%;  /* 改为每行1个 */
-                                }
-                            }
+                    .chart-block {
+                        flex: 0 0 calc(14.2857% - 12px);
+                    }
+                }
+                @media (max-width: 1200px) {
+                    .chart-block {
+                        flex: 0 0 calc(20% - 12px); /* 每行5个 */
+                    }
+                }
+                @media (max-width: 900px) {
+                    .chart-block {
+                        flex: 0 0 calc(25% - 12px); /* 每行4个 */
+                    }
+                }
+                @media (max-width: 600px) {
+                    .chart-block {
+                        flex: 0 0 calc(33.333% - 12px); /* 每行3个 */
+                    }
+                }
+                @media (max-width: 400px) {
+                    .chart-block {
+                        flex: 0 0 calc(50% - 12px); /* 每行2个 */
+                    }
+                }
                 </style>
                 
                                     <script>
@@ -740,13 +740,13 @@
                                         const chartBlock = createChartBlock(p);
                                         currentRow.push(chartBlock);
 
-                                        if (currentRow.length === 5 || i === pageProducts.length - 1) {  // 改为5个产品一行
+                                        if (currentRow.length === 7 || i === pageProducts.length - 1) {  // 改为5个产品一行
                                             const row = document.createElement('div');
                                             row.className = 'row product-row';
                                             row.id = 'row-' + rowIndex;
 
                                             currentRow.forEach(b => row.appendChild(b));
-                                            while (row.children.length < 5) {  // 改为补齐到5个
+                                            while (row.children.length < 7) {  // 改为补齐到5个
                                                 const blank = document.createElement('div');
                                                 blank.className = 'blank-block';
                                                 row.appendChild(blank);
@@ -822,13 +822,12 @@
                                             <div class="chart-info">
                                                 <span>上架时间: </span>
                                                 <span class="value">${product.date}</span>
-                                                <span>；季节: </span>
-                                                <span class="value">${product.season}</span>
+
                                             </div>
-                                            <!-- <div class="chart-info">
+                                            <div class="chart-info">
                                                 <span>季节: </span>
                                                 <span class="value">${product.season}</span>
-                                            </div> -->
+                                            </div> 
                                             <div class="chart-info">
                                                 <span>品类: </span>
                                                 <span class="value">
@@ -1288,9 +1287,9 @@
                             .blank-block {
                                 flex: 0 0 calc(20% - 12px);
                                 visibility: hidden;
-                                padding: 12px;
+                                padding: 6px;
                                 box-sizing: border-box;
-                                max-width: 20%;  /* 与chart-block保持一致 */
+                                max-width: 14.2857%;  /* 与chart-block保持一致 */
                             }
 
                             .filter-title {
