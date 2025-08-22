@@ -356,7 +356,6 @@
             background: linear-gradient(to right, #e74c3c, #c0392b);
             color: white;
             width: 50%;
-
             padding: 5px;
             text-align: center;
             border-radius: 6px;
@@ -404,6 +403,22 @@
             color: #2c3e50;
             text-align: center;
         }
+
+        /* 新增：特殊模块提示样式 */
+        .special-module-note {
+            background-color: #e8f4fd;
+            border-left: 4px solid #2196F3;
+            padding: 1px 10px;
+            margin: 1px 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #0d47a1;
+        }
+
+        .special-module-note i {
+            color: #2196F3;
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -419,8 +434,8 @@
     <div id="passwordModal" class="password-modal">
         <div class="password-content">
             <span class="close-modal" id="closeModal">&times;</span>
-            <h2>安全验证</h2>
-            <p style="color: #7f8c8d; margin-bottom: 15px; font-size: 0.9rem;">
+            <h2 id="modalTitle">安全验证</h2>
+            <p id="modalDescription" style="color: #7f8c8d; margin-bottom: 15px; font-size: 0.9rem;">
                 您正在访问受保护的内容，请输入密码
             </p>
             <div class="password-input-container">
@@ -443,10 +458,12 @@
 
             <!-- 认证成功提示 -->
             <div id="authenticatedSuccess" class="warning-banner" style="background: linear-gradient(to right, #27ae60, #2ecc71); display: none;">
-                <i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问所有模块
+                <i class="fas fa-check-circle"></i> 安全验证通过！您现在可以访问部分模块
             </div>
-<!--            <div class="security-note">-->
-<!--                <i class="fas fa-lock"></i> 本平台的所有链接受密码保护，首次访问需要输入密码-->
+
+            <!-- 特殊模块提示 -->
+<!--            <div class="special-module-note">-->
+<!--                <i class="fas fa-info-circle"></i> 注意：店铺分析模块需要特殊的访问密码-->
 <!--            </div>-->
         </header>
 
@@ -456,7 +473,7 @@
                 <i class="fas fa-users"></i>
                 <h2>店铺监控</h2>
                 <p>查看店铺产品图信息</p>
-                <a href="https://wasdkd.github.io/Amazon/ShopProductImages" class="link-btn protected-link">店铺信息</a>
+                <a href="https://wasdkd.github.io/Amazon/ShopProductImages" class="link-btn protected-link" data-password-type="general">店铺信息</a>
             </div>
 
             <!-- 卡片2 -->
@@ -464,9 +481,9 @@
                 <i class="fas fa-calendar-alt"></i>
                 <h2>新品榜+热销榜</h2>
                 <p>查看新品榜、热销榜和超级单品</p>
-				<a href="https://wasdkd.github.io/Amazon/NewReleases" class="link-btn protected-link">New Releases</a>
-				<a href="https://wasdkd.github.io/Amazon/BestSellers" class="link-btn protected-link">Best Sellers</a>
-                <a href="https://wasdkd.github.io/Amazon/TOP100SuperItems" class="link-btn protected-link">超级单品</a>
+				<a href="https://wasdkd.github.io/Amazon/NewReleases" class="link-btn protected-link" data-password-type="general">New Releases</a>
+				<a href="https://wasdkd.github.io/Amazon/BestSellers" class="link-btn protected-link" data-password-type="general">Best Sellers</a>
+                <a href="https://wasdkd.github.io/Amazon/TOP100SuperItems" class="link-btn protected-link" data-password-type="general">超级单品</a>
             </div>
 
             <!-- 卡片3 -->
@@ -474,7 +491,7 @@
                 <i class="fas fa-file-contract"></i>
                 <h2>品类市场分析</h2>
                 <p>查看品类市场分析</p>
-                <a href="https://wasdkd.github.io/Amazon/CategoryMarketAnalysis#report-1" class="link-btn protected-link">品类分析</a>
+                <a href="https://wasdkd.github.io/Amazon/CategoryMarketAnalysis#report-1" class="link-btn protected-link" data-password-type="general">品类分析</a>
             </div>
 
             <!-- 卡片4 -->
@@ -482,10 +499,10 @@
                 <i class="fas fa-chart-line"></i>
                 <h2>ABA关键词分析</h2>
                 <p>查看ABA关键词月搜索量变化趋势</p>
-                <a href="https://wasdkd.github.io/Amazon/AbaKeyword" class="link-btn protected-link">ABA-月度</a>
-                <a href="https://wasdkd.github.io/Amazon/AbaKeyword2" class="link-btn protected-link">ABA-周度</a> <br>
-                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering" class="link-btn protected-link">筛选-月度</a>
-                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering2" class="link-btn protected-link">筛选-周度</a>
+                <a href="https://wasdkd.github.io/Amazon/AbaKeyword" class="link-btn protected-link" data-password-type="general">ABA-月度</a>
+                <a href="https://wasdkd.github.io/Amazon/AbaKeyword2" class="link-btn protected-link" data-password-type="general">ABA-周度</a> <br>
+                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering" class="link-btn protected-link" data-password-type="general">筛选-月度</a>
+                <a href="https://wasdkd.github.io/Amazon/KeywordFiltering2" class="link-btn protected-link" data-password-type="general">筛选-周度</a>
             </div>
 
             <!-- 新增行的卡片 -->
@@ -493,31 +510,43 @@
                 <i class="fas fa-images"></i>
                 <h2>领星ABA关键词</h2>
                 <p>查看ABA关键词TOP3产品信息</p>
-                <a href="https://wasdkd.github.io/Amazon/LingXABA" class="link-btn protected-link">领星ABA</a>
+                <a href="https://wasdkd.github.io/Amazon/LingXABA" class="link-btn protected-link" data-password-type="general">领星ABA</a>
             </div>
 
             <div class="card">
                 <i class="fas fa-border-all"></i>
                 <h2>站外产品监控</h2>
                 <p>查看站外产品信息</p>
-                <a href="https://wasdkd.github.io/Amazon/Outside" class="link-btn protected-link">站外产品</a>
+                <a href="https://wasdkd.github.io/Amazon/Outside" class="link-btn protected-link" data-password-type="general">站外产品</a>
             </div>
 
             	<div class="card">
                 <i class="fas fa-shield"></i>
                 <h2>专利信息</h2>
                 <p>查看专利信息</p>
-                <a href="https://wasdkd.github.io/Amazon/Patent" class="link-btn protected-link">专利信息</a>
+                <a href="https://wasdkd.github.io/Amazon/Patent" class="link-btn protected-link" data-password-type="general">专利信息</a>
+            </div>
+
+            <div class="card">
+                <i class="fas fa-chart-bar"></i>
+                <h2>店铺分析</h2>
+                <p>查看店铺分析数据</p>
+                <a href="https://wasdkd.github.io/Amazon/EveryDay" class="link-btn protected-link" data-password-type="special">日常分析</a>
+                <a href="https://wasdkd.github.io/Amazon/Surge" class="link-btn protected-link" data-password-type="special">暴增分析</a>
+                <a href="https://wasdkd.github.io/Amazon/Plummet" class="link-btn protected-link" data-password-type="special">暴跌分析</a>
             </div>
         </div>
 
         <footer>
-            <p>© 2025 市场分析 | 前台导航系统 v2.1 | 增强安全版本</p>
+            <p>© 2025 市场分析 | 前台导航系统 v2.2 | 多密码安全版本</p>
         </footer>
     </div>
 
+    <!-- 先引入auth.js，确保密码配置可用 -->
     <script src="auth.js"></script>
-     <script>        var _hmt = _hmt || [];
+    <!-- 百度统计代码 -->
+    <script>
+        var _hmt = _hmt || [];
         (function() {
             var hm = document.createElement("script");
             hm.src = "https://hm.baidu.com/hm.js?ffb491ac5524cd937e870d25b321f38f";
@@ -525,7 +554,10 @@
             s.parentNode.insertBefore(hm, s);
         })();
     </script>
-    <script>        let targetLink = null; // 存储用户点击的链接
+
+    <script>
+        let targetLink = null; // 存储用户点击的链接
+        let currentPasswordType = 'general'; // 当前需要的密码类型
 
         // 页面加载时执行
         window.onload = function() {
@@ -566,10 +598,18 @@
             const protectedLinks = document.querySelectorAll('.protected-link');
             protectedLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
+                    // 获取密码类型
+                    const passwordType = this.getAttribute('data-password-type') || 'general';
+
                     // 检查是否已经验证过
-                    if (!isAuthenticated()) {
+                    if (!isAuthenticated(passwordType)) {
                         e.preventDefault(); // 阻止默认跳转
                         targetLink = this.href; // 存储目标链接
+                        currentPasswordType = passwordType; // 设置当前密码类型
+
+                        // 更新模态框提示信息
+                        updateModalContent(passwordType);
+
                         // 显示密码输入框
                         document.getElementById('passwordModal').style.display = 'block';
                         // 清空之前的输入和错误信息
@@ -592,34 +632,72 @@
             updateAuthStatusUI();
         };
 
+        // 更新模态框内容
+        function updateModalContent(passwordType) {
+            const title = document.getElementById('modalTitle');
+            const description = document.getElementById('modalDescription');
+
+            if (passwordType === 'special') {
+                title.textContent = '特殊模块安全验证';
+                description.textContent = '您正在访问店铺分析模块，请输入特殊访问密码';
+            } else {
+                title.textContent = '安全验证';
+                description.textContent = '您正在访问受保护的内容，请输入通用访问密码';
+            }
+        }
+
+        // SHA-256哈希函数
+        async function sha256(message) {
+            // 将消息编码为UTF-8
+            const msgBuffer = new TextEncoder().encode(message);
+
+            // 使用Web Crypto API计算哈希
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+
+            // 将ArrayBuffer转换为字节数组
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+            // 将字节转换为十六进制字符串
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
         // 检查用户是否已认证且未过期
-        function isAuthenticated() {
-            const authData = localStorage.getItem('authenticated');
+        function isAuthenticated(passwordType = 'general') {
+            const authKey = `authenticated_${passwordType}`;
+            const authData = localStorage.getItem(authKey);
+
             if (!authData) return false;
 
             try {
                 const { timestamp } = JSON.parse(authData);
-                // 检查认证是否在24小时内
+                // 检查认证是否在3小时内
                 const now = new Date().getTime();
-                const oneDay = 3 * 60 * 60 * 1000; // 3小时的毫秒数
+                const threeHours = 3 * 60 * 60 * 1000;
 
-                if (now - timestamp < oneDay) {
+                if (now - timestamp < threeHours) {
                     return true;
                 } else {
                     // 认证过期，清除认证信息
-                    localStorage.removeItem('authenticated');
+                    localStorage.removeItem(authKey);
                     return false;
                 }
             } catch (e) {
                 // 数据格式错误，清除认证信息
-                localStorage.removeItem('authenticated');
+                localStorage.removeItem(authKey);
                 return false;
             }
         }
 
         // 更新认证状态UI
         function updateAuthStatusUI() {
-            if (isAuthenticated()) {
+            // 检查是否有任何认证通过
+            const hasGeneralAuth = isAuthenticated('general');
+            const hasSpecialAuth = isAuthenticated('special');
+
+            const anyAuthenticated = hasGeneralAuth || hasSpecialAuth;
+
+            if (anyAuthenticated) {
                 document.getElementById('authenticatedSuccess').style.display = 'block';
                 document.getElementById('unauthenticatedWarning').style.display = 'none';
             } else {
@@ -644,15 +722,25 @@
 
             try {
                 // 计算输入密码的SHA-256哈希
-                const inputHash = await AuthModule.sha256(password);
+                const inputHash = await sha256(password);
+                let isCorrect = false;
 
-                if (inputHash === AuthModule.CONFIG.correctHash) {
+                // 根据密码类型检查不同的哈希
+                if (currentPasswordType === 'general') {
+                    isCorrect = inputHash === window.AuthConfig.correctHashGeneral;
+                } else {
+                    isCorrect = inputHash === window.AuthConfig.correctHashSpecial;
+                }
+
+                if (isCorrect) {
                     // 密码正确，设置验证标记和时间戳
+                    const authKey = `authenticated_${currentPasswordType}`;
                     const authData = {
                         authenticated: true,
                         timestamp: new Date().getTime()
                     };
-                    localStorage.setItem('authenticated', JSON.stringify(authData));
+                    localStorage.setItem(authKey, JSON.stringify(authData));
+
                     // 隐藏模态框
                     document.getElementById('passwordModal').style.display = 'none';
                     // 清空密码框

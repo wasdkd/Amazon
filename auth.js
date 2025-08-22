@@ -2,33 +2,52 @@
 (function() {
     // 配置信息
     const CONFIG = {
-        // 正确的密码哈希值
-        correctHash: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
+        // 通用密码哈希值
+        correctHashGeneral: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
 
-        // 受保护的模块列表
-        protectedModules: [
-            'ShopProductImages',
-            'TOP100SuperItems',
-            'CategoryMarketAnalysis',
-            'AbaKeyword',
-            'AbaKeyword2',
-            'KeywordFiltering',
-            'KeywordFiltering2',
-            'LingXABA',
-            'Outside',
-            'Patent',
-            'NewReleases',
-            'BestSellers'
-        ],
+        // 特殊模块密码哈希值（店铺分析的三个模块使用相同的密码）
+        correctHashSpecial: "172482e5768d2b2d2ff627f5e24da1d3006d397c3a74e0f744e7d6ea6c6f33a6", // 请替换为实际哈希值
+
+        // 受保护的模块列表及其密码类型
+        protectedModules: {
+            // 通用密码模块
+            general: [
+                'ShopProductImages',
+                'TOP100SuperItems',
+                'CategoryMarketAnalysis',
+                'AbaKeyword',
+                'AbaKeyword2',
+                'KeywordFiltering',
+                'KeywordFiltering2',
+                'LingXABA',
+                'Outside',
+                'Patent',
+                'NewReleases',
+                'BestSellers'
+            ],
+
+            // 特殊密码模块（店铺分析的三个模块使用相同的特殊密码）
+            special: ['EveryDay', 'Surge', 'Plummet']
+        },
 
         // 首页URL
         homeUrl: 'https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'
     };
 
-    // 检查当前URL是否指向受保护模块
-    function isProtectedModule() {
+    // 暴露配置到全局，供首页使用
+    window.AuthConfig = CONFIG;
+
+    // 检查当前URL是否指向受保护模块并返回密码类型
+    function getProtectedModuleType() {
         const currentPath = window.location.pathname.split('/').pop();
-        return CONFIG.protectedModules.some(module => currentPath.includes(module));
+
+        for (const [type, modules] of Object.entries(CONFIG.protectedModules)) {
+            if (modules.some(module => currentPath.includes(module))) {
+                return type;
+            }
+        }
+
+        return null;
     }
 
     // SHA-256哈希函数
@@ -48,8 +67,9 @@
     }
 
     // 检查用户是否已认证且未过期
-    function isAuthenticated() {
-        const authData = localStorage.getItem('authenticated');
+    function isAuthenticated(passwordType) {
+        const authKey = `authenticated_${passwordType}`;
+        const authData = localStorage.getItem(authKey);
         if (!authData) return false;
 
         try {
@@ -62,12 +82,12 @@
                 return true;
             } else {
                 // 认证过期，清除认证信息
-                localStorage.removeItem('authenticated');
+                localStorage.removeItem(authKey);
                 return false;
             }
         } catch (e) {
             // 数据格式错误，清除认证信息
-            localStorage.removeItem('authenticated');
+            localStorage.removeItem(authKey);
             return false;
         }
     }
@@ -75,9 +95,10 @@
     // 检查认证状态
     function checkAuth() {
         // 检查是否是受保护的模块页面
-        if (isProtectedModule()) {
+        const moduleType = getProtectedModuleType();
+        if (moduleType) {
             // 检查是否已认证
-            if (!isAuthenticated()) {
+            if (!isAuthenticated(moduleType)) {
                 // 未认证，重定向到首页
                 window.location.href = CONFIG.homeUrl;
                 return false;
@@ -96,7 +117,7 @@
     // 暴露公共接口
     window.AuthModule = {
         checkAuth: checkAuth,
-        isProtectedModule: isProtectedModule,
+        getProtectedModuleType: getProtectedModuleType,
         sha256: sha256,
         CONFIG: CONFIG
     };
