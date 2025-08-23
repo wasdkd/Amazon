@@ -27,7 +27,7 @@
             ],
 
             // 特殊密码模块（店铺分析的三个模块使用相同的特殊密码）
-            special: ['EveryDay', 'Surge', 'Plummet']
+            special: ['StoreAnalysis']
         },
 
         // 首页URL
