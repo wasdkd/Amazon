@@ -1,0 +1,219 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<title>企划数据看板</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root {
+    --primary: #0d6efd; --primary-dark: #0b5ed7; --secondary: #6c757d;
+    --success: #198754; --light: #f8f9fa; --dark: #212529;
+    --border-radius: 8px; --box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;background:var(--light);color:var(--dark);line-height:1.5}
+.container{width:100%;max-width:100%;padding:0;margin:0}
+.header{background:linear-gradient(120deg,var(--primary),#0b5ed7);color:white;padding:1rem 2rem;box-shadow:var(--box-shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.header h1{font-size:1.5rem;font-weight:600}
+.header-time{font-size:1rem;opacity:.95}
+.search-container{display:flex;gap:0.5rem;align-items:center;margin:0 1rem}
+.search-input{padding:0.5rem;border-radius:var(--border-radius);border:1px solid #ced4da;font-size:1rem;min-width:200px}
+.search-button{background:var(--success);color:white;border:none;padding:0.5rem 1rem;border-radius:var(--border-radius);cursor:pointer;font-weight:500}
+.nav-buttons{display:flex;gap:0.5rem;align-items:center}
+.nav-button{background:#6f42c1;color:white;border:none;padding:0.5rem;border-radius:var(--border-radius);cursor:pointer;font-weight:500}
+.view-button{display:inline-block;background:var(--primary);color:white;padding:0.5rem 1rem;border:none;border-radius:var(--border-radius);text-decoration:none;font-weight:500;transition:all .2s ease-in-out;width:100%;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.1);cursor:pointer}
+.view-button:hover{background:var(--primary-dark);transform:scale(1.02);box-shadow:0 4px 8px rgba(0,0,0,.15)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:1.5rem;padding:1.5rem;justify-content:center;max-width:1500px;margin:0 auto}
+.card{background:white;border:1px solid #dee2e6;border-radius:var(--border-radius);overflow:hidden;box-shadow:var(--box-shadow);transition:all .2s ease-in-out;margin:0 auto;max-width:350px}
+.card:hover{transform:translateY(-.25rem);box-shadow:0 .5rem 1rem rgba(0,0,0,.15)}
+.card-header{padding:.75rem 1rem;background:linear-gradient(120deg,var(--primary),#0b5ed7);color:white;border-bottom:1px solid #dee2e6;font-weight:600;font-size:1.1rem}
+.card-body{padding:1.25rem}
+.file-info{display:flex;justify-content:space-between;margin-bottom:1.25rem;font-size:.875rem;color:#6c757d}
+.file-info span{background-color:#f8f9fa;padding:.25rem .75rem;border-radius:20px}
+.footer{text-align:center;padding:2px;color:#6c757d;font-size:.875rem;border-top:1px solid #dee2e6;margin-top:1px}
+.main-table{border-collapse:collapse;width:100%}
+.main-table th,.main-table td{border:1px solid #ced4da;padding:6px 8px;text-align:center;white-space:nowrap}
+.main-table th{position:sticky;top:0;z-index:3;background:#c8e6c9;color:#000}
+.main-table td:first-child,.main-table th:first-child{position:sticky;left:0;z-index:2;background:inherit}
+.highlight{background-color:#ffeb3b!important;color:#000!important;font-weight:bold}
+.current-highlight{background-color:#ff9800!important;color:#fff!important;font-weight:bold}
+.cross-highlight-row{background-color:rgba(255,255,0,.2)!important}
+.cross-highlight-col{background-color:rgba(255,255,0,.2)!important}
+.cross-highlight-cell{background-color:rgba(255,255,0,.3)!important;position:relative}
+.cross-highlight-cell::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;border:2px solid #ff0;pointer-events:none}
+</style></head><body><div class="container">
+<div class="header"><h1>企划数据看板</h1>
+  <div id="searchControls" style="display:none;flex:1 1 1;justify-content:center;"><div class="search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="输入搜索关键词">
+    <button class="search-button" onclick="performSearch()">搜索</button>
+    <div class="nav-buttons">
+      <button id="prevButton" class="nav-button" onclick="prevResult()" disabled>上一个</button>
+      <div id="searchInfo" class="search-info">无匹配项</div>
+      <button id="nextButton" class="nav-button" onclick="nextResult()" disabled>下一个</button>
+    </div>
+    <button class="search-button" onclick="clearSearch()" style="background:#dc3545;">清除</button>
+  </div></div>
+  <button id="backButton" class="back-button" onclick="goBack()" style="display:none;"><span>←</span><span>返回首页</span></button>
+  <div class="header-time">2025-09-04 15:33:26</div>
+</div>
+<div class="grid-wrapper"><div class="grid">
+<div style="margin:1rem 0;text-align:center;"><button class="view-button" style="background:#28a745" onclick="uploadFile()">📤 上传新Excel</button></div>
+
+</div></div>
+<div id="tableContainer" class="table-container"></div>
+<div class="footer">总计 0 个Excel文件 | 数据看板系统</div>
+</div>
+    <script>
+    window.GH = {
+      OWNER: "wasdkd",
+      REPO : "Amazon",
+      BRANCH: "main",
+      async callGitHub(method, path, body=null, token=""){
+        const url = `https://api.github.com/repos/${this.OWNER}/${this.REPO}/contents/${path}`;
+        const opt = { method, headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github.v3+json",
+          "Content-Type": "application/json"
+        }};
+        if(body) opt.body = JSON.stringify(body);
+        const r = await fetch(url, opt);
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }
+    };
+    window.uploadFile = function (){
+      const tok = prompt("请输入 GitHub Personal Access Token：");
+      if(!tok) return;
+      const inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".xlsx";
+      inp.onchange = async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+        const path = `uploads/${file.name}`;
+        try{ await GH.callGitHub("PUT", path, {message:`upload ${file.name}`, content, branch:GH.BRANCH}, tok);
+          alert("上传成功！即将刷新"); location.reload();
+        }catch(err){ alert("失败："+err); }
+      }; inp.click();
+    };
+    window.deleteFile = async function (fileName) {
+      const tok = prompt("请输入 GitHub Personal Access Token：");
+      if(!tok) return;
+      const path = `uploads/${fileName}`;
+      try{
+        const {sha} = await GH.callGitHub("GET", path, null, tok);
+        await GH.callGitHub("DELETE", path, {message:`delete ${fileName}`, sha, branch:GH.BRANCH}, tok);
+        alert("删除成功！即将刷新"); location.reload();
+      }catch(err){ alert("删除失败：" + err); }
+    };
+    window.overrideFile = function (fileName) {
+      const tok = prompt("请输入 GitHub Personal Access Token：");
+      if(!tok) return;
+      const inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".xlsx";
+      inp.onchange = async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+        const path = `uploads/${fileName}`;
+        try{ 
+          const {sha} = await GH.callGitHub("GET", path, null, tok);
+          await GH.callGitHub("DELETE", path, {message:`override ${fileName}`, sha, branch:GH.BRANCH}, tok);
+          await GH.callGitHub("PUT", path, {message:`override ${fileName}`, content, branch:GH.BRANCH}, tok);
+          alert("覆盖成功！即将刷新"); location.reload();
+        }catch(err){ alert("覆盖失败：" + err); }
+      }; inp.click();
+    };
+    const tableData = {};
+    let searchResults = [], currentResultIndex = -1, searchTerm = '';
+    let currentHighlightedCell = null, highlightedRows = [], highlightedCols = [];
+
+    function showTable(fileKey, fileName) {
+      document.querySelector('.grid-wrapper').style.display = 'none';
+      document.querySelector('.header h1').textContent = fileName;
+      document.getElementById('backButton').style.display = 'inline-flex';
+      const container = document.getElementById('tableContainer');
+      container.innerHTML = '<div class="table-wrapper">' + tableData[fileKey] + '</div>';
+      container.style.display = 'block';
+      document.getElementById('searchControls').style.display = 'flex';
+      if (searchTerm) performSearch(false);
+      setTimeout(() => { const t = document.querySelector('.main-table'); if (t) t.addEventListener('click', handleCellClick); }, 100);
+    }
+    function goBack() {
+      document.querySelector('.grid-wrapper').style.display = 'flex';
+      document.querySelector('.header h1').textContent = '企划数据看板';
+      document.getElementById('backButton').style.display = 'none';
+      document.getElementById('tableContainer').style.display = 'none';
+      document.getElementById('searchControls').style.display = 'none';
+      clearSearch(); clearCrossHighlight();
+    }
+    function handleCellClick(e) {
+  const cell = e.target; if (cell.tagName !== 'TD' && cell.tagName !== 'TH') return;
+  clearCrossHighlight(); currentHighlightedCell = cell; cell.classList.add('cross-highlight-cell');
+  const table = cell.closest('table'), allRows = Array.from(table.querySelectorAll('tr'));
+  const cellRect = cell.getBoundingClientRect(), cellCenterX = (cellRect.left + cellRect.right)/2, cellCenterY = (cellRect.top + cellRect.bottom)/2;
+  allRows.forEach(row => { 
+    const cells = Array.from(row.querySelectorAll('td, th')); 
+    cells.forEach(targetCell => {
+      const tRect = targetCell.getBoundingClientRect(), tCenterX = (tRect.left + tRect.right)/2, tCenterY = (tRect.top + tRect.bottom)/2;
+      if (Math.abs(tCenterY - cellCenterY) < 2) { 
+        targetCell.classList.add('cross-highlight-row'); 
+        highlightedRows.push(targetCell); 
+      }
+      if (Math.abs(tCenterX - cellCenterX) < 2) { 
+        targetCell.classList.add('cross-highlight-col'); 
+        highlightedCols.push(targetCell); 
+      }
+    }); 
+  }); 
+}
+    function clearCrossHighlight() {
+      if (currentHighlightedCell) { currentHighlightedCell.classList.remove('cross-highlight-cell'); currentHighlightedCell = null; }
+      highlightedRows.forEach(c => c.classList.remove('cross-highlight-row')); highlightedRows = [];
+      highlightedCols.forEach(c => c.classList.remove('cross-highlight-col')); highlightedCols = [];
+    }
+    function performSearch(scroll=true) {
+      const searchInput = document.getElementById('searchInput');
+      const newSearchTerm = searchInput ? searchInput.value.trim() : '';
+      if (!newSearchTerm) { alert('请输入搜索关键词'); return; }
+      const tableWrapper = document.querySelector('.table-wrapper');
+      if (!tableWrapper) { alert('请先选择一个表格文件'); return; }
+      if (searchTerm !== newSearchTerm || searchResults.length === 0) {
+        searchTerm = newSearchTerm; clearHighlights();
+        const regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        const tableCells = tableWrapper.querySelectorAll('td, th');
+        tableCells.forEach((cell, idx) => { if (regex.test(cell.textContent)) { searchResults.push({ element: cell, index: idx }); } });
+        if (searchResults.length === 0) { alert('未找到匹配项'); updateSearchInfo(); return; }
+        searchResults.forEach((res, i) => { res.element.innerHTML = res.element.innerHTML.replace(regex, '<span class="highlight" data-highlight-id="hl-${i}">$1</span>'); });
+      }
+      if (scroll) { currentResultIndex = -1; nextResult(); } else if (currentResultIndex >= 0 && currentResultIndex < searchResults.length) { updateCurrentHighlight(); }
+      updateSearchInfo();
+    }
+    function updateCurrentHighlight() {
+      document.querySelectorAll('.current-highlight').forEach(el => el.classList.remove('current-highlight'));
+      if (currentResultIndex >= 0 && currentResultIndex < searchResults.length) { const h = searchResults[currentResultIndex].element.querySelector('.highlight'); if (h) h.classList.add('current-highlight'); }
+    }
+    function clearHighlights() {
+      document.querySelectorAll('.highlight').forEach(span => { span.outerHTML = span.innerHTML; });
+      searchResults = []; currentResultIndex = -1;
+    }
+    function clearSearch() {
+      const searchInput = document.getElementById('searchInput'); if (searchInput) searchInput.value = '';
+      searchTerm = ''; clearHighlights(); updateSearchInfo();
+    }
+    function updateSearchInfo() {
+      const info = document.getElementById('searchInfo');
+      info.textContent = searchResults.length ? `${currentResultIndex + 1}/${searchResults.length}` : '无匹配项';
+      document.getElementById('prevButton').disabled = searchResults.length === 0 || currentResultIndex <= 0;
+      document.getElementById('nextButton').disabled = searchResults.length === 0 || currentResultIndex >= searchResults.length - 1;
+    }
+    function nextResult() {
+      if (searchResults.length === 0 || currentResultIndex >= searchResults.length - 1) return;
+      currentResultIndex++; updateCurrentHighlight(); searchResults[currentResultIndex].element.scrollIntoView({ behavior: 'smooth', block: 'center' }); updateSearchInfo();
+    }
+    function prevResult() {
+      if (searchResults.length === 0 || currentResultIndex <= 0) return;
+      currentResultIndex--; updateCurrentHighlight(); searchResults[currentResultIndex].element.scrollIntoView({ behavior: 'smooth', block: 'center' }); updateSearchInfo();
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const s = document.getElementById('searchInput'); if (s) s.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') clearCrossHighlight(); });
+    });
+    </script>
+</body></html>
