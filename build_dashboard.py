@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# build_dashboard.py
 import datetime, glob, json, os, textwrap
 from openpyxl import load_workbook
 
@@ -25,15 +23,82 @@ def build_blocks(ws):
                 v_blocks[r] = m.min_row
     return h_blocks, v_blocks
 
-def excel_to_html(excel_path):
+# def excel_to_html(excel_path):
+#     wb = load_workbook(excel_path, data_only=True)
+#     ws = wb.worksheets[0]
+#     rows = list(ws.iter_rows())
+#     h_blocks, v_blocks = build_blocks(ws)
+#     merge_map = {(m.min_row, m.min_col, m.max_row, m.max_col): str(ws.cell(m.min_row, m.min_col).value or "")
+#                  for m in ws.merged_cells.ranges}
+#     row_height = 38
+#     html_lines = ['<table class="main-table"><thead>']
+#     for r in (1, 2):
+#         html_lines.append("<tr>")
+#         for c, cell in enumerate(rows[r - 1], 1):
+#             val = cell.value or ""
+#             sty = f"background:#c8e6c9;color:#000;height:{row_height}px"
+#             merged = None
+#             for (min_r, min_c, max_r, max_c), v in merge_map.items():
+#                 if (r, c) == (min_r, min_c):
+#                     rowspan = max_r - min_r + 1
+#                     colspan = max_c - min_c + 1
+#                     html_lines.append(
+#                         f'<th rowspan="{rowspan}" colspan="{colspan}" style="{sty};position:sticky;top:{(r - 1) * row_height}px;left:0;z-index:4;">{v}</th>'
+#                     )
+#                     merged = True
+#                     break
+#                 elif min_r <= r <= max_r and min_c <= c <= max_c:
+#                     merged = True
+#                     break
+#             if not merged:
+#                 html_lines.append(
+#                     f'<th style="{sty};position:sticky;top:{(r - 1) * row_height}px;left:0;z-index:4;">{val}</th>' if c == 1 else
+#                     f'<th style="{sty};position:sticky;top:{(r - 1) * row_height}px;z-index:3;">{val}</th>'
+#                 )
+#         html_lines.append("</tr>")
+#     html_lines.append("</thead><tbody>")
+#     for r, row in enumerate(rows[2:], 3):
+#         html_lines.append("<tr>")
+#         for c, cell in enumerate(row, 1):
+#             val = cell.value or ""
+#             bg = color_block(r, c, h_blocks, v_blocks)
+#             merged = None
+#             for (min_r, min_c, max_r, max_c), v in merge_map.items():
+#                 if (r, c) == (min_r, min_c):
+#                     rowspan = max_r - min_r + 1
+#                     colspan = max_c - min_c + 1
+#                     html_lines.append(
+#                         f'<td rowspan="{rowspan}" colspan="{colspan}" style="background:{bg};color:#000;position:sticky;left:0;z-index:2;">{v}</td>'
+#                     )
+#                     merged = True
+#                     break
+#                 elif min_r <= r <= max_r and min_c <= c <= max_c:
+#                     merged = True
+#                     break
+#             if not merged:
+#                 html_lines.append(
+#                     f'<td style="background:{bg};color:#000;position:sticky;left:0;z-index:2;">{val}</td>' if c == 1 else
+#                     f'<td style="background:{bg};color:#000;">{val}</td>'
+#                 )
+#         html_lines.append("</tr>")
+#     html_lines.append("</tbody></table>")
+#     return "\n".join(html_lines)
+def excel_to_html(excel_path, sheet_index=0):
     wb = load_workbook(excel_path, data_only=True)
-    ws = wb.worksheets[0]
+    ws = wb.worksheets[sheet_index]
     rows = list(ws.iter_rows())
+
     h_blocks, v_blocks = build_blocks(ws)
-    merge_map = {(m.min_row, m.min_col, m.max_row, m.max_col): str(ws.cell(m.min_row, m.min_col).value or "")
-                 for m in ws.merged_cells.ranges}
     row_height = 38
+
+    # 合并映射
+    merge_map = {
+        (m.min_row, m.min_col, m.max_row, m.max_col): str(ws.cell(m.min_row, m.min_col).value or "")
+        for m in ws.merged_cells.ranges
+    }
+
     html_lines = ['<table class="main-table"><thead>']
+    # 表头两行
     for r in (1, 2):
         html_lines.append("<tr>")
         for c, cell in enumerate(rows[r - 1], 1):
@@ -45,7 +110,8 @@ def excel_to_html(excel_path):
                     rowspan = max_r - min_r + 1
                     colspan = max_c - min_c + 1
                     html_lines.append(
-                        f'<th rowspan="{rowspan}" colspan="{colspan}" style="{sty};position:sticky;top:{(r - 1) * row_height}px;left:0;z-index:4;">{v}</th>'
+                        f'<th rowspan="{rowspan}" colspan="{colspan}" '
+                        f'style="{sty};position:sticky;top:{(r-1)*row_height}px;left:0;z-index:4;">{v}</th>'
                     )
                     merged = True
                     break
@@ -54,11 +120,13 @@ def excel_to_html(excel_path):
                     break
             if not merged:
                 html_lines.append(
-                    f'<th style="{sty};position:sticky;top:{(r - 1) * row_height}px;left:0;z-index:4;">{val}</th>' if c == 1 else
-                    f'<th style="{sty};position:sticky;top:{(r - 1) * row_height}px;z-index:3;">{val}</th>'
+                    f'<th style="{sty};position:sticky;top:{(r-1)*row_height}px;left:0;z-index:4;">{val}</th>' if c == 1 else
+                    f'<th style="{sty};position:sticky;top:{(r-1)*row_height}px;z-index:3;">{val}</th>'
                 )
         html_lines.append("</tr>")
     html_lines.append("</thead><tbody>")
+
+    # 数据区
     for r, row in enumerate(rows[2:], 3):
         html_lines.append("<tr>")
         for c, cell in enumerate(row, 1):
@@ -70,7 +138,8 @@ def excel_to_html(excel_path):
                     rowspan = max_r - min_r + 1
                     colspan = max_c - min_c + 1
                     html_lines.append(
-                        f'<td rowspan="{rowspan}" colspan="{colspan}" style="background:{bg};color:#000;position:sticky;left:0;z-index:2;">{v}</td>'
+                        f'<td rowspan="{rowspan}" colspan="{colspan}" '
+                        f'style="background:{bg};color:#000;position:sticky;left:0;z-index:2;">{v}</td>'
                     )
                     merged = True
                     break
@@ -116,43 +185,377 @@ def build_dashboard():
         </div>
         """
 
-    css = textwrap.dedent("""
+    css = textwrap.dedent(
+        """
+    
+    
     :root {
-        --primary: #0d6efd; --primary-dark: #0b5ed7; --secondary: #6c757d;
-        --success: #198754; --light: #f8f9fa; --dark: #212529;
-        --border-radius: 8px; --box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-    }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;background:var(--light);color:var(--dark);line-height:1.5}
-    .container{width:100%;max-width:100%;padding:0;margin:0}
-    .header{background:linear-gradient(120deg,var(--primary),#0b5ed7);color:white;padding:1rem 2rem;box-shadow:var(--box-shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
-    .header h1{font-size:1.5rem;font-weight:600}
-    .header-time{font-size:1rem;opacity:.95}
-    .search-container{display:flex;gap:0.5rem;align-items:center;margin:0 1rem}
-    .search-input{padding:0.5rem;border-radius:var(--border-radius);border:1px solid #ced4da;font-size:1rem;min-width:200px}
-    .search-button{background:var(--success);color:white;border:none;padding:0.5rem 1rem;border-radius:var(--border-radius);cursor:pointer;font-weight:500}
-    .nav-buttons{display:flex;gap:0.5rem;align-items:center}
-    .nav-button{background:#6f42c1;color:white;border:none;padding:0.5rem;border-radius:var(--border-radius);cursor:pointer;font-weight:500}
-    .view-button{display:inline-block;background:var(--primary);color:white;padding:0.5rem 1rem;border:none;border-radius:var(--border-radius);text-decoration:none;font-weight:500;transition:all .2s ease-in-out;width:100%;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.1);cursor:pointer}
-    .view-button:hover{background:var(--primary-dark);transform:scale(1.02);box-shadow:0 4px 8px rgba(0,0,0,.15)}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:1.5rem;padding:1.5rem;justify-content:center;max-width:1500px;margin:0 auto}
-    .card{background:white;border:1px solid #dee2e6;border-radius:var(--border-radius);overflow:hidden;box-shadow:var(--box-shadow);transition:all .2s ease-in-out;margin:0 auto;max-width:350px}
-    .card:hover{transform:translateY(-.25rem);box-shadow:0 .5rem 1rem rgba(0,0,0,.15)}
-    .card-header{padding:.75rem 1rem;background:linear-gradient(120deg,var(--primary),#0b5ed7);color:white;border-bottom:1px solid #dee2e6;font-weight:600;font-size:1.1rem}
-    .card-body{padding:1.25rem}
-    .file-info{display:flex;justify-content:space-between;margin-bottom:1.25rem;font-size:.875rem;color:#6c757d}
-    .file-info span{background-color:#f8f9fa;padding:.25rem .75rem;border-radius:20px}
-    .footer{text-align:center;padding:2px;color:#6c757d;font-size:.875rem;border-top:1px solid #dee2e6;margin-top:1px}
-    .main-table{border-collapse:collapse;width:100%}
-    .main-table th,.main-table td{border:1px solid #ced4da;padding:6px 8px;text-align:center;white-space:nowrap}
-    .main-table th{position:sticky;top:0;z-index:3;background:#c8e6c9;color:#000}
-    .main-table td:first-child,.main-table th:first-child{position:sticky;left:0;z-index:2;background:inherit}
-    .highlight{background-color:#ffeb3b!important;color:#000!important;font-weight:bold}
-    .current-highlight{background-color:#ff9800!important;color:#fff!important;font-weight:bold}
-    .cross-highlight-row{background-color:rgba(255,255,0,.2)!important}
-    .cross-highlight-col{background-color:rgba(255,255,0,.2)!important}
-    .cross-highlight-cell{background-color:rgba(255,255,0,.3)!important;position:relative}
-    .cross-highlight-cell::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;border:2px solid #ff0;pointer-events:none}
+                    --primary: #0d6efd;
+                    --primary-dark: #0b5ed7;
+                    --secondary: #6c757d;
+                    --success: #198754;
+                    --light: #f8f9fa;
+                    --dark: #212529;
+                    --gray-100: #f8f9fa;
+                    --gray-200: #e9ecef;
+                    --gray-300: #dee2e6;
+                    --gray-400: #ced4da;
+                    --gray-500: #adb5bd;
+                    --gray-800: #343a40;
+                    --border-radius: 8px;
+                    --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                    --box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                    --transition: all 0.2s ease-in-out;
+                }
+
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    font-size: 16px;
+                    background-color: #f8f9fa;
+                    color: var(--gray-800);
+                    line-height: 1.5;
+                }
+
+                .container {
+                    width: 100%;
+                    max-width: 100%;
+                    padding: 0;
+                    margin: 0;
+                }
+
+                .header {
+                    background: linear-gradient(120deg, var(--primary), #0b5ed7);
+                    color: white;
+                    padding: 1rem 2rem;
+                    box-shadow: var(--box-shadow);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                }
+
+                .header h1 {
+                    font-size: 1.5rem;
+                    font-weight: 600;
+                }
+
+                .header-time {
+                    font-size: 1rem;
+                    opacity: 0.95;
+                }
+
+                .search-container {
+                    display: flex;
+                    gap: 0.5rem;
+                    align-items: center;
+                    margin: 0 1rem;
+                }
+
+                .search-input {
+                    padding: 0.5rem;
+                    border-radius: var(--border-radius);
+                    border: 1px solid var(--gray-300);
+                    font-size: 1rem;
+                    min-width: 200px;
+                }
+
+                .search-button {
+                    background: var(--success);
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: var(--border-radius);
+                    cursor: pointer;
+                    font-weight: 500;
+                }
+
+                .search-button:hover {
+                    background: #157347;
+                }
+
+                .nav-buttons {
+                    display: flex;
+                    gap: 0.5rem;
+                    align-items: center;
+                }
+
+                .nav-button {
+                    background: #6f42c1;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem;
+                    border-radius: var(--border-radius);
+                    cursor: pointer;
+                    font-weight: 500;
+                }
+
+                .nav-button:hover {
+                    background: #5a32a3;
+                }
+
+                .nav-button:disabled {
+                    background: var(--gray-500);
+                    cursor: not-allowed;
+                }
+
+                .search-info {
+                    color: white;
+                    font-size: 0.9rem;
+                    min-width: 120px;
+                    text-align: center;
+                }
+
+                .grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                    gap: 1.5rem;
+                    padding: 1.5rem;
+                    justify-content: center;
+                    max-width: 1500px;
+                    margin: 0 auto;
+                }
+
+                .grid-wrapper {
+                    display: flex;
+                    justify-content: center;
+                    width: 100%;
+                }
+
+                .card {
+                    background: white;
+                    border: 1px solid var(--gray-300);
+                    border-radius: var(--border-radius);
+                    overflow: hidden;
+                    box-shadow: var(--box-shadow);
+                    transition: var(--transition);
+                    margin: 0 auto;
+                    max-width: 350px;
+                }
+
+                .card:hover {
+                    transform: translateY(-0.25rem);
+                    box-shadow: var(--box-shadow-hover);
+                }
+
+                .card-header {
+                    padding: 0.75rem 1rem;
+                    background: linear-gradient(120deg, var(--primary), #0b5ed7); /* 修改为更鲜明的颜色 */
+                    color: white; /* 添加白色文字 */
+                    border-bottom: 1px solid var(--gray-300);
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                }
+
+                .card-body {
+                    padding: 1.25rem;
+                }
+
+                .file-info {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 1.25rem;
+                    font-size: 0.875rem;
+                    color: var(--secondary);
+                }
+
+                .file-info span {
+                    background-color: var(--gray-100);
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                }
+
+                .view-button {
+                    display: inline-block;
+                    background: var(--primary);
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border: none;
+                    border-radius: var(--border-radius);
+                    text-decoration: none;
+                    font-weight: 500;
+                    transition: var(--transition);
+                    width: 100%;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    cursor: pointer;
+                }
+
+                .view-button:hover {
+                    background: var(--primary-dark);
+                    transform: scale(1.02);
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+                }
+
+                .back-button {
+                    background: #40a2ff;
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border: none;
+                    border-radius: var(--border-radius);
+                    text-decoration: none;
+                    font-weight: 500;
+                    transition: var(--transition);
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    cursor: pointer;
+                }
+
+                .back-button:hover {
+                    background: var(--primary-dark);
+                    transform: scale(1.02);
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+                }
+
+                .table-container {
+                    padding: 1rem;
+                    display: none;
+                }
+
+                .table-wrapper {
+                    height: 85vh;
+                    overflow: auto;
+                    border-top: 1px solid var(--gray-300);
+                }
+
+                .main-table {
+                    border-collapse: collapse;
+                    width: 100%;
+                }
+
+                .main-table th,
+                .main-table td {
+                    border: 1px solid var(--gray-400);
+                    padding: 6px 8px;
+                    text-align: center;
+                    white-space: nowrap;
+                }
+
+                .main-table th {
+                    position: sticky;
+                    top: 0;
+                    z-index: 3;
+                    background: #c8e6c9;
+                    color: #000;
+                }
+
+                .main-table td:first-child,
+                .main-table th:first-child {
+                    position: sticky;
+                    left: 0;
+                    z-index: 2;
+                    background: inherit;
+                }
+
+                /* 搜索高亮样式 */
+                .highlight {
+                    background-color: #ffeb3b !important;
+                    color: #000 !important;
+                    font-weight: bold;
+                }
+
+                .current-highlight {
+                    background-color: #ff9800 !important;
+                    color: #fff !important;
+                    font-weight: bold;
+                }
+
+                /* 列高亮样式 */
+                .column-highlight {
+                    background-color: rgba(173, 216, 230, 0.5) !important;
+                }
+
+                /* 十字高亮样式 */
+                .cross-highlight-row {
+                    background-color: rgba(255, 255, 0, 0.2) !important;
+                }
+
+                .cross-highlight-col {
+                    background-color: rgba(255, 255, 0, 0.2) !important;
+                }
+
+                .cross-highlight-cell {
+                    background-color: rgba(255, 255, 0, 0.3) !important;
+                    position: relative;
+                }
+
+                .cross-highlight-cell::after {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border: 2px solid #ff0;
+                    pointer-events: none;
+                }
+
+                .footer {
+                    text-align: center;
+                    padding: 2px;
+                    color: var(--secondary);
+                    font-size: 0.875rem;
+                    border-top: 1px solid var(--gray-300);
+                    margin-top: 1px;
+                }
+
+                .file-title {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 5px 20px;
+                    background: white;
+                    border-bottom: 1px solid var(--gray-300);
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+
+                .file-name {
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: var(--gray-800);
+                }
+
+                /* 隐藏的表格容器 */
+                .hidden-table {
+                    display: none;
+                }
+
+                /* 显示的表格容器 */
+                .visible-table {
+                    display: block;
+                }
+
+                @media (max-width: 768px) {
+                    .grid {
+                        grid-template-columns: 1fr;
+                        padding: 1rem;
+                    }
+
+                    .header {
+                        flex-direction: column;
+                        text-align: center;
+                        gap: 1rem;
+                        padding: 1rem;
+                    }
+
+                    .file-title {
+                        padding: 1rem;
+                    }
+
+                    .search-container {
+                        width: 100%;
+                        margin: 0.5rem 0;
+                        justify-content: center;
+                    }
+                }
     """)
 
     js = textwrap.dedent(f"""
