@@ -1303,23 +1303,31 @@
         function updateOptionDisplay(type) {
             const container = document.getElementById(`${type}-list`);
             if (!container) return;
-
+        
             const options = container.querySelectorAll('.filter-option');
             options.forEach(option => {
-                // 只有品类需要检查数量
-                if (type === 'category') {
-                    const countEl = option.querySelector('.count');
-                    if (countEl) {
-                        const countText = countEl.textContent;
-                        const count = parseInt(countText.replace(/[()]/g, ''));
-
-                        // 隐藏数量为0的选项（但不删除）
-                        option.style.display = count > 0 ? 'flex' : 'none';
-                    }
-                } else {
-                    // 其他类型始终显示
-                    option.style.display = 'flex';
+                const countEl = option.querySelector('.count');
+                let shouldDisplay = true;
+        
+                // 对于品类，根据计数决定是否显示
+                if (type === 'category' && countEl) {
+                    const countText = countEl.textContent;
+                    const count = parseInt(countText.replace(/[()]/g, ''));
+                    shouldDisplay = count > 0;
                 }
+                // 对于其他类型，也根据计数决定是否显示
+                else if (type !== 'category') {
+                    const checkbox = option.querySelector('input[type="checkbox"]');
+                    if (checkbox) {
+                        const optionValue = checkbox.value;
+                        const optionObj = allOptions[type].find(opt => opt.value === optionValue);
+                        if (optionObj) {
+                            shouldDisplay = optionObj.count > 0;
+                        }
+                    }
+                }
+        
+                option.style.display = shouldDisplay ? 'flex' : 'none';
             });
         }
 
@@ -1390,14 +1398,16 @@
         function syncAllPanels() {
             // 重新计算选项计数
             calculateOptionCounts();
-
+        
             // 同步所有面板的显示状态
             const panelTypes = ['category', 'position', 'color', 'fabric'];
             panelTypes.forEach(type => {
+                syncPanelOptions(type);
                 updateOptionDisplay(type);
                 updateAllCheckboxState(type);
             });
         }
+
 
         // 应用筛选
         function applyFilter(type) {
@@ -1513,62 +1523,75 @@
                     option.count = 0;
                 });
             }
-
-            // 遍历所有卡片
+        
+            // 遍历所有卡片，计算每个筛选选项在当前其他筛选条件下的可用数量
             allCardsAttributes.forEach(card => {
-                // 检查卡片是否匹配当前筛选条件（排除当前选项类型）
-                const matchesFilters = 
-                    (filterState.category.length === 0 || filterState.category.includes(card.category)) &&
-                    (filterState.position.length === 0 || filterState.position.includes(card.position)) &&
-                    (filterState.color.length === 0 || filterState.color.includes(card.color)) &&
-                    (filterState.fabric.length === 0 || filterState.fabric.includes(card.fabric)) &&
-                    (searchInput.value.trim() === '' || card.keyword.includes(searchInput.value.trim().toLowerCase()));
-
-                if (matchesFilters) {
-                    // 更新各类型的计数
-                    if (card.category && allOptions.category.some(opt => opt.value === card.category)) {
-                        const option = allOptions.category.find(opt => opt.value === card.category);
-                        option.count++;
+                // 检查卡片是否匹配当前筛选条件（排除当前正在计算的筛选类型）
+                const matchesCategory = filterState.category.length === 0 || filterState.category.includes(card.category);
+                const matchesPosition = filterState.position.length === 0 || filterState.position.includes(card.position);
+                const matchesColor = filterState.color.length === 0 || filterState.color.includes(card.color);
+                const matchesFabric = filterState.fabric.length === 0 || filterState.fabric.includes(card.fabric);
+                const matchesKeyword = searchInput.value.trim() === '' || card.keyword.includes(searchInput.value.trim().toLowerCase());
+        
+                // 只有当匹配关键词时才继续计算
+                if (matchesKeyword) {
+                    // 为每个筛选类型计算在其他筛选条件约束下的可用数量
+                    if (matchesPosition && matchesColor && matchesFabric) {
+                        // 品类选项计数
+                        if (card.category && allOptions.category.some(opt => opt.value === card.category)) {
+                            const option = allOptions.category.find(opt => opt.value === card.category);
+                            if (option) option.count++;
+                        }
                     }
-
-                    if (card.position && allOptions.position.some(opt => opt.value === card.position)) {
-                        const option = allOptions.position.find(opt => opt.value === card.position);
-                        option.count++;
+        
+                    if (matchesCategory && matchesColor && matchesFabric) {
+                        // 定位选项计数
+                        if (card.position && allOptions.position.some(opt => opt.value === card.position)) {
+                            const option = allOptions.position.find(opt => opt.value === card.position);
+                            if (option) option.count++;
+                        }
                     }
-
-                    if (card.color && allOptions.color.some(opt => opt.value === card.color)) {
-                        const option = allOptions.color.find(opt => opt.value === card.color);
-                        option.count++;
+        
+                    if (matchesCategory && matchesPosition && matchesFabric) {
+                        // 颜色选项计数
+                        if (card.color && allOptions.color.some(opt => opt.value === card.color)) {
+                            const option = allOptions.color.find(opt => opt.value === card.color);
+                            if (option) option.count++;
+                        }
                     }
-
-                    if (card.fabric && allOptions.fabric.some(opt => opt.value === card.fabric)) {
-                        const option = allOptions.fabric.find(opt => opt.value === card.fabric);
-                        option.count++;
+        
+                    if (matchesCategory && matchesPosition && matchesColor) {
+                        // 面料选项计数
+                        if (card.fabric && allOptions.fabric.some(opt => opt.value === card.fabric)) {
+                            const option = allOptions.fabric.find(opt => opt.value === card.fabric);
+                            if (option) option.count++;
+                        }
                     }
                 }
             });
-
+        
             // 更新筛选面板中的计数显示和状态
             for (const type in allOptions) {
                 const container = document.getElementById(`${type}-list`);
                 if (container) {
-                    // 只有品类需要更新计数显示
+                    // 更新计数显示（仅品类）
                     if (type === 'category') {
-                        const countElements = container.querySelectorAll('.count');
-                        countElements.forEach((countEl, index) => {
-                            if (index > 0) { // 跳过全选选项
-                                const checkbox = countEl.previousElementSibling.querySelector('input');
-                                if (checkbox) {
-                                    const option = allOptions[type].find(opt => opt.value === checkbox.value);
-                                    if (option) {
-                                        countEl.textContent = `(${option.count})`;
+                        const options = container.querySelectorAll('.filter-option');
+                        options.forEach(option => {
+                            const checkbox = option.querySelector('input[type="checkbox"]');
+                            if (checkbox && checkbox.id !== `${type}-all`) {
+                                const optionObj = allOptions[type].find(opt => opt.value === checkbox.value);
+                                if (optionObj) {
+                                    const countEl = option.querySelector('.count');
+                                    if (countEl) {
+                                        countEl.textContent = `(${optionObj.count})`;
                                     }
                                 }
                             }
                         });
                     }
-
-                    // 更新选项显示状态
+        
+                    // 更新选项显示状态（隐藏计数为0的选项）
                     updateOptionDisplay(type);
                 }
             }
@@ -1901,11 +1924,11 @@
         // 筛选函数
         function filterCards() {
             showLoading();
-
+        
             setTimeout(() => {
                 try {
                     const keyword = searchInput.value.trim().toLowerCase();
-
+        
                     // 应用筛选条件
                     filteredData = cardData.filter(card => {
                         const cardData = card.data;
@@ -1914,29 +1937,29 @@
                         const cardPosition = cardData.weight_position;
                         const cardColor = cardData.color || '';
                         const cardFabric = cardData.fabric || '';
-
+        
                         // 检查是否匹配
                         const keywordMatch = keyword === '' || cardKeyword.includes(keyword);
                         const categoryMatch = filterState.category.length === 0 || filterState.category.includes(cardCategory);
                         const positionMatch = filterState.position.length === 0 || filterState.position.includes(cardPosition);
                         const colorMatch = filterState.color.length === 0 || filterState.color.includes(cardColor);
                         const fabricMatch = filterState.fabric.length === 0 || filterState.fabric.includes(cardFabric);
-
+        
                         return keywordMatch && categoryMatch && positionMatch && colorMatch && fabricMatch;
                     });
-
+        
                     // 重置到第一页
                     currentPage = 1;
-
+        
                     // 计算总页数
                     calculateTotalPages();
-
+        
                     // 重新计算选项计数
                     calculateOptionCounts();
-
+        
                     // 更新当前数量显示
                     updateCountDisplay();
-
+        
                     // 根据当前排序方式排序
                     if (currentSort !== 'default') {
                         sortCards(currentSort);
@@ -1944,6 +1967,9 @@
                         // 渲染第一页
                         renderPage(currentPage);
                     }
+                    
+                    // 同步所有面板状态
+                    syncAllPanels();
                 } catch (error) {
                     console.error('筛选卡片出错:', error);
                 } finally {
@@ -2226,7 +2252,7 @@
                 const minutes = String(now.getMinutes()).padStart(2, '0');
                 updateTimeElement.textContent = `更新时间: ${year}-${month}-${day}`;
             }
-            
+
             initCardData();
             updatePaginationButtons();
         });
