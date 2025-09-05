@@ -71,47 +71,74 @@ def build_dashboard():
 
     js = """
     <script>
-    const owner="wasdkd",repo="Amazon",branch="main";
-    function getToken(){return localStorage.getItem('gh_token');}
-    function setToken(t){localStorage.setItem('gh_token',t);}
-    async function callGitHub(method,path,body=null){
-        const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-        const opt={method,headers:{
-            "Authorization":`token ${getToken()}`,
-            "Accept":"application/vnd.github.v3+json",
-            "Content-Type":"application/json"
-        }};
-        if(body) opt.body=JSON.stringify(body);
-        const r=await fetch(url,opt);
-        if(!r.ok) throw new Error(await r.text());
-        return r.json();
+const owner="wasdkd",repo="Amazon",branch="main";
+function getToken(){return localStorage.getItem('gh_token');}
+function setToken(t){localStorage.setItem('gh_token',t);}
+async function callGitHub(method,path,body=null){
+    const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const opt={method,headers:{
+        "Authorization":`token ${getToken()}`,
+        "Accept":"application/vnd.github.v3+json",
+        "Content-Type":"application/json"
+    }};
+    if(body) opt.body=JSON.stringify(body);
+    const r=await fetch(url,opt);
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+async function uploadFile(){
+    let tok=getToken(); if(!tok){tok=prompt("请输入GitHub Personal Access Token"); if(!tok)return; setToken(tok);}
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.pptx"; inp.multiple=true;
+    
+    // 使用 Promise 来处理文件选择
+    const filePromise = new Promise((resolve) => {
+        inp.onchange = (e) => resolve(e.target.files);
+    });
+    
+    inp.click();
+    
+    const files = await filePromise;
+    if (!files.length) return;
+    
+    try {
+        for(let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const content = await file.arrayBuffer().then(b=>btoa(String.fromCharCode(...new Uint8Array(b))));
+            await callGitHub("PUT",`uploads/${file.name}`,{message:`upload ${file.name}`,content,branch});
+        }
+        alert("全部上传完成，2-3分钟后自动刷新...");
+        location.reload();
+    } catch(e) {
+        alert("上传失败："+e);
     }
-    async function uploadFile(){
-        let tok=getToken(); if(!tok){tok=prompt("请输入 GitHub Personal Access Token："); if(!tok)return; setToken(tok);}
-        const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.pptx"; inp.multiple=true;
-        inp.onchange=async(e)=>{
-            for(const file of e.target.files){
-                const content=await file.arrayBuffer().then(b=>btoa(String.fromCharCode(...new Uint8Array(b))));
-                try{await callGitHub("PUT",`uploads/${file.name}`,{message:`upload ${file.name}`,content,branch});}catch(e){alert("上传失败："+e); return;}
-            }
-            alert("全部上传完成，2-3分钟后自动刷新..."); location.reload();
-        }; inp.click();
+}
+async function deleteFile(name){
+    if(!confirm("确定删除？")) return;
+    let tok=getToken(); if(!tok){tok=prompt("请输入GitHub Personal Access Token"); if(!tok)return; setToken(tok);}
+    try{const {sha}=await callGitHub("GET",`uploads/${name}`); await callGitHub("DELETE",`uploads/${name}`,{message:`delete ${name}`,sha,branch}); alert("已删除，2-3分钟后自动刷新..."); location.reload();}catch(e){alert("失败："+e);}
+}
+async function coverFile(name){
+    let tok=getToken(); if(!tok){tok=prompt("请输入GitHub Personal Access Token"); if(!tok)return; setToken(tok);}
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.pptx";
+    
+    // 使用 Promise 来处理文件选择
+    const filePromise = new Promise((resolve) => {
+        inp.onchange = (e) => resolve(e.target.files[0]);
+    });
+    
+    inp.click();
+    
+    const file = await filePromise;
+    if (!file) return;
+    
+    try {
+        const content=await file.arrayBuffer().then(b=>btoa(String.fromCharCode(...new Uint8Array(b))));
+        try{const {sha}=await callGitHub("GET",`uploads/${name}`); await callGitHub("DELETE",`uploads/${name}`,{message:`cover ${name}`,sha,branch}); await callGitHub("PUT",`uploads/${file.name}`,{message:`cover ${file.name}`,content,branch}); alert("已覆盖，2-3分钟后自动刷新..."); location.reload();}catch(e){alert("失败："+e);}
+    } catch(e) {
+        alert("失败："+e);
     }
-    async function deleteFile(name){
-        if(!confirm("确定删除？")) return;
-        let tok=getToken(); if(!tok){tok=prompt("请输入 GitHub Personal Access Token："); if(!tok)return; setToken(tok);}
-        try{const {sha}=await callGitHub("GET",`uploads/${name}`); await callGitHub("DELETE",`uploads/${name}`,{message:`delete ${name}`,sha,branch}); alert("已删除，2-3分钟后自动刷新..."); location.reload();}catch(e){alert("失败："+e);}
-    }
-    async function coverFile(name){
-        let tok=getToken(); if(!tok){tok=prompt("请输入 GitHub Personal Access Token："); if(!tok)return; setToken(tok);}
-        const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.pptx";
-        inp.onchange=async(e)=>{
-            const file=e.target.files[0]; if(!file) return;
-            const content=await file.arrayBuffer().then(b=>btoa(String.fromCharCode(...new Uint8Array(b))));
-            try{const {sha}=await callGitHub("GET",`uploads/${name}`); await callGitHub("DELETE",`uploads/${name}`,{message:`cover ${name}`,sha,branch}); await callGitHub("PUT",`uploads/${file.name}`,{message:`cover ${file.name}`,content,branch}); alert("已覆盖，2-3分钟后自动刷新..."); location.reload();}catch(e){alert("失败："+e);}
-        }; inp.click();
-    }
-    </script>
+}
+</script>
     """
 
     html = f"""<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
