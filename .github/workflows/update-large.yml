@@ -12,12 +12,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download & write file
+      - name: Decode & write file
         run: |
           mkdir -p uploads
-          curl -L -o "uploads/${{ github.event.client_payload.name }}" \
-               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-               "${{ github.event.client_payload.download_url }}"
+          echo "${{ github.event.client_payload.base64 }}" | base64 -d > "uploads/${{ github.event.client_payload.name }}"
 
       - name: Commit & push
         run: |
