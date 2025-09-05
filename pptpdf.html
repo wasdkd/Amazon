@@ -26,7 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
 .file-info{display:flex;justify-content:space-between;margin-bottom:1rem;font-size:.875rem;color:#6c757d;flex-wrap:wrap}
 .view-button{display:block;background:var(--primary);color:#fff;padding:.5rem 1rem;border-radius:8px;text-align:center;text-decoration:none;font-weight:500;transition:background .2s;margin-bottom:.5rem}
 .view-button:hover{background:var(--primary-dark)}
-.card-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.card-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
 .btn-del,.btn-cov,.btn-dl{border:none;padding:.4rem;border-radius:6px;color:#fff;cursor:pointer;text-align:center;text-decoration:none;font-size:0.85rem}
 .btn-del{background:var(--danger)}.btn-cov{background:var(--warning)}.btn-dl{background:var(--success)}
 .footer{text-align:center;padding:1rem;color:#6c757d;font-size:.875rem}
@@ -35,17 +35,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
 .loading{display:none;text-align:center;padding:20px;color:#6c757d}
 .file-size-warning{color:#ffc107;font-size:0.9rem;margin-top:5px;display:none}
 </style></head><body><div class="container">
-    <div class="header"><h1>PDF / PPT 文件看板</h1><div class="header-time">最后更新: <span id="update-time">2025-09-05 16:22:27</span></div></div>
+    <div class="header"><h1>PDF / PPT 文件看板</h1><div class="header-time">最后更新: <span id="update-time">2025-09-05 17:43:51</span></div></div>
     <div class="top-bar">
       <button class="btn-top">增删改后需等待片刻刷新</button>
       <button class="btn-act" onclick="uploadFile()">📤 上传新文件</button>
       <button class="btn-act" onclick="localStorage.removeItem('gh_token');alert('Token已清除');">🗑 清空Token</button>
       <button class="btn-act" onclick="loadFilesFromGitHub()">🔄 手动刷新</button>
     </div>
-    <div class="file-size-warning">💡 提示：支持上传最大约80MB的文件</div>
+    <div class="file-size-warning">💡 提示：支持上传最大约25MB的文件</div>
     <div class="loading" id="loading">🔄 正在加载文件列表...</div>
     <div class="grid-wrapper"><div class="grid"></div></div>
-    <div class="footer">共 0 个文件 | 点击文件名直接浏览 | <a href="https://github.com/wasdkd/Amazon" target="_blank"></a></div>
+    <div class="footer">共 0 个文件 | 点击文件名直接浏览 | <a href="https://github.com/wasdkd/Amazon" target="_blank">查看GitHub仓库</a></div>
     </div>
     <script>
 const owner="wasdkd",repo="Amazon",branch="main";
@@ -174,66 +174,53 @@ async function uploadLargeFile(file) {
     }
 }
 
-async function uploadFile() {
-  const tok = getToken();
-  if (!tok) { alert("先输入 GitHub Token"); return; }
-
-  const inp = document.createElement("input");
-  inp.type = "file";
-  inp.accept = ".pdf,.pptx";
-  inp.multiple = true;
-  inp.onchange = async (e) => {
-    for (const file of e.target.files) {
-      /* ---------- 大文件：>2MB 走指令通道 ---------- */
-      if (file.size > 2 * 1024 * 1024) {
-        if (file.size > 100 * 1024 * 1024) {
-          alert("单文件 ≤ 100 MB（Git 硬顶）");
-          continue;
-        }
-        /* ① 先拿一条“直链”供 Actions 下载 */
-        const uploadRes = await fetch(
-          `https://uploads.github.com/repos/${owner}/${repo}/releases/0/assets?name=${encodeURIComponent(file.name)}`,
-          { method: "POST",
-            headers: { authorization: `token ${tok}`,
-                       "content-type": file.type,
-                       "content-length": file.size },
-            body: file }
-        );
-        if (!uploadRes.ok) { alert("大文件临时上传失败"); continue; }
-        const asset = await uploadRes.json();
-
-        /* ② 通知 Actions 去“命令行”拉取并提交 */
-        const dispatchRes = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/dispatches`,
-          { method: "POST",
-            headers: { authorization: `token ${tok}`,
-                       "accept": "application/vnd.github.v3+json" },
-            body: JSON.stringify({
-              event_type: "upload-large-file",
-              client_payload: {
-                name: file.name,
-                download_url: asset.browser_download_url
-              }
-            }) }
-        );
-        if (!dispatchRes.ok) { alert("触发指令上传失败"); continue; }
-        alert(`${file.name} 已提交后台指令通道，约 10-30 秒后出现`);
-        continue;   // 大文件处理完毕
-      }
-
-      /* ---------- 小文件：≤2MB 走原 REST API ---------- */
-      try {
-        const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
-        await callGitHub("PUT", `uploads/${file.name}`, { message: `upload ${file.name}`, content, branch });
-        alert(`${file.name} 上传完成`);
-      } catch (e) {
-        alert("小文件上传失败：" + e.message);
-      }
+async function uploadFile(){
+    let tok=getToken(); 
+    if(!tok){
+        tok=prompt("请输入GitHub Personal Access Token（需要repo权限）"); 
+        if(!tok) return; 
+        setToken(tok);
     }
-    // 统一刷新
-    await loadFilesFromGitHub();
-  };
-  inp.click();
+
+    const inp=document.createElement("input"); 
+    inp.type="file"; 
+    inp.accept=".pdf,.pptx"; 
+    inp.multiple=true;
+
+    inp.onchange = async (e) => {
+        const files = e.target.files;
+        if (!files.length) return;
+
+        try {
+            for(let i = 0; i < files.length; i++) {
+                const file = files[i];
+                // 将大文件阈值降低到 25MB，GitHub API 对单个请求有大约 100MB 的限制
+                const maxSize = 25 * 1024 * 1024; // 25MB
+
+                if (file.size > maxSize) {
+                    const success = await uploadLargeFile(file);
+                    if (!success) continue;
+                } else {
+                    // 小文件使用常规上传
+                    const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+                    await callGitHub("PUT", `uploads/${file.name}`, {message: `upload ${file.name}`, content, branch});
+                }
+
+                // 显示上传进度
+                showProgress(file.name, (i + 1) / files.length * 100);
+            }
+
+            alert("上传完成！页面将自动刷新以显示最新文件...");
+            // 上传完成后从GitHub获取最新文件列表
+            await loadFilesFromGitHub();
+        } catch(e) {
+            alert("上传失败：" + e.message);
+        } finally {
+            hideProgress();
+        }
+    };
+
+    inp.click();
 }
 
 async function deleteFile(name){
@@ -253,6 +240,50 @@ async function deleteFile(name){
     }catch(e){
         alert("删除失败：" + e.message);
     }
+}
+
+async function coverFile(name){
+    let tok=getToken(); 
+    if(!tok){
+        tok=prompt("请输入GitHub Personal Access Token"); 
+        if(!tok) return; 
+        setToken(tok);
+    }
+
+    const inp=document.createElement("input"); 
+    inp.type="file"; 
+    inp.accept=".pdf,.pptx";
+
+    inp.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            // 先删除原文件
+            const {sha} = await callGitHub("GET", `uploads/${name}`);
+            await callGitHub("DELETE", `uploads/${name}`, {message: `delete ${name}`, sha, branch});
+
+            // 上传新文件
+            const maxSize = 25 * 1024 * 1024; // 25MB
+            if (file.size > maxSize) {
+                const success = await uploadLargeFile(file);
+                if (!success) {
+                    throw new Error("大文件上传失败");
+                }
+            } else {
+                const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+                await callGitHub("PUT", `uploads/${file.name}`, {message: `cover ${file.name}`, content, branch});
+            }
+
+            alert("已覆盖，页面将自动刷新以显示最新文件...");
+            // 覆盖完成后从GitHub获取最新文件列表
+            await loadFilesFromGitHub();
+        } catch(e) {
+            alert("覆盖失败：" + e.message);
+        }
+    };
+
+    inp.click();
 }
 
 // 从GitHub获取文件列表并更新页面
@@ -278,7 +309,7 @@ async function loadFilesFromGitHub() {
         );
 
         // 更新文件计数
-        document.querySelector('.footer').innerHTML = `共 ${filteredFiles.length} 个文件 | 点击文件名直接浏览 | <a href="https://github.com/${owner}/${repo}" target="_blank"></a>`;
+        document.querySelector('.footer').innerHTML = `共 ${filteredFiles.length} 个文件 | 点击文件名直接浏览 | <a href="https://github.com/${owner}/${repo}" target="_blank">查看GitHub仓库</a>`;
 
         // 生成文件卡片
         let cardsHtml = '';
@@ -314,6 +345,7 @@ async function loadFilesFromGitHub() {
                     ${viewButton}
                     <div class="card-actions">
                         <button class="btn-del" onclick="deleteFile('${fileName}')">🗑 删除</button>
+                        <button class="btn-cov" onclick="coverFile('${fileName}')">🔄 覆盖</button>
                         <a href="${fileUrl}" download="${fileName}" class="btn-dl">📥 下载</a>
                     </div>
                 </div>
