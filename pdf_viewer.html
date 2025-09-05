@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PDF 查看器</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: #f8f9fa;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            .header {
+                background: linear-gradient(120deg, #0d6efd, #0b5ed7);
+                color: white;
+                padding: 1rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .header h1 {
+                font-size: 1.25rem;
+                margin: 0;
+            }
+            .back-btn {
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .back-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+            .pdf-container {
+                position: absolute;
+                top: 70px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                overflow-y: auto;
+                padding: 20px;
+                text-align: center;
+            }
+            .pdf-page {
+                margin: 10px auto;
+                box-shadow: 0 0 10px rgba(0,0,0,0.2);
+                margin-bottom: 20px;
+            }
+            .loading {
+                text-align: center;
+                padding: 2rem;
+                color: #6c757d;
+            }
+            .error {
+                color: #dc3545;
+                text-align: center;
+                padding: 2rem;
+            }
+            .page-info {
+                margin: 10px 0;
+                color: #6c757d;
+            }
+            .navigation {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(255, 255, 255, 0.9);
+                padding: 10px 20px;
+                border-radius: 20px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            .nav-button {
+                background: #0d6efd;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            .nav-button:disabled {
+                background: #6c757d;
+                cursor: not-allowed;
+            }
+            .page-input {
+                width: 50px;
+                text-align: center;
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>PDF 查看器</h1>
+            <a href="pptpdf.html" class="back-btn">🔙 返回文件列表</a>
+        </div>
+        <div class="pdf-container" id="pdfContainer">
+            <div class="loading" id="loading">正在加载PDF文件...</div>
+            <div class="error" id="error" style="display: none;">加载PDF时出错，请稍后重试或直接下载文件。</div>
+        </div>
+        <div class="navigation" id="navigation" style="display: none;">
+            <button class="nav-button" id="prevButton">上一页</button>
+            <span>第 <input type="number" class="page-input" id="pageInput"> 页 / <span id="pageCount">?</span> 页</span>
+            <button class="nav-button" id="nextButton">下一页</button>
+            <button class="nav-button" id="zoomIn">放大</button>
+            <button class="nav-button" id="zoomOut">缩小</button>
+        </div>
+
+        <!-- 引入PDF.js库 -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+        <script>
+            // 设置PDF.js工作器路径
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+            // 获取URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileUrl = urlParams.get('file');
+
+            // 全局变量
+            let pdfDoc = null;
+            let currentPage = 1;
+            let scale = 1.2;
+            const canvasContainer = document.getElementById('pdfContainer');
+            const loadingElement = document.getElementById('loading');
+            const errorElement = document.getElementById('error');
+            const navigationElement = document.getElementById('navigation');
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            const pageInput = document.getElementById('pageInput');
+            const pageCountElement = document.getElementById('pageCount');
+            const zoomInButton = document.getElementById('zoomIn');
+            const zoomOutButton = document.getElementById('zoomOut');
+
+            if (fileUrl) {
+                // 加载PDF文档
+                pdfjsLib.getDocument(fileUrl).promise.then(function(pdf) {
+                    pdfDoc = pdf;
+                    pageCountElement.textContent = pdfDoc.numPages;
+                    pageInput.value = currentPage;
+                    pageInput.max = pdfDoc.numPages;
+
+                    loadingElement.style.display = 'none';
+                    navigationElement.style.display = 'flex';
+
+                    // 渲染第一页
+                    renderPage(currentPage);
+                }).catch(function(error) {
+                    console.error('PDF加载失败:', error);
+                    loadingElement.style.display = 'none';
+                    errorElement.style.display = 'block';
+                });
+            } else {
+                loadingElement.textContent = '未找到PDF文件';
+            }
+
+            // 渲染指定页面
+            function renderPage(pageNum) {
+                // 更新当前页码
+                currentPage = pageNum;
+                pageInput.value = currentPage;
+
+                // 更新按钮状态
+                prevButton.disabled = currentPage <= 1;
+                nextButton.disabled = currentPage >= pdfDoc.numPages;
+
+                // 清除之前的页面
+                canvasContainer.innerHTML = '';
+
+                // 添加页面信息
+                const pageInfo = document.createElement('div');
+                pageInfo.className = 'page-info';
+                pageInfo.textContent = `第 ${currentPage} 页 / 共 ${pdfDoc.numPages} 页`;
+                canvasContainer.appendChild(pageInfo);
+
+                // 获取页面
+                pdfDoc.getPage(currentPage).then(function(page) {
+                    const viewport = page.getViewport({ scale });
+
+                    // 创建canvas元素
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'pdf-page';
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    // 将canvas添加到容器中
+                    canvasContainer.appendChild(canvas);
+
+                    // 渲染页面
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    page.render(renderContext);
+                });
+            }
+
+            // 事件监听器
+            prevButton.addEventListener('click', function() {
+                if (currentPage <= 1) return;
+                renderPage(currentPage - 1);
+            });
+
+            nextButton.addEventListener('click', function() {
+                if (currentPage >= pdfDoc.numPages) return;
+                renderPage(currentPage + 1);
+            });
+
+            pageInput.addEventListener('change', function() {
+                const pageNum = parseInt(this.value);
+                if (pageNum >= 1 && pageNum <= pdfDoc.numPages) {
+                    renderPage(pageNum);
+                } else {
+                    this.value = currentPage;
+                }
+            });
+
+            zoomInButton.addEventListener('click', function() {
+                scale += 0.2;
+                renderPage(currentPage);
+            });
+
+            zoomOutButton.addEventListener('click', function() {
+                if (scale > 0.4) {
+                    scale -= 0.2;
+                    renderPage(currentPage);
+                }
+            });
+        </script>
+    </body>
+    </html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+    <title>PDF / PPT 看板</title><meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+:root{--primary:#0d6efd;--primary-dark:#0b5ed7;--gray-800:#212529;--gray-300:#dee2e6;--gray-100:#f8f9fa;--danger:#dc3545;--warning:#ffc107;--success:#198754}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;padding:20px;background:#f8f9fa;color:var(--gray-800)}
+.container{max-width:100%;margin:0 auto}
+/* === 头部：渐变背景 + 时间靠右 === */
+.header{background:linear-gradient(120deg,var(--primary),var(--primary-dark));color:white;padding:1rem 2rem;border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.header h1{font-size:1.5rem;margin:0}
+.header-time{font-size:1rem;opacity:0.9}
+/* === 按钮组 === */
+.top-bar{display:flex;justify-content:center;align-items:center;gap:5rem;margin-top:2rem;margin-bottom:2rem;flex-wrap:wrap}
+.btn-top{pointer-events:none;background:#6c757d;color:#fff;border:none;padding:.5rem 1.2rem;border-radius:6px;font-size:.9rem}
+.btn-act{background:var(--primary);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:500;width:20%;transition:background .2s}
+.btn-act:hover{background:var(--primary-dark)}
+/* === 卡片栅格 4列居中 === */
+.grid-wrapper{display:flex;justify-content:center}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;padding:1.5rem 0;max-width:1400px}
+@media(max-width:1200px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--gray-300);border-radius:8px;overflow:hidden;box-shadow:0 .125rem .25rem rgba(0,0,0,.075);transition:all .2s}
+.card:hover{transform:translateY(-.25rem);box-shadow:0 .5rem 1rem rgba(0,0,0,.15)}
+.card-header{padding:.75rem 1rem;background:var(--primary);color:#fff;font-weight:600}
+.card-body{padding:1.25rem}
+.file-info{display:flex;justify-content:space-between;margin-bottom:1rem;font-size:.875rem;color:#6c757d;flex-wrap:wrap}
+.view-button{display:block;background:var(--primary);color:#fff;padding:.5rem 1rem;border-radius:8px;text-align:center;text-decoration:none;font-weight:500;transition:background .2s;margin-bottom:.5rem}
+.view-button:hover{background:var(--primary-dark)}
+.card-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+.btn-del,.btn-cov,.btn-dl{border:none;padding:.4rem;border-radius:6px;color:#fff;cursor:pointer;text-align:center;text-decoration:none;font-size:0.85rem}
+.btn-del{background:var(--danger)}.btn-cov{background:var(--warning)}.btn-dl{background:var(--success)}
+.footer{text-align:center;padding:1rem;color:#6c757d;font-size:.875rem}
+.progress-bar{width:100%;height:20px;background:#e9ecef;border-radius:5px;margin-top:10px;overflow:hidden;display:none}
+.progress{height:100%;background:var(--primary);width:0%;transition:width 0.3s}
+.loading{display:none;text-align:center;padding:20px;color:#6c757d}
+.file-size-warning{color:#ffc107;font-size:0.9rem;margin-top:5px;display:none}
+</style></head><body><div class="container">
+    <div class="header"><h1>PDF / PPT 文件看板</h1><div class="header-time">最后更新: <span id="update-time">2025-09-05 15:21:03</span></div></div>
+    <div class="top-bar">
+      <button class="btn-top">增删改后需等待片刻刷新</button>
+      <button class="btn-act" onclick="uploadFile()">📤 上传新文件</button>
+      <button class="btn-act" onclick="localStorage.removeItem('gh_token');alert('Token已清除');">🗑 清空Token</button>
+      <button class="btn-act" onclick="loadFilesFromGitHub()">🔄 手动刷新</button>
+    </div>
+    <div class="file-size-warning">💡 提示：支持上传最大约25MB的文件</div>
+    <div class="loading" id="loading">🔄 正在加载文件列表...</div>
+    <div class="grid-wrapper"><div class="grid"></div></div>
+    <div class="footer">共 0 个文件 | 点击文件名直接浏览 | <a href="https://github.com/wasdkd/Amazon" target="_blank">查看GitHub仓库</a></div>
+    </div>
+    <script>
+const owner="wasdkd",repo="Amazon",branch="main";
+let largeFileWarningShown = false;
+
+function getToken(){return localStorage.getItem('gh_token');}
+function setToken(t){localStorage.setItem('gh_token',t);}
+
+// 显示加载提示
+function showLoading(show) {
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+        loadingElement.style.display = show ? 'block' : 'none';
+    }
+}
+
+// 显示上传进度
+function showProgress(filename, percent) {
+    let progressBar = document.getElementById('progress-bar');
+    let progress = document.getElementById('progress');
+    let progressText = document.getElementById('progress-text');
+
+    if (!progressBar || !progress) {
+        // 创建进度条元素
+        const progressHtml = `
+        <div id="progress-bar" class="progress-bar">
+            <div id="progress" class="progress"></div>
+        </div>
+        <div id="progress-text">上传 {filename}: 0%</div>
+        `;
+        document.querySelector('.top-bar').insertAdjacentHTML('afterend', progressHtml);
+    }
+
+    document.getElementById('progress-bar').style.display = 'block';
+    document.getElementById('progress').style.width = percent + '%';
+    document.getElementById('progress-text').textContent = `上传 ${filename}: ${percent}%`;
+}
+
+// 隐藏进度条
+function hideProgress() {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    if (progressBar) progressBar.style.display = 'none';
+    if (progressText) progressText.style.display = 'none';
+}
+
+async function callGitHub(method,path,body=null){
+    const url=`https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+    const opt={method,headers:{
+        "Authorization":`token ${getToken()}`,
+        "Accept":"application/vnd.github.v3+json",
+        "Content-Type":"application/json"
+    }};
+    if(body) opt.body=JSON.stringify(body);
+    const r=await fetch(url,opt);
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+// 大文件上传使用Git LFS API
+async function uploadLargeFile(file) {
+    if (!largeFileWarningShown) {
+        alert('注意：您正在上传一个较大的文件(' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)。\n\n大文件上传需要使用Git LFS，请确保您的仓库已启用LFS。');
+        largeFileWarningShown = true;
+    }
+
+    try {
+        // 显示进度
+        showProgress(file.name, 20);
+
+        // 第一步：创建blob对象
+        const arrayBuffer = await file.arrayBuffer();
+        showProgress(file.name, 40);
+
+        const content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        showProgress(file.name, 60);
+
+        // 创建blob
+        const blobRes = await callGitHub("POST", `git/blobs`, {
+            content: content
+        });
+        showProgress(file.name, 80);
+
+        // 第二步：创建tree和commit
+        // 获取当前HEAD引用
+        const refRes = await callGitHub("GET", `git/refs/heads/${branch}`);
+        const commitSha = refRes.object.sha;
+
+        // 获取当前commit
+        const commitRes = await callGitHub("GET", `git/commits/${commitSha}`);
+
+        // 创建新的blob
+        const blobCreateRes = await callGitHub("POST", `git/blobs`, {
+            content: content
+        });
+
+        // 创建tree
+        const treeRes = await callGitHub("POST", `git/trees`, {
+            base_tree: commitRes.tree.sha,
+            tree: [{
+                path: `uploads/${file.name}`,
+                mode: "100644",
+                type: "blob",
+                sha: blobCreateRes.sha
+            }]
+        });
+
+        // 创建commit
+        const newCommitRes = await callGitHub("POST", `git/commits`, {
+            message: `upload large file ${file.name}`,
+            tree: treeRes.sha,
+            parents: [commitSha]
+        });
+
+        // 更新引用
+        await callGitHub("PATCH", `git/refs/heads/${branch}`, {
+            sha: newCommitRes.sha
+        });
+
+        showProgress(file.name, 100);
+        return true;
+    } catch (e) {
+        console.error('大文件上传错误:', e);
+        alert('大文件上传失败: ' + e.message);
+        return false;
+    }
+}
+
+async function uploadFile(){
+    let tok=getToken(); 
+    if(!tok){
+        tok=prompt("请输入GitHub Personal Access Token（需要repo权限）"); 
+        if(!tok) return; 
+        setToken(tok);
+    }
+
+    const inp=document.createElement("input"); 
+    inp.type="file"; 
+    inp.accept=".pdf,.pptx"; 
+    inp.multiple=true;
+
+    inp.onchange = async (e) => {
+        const files = e.target.files;
+        if (!files.length) return;
+
+        try {
+            for(let i = 0; i < files.length; i++) {
+                const file = files[i];
+                // 将大文件阈值降低到 25MB，GitHub API 对单个请求有大约 100MB 的限制
+                const maxSize = 25 * 1024 * 1024; // 25MB
+
+                if (file.size > maxSize) {
+                    const success = await uploadLargeFile(file);
+                    if (!success) continue;
+                } else {
+                    // 小文件使用常规上传
+                    const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+                    await callGitHub("PUT", `uploads/${file.name}`, {message: `upload ${file.name}`, content, branch});
+                }
+
+                // 显示上传进度
+                showProgress(file.name, (i + 1) / files.length * 100);
+            }
+
+            alert("上传完成！页面将自动刷新以显示最新文件...");
+            // 上传完成后从GitHub获取最新文件列表
+            await loadFilesFromGitHub();
+        } catch(e) {
+            alert("上传失败：" + e.message);
+        } finally {
+            hideProgress();
+        }
+    };
+
+    inp.click();
+}
+
+async function deleteFile(name){
+    if(!confirm("确定删除？")) return;
+    let tok=getToken(); 
+    if(!tok){
+        tok=prompt("请输入GitHub Personal Access Token"); 
+        if(!tok) return; 
+        setToken(tok);
+    }
+    try{
+        const {sha}=await callGitHub("GET", `uploads/${name}`); 
+        await callGitHub("DELETE", `uploads/${name}`, {message: `delete ${name}`, sha, branch}); 
+        alert("已删除，页面将自动刷新以显示最新文件..."); 
+        // 删除完成后从GitHub获取最新文件列表
+        await loadFilesFromGitHub();
+    }catch(e){
+        alert("删除失败：" + e.message);
+    }
+}
+
+async function coverFile(name){
+    let tok=getToken(); 
+    if(!tok){
+        tok=prompt("请输入GitHub Personal Access Token"); 
+        if(!tok) return; 
+        setToken(tok);
+    }
+
+    const inp=document.createElement("input"); 
+    inp.type="file"; 
+    inp.accept=".pdf,.pptx";
+
+    inp.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            // 先删除原文件
+            const {sha} = await callGitHub("GET", `uploads/${name}`);
+            await callGitHub("DELETE", `uploads/${name}`, {message: `delete ${name}`, sha, branch});
+
+            // 上传新文件
+            const maxSize = 25 * 1024 * 1024; // 25MB
+            if (file.size > maxSize) {
+                const success = await uploadLargeFile(file);
+                if (!success) {
+                    throw new Error("大文件上传失败");
+                }
+            } else {
+                const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+                await callGitHub("PUT", `uploads/${file.name}`, {message: `cover ${file.name}`, content, branch});
+            }
+
+            alert("已覆盖，页面将自动刷新以显示最新文件...");
+            // 覆盖完成后从GitHub获取最新文件列表
+            await loadFilesFromGitHub();
+        } catch(e) {
+            alert("覆盖失败：" + e.message);
+        }
+    };
+
+    inp.click();
+}
+
+// 从GitHub获取文件列表并更新页面
+async function loadFilesFromGitHub() {
+    showLoading(true);
+    try {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/uploads?ref=${branch}`, {
+            headers: {
+                "Authorization": `token ${getToken()}`,
+                "Accept": "application/vnd.github.v3+json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('无法获取文件列表: ' + response.status);
+        }
+
+        const files = await response.json();
+
+        // 过滤出pdf和pptx文件
+        const filteredFiles = files.filter(file => 
+            file.name.endsWith('.pdf') || file.name.endsWith('.pptx')
+        );
+
+        // 更新文件计数
+        document.querySelector('.footer').innerHTML = `共 ${filteredFiles.length} 个文件 | 点击文件名直接浏览 | <a href="https://github.com/${owner}/${repo}" target="_blank">查看GitHub仓库</a>`;
+
+        // 生成文件卡片
+        let cardsHtml = '';
+        for (const file of filteredFiles) {
+            const fileUrl = file.download_url;
+            const fileName = file.name;
+            const size = file.size;
+            const sizeStr = size < 1024 * 1024 ? `${Math.floor(size / 1024)} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`;
+
+            // 简化时间显示（GitHub API返回的时间）
+            const timeStr = new Date(file.sha).toLocaleString();
+
+            // 根据文件类型设置不同的查看方式
+            let viewButton = '';
+            if (fileName.toLowerCase().endsWith('.pptx')) {
+                // 使用Microsoft Office Online查看PPT
+                const viewUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+                viewButton = `<a href="${viewUrl}" target="_blank" class="view-button">📊 在线预览PPT</a>`;
+            } else {
+                // PDF使用专门的查看页面
+                const viewUrl = `pdf_viewer.html?file=${encodeURIComponent(fileUrl)}`;
+                viewButton = `<a href="${viewUrl}" target="_blank" class="view-button">📖 在线浏览PDF</a>`;
+            }
+
+            cardsHtml += `
+            <div class="card">
+                <div class="card-header">${fileName}</div>
+                <div class="card-body">
+                    <div class="file-info">
+                        <span>大小: ${sizeStr}</span>
+                        <span>修改时间: ${timeStr}</span>
+                    </div>
+                    ${viewButton}
+                    <div class="card-actions">
+                        <button class="btn-del" onclick="deleteFile('${fileName}')">🗑 删除</button>
+                        <button class="btn-cov" onclick="coverFile('${fileName}')">🔄 覆盖</button>
+                        <a href="${fileUrl}" download="${fileName}" class="btn-dl">📥 下载</a>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
+        // 更新网格内容
+        document.querySelector('.grid').innerHTML = cardsHtml;
+
+    } catch (e) {
+        console.error('加载文件列表失败:', e);
+        alert('加载文件列表失败: ' + e.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// 页面加载时检查并刷新文件列表
+document.addEventListener('DOMContentLoaded', function() {
+    // 显示最后更新时间
+    document.getElementById('update-time').textContent = new Date().toLocaleString();
+
+    // 加载GitHub上的文件列表
+    loadFilesFromGitHub();
+
+    // 检查是否有大文件并显示警告
+    const fileSizeWarning = document.querySelector('.file-size-warning');
+    if (fileSizeWarning) {
+        fileSizeWarning.style.display = 'block';
+        setTimeout(() => {
+            fileSizeWarning.style.display = 'none';
+        }, 10000); // 10秒后隐藏警告
+    }
+});
+</script>
+    </body></html>
