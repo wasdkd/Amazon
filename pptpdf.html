@@ -35,7 +35,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
 .loading{display:none;text-align:center;padding:20px;color:#6c757d}
 .file-size-warning{color:#ffc107;font-size:0.9rem;margin-top:5px;display:none}
 </style></head><body><div class="container">
-    <div class="header"><h1>PDF / PPT 文件看板</h1><div class="header-time">最后更新: <span id="update-time">2025-09-05 15:59:37</span></div></div>
+    <div class="header"><h1>PDF / PPT 文件看板</h1><div class="header-time">最后更新: <span id="update-time">2025-09-05 16:22:27</span></div></div>
     <div class="top-bar">
       <button class="btn-top">增删改后需等待片刻刷新</button>
       <button class="btn-act" onclick="uploadFile()">📤 上传新文件</button>
@@ -184,41 +184,54 @@ async function uploadFile() {
   inp.multiple = true;
   inp.onchange = async (e) => {
     for (const file of e.target.files) {
-      if (file.size > 100 * 1024 * 1024) {
-        alert("单文件 ≤ 100 MB");   // Git 硬顶
-        continue;
+      /* ---------- 大文件：>2MB 走指令通道 ---------- */
+      if (file.size > 2 * 1024 * 1024) {
+        if (file.size > 100 * 1024 * 1024) {
+          alert("单文件 ≤ 100 MB（Git 硬顶）");
+          continue;
+        }
+        /* ① 先拿一条“直链”供 Actions 下载 */
+        const uploadRes = await fetch(
+          `https://uploads.github.com/repos/${owner}/${repo}/releases/0/assets?name=${encodeURIComponent(file.name)}`,
+          { method: "POST",
+            headers: { authorization: `token ${tok}`,
+                       "content-type": file.type,
+                       "content-length": file.size },
+            body: file }
+        );
+        if (!uploadRes.ok) { alert("大文件临时上传失败"); continue; }
+        const asset = await uploadRes.json();
+
+        /* ② 通知 Actions 去“命令行”拉取并提交 */
+        const dispatchRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/dispatches`,
+          { method: "POST",
+            headers: { authorization: `token ${tok}`,
+                       "accept": "application/vnd.github.v3+json" },
+            body: JSON.stringify({
+              event_type: "upload-large-file",
+              client_payload: {
+                name: file.name,
+                download_url: asset.browser_download_url
+              }
+            }) }
+        );
+        if (!dispatchRes.ok) { alert("触发指令上传失败"); continue; }
+        alert(`${file.name} 已提交后台指令通道，约 10-30 秒后出现`);
+        continue;   // 大文件处理完毕
       }
-      // 1. 先上传到 GitHub 临时位置（获取 download_url）
-      const uploadRes = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/releases/assets/0`, // 任意地址，只拿上传 url
-        { method: "POST",
-          headers: { authorization: `token ${tok}`,
-                     "content-type": file.type,
-                     "content-length": file.size },
-          body: file }
-      );
-      if (!uploadRes.ok) { alert("临时上传失败"); continue; }
-      const asset = await uploadRes.json();
 
-      // 2. 触发 Actions 工作流
-      const dispatchRes = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/dispatches`,
-        { method: "POST",
-          headers: { authorization: `token ${tok}`,
-                     "accept": "application/vnd.github.v3+json",
-                     "content-type": "application/json" },
-          body: JSON.stringify({
-            event_type: "upload-file",
-            client_payload: {
-              name: file.name,
-              download_url: asset.browser_download_url
-            }
-          }) }
-      );
-      if (!dispatchRes.ok) { alert("触发 Actions 失败"); continue; }
-
-      alert(`${file.name} 已提交后台，约 10-30 秒后会自动出现在列表`);
+      /* ---------- 小文件：≤2MB 走原 REST API ---------- */
+      try {
+        const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+        await callGitHub("PUT", `uploads/${file.name}`, { message: `upload ${file.name}`, content, branch });
+        alert(`${file.name} 上传完成`);
+      } catch (e) {
+        alert("小文件上传失败：" + e.message);
+      }
     }
+    // 统一刷新
+    await loadFilesFromGitHub();
   };
   inp.click();
 }

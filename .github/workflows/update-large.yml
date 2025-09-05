@@ -1,19 +1,18 @@
-name: Upload via API
+name: Upload large file via dispatch
 
 on:
   repository_dispatch:
-    types: [upload-file]
+    types: [upload-large-file]
 
 jobs:
   upload:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download file
+      - name: Download & write file
         run: |
           mkdir -p uploads
           curl -L -o "uploads/${{ github.event.client_payload.name }}" \
@@ -26,6 +25,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add uploads/
           git diff --cached --quiet || (
-            git commit -m "upload ${{ github.event.client_payload.name }}"
+            git commit -m "upload large file ${{ github.event.client_payload.name }}"
             git push
           )
