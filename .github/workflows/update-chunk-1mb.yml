@@ -1,0 +1,33 @@
+name: Upload large file by 1MB chunks
+
+on:
+  repository_dispatch:
+    types: [upload-chunk-1mb]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 保存当前分片
+        run: |
+          mkdir -p /tmp/chunks
+          echo "${{ github.event.client_payload.data.base64 }}" \
+            | base64 -d > /tmp/chunks/${{ github.event.client_payload.index }}.bin
+
+      - name: 最后一片？拼合 & 提交
+        if: github.event.client_payload.index == github.event.client_payload.total - 1
+        run: |
+          mkdir -p uploads
+          cat /tmp/chunks/*.bin > "uploads/${{ github.event.client_payload.name }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add uploads/
+          git diff --cached --quiet || (
+            git commit -m "upload large file ${{ github.event.client_payload.name }}"
+            git push
+          )
+          rm -rf /tmp/chunks
