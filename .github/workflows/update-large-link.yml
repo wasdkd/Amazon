@@ -1,0 +1,30 @@
+name: Upload large file from Releases link
+
+on:
+  repository_dispatch:
+    types: [upload-large-link]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 下载文件
+        run: |
+          mkdir -p uploads
+          curl -L -o "uploads/${{ github.event.client_payload.name }}" \
+               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               "${{ github.event.client_payload.download_url }}"
+
+      - name: 提交
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add uploads/
+          git diff --cached --quiet || (
+            git commit -m "upload large file ${{ github.event.client_payload.name }}"
+            git push
+          )
