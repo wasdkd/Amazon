@@ -1,0 +1,1026 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+        <title>企划数据看板</title><meta name="viewport" content="width=device-width,initial-scale=1">
+        <!-- 引入SheetJS库 -->
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+        <style>
+
+
+:root {
+                --primary: #0d6efd;
+                --primary-dark: #0b5ed7;
+                --secondary: #6c757d;
+                --success: #198754;
+                --light: #f8f9fa;
+                --dark: #212529;
+                --gray-100: #f8f9fa;
+                --gray-200: #e9ecef;
+                --gray-300: #dee2e6;
+                --gray-400: #ced4da;
+                --gray-500: #adb5bd;
+                --gray-800: #343a40;
+                --border-radius: 8px;
+                --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+                --box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                --transition: all 0.2s ease-in-out;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-size: 16px;
+                background-color: #f8f9fa;
+                color: var(--gray-800);
+                line-height: 1.5;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+
+            .header {
+                background: linear-gradient(120deg, var(--primary), #0b5ed7);
+                color: white;
+                padding: 1rem 2rem;
+                box-shadow: var(--box-shadow);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                font-weight: 600;
+            }
+
+            .header-time {
+                font-size: 1rem;
+                opacity: 0.95;
+            }
+
+            .search-container {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                margin: 0 1rem;
+            }
+
+            .search-input {
+                padding: 0.5rem;
+                border-radius: var(--border-radius);
+                border: 1px solid var(--gray-300);
+                font-size: 1rem;
+                min-width: 200px;
+            }
+
+            .search-button {
+                background: var(--success);
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+                font-weight: 500;
+            }
+
+            .search-button:hover {
+                background: #157347;
+            }
+
+            .nav-buttons {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+
+            .nav-button {
+                background: #6f42c1;
+                color: white;
+                border: none;
+                padding: 0.5rem;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+                font-weight: 500;
+            }
+
+            .nav-button:hover {
+                background: #5a32a3;
+            }
+
+            .nav-button:disabled {
+                background: var(--gray-500);
+                cursor: not-allowed;
+            }
+
+            .search-info {
+                color: white;
+                font-size: 0.9rem;
+                min-width: 120px;
+                text-align: center;
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 1.5rem;
+                padding: 1.5rem;
+                justify-content: center;
+                max-width: 70%;
+                margin: 0 auto;
+            }
+
+            .grid-wrapper {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+            }
+
+            .card {
+                background: white;
+                border: 1px solid var(--gray-300);
+                border-radius: var(--border-radius);
+                overflow: hidden;
+                box-shadow: var(--box-shadow);
+                transition: var(--transition);
+                margin: 0 auto;
+                max-width: 350px;
+            }
+
+            .card:hover {
+                transform: translateY(-0.25rem);
+                box-shadow: var(--box-shadow-hover);
+            }
+
+            .card-header {
+                padding: 0.75rem 1rem;
+                width: 300px;
+                background: linear-gradient(120deg, var(--primary), #0b5ed7); /* 修改为更鲜明的颜色 */
+                color: white; /* 添加白色文字 */
+                border-bottom: 1px solid var(--gray-300);
+                font-weight: 600;
+                font-size: 1.1rem;
+            }
+
+            .card-body {
+                padding: 1.25rem;
+            }
+
+            .file-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 1.25rem;
+                font-size: 0.875rem;
+                color: var(--secondary);
+            }
+
+            .file-info span {
+                background-color: var(--gray-100);
+                padding: 0.25rem 0.75rem;
+                border-radius: 20px;
+            }
+
+            .view-button {
+                display: inline-block;
+                background: var(--primary);
+                color: white;
+                padding: 0.5rem 1rem;
+                border: none;
+                border-radius: var(--border-radius);
+                text-decoration: none;
+                font-weight: 500;
+                transition: var(--transition);
+                width: 100%;
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                cursor: pointer;
+            }
+
+            .view-button:hover {
+                background: var(--primary-dark);
+                transform: scale(1.02);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            .back-button {
+                background: #40a2ff;
+                color: white;
+                padding: 0.5rem 1rem;
+                border: none;
+                border-radius: var(--border-radius);
+                text-decoration: none;
+                font-weight: 500;
+                transition: var(--transition);
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                cursor: pointer;
+            }
+
+            .back-button:hover {
+                background: var(--primary-dark);
+                transform: scale(1.02);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            .table-container {
+                padding: 1rem;
+                display: none;
+            }
+
+            .table-wrapper {
+                height: 85vh;
+                overflow: auto;
+                border-top: 1px solid var(--gray-300);
+            }
+
+            .main-table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            .main-table th,
+            .main-table td {
+                border: 1px solid var(--gray-400);
+                padding: 6px 8px;
+                text-align: center;
+                white-space: nowrap;
+            }
+
+            .main-table th {
+                position: sticky;
+                top: 0;
+                z-index: 3;
+                background: #c8e6c9;
+                color: #000;
+            }
+
+            .main-table td:first-child,
+            .main-table th:first-child {
+                position: sticky;
+                left: 0;
+                z-index: 2;
+                background: inherit;
+            }
+
+            /* 搜索高亮样式 */
+            .highlight {
+                background-color: #ffeb3b !important;
+                color: #000 !important;
+                font-weight: bold;
+            }
+
+            .current-highlight {
+                background-color: #ff9800 !important;
+                color: #fff !important;
+                font-weight: bold;
+            }
+
+            /* 列高亮样式 */
+            .column-highlight {
+                background-color: rgba(173, 216, 230, 0.5) !important;
+            }
+
+            /* 十字高亮样式 */
+            .cross-highlight-row {
+                background-color: rgba(255, 255, 0, 0.2) !important;
+            }
+
+            .cross-highlight-col {
+                background-color: rgba(255, 255, 0, 0.2) !important;
+            }
+
+            .cross-highlight-cell {
+                background-color: rgba(255, 255, 0, 0.3) !important;
+                position: relative;
+            }
+
+            .cross-highlight-cell::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                border: 2px solid #ff0;
+                pointer-events: none;
+            }
+
+            .footer {
+                text-align: center;
+                padding: 2px;
+                color: var(--secondary);
+                font-size: 0.875rem;
+                border-top: 1px solid var(--gray-300);
+                margin-top: 1px;
+            }
+
+            .file-title {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px 20px;
+                background: white;
+                border-bottom: 1px solid var(--gray-300);
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .file-name {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: var(--gray-800);
+            }
+
+            /* 隐藏的表格容器 */
+            .hidden-table {
+                display: none;
+            }
+
+            /* 显示的表格容器 */
+            .visible-table {
+                display: block;
+            }
+
+            @media (max-width: 768px) {
+                .grid {
+                    grid-template-columns: 1fr;
+                    padding: 1rem;
+                }
+
+                .header {
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 1rem;
+                    padding: 1rem;
+                }
+
+                .file-title {
+                    padding: 1rem;
+                }
+
+                .search-container {
+                    width: 100%;
+                    margin: 0.5rem 0;
+                    justify-content: center;
+                }
+            }
+
+            .loading {
+                text-align: center;
+                padding: 2rem;
+                font-size: 1.2rem;
+                color: var(--secondary);
+            }
+
+            .token-input-container {
+                max-width: 500px;
+                margin: 2rem auto;
+                padding: 1rem;
+                background: white;
+                border-radius: var(--border-radius);
+                box-shadow: var(--box-shadow);
+            }
+
+            .token-input {
+                width: 100%;
+                padding: 0.5rem;
+                border-radius: var(--border-radius);
+                border: 1px solid var(--gray-300);
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .btn {
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: var(--border-radius);
+                cursor: pointer;
+                font-weight: 500;
+            }
+
+            .btn:hover {
+                background: var(--primary-dark);
+            }
+</style></head><body><div class="container">
+        <div class="header"><h1>企划数据看板</h1>
+          <div id="searchControls" style="display:none;flex:1 1 1;justify-content:center;"><div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="输入搜索关键词">
+            <button class="search-button" onclick="performSearch()">搜索</button>
+            <div class="nav-buttons">
+              <button id="prevButton" class="nav-button" onclick="prevResult()" disabled>上一个</button>
+              <div id="searchInfo" class="search-info">无匹配项</div>
+              <button id="nextButton" class="nav-button" onclick="nextResult()" disabled>下一个</button>
+            </div>
+            <button class="search-button" onclick="clearSearch()" style="background:#dc3545;">清除</button>
+          </div></div>
+          <button id="backButton" class="back-button" onclick="goBack()" style="display:none;"><span>←</span><span>返回首页</span></button>
+          <div class="header-time" id="currentTime">2025-09-09 14:49:51</div>
+        </div>
+        <div class="grid-wrapper"><div class="grid" id="fileGrid">
+            <div class="loading">正在加载文件列表...</div>
+        </div></div>
+        <div id="tableContainer" class="table-container"></div>
+        <div class="footer" id="footer">总计 0 个Excel文件 | 数据看板系统</div>
+        </div>
+    <script>
+    // 更新时间显示
+    function updateTime() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('currentTime').textContent = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // 初始化时更新时间
+    updateTime();
+    // 每秒更新时间
+    setInterval(updateTime, 1000);
+
+    window.GH = {
+      OWNER: "wasdkd",
+      REPO : "Amazon",
+      BRANCH: "main",
+      getToken() {
+        return localStorage.getItem('github_token') || sessionStorage.getItem('github_token');
+      },
+      setToken(token, remember) {
+        if (remember) {
+            localStorage.setItem('github_token', token);
+        } else {
+            sessionStorage.setItem('github_token', token);
+        }
+      },
+      clearToken() {
+        localStorage.removeItem('github_token');
+        sessionStorage.removeItem('github_token');
+      },
+      async callGitHub(method, path, body=null, token=""){
+        const url = `https://api.github.com/repos/${this.OWNER}/${this.REPO}/contents/${path}`;
+        const opt = { method, headers: {
+          "Authorization": `token ${token || this.getToken()}`,
+          "Accept": "application/vnd.github.v3+json",
+          "Content-Type": "application/json"
+        }};
+        if(body) opt.body = JSON.stringify(body);
+        const r = await fetch(url, opt);
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }
+    };
+
+    window.uploadFile = function (){
+      const tok = GH.getToken();
+      if (!tok) {
+        showTokenInput(uploadFileCallback);
+        return;
+      }
+      uploadFileCallback(tok);
+    };
+
+    function uploadFileCallback(token) {
+      const inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".xlsx";
+      inp.onchange = async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+        const path = `uploads/${file.name}`;
+        try{
+          await GH.callGitHub("PUT", path, {message:`upload ${file.name}`, content, branch:GH.BRANCH}, token);
+          alert("上传成功！即将刷新"); location.reload();
+        }catch(err){
+          if (err.message.includes('Bad credentials')) {
+            alert("Token无效，请重新输入");
+            GH.clearToken();
+          } else {
+            alert("失败："+err);
+          }
+        }
+      }; inp.click();
+    }
+
+    window.deleteFile = function (fileName) {
+      const tok = GH.getToken();
+      if (!tok) {
+        showTokenInput((token) => deleteFileCallback(token, fileName));
+        return;
+      }
+      deleteFileCallback(tok, fileName);
+    };
+
+    window.deleteFile = function (fileName) {
+    const tok = GH.getToken();
+    if (!tok) {
+        showTokenInput((token) => deleteFileCallback(token, fileName));
+        return;
+    }
+
+    // 显示确认弹窗
+    const confirmDelete = confirm(`确定要删除文件 "${fileName}" 吗？此操作无法撤销！`);
+    if (confirmDelete) {
+        deleteFileCallback(tok, fileName);
+    } else {
+        alert("删除操作已取消");
+    }
+};
+
+    function deleteFileCallback(token, fileName) {
+      const path = `uploads/${fileName}`;
+      GH.callGitHub("GET", path, null, token).then(({sha}) => {
+        return GH.callGitHub("DELETE", path, {message:`delete ${fileName}`, sha, branch:GH.BRANCH}, token);
+      }).then(() => {
+        alert("删除成功！即将刷新"); location.reload();
+      }).catch(err => {
+        if (err.message.includes('Bad credentials')) {
+          alert("Token无效，请重新输入");
+          GH.clearToken();
+        } else {
+          alert("删除失败：" + err);
+        }
+      });
+    }
+
+    window.overrideFile = function (fileName) {
+      const tok = GH.getToken();
+      if (!tok) {
+        showTokenInput((token) => overrideFileCallback(token, fileName));
+        return;
+      }
+      overrideFileCallback(tok, fileName);
+    };
+
+    function overrideFileCallback(token, fileName) {
+      const inp = document.createElement("input");
+      inp.type = "file"; inp.accept = ".xlsx";
+      inp.onchange = async (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const content = await file.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b))));
+        const path = `uploads/${fileName}`;
+        try{
+          const {sha} = await GH.callGitHub("GET", path, null, token);
+          await GH.callGitHub("DELETE", path, {message:`override ${fileName}`, sha, branch:GH.BRANCH}, token);
+          await GH.callGitHub("PUT", path, {message:`override ${fileName}`, content, branch:GH.BRANCH}, token);
+          alert("覆盖成功！即将刷新"); location.reload();
+        }catch(err){
+          if (err.message.includes('Bad credentials')) {
+            alert("Token无效，请重新输入");
+            GH.clearToken();
+          } else {
+            alert("覆盖失败：" + err);
+          }
+        }
+      }; inp.click();
+    }
+
+    window.clearSavedToken = function() {
+      GH.clearToken();
+      alert("已清除保存的Token");
+    };
+
+    // 显示Token输入框
+    function showTokenInput(callback) {
+        const container = document.createElement('div');
+        container.className = 'token-input-container';
+        container.innerHTML = `
+            <h3>请输入 GitHub Personal Access Token</h3>
+            <p>访问此功能需要 GitHub Personal Access Token</p>
+            <input type="password" class="token-input" id="tokenInput" placeholder="输入你的 GitHub Token">
+            <div>
+                <button class="btn" id="submitToken">确认</button>
+                <button class="btn" id="cancelToken" style="background:#6c757d;margin-left:0.5rem;">取消</button>
+                <label style="display:block;margin-top:0.5rem;">
+                    <input type="checkbox" id="rememberToken" checked> 记住Token
+                </label>
+            </div>
+            <p style="font-size:0.8rem;margin-top:1rem;">
+                <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--primary);">点击这里创建Token</a>
+                (需要 repo 权限)
+            </p>
+        `;
+
+        document.body.appendChild(container);
+
+        document.getElementById('submitToken').onclick = () => {
+            const token = document.getElementById('tokenInput').value;
+            const remember = document.getElementById('rememberToken').checked;
+            if (token) {
+                GH.setToken(token, remember);
+                document.body.removeChild(container);
+                callback(token);
+            }
+        };
+
+        document.getElementById('cancelToken').onclick = () => {
+            document.body.removeChild(container);
+        };
+
+        document.getElementById('tokenInput').onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('submitToken').click();
+            }
+        };
+
+        document.getElementById('tokenInput').focus();
+    }
+
+    // 从GitHub获取文件列表
+    function fetchExcelFiles() {
+        const token = GH.getToken();
+        if (!token) {
+            document.getElementById('fileGrid').innerHTML = `
+                <div class="loading">
+                    <p>需要 GitHub Token 才能访问文件</p>
+                    <button class="btn" onclick="enterTokenManually()">输入 Token</button>
+                </div>
+            `;
+            return;
+        }
+
+        GH.callGitHub("GET", "uploads", null, token).then(data => {
+            const excelFiles = data.filter(file => file.name.endsWith('.xlsx'));
+            displayFileCards(excelFiles);
+            document.getElementById('footer').textContent = `总计 ${excelFiles.length} 个Excel文件 | 数据看板系统`;
+        }).catch(error => {
+            console.error("获取文件列表失败:", error);
+            if (error.message.includes('Bad credentials')) {
+                GH.clearToken();
+                document.getElementById('fileGrid').innerHTML = `
+                    <div class="loading">
+                        <p>Token 无效或已过期</p>
+                        <button class="btn" onclick="enterTokenManually()">重新输入 Token</button>
+                    </div>
+                `;
+            } else {
+                document.getElementById('fileGrid').innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
+            }
+        });
+    }
+
+    // 手动输入Token
+    function enterTokenManually() {
+        showTokenInput(fetchExcelFiles);
+    }
+
+    // 显示文件卡片
+    function displayFileCards(files) {
+        const grid = document.getElementById('fileGrid');
+        if (files.length === 0) {
+            grid.innerHTML = '<div class="loading">暂无Excel文件</div>';
+            return;
+        }
+
+        let cardsHTML = '';
+        files.forEach(file => {
+            const fileName = file.name;
+            const size = formatFileSize(file.size);
+            // 使用正确的提交时间
+            const updatedAt = new Date(file.updated_at || file.created_at).toLocaleString('zh-CN');
+
+            cardsHTML += `
+            <div class="card">
+                <div class="card-header">${fileName}</div>
+                <div class="card-body">
+                    <div class="view-button" onclick="showTable('${fileName}')">查看表格数据</div>
+                    <!-- 删除/覆盖按钮 -->
+                    <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+                      <button class="view-button" style="background:#dc3545;font-size:0.75rem;" onclick="deleteFile('${fileName}')">🗑 删除</button>
+                      <button class="view-button" style="background:#ffc107;font-size:0.75rem;" onclick="overrideFile('${fileName}')">🔄 覆盖</button>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+
+        grid.innerHTML = `
+            <div style="margin:1rem 0;text-align:center;"><button class="view-button" style="background:#2db1d2">增删改后需等待加载一会</button></div>
+            <div style="margin:1rem 0;text-align:center;"><button class="view-button" style="background:#28a745" onclick="uploadFile()">📤 上传新Excel</button></div>
+            <div style="margin:1rem 0;text-align:center;"><button class="view-button" style="background:#6c757d" onclick="clearSavedToken()">🗑️ 清除保存的Token</button></div>
+            ${cardsHTML}
+        `;
+    }
+
+    // 格式化文件大小
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // 显示表格内容
+    function showTable(fileName) {
+        // 显示加载状态
+        document.querySelector('.grid-wrapper').style.display = 'none';
+        document.querySelector('.header h1').textContent = fileName;
+        document.getElementById('backButton').style.display = 'inline-flex';
+        const container = document.getElementById('tableContainer');
+        container.innerHTML = '<div class="loading">正在加载表格数据...</div>';
+        container.style.display = 'block';
+        document.getElementById('searchControls').style.display = 'flex';
+
+        // 从GitHub获取文件内容
+        const token = GH.getToken();
+        if (!token) {
+            container.innerHTML = `
+                <div class="loading">
+                    <p>需要 GitHub Token 才能访问文件</p>
+                    <button class="btn" onclick="showTokenInput((t) => showTableWithToken(t, '${fileName}'))">输入 Token</button>
+                </div>
+            `;
+            return;
+        }
+
+        showTableWithToken(token, fileName);
+    }
+
+    // 构建颜色块函数
+    function colorBlock(r, c, hBlocks, vBlocks) {
+        const hKey = hBlocks[c] || c;
+        const vKey = vBlocks[r] || r;
+        const palette = ["#fce4ec", "#e3f2fd", "#ddfbb8", "#e8f5e9", "#fce8e6", "#f3e5f5", "#b9ffe8", "#fff8e1"];
+        return palette[(hKey + vKey) % palette.length];
+    }
+
+    // 构建块映射
+    function buildBlocks(worksheet) {
+    return analyzeMerges(worksheet);
+}
+
+    // 将Excel工作表转换为HTML表格
+    function excelSheetToHtml(worksheet) {
+        // 获取工作表范围
+        const range = worksheet['!ref'] ? XLSX.utils.decode_range(worksheet['!ref']) : {s: {c:0, r:0}, e: {c:0, r:0}};
+
+        // 构建块映射
+        const { hBlocks, vBlocks } = buildBlocks(worksheet);
+
+        // 创建HTML表格
+        let html = '<table class="main-table">';
+        const rowHeight = 38;
+
+        // 创建合并映射
+        const mergeMap = {};
+        if (worksheet['!merges']) {
+            worksheet['!merges'].forEach(range => {
+                const minR = range.s.r + 1;
+                const minC = range.s.c + 1;
+                const maxR = range.e.r + 1;
+                const maxC = range.e.c + 1;
+                const cellRef = XLSX.utils.encode_cell(range.s);
+                const cellValue = worksheet[cellRef] ? (worksheet[cellRef].w || worksheet[cellRef].v || "") : "";
+                mergeMap[`${minR},${minC},${maxR},${maxC}`] = String(cellValue);
+            });
+        }
+
+        // 处理表头（前两行）
+        html += '<thead>';
+        for (let R = range.s.r; R < Math.min(range.s.r + 2, range.e.r + 1); R++) {
+            html += '<tr>';
+            for (let C = range.s.c; C <= range.e.c; C++) {
+                const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+                const cell = worksheet[cellRef];
+                const val = cell ? (cell.w || cell.v || "") : "";
+
+                const sty = `background:#c8e6c9;color:#000;height:${rowHeight}px`;
+                let merged = false;
+
+                // 检查合并单元格
+                for (const key in mergeMap) {
+                    const [minR, minC, maxR, maxC] = key.split(',').map(Number);
+                    if (R + 1 === minR && C + 1 === minC) {
+                        const rowspan = maxR - minR + 1;
+                        const colspan = maxC - minC + 1;
+                        html += `<th rowspan="${rowspan}" colspan="${colspan}" style="${sty};position:sticky;top:${(R - range.s.r) * rowHeight}px;${C === 0 ? 'left:0;z-index:4;' : 'z-index:3;'}">${val}</th>`;
+                        merged = true;
+                        break;
+                    } else if (minR <= R + 1 && R + 1 <= maxR && minC <= C + 1 && C + 1 <= maxC) {
+                        merged = true;
+                        break;
+                    }
+                }
+
+                if (!merged) {
+                    html += `<th style="${sty};position:sticky;top:${(R - range.s.r) * rowHeight}px;${C === 0 ? 'left:0;z-index:4;' : 'z-index:3;'}">${val}</th>`;
+                }
+            }
+            html += '</tr>';
+        }
+        html += '</thead><tbody>';
+
+        // 处理数据行
+        for (let R = Math.max(range.s.r + 2, range.s.r); R <= range.e.r; R++) {
+            html += '<tr>';
+            for (let C = range.s.c; C <= range.e.c; C++) {
+                const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+                const cell = worksheet[cellRef];
+                const val = cell ? (cell.w || cell.v || "") : "";
+
+                const bg = colorBlock(R + 1, C + 1, hBlocks, vBlocks);
+                let merged = false;
+
+                // 检查合并单元格
+                for (const key in mergeMap) {
+                    const [minR, minC, maxR, maxC] = key.split(',').map(Number);
+                    if (R + 1 === minR && C + 1 === minC) {
+                        const rowspan = maxR - minR + 1;
+                        const colspan = maxC - minC + 1;
+                        html += `<td rowspan="${rowspan}" colspan="${colspan}" style="background:${bg};color:#000;${C === 0 ? 'position:sticky;left:0;z-index:2;' : ''}">${val}</td>`;
+                        merged = true;
+                        break;
+                    } else if (minR <= R + 1 && R + 1 <= maxR && minC <= C + 1 && C + 1 <= maxC) {
+                        merged = true;
+                        break;
+                    }
+                }
+
+                if (!merged) {
+                    html += `<td style="background:${bg};color:#000;${C === 0 ? 'position:sticky;left:0;z-index:2;' : ''}">${val}</td>`;
+                }
+            }
+            html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+        return html;
+    }
+
+    function showTableWithToken(token, fileName) {
+    const container = document.getElementById('tableContainer');
+    GH.callGitHub("GET", `uploads/${fileName}`, null, token).then(response => {
+        // 将base64内容转换为ArrayBuffer
+        const byteString = atob(response.content);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+
+        // 使用SheetJS解析Excel文件
+        const data = new Uint8Array(ab);
+        const workbook = XLSX.read(data, {type: 'array'});
+
+        // 获取第一个工作表
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // 构建块映射
+        const { hBlocks, vBlocks } = buildBlocks(worksheet);
+
+        // 将工作表转换为HTML表格（使用我们自定义的函数）
+        const html = excelSheetToHtml(worksheet, hBlocks, vBlocks);
+
+        container.innerHTML = `<div class="table-wrapper">${html}</div>`;
+
+        if (searchTerm) performSearch(false);
+        setTimeout(() => { const t = document.querySelector('.main-table'); if (t) t.addEventListener('click', handleCellClick); }, 100);
+    }).catch(error => {
+        console.error("获取文件内容失败:", error);
+        if (error.message.includes('Bad credentials')) {
+            GH.clearToken();
+            container.innerHTML = `
+                <div class="loading">
+                    <p>Token 无效或已过期</p>
+                    <button class="btn" onclick="showTokenInput((t) => showTableWithToken(t, '${fileName}'))">重新输入 Token</button>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
+        }
+    });
+}
+
+    function goBack() {
+      document.querySelector('.grid-wrapper').style.display = 'flex';
+      document.querySelector('.header h1').textContent = '企划数据看板';
+      document.getElementById('backButton').style.display = 'none';
+      document.getElementById('tableContainer').style.display = 'none';
+      document.getElementById('searchControls').style.display = 'none';
+      clearSearch(); clearCrossHighlight();
+    }
+
+    let searchResults = [], currentResultIndex = -1, searchTerm = '';
+    let currentHighlightedCell = null, highlightedRows = [], highlightedCols = [];
+
+    function handleCellClick(e) {
+  const cell = e.target; if (cell.tagName !== 'TD' && cell.tagName !== 'TH') return;
+  clearCrossHighlight(); currentHighlightedCell = cell; cell.classList.add('cross-highlight-cell');
+  const table = cell.closest('table'), allRows = Array.from(table.querySelectorAll('tr'));
+  const cellRect = cell.getBoundingClientRect(), cellCenterX = (cellRect.left + cellRect.right)/2, cellCenterY = (cellRect.top + cellRect.bottom)/2;
+  allRows.forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td, th'));
+    cells.forEach(targetCell => {
+      const tRect = targetCell.getBoundingClientRect(), tCenterX = (tRect.left + tRect.right)/2, tCenterY = (tRect.top + tRect.bottom)/2;
+      if (Math.abs(tCenterY - cellCenterY) < 2) {
+        targetCell.classList.add('cross-highlight-row');
+        highlightedRows.push(targetCell);
+      }
+      if (Math.abs(tCenterX - cellCenterX) < 2) {
+        targetCell.classList.add('cross-highlight-col');
+        highlightedCols.push(targetCell);
+      }
+    });
+  });
+}
+    function clearCrossHighlight() {
+      if (currentHighlightedCell) { currentHighlightedCell.classList.remove('cross-highlight-cell'); currentHighlightedCell = null; }
+      highlightedRows.forEach(c => c.classList.remove('cross-highlight-row')); highlightedRows = [];
+      highlightedCols.forEach(c => c.classList.remove('cross-highlight-col')); highlightedCols = [];
+    }
+    function performSearch(scroll=true) {
+      const searchInput = document.getElementById('searchInput');
+      const newSearchTerm = searchInput ? searchInput.value.trim() : '';
+      if (!newSearchTerm) { alert('请输入搜索关键词'); return; }
+      const tableWrapper = document.querySelector('.table-wrapper');
+      if (!tableWrapper) { alert('请先选择一个表格文件'); return; }
+      if (searchTerm !== newSearchTerm || searchResults.length === 0) {
+        searchTerm = newSearchTerm; clearHighlights();
+        const regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        const tableCells = tableWrapper.querySelectorAll('td, th');
+        tableCells.forEach((cell, idx) => { if (regex.test(cell.textContent)) { searchResults.push({ element: cell, index: idx }); } });
+        if (searchResults.length === 0) { alert('未找到匹配项'); updateSearchInfo(); return; }
+        searchResults.forEach((res, i) => { res.element.innerHTML = res.element.innerHTML.replace(regex, '<span class="highlight" data-highlight-id="hl-${i}">$1</span>'); });
+      }
+      if (scroll) { currentResultIndex = -1; nextResult(); } else if (currentResultIndex >= 0 && currentResultIndex < searchResults.length) { updateCurrentHighlight(); }
+      updateSearchInfo();
+    }
+    function updateCurrentHighlight() {
+      document.querySelectorAll('.current-highlight').forEach(el => el.classList.remove('current-highlight'));
+      if (currentResultIndex >= 0 && currentResultIndex < searchResults.length) { const h = searchResults[currentResultIndex].element.querySelector('.highlight'); if (h) h.classList.add('current-highlight'); }
+    }
+    function clearHighlights() {
+      document.querySelectorAll('.highlight').forEach(span => { span.outerHTML = span.innerHTML; });
+      searchResults = []; currentResultIndex = -1;
+    }
+    function clearSearch() {
+      const searchInput = document.getElementById('searchInput'); if (searchInput) searchInput.value = '';
+      searchTerm = ''; clearHighlights(); updateSearchInfo();
+    }
+    function updateSearchInfo() {
+      const info = document.getElementById('searchInfo');
+      info.textContent = searchResults.length ? `${currentResultIndex + 1}/${searchResults.length}` : '无匹配项';
+      document.getElementById('prevButton').disabled = searchResults.length === 0 || currentResultIndex <= 0;
+      document.getElementById('nextButton').disabled = searchResults.length === 0 || currentResultIndex >= searchResults.length - 1;
+    }
+    function nextResult() {
+      if (searchResults.length === 0 || currentResultIndex >= searchResults.length - 1) return;
+      currentResultIndex++; updateCurrentHighlight(); searchResults[currentResultIndex].element.scrollIntoView({ behavior: 'smooth', block: 'center' }); updateSearchInfo();
+    }
+    function prevResult() {
+      if (searchResults.length === 0 || currentResultIndex <= 0) return;
+      currentResultIndex--; updateCurrentHighlight(); searchResults[currentResultIndex].element.scrollIntoView({ behavior: 'smooth', block: 'center' }); updateSearchInfo();
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      // 页面加载时获取文件列表
+      fetchExcelFiles();
+
+      const s = document.getElementById('searchInput'); if (s) s.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') clearCrossHighlight(); });
+    });
+    function analyzeMerges(worksheet) {
+    const hBlocks = {};
+    const vBlocks = {};
+
+    // 获取工作表范围
+    const range = worksheet['!ref'] ? XLSX.utils.decode_range(worksheet['!ref']) : {s: {c:0, r:0}, e: {c:0, r:0}};
+
+    // 处理合并单元格
+    if (worksheet['!merges']) {
+        worksheet['!merges'].forEach(range => {
+            // 处理水平合并
+            if (range.s.r === range.e.r) {
+                for (let c = range.s.c; c <= range.e.c; c++) {
+                    hBlocks[c + 1] = range.s.c + 1;
+                }
+            }
+
+            // 处理垂直合并
+            if (range.s.c === range.e.c) {
+                for (let r = range.s.r; r <= range.e.r; r++) {
+                    vBlocks[r + 1] = range.s.r + 1;
+                }
+            }
+        });
+    }
+
+    return { hBlocks, vBlocks };
+}
+    </script>
+</body></html>
+
