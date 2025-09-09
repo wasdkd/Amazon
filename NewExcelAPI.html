@@ -694,16 +694,17 @@
 
             cardsHTML += `
             <div class="card">
-                <div class="card-header">${fileName}</div>
-                <div class="card-body">
-                    <div class="view-button" onclick="showTable('${fileName}')">查看表格数据</div>
-                    <!-- 删除/覆盖按钮 -->
-                    <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
-                      <button class="view-button" style="background:#dc3545;font-size:0.75rem;" onclick="deleteFile('${fileName}')">🗑 删除</button>
-                      <button class="view-button" style="background:#ffc107;font-size:0.75rem;" onclick="overrideFile('${fileName}')">🔄 覆盖</button>
-                    </div>
-                </div>
-            </div>
+    <div class="card-header">${fileName}</div>
+    <div class="card-body">
+        <div class="view-button" onclick="showTable('${fileName}')">查看表格数据</div>
+        <!-- 删除/覆盖/下载按钮 -->
+        <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+          <button class="view-button" style="background:#dc3545;font-size:0.75rem;" onclick="deleteFile('${fileName}')">🗑 删除</button>
+          <button class="view-button" style="background:#ffc107;font-size:0.75rem;" onclick="overrideFile('${fileName}')">🔄 覆盖</button>
+          <button class="view-button" style="background:#28a745;font-size:0.75rem;" onclick="downloadFile('${fileName}')">⬇️ 下载</button>
+        </div>
+    </div>
+</div>
             `;
         });
 
@@ -1021,6 +1022,45 @@
 
     return { hBlocks, vBlocks };
 }
+
+window.downloadFile = function (fileName) {
+    const tok = GH.getToken();
+    if (!tok) {
+        showTokenInput((token) => downloadFileCallback(token, fileName));
+        return;
+    }
+    downloadFileCallback(tok, fileName);
+};
+
+function downloadFileCallback(token, fileName) {
+    const path = `uploads/${fileName}`;
+    GH.callGitHub("GET", path, null, token).then(response => {
+        // 将base64内容转换为ArrayBuffer
+        const byteString = atob(response.content);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+
+        // 创建一个 Blob 对象并触发下载
+        const blob = new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }).catch(err => {
+        if (err.message.includes('Bad credentials')) {
+            alert("Token无效，请重新输入");
+            GH.clearToken();
+        } else {
+            alert("下载失败：" + err);
+        }
+    });
+}
     </script>
 </body></html>
+
 
