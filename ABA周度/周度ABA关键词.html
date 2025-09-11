@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊ABA关键词周搜索量趋势</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.3;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2px;
+            padding: 2px;
+            background: linear-gradient(135deg, #232f3e 0%, #146eb4 100%);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            margin-bottom: 1px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 1px 2px;
+            background-color: #ff9900;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .back-button:hover {
+            background-color: #e88a00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .filter-section {
+            background-color: white;
+            padding: 2px;
+            border-radius: 8px;
+            margin-bottom: 3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-title {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+            color: #232f3e;
+            text-align: center;
+        }
+
+        .filter-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 3px;
+        }
+
+        .filter-btn {
+            padding: 1px 1px;
+            background-color: #f2f3f4;
+            border: 1px solid #d5d9d9;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .filter-btn:hover {
+            background-color: #e6e6e6;
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background-color: #146eb4;
+            color: white;
+            border-color: #146eb4;
+        }
+
+        .content-display {
+            background-color: white;
+            padding: 3px;
+            border-radius: 8px;
+            min-height: 800px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .iframe-container {
+            width: 100%;
+            height: 100%;
+            min-height: 800px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .hidden-iframe {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #146eb4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .content-placeholder {
+            text-align: center;
+            padding: 6px 2px;
+            color: #6c757d;
+        }
+
+        .content-placeholder h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        /*footer {*/
+        /*    text-align: center;*/
+        /*    margin-top: 40px;*/
+        /*    padding: 20px;*/
+        /*    color: #6c757d;*/
+        /*    font-size: 0.9rem;*/
+        /*}*/
+
+        @media (max-width: 768px) {
+            .filter-buttons {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>亚马逊ABA关键词周搜索量趋势</h1>
+            <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" class="back-button">返回平台</a>
+        </header>
+
+        <section class="filter-section">
+            <div class="filter-buttons">
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Bodysuits">Bodysuits</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Clothing Sets">Clothing Sets</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Clothing">Clothing</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Coats, Jackets & Vests">Coats, Jackets & Vests</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Dresses">Dresses</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Fashion Hoodies & Sweatshirts">Fashion Hoodies & Sweatshirts</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Fashion">Fashion</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Jeans">Jeans</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Jumpsuits, Rompers & Overalls">Jumpsuits, Rompers & Overalls</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Leggings">Leggings</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Lingerie, Sleep & Lounge">Lingerie, Sleep & Lounge</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Pants">Pants</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Shorts">Shorts</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Skirts">Skirts</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Suiting & Blazers">Suiting & Blazers</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Sweaters">Sweaters</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Swimsuits & Cover Ups">Swimsuits & Cover Ups</button>
+                <button class="filter-btn" data-url="https://wasdkd.github.io/Amazon/ABA周度/品类关键词周搜索量_Tops, Tees & Blouses">Tops, Tees & Blouses</button>
+            </div>
+        </section>
+
+        <section class="content-display">
+            <div class="content-placeholder" id="contentPlaceholder">
+                <h3>请选择上方筛选条件查看内容</h3>
+                <p>点击任意筛选按钮，相关数据将在此处显示</p>
+            </div>
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>正在加载内容，请稍候...</p>
+            </div>
+            <div id="iframe-container">
+                <!-- Iframes will be dynamically managed here -->
+            </div>
+        </section>
+
+<!--        <footer>-->
+<!--            <p>© 2023 亚马逊ABA关键词分析工具 | 数据仅供参考</p>-->
+<!--        </footer>-->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const iframeContainer = document.getElementById('iframe-container');
+            const contentPlaceholder = document.getElementById('contentPlaceholder');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            // 存储已创建的 iframe
+            const iframes = {};
+            // 存储已加载完成的 iframe
+            const loadedIframes = {};
+
+            // 默认加载第一个
+            if (filterButtons.length > 0) {
+                const firstButton = filterButtons[0];
+                const firstUrl = firstButton.getAttribute('data-url');
+                createIframe(firstUrl, 0);
+                firstButton.classList.add('active');
+
+                // 显示加载指示器
+                contentPlaceholder.style.display = 'none';
+                loadingIndicator.style.display = 'block';
+
+                // 当第一个 iframe 加载完成后显示它
+                iframes[firstUrl].onload = function() {
+                    loadedIframes[firstUrl] = true;
+                    showIframe(firstUrl);
+                    loadingIndicator.style.display = 'none';
+
+                    // 开始逐个加载其他 iframe
+                    loadNextIframe(1);
+                };
+            }
+
+            // 逐个加载 iframe 的函数
+            function loadNextIframe(index) {
+                if (index < filterButtons.length) {
+                    const button = filterButtons[index];
+                    const url = button.getAttribute('data-url');
+                    createIframe(url, index);
+
+                    // 当前 iframe 加载完成后加载下一个
+                    iframes[url].onload = function() {
+                        loadedIframes[url] = true;
+                        loadNextIframe(index + 1);
+                    };
+                }
+            }
+
+            filterButtons.forEach((button, index) => {
+                button.addEventListener('click', function() {
+                    // 移除所有按钮的active类
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+
+                    // 为当前点击的按钮添加active类
+                    this.classList.add('active');
+
+                    // 获取目标URL
+                    const url = this.getAttribute('data-url');
+
+                    // 显示加载指示器
+                    contentPlaceholder.style.display = 'none';
+                    loadingIndicator.style.display = 'block';
+                    hideAllIframes();
+
+                    // 检查 iframe 是否已存在
+                    if (!iframes[url]) {
+                        // 创建新的 iframe
+                        createIframe(url, index);
+                    }
+
+                    // 检查是否已加载完成
+                    if (loadedIframes[url]) {
+                        // 立即显示
+                        showIframe(url);
+                        loadingIndicator.style.display = 'none';
+                    } else {
+                        // 等待加载完成
+                        iframes[url].onload = function() {
+                            loadedIframes[url] = true;
+                            showIframe(url);
+                            loadingIndicator.style.display = 'none';
+                        };
+                    }
+                });
+            });
+
+            function createIframe(url, index) {
+                const iframe = document.createElement('iframe');
+                iframe.src = url;
+                iframe.className = 'iframe-container hidden-iframe';
+                iframe.id = 'iframe-' + index;
+                iframe.allow = 'clipboard-write';
+
+                iframeContainer.appendChild(iframe);
+                iframes[url] = iframe;
+            }
+
+            function hideAllIframes() {
+                Object.values(iframes).forEach(iframe => {
+                    iframe.classList.add('hidden-iframe');
+                });
+            }
+
+            function showIframe(url) {
+                if (iframes[url]) {
+                    iframes[url].classList.remove('hidden-iframe');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
