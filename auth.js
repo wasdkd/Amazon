@@ -25,6 +25,7 @@
                 'NewReleases',
                 'BestSellers',
 				'ImageClickRate',
+				'AbaKeyword3',
             ],
 
             // 特殊密码模块（店铺分析的三个模块使用相同的特殊密码）
