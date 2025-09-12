@@ -29,7 +29,7 @@
             ],
 
             // 特殊密码模块（店铺分析的三个模块使用相同的特殊密码）
-            special: ['StoreAnalysis', 'ProductCenter']
+            special: ['StoreAnalysis', '数据看板']
         },
 
         // 首页URL

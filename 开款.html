@@ -1,0 +1,2787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品开款</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #34495e;
+            --success-color: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+            line-height: 0.8;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .auth-section, .upload-section, .gallery-section {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--light-color);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            border: none;
+        }
+
+        .toggle-btn {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            border: none;
+            padding: 5px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .toggle-btn:hover {
+            background-color: #d5dbdb;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-danger {
+            background-color: var(--accent-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-primary {
+            background-color: #9b59b6;
+        }
+
+        .btn-primary:hover {
+            background-color: #8e44ad;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .product-image {
+            width: 100%;
+            object-fit: cover;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-info {
+            padding: 10px;
+        }
+
+        .product-info p {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .product-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.8rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem;
+            border-radius: 4px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .notification.success {
+            background-color: var(--success-color);
+            opacity: 1;
+        }
+
+        .notification.error {
+            background-color: var(--accent-color);
+            opacity: 1;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .btn-edit {
+            background-color: #f39c12;
+            margin-right: 5px;
+        }
+
+        .btn-edit:hover {
+            background-color: #d35400;
+        }
+
+        .edit-form {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: none;
+        }
+
+        .edit-form.show {
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .form-col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 200px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+            margin-bottom: 1px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .pagination .current-page {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .progress-container {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 14px;
+            color: var(--dark-color);
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .image-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-upload-area:hover,
+        .image-upload-area.drag-over {
+            border-color: var(--secondary-color);
+        }
+
+        .upload-placeholder p {
+            margin: 0;
+            color: #666;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .form-col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 200px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+        }
+
+        .pagination .page-info {
+            margin: 0 10px;
+        }
+
+        .pagination .current-page {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .upload-placeholder p {
+            margin: 0;
+            color: #666;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .form-col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>产品开款</h1>
+        <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform   ">
+            <button style="
+                padding: 2px 6px;
+                margin-top: 7px;
+                margin-right: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #007BFF;
+                color: white;
+                font-size: 13px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: background-color 0.3s ease, transform 0.2s ease;
+            "
+            >返回平台</button>
+        </a>
+    </header>
+
+       <div class="container">
+        <!-- 认证区域 -->
+        <section class="auth-section" id="authSection">
+            <div class="section-header">
+                <h2>GitHub 认证</h2>
+                <button class="toggle-btn" id="toggleAuthSection">隐  藏</button>
+            </div>
+            <div class="form-group">
+                <input type="password" id="githubToken" placeholder="输入您的GitHub Token">
+            </div>
+            <button id="authButton">认证</button>
+        </section>
+
+        <!-- 编辑区域 -->
+        <section class="edit-form" id="editSection">
+            <div class="section-header">
+                <h2>编辑产品信息</h2>
+                <button class="toggle-btn" id="toggleEditSection">隐  藏</button>
+            </div>
+            <div id="editProgress" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="editProgressFill"></div>
+                </div>
+                <div class="progress-text" id="editProgressText">准备中...</div>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editProductId">
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="editDeveloper">开发</label>
+                            <input type="text" id="editDeveloper" placeholder="输入开发人员姓名" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="editDevDate">开发日期</label>
+                            <input type="date" id="editDevDate" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="editMaterial">面料</label>
+                            <input type="text" id="editMaterial" placeholder="输入面料信息" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="editCategory">品类</label>
+                            <input type="text" id="editCategory" placeholder="输入产品品类" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="editQuarter">开发季度</label>
+                            <input type="text" id="editQuarter" placeholder="输入开发季度" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="editCycle">周期</label>
+                            <input type="text" id="editCycle" placeholder="输入开发周期" required>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="form-row">
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="editProductImage">产品图片</label>
+                    <div class="image-upload-area" id="editImageUploadArea">
+                        <input type="file" id="editProductImage" accept="image/*">
+                        <div class="upload-placeholder">
+                            <p>点击选择图片或拖拽图片到此处</p>
+                        </div>
+                        <img id="editCurrentImage" class="preview-image hidden" style="max-width: 200px; margin-top: 10px;">
+                        <img id="editImagePreview" class="preview-image hidden">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancelEdit" class="btn-danger">取消</button>
+                    <button type="submit" class="btn-success">保存更改</button>
+                </div>
+            </form>
+        </section>
+
+            <!-- 上传区域 -->
+        <section class="upload-section hidden" id="uploadSection">
+            <div class="section-header">
+                <h2>上传新产品数据</h2>
+                <button class="toggle-btn" id="toggleUploadSection">隐  藏</button>
+            </div>
+            <div id="uploadProgress" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="uploadProgressFill"></div>
+                </div>
+                <div class="progress-text" id="uploadProgressText">准备中...</div>
+            </div>
+            <form id="uploadForm">
+                 <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="productImage">产品图片</label>
+                            <div class="image-upload-area" id="imageUploadArea">
+                                <input type="file" id="productImage" accept="image/*" style="display: none;">
+                                <div class="upload-placeholder" id="uploadPlaceholder">
+                                    <p>点击选择图片、拖拽图片到此处</p>
+                                </div>
+                                <img id="imagePreview" class="preview-image hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="developer">开发</label>
+                            <input type="text" id="developer" placeholder="输入开发人员姓名" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="devDate">开发日期</label>
+                            <input type="date" id="devDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="material">面料</label>
+                            <input type="text" id="material" placeholder="输入面料信息" required>
+                        </div>
+                    </div>
+
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="category">品类</label>
+                            <input type="text" id="category" placeholder="输入产品品类" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quarter">开发季度</label>
+                            <input type="text" id="quarter" placeholder="输入开发季度" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cycle">周期</label>
+                            <input type="text" id="cycle" placeholder="自动计算" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="bulkUpload">批量上传 (Excel或CSV文件)</label>
+                    <input type="file" id="bulkUpload" accept=".csv, .xlsx, .xls">
+                    <button type="button" id="processBulkUpload" class="btn-success">处理批量上传</button>
+                    <button type="button" id="downloadTemplate" class="btn-primary">下载模板</button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="clearForm" class="btn-danger">清空</button>
+                    <button type="submit" class="btn-success">上传数据</button>
+                </div>
+            </form>
+        </section>
+
+            <!-- 展示区域 -->
+         <section class="gallery-section" id="gallerySection">
+            <div class="section-header">
+                <h2>产品数据展示</h2>
+                <div>
+                    <button class="toggle-btn" id="toggleGallerySection">隐  藏</button>
+                </div>
+            </div>
+
+            <!-- 筛选区域 -->
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterDeveloper">开发人员</label>
+                        <select id="filterDeveloper">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterCategory">品类</label>
+                        <select id="filterCategory">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterQuarter">开发季度</label>
+                        <select id="filterQuarter">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterCycle">周期</label>
+                        <select id="filterCycle">
+                            <option value="">全部</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterDevDate">开发日期</label>
+                        <input type="date" id="filterDevDate">
+                    </div>
+
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <div style="margin-bottom: 8px;">
+                            <button id="applyFilter" class="btn-success">应用筛选</button>
+                            <button id="resetFilter">重置筛选</button>
+                            <button class="btn-danger" id="bulkDeleteButton" style="margin-left: 10px;">批量删除</button>
+                            <button class="btn-danger hidden" id="confirmBulkDeleteButton" style="margin-left: 10px;">确认删除</button>
+                            <button class="toggle-btn hidden" id="cancelBulkDeleteButton" style="margin-left: 10px;">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="refreshButton">刷新数据</button>
+
+            <div class="gallery" id="productGallery">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+            </div>
+
+            <div class="pagination" id="pagination">
+                <button id="prevPage" class="btn-primary">上一页</button>
+                <span class="page-info">第 <span id="currentPage" class="current-page">1</span> 页，共 <span id="totalPages">1</span> 页</span>
+                <button id="nextPage" class="btn-primary">下一页</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="notification" id="notification"></div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // 配置GitHub信息
+        const GITHUB_USERNAME = 'wasdkd';
+        const GITHUB_REPO = 'Amazon';
+        const GITHUB_BRANCH = 'main';
+        const GITHUB_FOLDER = 'uploads';
+
+        // 分页配置
+        const ITEMS_PER_PAGE = 60;
+        let currentPage = 1;
+        let filteredProducts = [];
+
+                // DOM元素
+         const authSection = document.getElementById('authSection');
+        const uploadSection = document.getElementById('uploadSection');
+        const editSection = document.getElementById('editSection');
+        const gallerySection = document.getElementById('gallerySection');
+        const authButton = document.getElementById('authButton');
+        const githubTokenInput = document.getElementById('githubToken');
+        const uploadForm = document.getElementById('uploadForm');
+        const editForm = document.getElementById('editForm');
+        const productGallery = document.getElementById('productGallery');
+        const refreshButton = document.getElementById('refreshButton');
+        const notification = document.getElementById('notification');
+        const productImageInput = document.getElementById('productImage');
+        const imagePreview = document.getElementById('imagePreview');
+        const editProductImageInput = document.getElementById('editProductImage');
+        const editImagePreview = document.getElementById('editImagePreview');
+        const cancelEditButton = document.getElementById('cancelEdit');
+        // 筛选相关元素
+        const filterDeveloper = document.getElementById('filterDeveloper');
+        const filterCategory = document.getElementById('filterCategory');
+        const filterQuarter = document.getElementById('filterQuarter');
+        const filterCycle = document.getElementById('filterCycle');
+        const filterDevDate = document.getElementById('filterDevDate');
+        const applyFilterButton = document.getElementById('applyFilter');
+        const resetFilterButton = document.getElementById('resetFilter');
+        // 分页相关元素
+        const prevPageButton = document.getElementById('prevPage');
+        const nextPageButton = document.getElementById('nextPage');
+        const currentPageElement = document.getElementById('currentPage');
+        const totalPagesElement = document.getElementById('totalPages');
+        // 切换按钮
+        const toggleAuthSection = document.getElementById('toggleAuthSection');
+        const toggleUploadSection = document.getElementById('toggleUploadSection');
+        const toggleEditSection = document.getElementById('toggleEditSection');
+        const toggleGallerySection = document.getElementById('toggleGallerySection');
+
+
+
+          // 检查本地存储中是否有token
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedToken = localStorage.getItem('githubToken');
+            if (savedToken) {
+                githubTokenInput.value = savedToken;
+                authenticateWithToken(savedToken);
+            } else {
+                loadProductData(); // 仍然尝试加载数据（如果有公开访问权限）
+            }
+
+            // 默认隐藏认证区域内容（但保持区域可见，只隐藏内容）
+            const authFormGroup = authSection.querySelector('.form-group');
+            const authButton = document.getElementById('authButton');
+            if (authFormGroup) authFormGroup.style.display = 'none';
+            if (authButton) authButton.style.display = 'none';
+            toggleAuthSection.textContent = '显  示';
+
+            // 默认隐藏上传区域内容（但保持区域可见，只隐藏内容）
+            const uploadContent = uploadSection.querySelector('form');
+            if (uploadContent) {
+                uploadContent.style.display = 'none';
+            }
+            toggleUploadSection.textContent = '显  示';
+
+            // 编辑区域默认隐藏
+            editSection.classList.remove('show');
+            toggleEditSection.textContent = '显  示';
+        });
+
+        // 使用token认证
+        function authenticateWithToken(token) {
+            // 简单验证token格式（以ghp_开头）
+            if (!token.startsWith('ghp_')) {
+                showNotification('Token格式不正确', 'error');
+                return;
+            }
+
+            // 验证token有效性
+            fetch('https://api.github.com/user', {
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // 保存token到本地存储
+                    localStorage.setItem('githubToken', token);
+                    // 显示上传区域
+                    uploadSection.classList.remove('hidden');
+                    showNotification('认证成功', 'success');
+                    // 重新加载产品数据
+                    loadProductData();
+                } else {
+                    showNotification('认证失败，请检查Token', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('网络错误，请重试', 'error');
+                console.error('认证错误:', error);
+            });
+        }
+
+        // 开发日期改变时自动计算周期
+        document.getElementById('devDate').addEventListener('change', function() {
+            const devDateValue = this.value;
+            if (devDateValue) {
+                const cycleInput = document.getElementById('cycle');
+                cycleInput.value = calculateCycle(devDateValue);
+            }
+        });
+
+        // 计算周期函数
+        function calculateCycle(dateString) {
+            const date = new Date(dateString);
+            const dayOfWeek = date.getDay(); // 0 (Sunday) to 6 (Saturday)
+            const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Calculate days to previous Monday
+            const daysToSunday = daysToMonday + 6; // Calculate days to Sunday of the same week
+
+            const monday = new Date(date);
+            monday.setDate(date.getDate() + daysToMonday);
+
+            const sunday = new Date(date);
+            sunday.setDate(date.getDate() + daysToSunday);
+
+            // Format dates as MM/DD
+            const mondayStr = `${String(monday.getMonth() + 1).padStart(2, '0')}/${String(monday.getDate()).padStart(2, '0')}`;
+            const sundayStr = `${String(sunday.getMonth() + 1).padStart(2, '0')}/${String(sunday.getDate()).padStart(2, '0')}`;
+
+            return `${mondayStr}-${sundayStr}`;
+        }
+
+        // 下载模板按钮事件
+        document.getElementById('downloadTemplate').addEventListener('click', function() {
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+
+            // 创建示例日期并格式化为 YYYY-MM-DD
+            const exampleDate = new Date();
+            exampleDate.setDate(exampleDate.getDate() + 7); // 设置为一周后
+            const formattedExampleDate = exampleDate.toISOString().split('T')[0];
+
+            // 创建工作表数据（包含示例数据和标记行）
+            const wsData = [
+                ['开发', '开发日期', '面料', '品类', '开发季度'], // 表头
+                ['张三', formattedExampleDate, '棉麻混纺', '连衣裙', '2024春季'], // 示例数据
+                ['[示例数据-请删除]', '', '', '', ''] // 标记行，用于识别并删除示例数据
+            ];
+
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 设置开发日期列的格式为短日期格式
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let row = 1; row <= range.e.r; row++) {
+                const cellRef = XLSX.utils.encode_cell({ r: row, c: 1 }); // 第二列（开发日期列）
+                if (ws[cellRef]) {
+                    // 设置单元格格式为日期
+                    ws[cellRef].z = 'yyyy-mm-dd';
+                }
+            }
+
+            // 将工作表添加到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, '产品数据模板');
+
+            // 导出文件
+            XLSX.writeFile(wb, '产品数据模板.xlsx');
+        });
+
+        // 处理批量上传按钮事件
+        document.getElementById('processBulkUpload').addEventListener('click', () => {
+            const bulkFileInput = document.getElementById('bulkUpload');
+            const file = bulkFileInput.files[0];
+
+            if (!file) {
+                showNotification('请选择一个文件', 'error');
+                return;
+            }
+
+            const token = localStorage.getItem('githubToken');
+            if (!token) {
+                showNotification('请先进行认证', 'error');
+                return;
+            }
+
+            // 显示进度条
+            const progressContainer = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('uploadProgressFill');
+            const progressText = document.getElementById('uploadProgressText');
+            progressContainer.classList.remove('hidden');
+            progressFill.style.width = '10%';
+            progressText.textContent = '读取文件...';
+
+            if (file.name.endsWith('.csv')) {
+                // 处理CSV文件
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const csvContent = e.target.result;
+                        progressFill.style.width = '30%';
+                        progressText.textContent = '解析CSV数据...';
+
+                        // 解析CSV内容
+                        const products = parseCSVContent(csvContent);
+
+                        if (products.length === 0) {
+                            throw new Error('CSV文件中没有有效的数据行');
+                        }
+
+                        progressFill.style.width = '60%';
+                        progressText.textContent = `准备上传${products.length}条产品数据...`;
+
+                        // 更新CSV文件
+                        updateProductCSVWithBulkData(token, products)
+                            .then(() => {
+                                progressFill.style.width = '100%';
+                                progressText.textContent = `成功上传${products.length}条产品数据!`;
+                                showNotification(`成功上传${products.length}条产品数据`, 'success');
+                                bulkFileInput.value = ''; // 清空文件选择
+
+                                // 隐藏进度条
+                                setTimeout(() => {
+                                    progressContainer.classList.add('hidden');
+                                }, 2000);
+
+                                // 重新加载产品数据
+                                loadProductData();
+                            })
+                            .catch(error => {
+                                progressFill.style.width = '0%';
+                                progressText.textContent = '上传失败';
+                                showNotification('批量上传失败: ' + error.message, 'error');
+                                console.error('批量上传错误:', error);
+
+                                // 隐藏进度条
+                                setTimeout(() => {
+                                    progressContainer.classList.add('hidden');
+                                }, 2000);
+                            });
+                    } catch (error) {
+                        progressFill.style.width = '0%';
+                        progressText.textContent = '解析失败';
+                        showNotification('解析文件失败: ' + error.message, 'error');
+                        console.error('解析错误:', error);
+
+                        // 隐藏进度条
+                        setTimeout(() => {
+                            progressContainer.classList.add('hidden');
+                        }, 2000);
+                    }
+                };
+
+                reader.onerror = function() {
+                    progressFill.style.width = '0%';
+                    progressText.textContent = '读取失败';
+                    showNotification('读取文件失败', 'error');
+
+                    // 隐藏进度条
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                    }, 2000);
+                };
+
+                reader.readAsText(file, 'UTF-8');
+            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                // 处理Excel文件
+                progressText.textContent = '正在处理Excel文件...';
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        progressFill.style.width = '30%';
+                        progressText.textContent = '解析Excel数据...';
+
+                        // 使用SheetJS解析Excel文件
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+
+                        // 转换为JSON格式
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: false}); // 添加 raw: false 以自动转换日期
+
+                        if (jsonData.length === 0) {
+                            throw new Error('Excel文件中没有数据');
+                        }
+
+                        // 转换为产品数据格式并过滤示例数据
+                        const products = [];
+                        jsonData.forEach((row, index) => {
+                            // 跳过示例数据行
+                            if (row['开发'] === '[示例数据-请删除]') {
+                                return;
+                            }
+
+                            // 处理日期格式
+                            let devDate = row['开发日期'] || row['devDate'] || row['Dev Date'] || '';
+                            // 如果是日期对象或Excel序列号，转换为字符串
+                            if (devDate instanceof Date) {
+                                devDate = devDate.toISOString().split('T')[0];
+                            } else if (typeof devDate === 'number') {
+                                // 处理Excel日期序列号
+                                // Excel日期从1900年1月1日开始计算，但有一个错误，将1900年视为闰年
+                                // 所以需要减去1天（25569 = 1970-01-01到1900-01-01的天数差）
+                                const excelDate = new Date(Math.round((devDate - 25569) * 86400 * 1000));
+                                devDate = excelDate.toISOString().split('T')[0];
+                            } else if (typeof devDate === 'string' && devDate.includes('/')) {
+                                // 处理类似 "10/8/2025" 这样的日期格式
+                                const parts = devDate.split('/');
+                                if (parts.length === 3) {
+                                    const dateObj = new Date(parts[2], parts[0]-1, parts[1]); // 月份从0开始
+                                    devDate = dateObj.toISOString().split('T')[0];
+                                }
+                            }
+
+                            // 转换键名为中文列名
+                            const product = {
+                                id: Date.now() + index,
+                                developer: row['开发'] || row['developer'] || row['Developer'] || '',
+                                devDate: devDate,
+                                material: row['面料'] || row['material'] || row['Material'] || '',
+                                category: row['品类'] || row['category'] || row['Category'] || '',
+                                quarter: row['开发季度'] || row['quarter'] || row['Quarter'] || '',
+                                // 自动计算周期
+                                cycle: devDate ? calculateCycle(devDate) : '',
+                                imageUrl: ''
+                            };
+
+                            // 只添加有效的数据行（必须有品类和开发人员）
+                            if (product.category && product.developer) {
+                                products.push(product);
+                            }
+                        });
+
+                        if (products.length === 0) {
+                            throw new Error('Excel文件中没有有效的数据行');
+                        }
+
+                        progressFill.style.width = '60%';
+                        progressText.textContent = `准备上传${products.length}条产品数据...`;
+
+                        // 更新CSV文件
+                        updateProductCSVWithBulkData(token, products)
+                            .then(() => {
+                                progressFill.style.width = '100%';
+                                progressText.textContent = `成功上传${products.length}条产品数据!`;
+                                showNotification(`成功上传${products.length}条产品数据`, 'success');
+                                bulkFileInput.value = ''; // 清空文件选择
+
+                                // 隐藏进度条
+                                setTimeout(() => {
+                                    progressContainer.classList.add('hidden');
+                                }, 2000);
+
+                                // 重新加载产品数据
+                                loadProductData();
+                            })
+                            .catch(error => {
+                                progressFill.style.width = '0%';
+                                progressText.textContent = '上传失败';
+                                showNotification('批量上传失败: ' + error.message, 'error');
+                                console.error('批量上传错误:', error);
+
+                                // 隐藏进度条
+                                setTimeout(() => {
+                                    progressContainer.classList.add('hidden');
+                                }, 2000);
+                            });
+                    } catch (error) {
+                        progressFill.style.width = '0%';
+                        progressText.textContent = '解析失败';
+                        showNotification('解析Excel文件失败: ' + error.message, 'error');
+                        console.error('解析错误:', error);
+
+                        // 隐藏进度条
+                        setTimeout(() => {
+                            progressContainer.classList.add('hidden');
+                        }, 2000);
+                    }
+                };
+
+                reader.onerror = function() {
+                    progressFill.style.width = '0%';
+                    progressText.textContent = '读取失败';
+                    showNotification('读取Excel文件失败', 'error');
+
+                    // 隐藏进度条
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                    }, 2000);
+                };
+
+                reader.readAsArrayBuffer(file);
+            } else {
+                progressFill.style.width = '0%';
+                progressText.textContent = '文件格式不支持';
+                showNotification('请选择CSV、XLSX或XLS格式的文件', 'error');
+
+                // 隐藏进度条
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 2000);
+            }
+        });
+
+        // 解析CSV内容为产品数组
+        function parseCSVContent(csvContent) {
+            const lines = csvContent.trim().split('\n');
+            if (lines.length < 2) {
+                throw new Error('CSV文件至少需要包含标题行和数据行');
+            }
+
+            // 获取标题行
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+            // 验证必需的列
+            const requiredColumns = ['开发', '开发日期', '面料', '品类', '开发季度'];
+            const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+
+            if (missingColumns.length > 0) {
+                throw new Error(`CSV文件缺少必需的列: ${missingColumns.join(', ')}`);
+            }
+
+            // 解析数据行
+            const products = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const values = lines[i].split(',').map(v => {
+                    const trimmed = v.trim();
+                    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                        return trimmed.substring(1, trimmed.length - 1);
+                    }
+                    return trimmed;
+                });
+
+                // 创建产品对象
+                const product = {};
+                headers.forEach((header, index) => {
+                    switch(header) {
+                        case '开发': product.developer = values[index] || ''; break;
+                        case '开发日期': product.devDate = values[index] || ''; break;
+                        case '面料': product.material = values[index] || ''; break;
+                        case '品类': product.category = values[index] || ''; break;
+                        case '开发季度': product.quarter = values[index] || ''; break;
+                    }
+                });
+
+                // 跳过示例数据行
+                if (product.developer === '[示例数据-请删除]') {
+                    continue;
+                }
+
+                // 自动计算周期
+                if (product.devDate) {
+                    product.cycle = calculateCycle(product.devDate);
+                }
+
+                // 添加ID和图片路径占位符
+                product.id = Date.now() + i; // 生成唯一ID
+                product.imageUrl = ''; // 图片路径先留空
+
+                // 只添加有效的数据行（必须有品类和开发人员）
+                if (product.category && product.developer) {
+                    products.push(product);
+                }
+            }
+
+            return products;
+        }
+
+        // 表单提交事件
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const token = localStorage.getItem('githubToken');
+            if (!token) {
+                showNotification('请先进行认证', 'error');
+                return;
+            }
+
+            // 显示进度条
+            const progressContainer = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('uploadProgressFill');
+            const progressText = document.getElementById('uploadProgressText');
+            progressContainer.classList.remove('hidden');
+            progressFill.style.width = '10%';
+            progressText.textContent = '准备上传数据...';
+
+            // 获取表单数据
+            const developer = document.getElementById('developer').value;
+            const devDate = document.getElementById('devDate').value;
+            const material = document.getElementById('material').value;
+            const category = document.getElementById('category').value;
+            const quarter = document.getElementById('quarter').value;
+            // 使用自动计算的周期
+            const cycle = document.getElementById('cycle').value;
+            const imageFile = productImageInput.files[0];
+
+            if (!imageFile) {
+                showNotification('请选择产品图片', 'error');
+                progressContainer.classList.add('hidden');
+                return;
+            }
+
+            if (!developer || !devDate || !material || !category || !quarter || !cycle) {
+                showNotification('请填写所有必填字段', 'error');
+                progressContainer.classList.add('hidden');
+                return;
+            }
+
+            progressFill.style.width = '20%';
+            progressText.textContent = '处理图片文件...';
+
+            // 创建唯一文件名
+            const timestamp = new Date().getTime();
+            const imageFileName = `image_${timestamp}.${imageFile.name.split('.').pop()}`;
+
+            // 准备产品数据（用于添加到CSV）
+            const productData = {
+                id: timestamp,
+                developer,
+                devDate,
+                material,
+                category,
+                quarter,
+                cycle,
+                imageUrl: `uploads/img/${imageFileName}`  // 存储相对于仓库根目录的路径
+            };
+
+            // 读取图片文件为Base64
+            const reader = new FileReader();
+            reader.onload = function() {
+                progressFill.style.width = '40%';
+                progressText.textContent = '正在上传图片...';
+
+                const imageData = reader.result.split(',')[1]; // 移除data:image/...;base64,前缀
+
+                // 上传图片到 img 文件夹
+                uploadFileToGitHub(
+                    token,
+                    `img/${imageFileName}`,  // 上传到 img 文件夹
+                    imageData,
+                    'base64',
+                    `上传产品图片: ${imageFileName}`
+                )
+                .then(() => {
+                    progressFill.style.width = '70%';
+                    progressText.textContent = '图片上传完成，正在更新数据表...';
+                    // 图片上传成功后更新CSV文件
+                    return updateProductCSV(token, productData);
+                })
+                .then(() => {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '上传完成!';
+                    showNotification('产品数据上传成功', 'success');
+                    uploadForm.reset();
+                    imagePreview.classList.add('hidden');
+                    // 隐藏进度条
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                    }, 1000);
+                    // 重新加载产品数据
+                    loadProductData();
+                })
+                .catch(error => {
+                    progressFill.style.width = '0%';
+                    progressText.textContent = '上传失败';
+                    showNotification('上传失败，请重试: ' + error.message, 'error');
+                    console.error('上传错误:', error);
+                    // 隐藏进度条
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                    }, 2000);
+                });
+            };
+
+            reader.readAsDataURL(imageFile);
+        });
+
+        // 清空表单按钮事件
+        document.getElementById('clearForm').addEventListener('click', () => {
+            uploadForm.reset();
+            imagePreview.classList.add('hidden');
+            uploadPlaceholder.classList.remove('hidden');
+            document.getElementById('cycle').value = ''; // 清空周期字段
+        });
+
+
+
+
+        // 解析CSV内容为产品数组
+        function parseCSVContent(csvContent) {
+            const lines = csvContent.trim().split('\n');
+            if (lines.length < 2) {
+                throw new Error('CSV文件至少需要包含标题行和数据行');
+            }
+
+            // 获取标题行
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+            // 验证必需的列
+            const requiredColumns = ['开发', '开发日期', '面料', '品类', '开发季度'];
+            const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+
+            if (missingColumns.length > 0) {
+                throw new Error(`CSV文件缺少必需的列: ${missingColumns.join(', ')}`);
+            }
+
+            // 解析数据行
+            const products = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const values = lines[i].split(',').map(v => {
+                    const trimmed = v.trim();
+                    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                        return trimmed.substring(1, trimmed.length - 1);
+                    }
+                    return trimmed;
+                });
+
+                // 创建产品对象
+                const product = {};
+                headers.forEach((header, index) => {
+                    switch(header) {
+                        case '开发': product.developer = values[index] || ''; break;
+                        case '开发日期': product.devDate = values[index] || ''; break;
+                        case '面料': product.material = values[index] || ''; break;
+                        case '品类': product.category = values[index] || ''; break;
+                        case '开发季度': product.quarter = values[index] || ''; break;
+                    }
+                });
+
+                // 跳过示例数据行
+                if (product.developer === '[示例数据-请删除]') {
+                    continue;
+                }
+
+                // 自动计算周期
+                if (product.devDate) {
+                    product.cycle = calculateCycle(product.devDate);
+                }
+
+                // 添加ID和图片路径占位符
+                product.id = Date.now() + i; // 生成唯一ID
+                product.imageUrl = ''; // 图片路径先留空
+
+                // 只添加有效的数据行（必须有品类和开发人员）
+                if (product.category && product.developer) {
+                    products.push(product);
+                }
+            }
+
+            return products;
+        }
+
+        // 更新产品CSV文件（批量数据）
+        function updateProductCSVWithBulkData(token, newProducts) {
+            const csvFileName = 'products.csv';
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            // 首先获取现有的CSV文件内容（如果存在）
+            return fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // CSV文件已存在，获取其内容和SHA
+                    return response.json().then(data => {
+                        // 解码CSV内容
+                        const csvContent = decodeBase64(data.content);
+
+                        // 将新数据添加到CSV
+                        let updatedCSV = csvContent;
+                        newProducts.forEach(product => {
+                            updatedCSV = addProductToCSV(updatedCSV, product);
+                        });
+
+                        // 更新CSV文件
+                        return uploadFileToGitHub(
+                            token,
+                            csvFileName,
+                            encodeBase64(updatedCSV),
+                            'base64',
+                            `批量更新产品数据: 添加${newProducts.length}条记录`,
+                            data.sha
+                        );
+                    });
+                } else if (response.status === 404) {
+                    // CSV文件不存在，创建新的
+                    const csvHeader = 'ID,开发,开发日期,面料,品类,开发季度,周期,图片路径\n';
+                    let newCSV = csvHeader;
+                    newProducts.forEach(product => {
+                        newCSV += productToCSVRow(product);
+                    });
+
+                    return uploadFileToGitHub(
+                        token,
+                        csvFileName,
+                        encodeBase64(newCSV),
+                        'base64',
+                        `创建产品数据表: 添加${newProducts.length}条记录`,
+                        null
+                    );
+                } else {
+                    throw new Error(`获取CSV文件失败: ${response.statusText}`);
+                }
+            })
+            .catch(error => {
+                // 如果是SHA冲突错误，重新尝试
+                if (error.message && error.message.includes('does not match')) {
+                    showNotification('检测到文件冲突，正在重新尝试...', 'error');
+                    // 等待一小段时间后重试
+                    return new Promise(resolve => {
+                        setTimeout(() => {
+                            resolve(updateProductCSVWithBulkData(token, newProducts));
+                        }, 1000);
+                    });
+                }
+                throw error;
+            });
+        }
+
+        // 更新产品CSV文件
+        function updateProductCSV(token, newProduct) {
+            const csvFileName = 'products.csv';
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            // 首先获取现有的CSV文件内容（如果存在）
+            return fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // CSV文件已存在，获取其内容和SHA
+                    return response.json().then(data => {
+                        // 解码CSV内容
+                        const csvContent = decodeBase64(data.content);
+
+                        // 将新数据添加到CSV
+                        const updatedCSV = addProductToCSV(csvContent, newProduct);
+
+                        // 更新CSV文件
+                        return uploadFileToGitHub(
+                            token,
+                            csvFileName,
+                            encodeBase64(updatedCSV),
+                            'base64',
+                            `更新产品数据: ${newProduct.developer} - ${newProduct.category}`,
+                            data.sha
+                        );
+                    });
+                } else if (response.status === 404) {
+                    // CSV文件不存在，创建新的
+                    const csvHeader = 'ID,开发,开发日期,面料,品类,开发季度,周期,图片路径\n';
+                    const newCSV = csvHeader + productToCSVRow(newProduct);
+
+                    return uploadFileToGitHub(
+                        token,
+                        csvFileName,
+                        encodeBase64(newCSV),
+                        'base64',
+                        '创建产品数据表',
+                        null
+                    );
+                } else {
+                    throw new Error(`获取CSV文件失败: ${response.statusText}`);
+                }
+            })
+            .catch(error => {
+                // 如果是SHA冲突错误，重新尝试
+                if (error.message && error.message.includes('does not match')) {
+                    showNotification('检测到文件冲突，正在重新尝试...', 'error');
+                    // 等待一小段时间后重试
+                    return new Promise(resolve => {
+                        setTimeout(() => {
+                            resolve(updateProductCSV(token, newProduct));
+                        }, 1000);
+                    });
+                }
+                throw error;
+            });
+        }
+
+        // 安全的Base64编码函数
+        function encodeBase64(str) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        }
+
+        // 安全的Base64解码函数
+        function decodeBase64(str) {
+            return decodeURIComponent(atob(str).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
+        // 将产品数据添加到CSV
+        function addProductToCSV(csvContent, newProduct) {
+            const newLine = productToCSVRow(newProduct);
+            // 确保最后一行有换行符
+            const content = csvContent.endsWith('\n') ? csvContent : csvContent + '\n';
+            return content + newLine;
+        }
+
+        // 将产品对象转换为CSV行
+        function productToCSVRow(product) {
+            return `"${product.id}","${product.developer}","${product.devDate}","${product.material}","${product.category}","${product.quarter}","${product.cycle}","${product.imageUrl}"\n`;
+        }
+
+        // 上传文件到GitHub（修改版，支持SHA）
+        function uploadFileToGitHub(token, fileName, content, encoding, commitMessage, sha = null) {
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${fileName}`;
+
+            const requestBody = {
+                message: commitMessage,
+                content: content,
+                branch: GITHUB_BRANCH,
+                encoding: encoding
+            };
+
+            // 如果提供了SHA，则添加到请求中（用于更新现有文件）
+            if (sha) {
+                requestBody.sha = sha;
+            }
+
+            return fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(`上传失败: ${response.statusText} - ${JSON.stringify(errorData)}`);
+                    });
+                }
+                return response.json();
+            });
+        }
+
+        // 显示产品数据
+        function displayProducts(products) {
+            // 检查 products 是否存在
+            if (!products || !Array.isArray(products) || products.length === 0) {
+                productGallery.innerHTML = '<p>暂无产品数据</p>';
+                return;
+            }
+
+            // 更新筛选下拉选项
+            updateFilterOptions(products);
+
+            // 保存所有产品数据供筛选使用
+            window.allProducts = products;
+            filteredProducts = products;
+
+            // 重置分页
+            currentPage = 1;
+
+            // 显示当前页的产品
+            renderProductsPage();
+        }
+
+        // 更新筛选选项
+        function updateFilterOptions(products) {
+            // 获取所有唯一的值
+            const developers = [...new Set(products.map(p => p.developer).filter(Boolean))];
+            const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+            const quarters = [...new Set(products.map(p => p.quarter).filter(Boolean))];
+            const cycles = [...new Set(products.map(p => p.cycle).filter(Boolean))];
+
+            // 更新下拉选项
+            updateSelectOptions(filterDeveloper, developers);
+            updateSelectOptions(filterCategory, categories);
+            updateSelectOptions(filterQuarter, quarters);
+            updateSelectOptions(filterCycle, cycles);
+        }
+
+        // 更新select元素的选项
+        function updateSelectOptions(selectElement, options) {
+            // 保存当前选择的值
+            const currentValue = selectElement.value;
+
+            // 清空现有选项（除了"全部"选项）
+            selectElement.innerHTML = '<option value="">全部</option>';
+
+            // 添加新选项
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                selectElement.appendChild(optionElement);
+            });
+
+            // 恢复之前的选择（如果仍然有效）
+            if (options.includes(currentValue)) {
+                selectElement.value = currentValue;
+            }
+        }
+
+         // 应用筛选
+        function applyFilters() {
+            if (!window.allProducts) return;
+
+            const developerFilter = filterDeveloper.value;
+            const categoryFilter = filterCategory.value;
+            const quarterFilter = filterQuarter.value;
+            const cycleFilter = filterCycle.value;
+            const devDateFilter = filterDevDate.value;
+
+            // 筛选产品
+            filteredProducts = window.allProducts.filter(product => {
+                return (
+                    (developerFilter === '' || product.developer === developerFilter) &&
+                    (categoryFilter === '' || product.category === categoryFilter) &&
+                    (quarterFilter === '' || product.quarter === quarterFilter) &&
+                    (cycleFilter === '' || product.cycle === cycleFilter) &&
+                    (devDateFilter === '' || product.devDate === devDateFilter)
+                );
+            });
+
+            // 重置到第一页
+            currentPage = 1;
+
+            // 显示筛选后的产品
+            renderProductsPage();
+
+            // 更新其他筛选器选项（实现联动效果）
+            // 恢复筛选器之间的关联功能
+            updateLinkedFilterOptions(filteredProducts);
+        }
+
+        // 更新联动筛选选项
+        function updateLinkedFilterOptions(products) {
+            // 获取所有唯一的值
+            const developers = [...new Set(products.map(p => p.developer).filter(Boolean))];
+            const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+            const quarters = [...new Set(products.map(p => p.quarter).filter(Boolean))];
+            const cycles = [...new Set(products.map(p => p.cycle).filter(Boolean))];
+            const devDates = [...new Set(products.map(p => p.devDate).filter(Boolean))];
+
+            // 只在不是当前操作的筛选器上更新选项
+            if (document.activeElement !== filterDeveloper) {
+                updateSelectOptions(filterDeveloper, developers);
+            }
+            if (document.activeElement !== filterCategory) {
+                updateSelectOptions(filterCategory, categories);
+            }
+            if (document.activeElement !== filterQuarter) {
+                updateSelectOptions(filterQuarter, quarters);
+            }
+            if (document.activeElement !== filterCycle) {
+                updateSelectOptions(filterCycle, cycles);
+            }
+        }
+
+        // 当筛选器更改时应用筛选
+        filterDeveloper.addEventListener('change', applyFilters);
+        filterCategory.addEventListener('change', applyFilters);
+        filterQuarter.addEventListener('change', applyFilters);
+        filterCycle.addEventListener('change', applyFilters);
+        filterDevDate.addEventListener('change', applyFilters);
+
+        // 绑定回车键到应用筛选功能
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        // 重置筛选
+        function resetFilters() {
+            filterDeveloper.value = '';
+            filterCategory.value = '';
+            filterQuarter.value = '';
+            filterCycle.value = '';
+            filterDevDate.value = '';
+
+            // 显示所有产品
+            if (window.allProducts) {
+                filteredProducts = window.allProducts;
+                currentPage = 1;
+                renderProductsPage();
+                // 更新筛选器选项为完整列表
+                updateFilterOptions(window.allProducts);
+            }
+        }
+
+        // 渲染当前页的产品
+        function renderProductsPage() {
+            // 计算总页数
+            const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+            // 确保当前页在有效范围内
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+
+            // 更新分页信息显示
+            currentPageElement.textContent = currentPage;
+            totalPagesElement.textContent = totalPages || 1;
+
+            // 禁用/启用分页按钮
+            prevPageButton.disabled = currentPage === 1;
+            nextPageButton.disabled = currentPage === totalPages || totalPages === 0;
+
+            // 计算当前页的产品范围
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredProducts.length);
+            const pageProducts = filteredProducts.slice(startIndex, endIndex);
+
+            // 清空产品展示区域
+            productGallery.innerHTML = '';
+
+            if (pageProducts.length === 0) {
+                productGallery.innerHTML = '<p>没有匹配的产品数据</p>';
+                return;
+            }
+
+            pageProducts.forEach(product => {
+                // 检查单个产品是否存在
+                if (!product) return;
+
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+
+                // 构建图片URL（直接使用GitHub raw内容）
+                // 修正图片路径构建方式
+                let imageUrl = '';
+                if (product.imageUrl) {
+                    // 如果imageUrl已经是完整路径，则直接使用
+                    if (product.imageUrl.startsWith('http')) {
+                        imageUrl = product.imageUrl;
+                    } else {
+                        // 构建正确的图片URL
+                        imageUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${product.imageUrl}`;
+                    }
+                }
+
+                productCard.innerHTML = `
+                    <div class="product-checkbox hidden">
+                        <input type="checkbox" class="product-select-checkbox" data-id="${product.id}">
+                    </div>
+                    <img src="${imageUrl}" alt="${product.category || ''}" class="product-image" onerror="this.style.display='none'">
+                    <div class="product-info">
+                        <div class="product-title">${product.category || '未命名产品'}</div>
+                        <p><strong>开发:</strong> ${product.developer || ''}</p>
+                        <p><strong>开发日期:</strong> ${product.devDate || ''}</p>
+                        <p><strong>面料:</strong> ${product.material || ''}</p>
+                        <p><strong>季度:</strong> ${product.quarter || ''}</p>
+                        <p><strong>周期:</strong> ${product.cycle || ''}</p>
+                        <button class="delete-btn btn-danger" data-id="${product.id}">删除</button>
+                        <button class="edit-btn btn-edit" data-id="${product.id}">编辑</button>
+                    </div>
+                `;
+
+                productGallery.appendChild(productCard);
+            });
+
+            // 为所有删除按钮添加事件监听器
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.getAttribute('data-id');
+                    deleteProduct(productId);
+                });
+            });
+
+            // 为所有编辑按钮添加事件监听器
+            document.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.getAttribute('data-id');
+                    editProduct(productId);
+                });
+            });
+        }
+
+        // 分页按钮事件
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderProductsPage();
+            }
+        });
+
+        nextPageButton.addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderProductsPage();
+            }
+        });
+
+        // 加载产品数据（修改版，从CSV加载）
+        function loadProductData() {
+            productGallery.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+            `;
+
+            const token = localStorage.getItem('githubToken');
+            const headers = token ? { 'Authorization': `token ${token}` } : {};
+
+            // 获取products.csv文件内容
+            const csvFileName = 'products.csv';
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            fetch(url, {
+                headers: headers
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        productGallery.innerHTML = '<p>暂无产品数据</p>';
+                        return null;
+                    }
+                    throw new Error('无法获取数据，可能需要认证');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return; // 数据不存在
+
+                // 解码CSV内容
+                const csvContent = decodeBase64(data.content);
+                // 解析CSV为产品数组
+                const products = parseCSV(csvContent);
+                displayProducts(products);
+            })
+            .catch(error => {
+                console.error('加载数据错误:', error);
+                productGallery.innerHTML = `
+                    <p>加载失败: ${error.message}</p>
+                    <p>请进行GitHub认证后刷新</p>
+                `;
+            });
+        }
+
+        // 批量删除相关变量
+        let bulkDeleteMode = false;
+        const bulkDeleteButton = document.getElementById('bulkDeleteButton');
+        const confirmBulkDeleteButton = document.getElementById('confirmBulkDeleteButton');
+        const cancelBulkDeleteButton = document.getElementById('cancelBulkDeleteButton');
+
+        // 批量删除按钮事件
+        bulkDeleteButton.addEventListener('click', () => {
+            bulkDeleteMode = true;
+            bulkDeleteButton.classList.add('hidden');
+            confirmBulkDeleteButton.classList.remove('hidden');
+            cancelBulkDeleteButton.classList.remove('hidden');
+
+            // 显示所有产品的复选框
+            document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+                checkbox.classList.remove('hidden');
+            });
+        });
+
+        // 取消批量删除按钮事件
+        cancelBulkDeleteButton.addEventListener('click', () => {
+            bulkDeleteMode = false;
+            bulkDeleteButton.classList.remove('hidden');
+            confirmBulkDeleteButton.classList.add('hidden');
+            cancelBulkDeleteButton.classList.add('hidden');
+
+            // 隐藏所有产品的复选框并取消选中
+            document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+                checkbox.classList.add('hidden');
+                checkbox.querySelector('.product-select-checkbox').checked = false;
+            });
+        });
+
+        // 确认批量删除按钮事件
+        confirmBulkDeleteButton.addEventListener('click', () => {
+            const selectedCheckboxes = document.querySelectorAll('.product-select-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                showNotification('请至少选择一个产品进行删除', 'error');
+                return;
+            }
+
+            if (!confirm(`确定要删除这 ${selectedCheckboxes.length} 个产品吗？`)) {
+                return;
+            }
+
+            const productIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-id'));
+            bulkDeleteProducts(productIds);
+        });
+
+        // 批量删除产品功能
+        function bulkDeleteProducts(productIds) {
+            const token = localStorage.getItem('githubToken');
+            if (!token) {
+                showNotification('请先进行认证', 'error');
+                return;
+            }
+
+            // 创建临时进度显示
+            const progressNotification = document.createElement('div');
+            progressNotification.className = 'notification';
+            progressNotification.textContent = `正在删除 ${productIds.length} 个产品...`;
+            progressNotification.style.backgroundColor = '#3498db';
+            progressNotification.style.opacity = '1';
+            document.body.appendChild(progressNotification);
+
+            const csvFileName = 'products.csv';
+            const csvUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            // 首先获取现有的CSV文件内容和SHA
+            fetch(csvUrl, {
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('无法获取产品数据');
+                }
+                return response.json();
+            })
+            .then(data => {
+                progressNotification.textContent = '处理数据...';
+
+                // 解码CSV内容
+                const csvContent = decodeBase64(data.content);
+                const lines = csvContent.trim().split('\n');
+
+                if (lines.length < 2) {
+                    throw new Error('没有足够的数据可以删除');
+                }
+
+                // 找到要删除的产品行
+                const headers = lines[0];
+                const newLines = [headers];
+                const productsToDelete = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+
+                    const values = lines[i].split(',').map(v => {
+                        const trimmed = v.trim();
+                        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                            return trimmed.substring(1, trimmed.length - 1);
+                        }
+                        return trimmed;
+                    });
+
+                    // 假设ID在第一列
+                    if (!productIds.includes(values[0])) {
+                        newLines.push(lines[i]);
+                    } else {
+                        productsToDelete.push(values);
+                    }
+                }
+
+                // 更新CSV内容
+                const updatedCSV = newLines.join('\n') + '\n';
+
+                // 更新CSV文件
+                return uploadFileToGitHub(
+                    token,
+                    csvFileName,
+                    encodeBase64(updatedCSV),
+                    'base64',
+                    `批量删除产品: ${productIds.length}个产品`,
+                    data.sha
+                ).then(() => {
+                    progressNotification.textContent = `正在删除关联图片...`;
+                    const deletePromises = productsToDelete.map(product => {
+                        const imageUrl = product[7]; // 假设图片路径在第8列
+                        if (imageUrl) {
+                            // 使用完整的图片路径（包含uploads前缀）
+                            return deleteFileFromGitHub(token, imageUrl).catch(() => {
+                                // 忽略删除图片失败的情况
+                                console.warn(`Failed to delete image: ${imageUrl}`);
+                            });
+                        }
+                        return Promise.resolve();
+                    });
+                    return Promise.all(deletePromises);
+                });
+            })
+            .then(() => {
+                document.body.removeChild(progressNotification);
+                showNotification(`成功删除 ${productIds.length} 个产品`, 'success');
+
+                // 退出批量删除模式
+                bulkDeleteMode = false;
+                bulkDeleteButton.classList.remove('hidden');
+                confirmBulkDeleteButton.classList.add('hidden');
+                cancelBulkDeleteButton.classList.add('hidden');
+
+                // 隐藏所有产品的复选框
+                document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+                    checkbox.classList.add('hidden');
+                    checkbox.querySelector('.product-select-checkbox').checked = false;
+                });
+
+                // 重新加载产品数据
+                loadProductData();
+            })
+            .catch(error => {
+                document.body.removeChild(progressNotification);
+                // 如果是SHA冲突错误，重新尝试
+                if (error.message && error.message.includes('does not match')) {
+                    showNotification('检测到文件冲突，正在重新尝试删除...', 'error');
+                    setTimeout(() => {
+                        bulkDeleteProducts(productIds);
+                    }, 1000);
+                } else {
+                    showNotification('批量删除失败: ' + error.message, 'error');
+                    console.error('批量删除错误:', error);
+                }
+            });
+        }
+
+        // 删除文件的辅助函数（从GitHub删除文件）
+        function deleteFileFromGitHub(token, filePath) {
+            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${filePath}`;
+
+            // 首先获取文件的SHA
+            return fetch(url, {
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`无法获取文件信息: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(fileData => {
+                // 删除文件
+                return fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `删除文件: ${filePath}`,
+                        sha: fileData.sha,
+                        branch: GITHUB_BRANCH
+                    })
+                });
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(`删除文件失败: ${response.statusText} - ${JSON.stringify(errorData)}`);
+                    });
+                }
+                return response.json();
+            });
+        }
+
+        // 解析CSV内容为产品数组
+        function parseCSV(csvContent) {
+            const lines = csvContent.trim().split('\n');
+            if (lines.length < 2) return []; // 至少需要标题行和数据行
+
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            const products = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue; // 跳过空行
+
+                const values = lines[i].split(',').map(v => {
+                    // 处理带引号的值
+                    const trimmed = v.trim();
+                    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                        return trimmed.substring(1, trimmed.length - 1);
+                    }
+                    return trimmed;
+                });
+
+                // 创建产品对象
+                const product = {};
+                headers.forEach((header, index) => {
+                    switch(header) {
+                        case 'ID': product.id = values[index] || ''; break;
+                        case '开发': product.developer = values[index] || ''; break;
+                        case '开发日期': product.devDate = values[index] || ''; break;
+                        case '面料': product.material = values[index] || ''; break;
+                        case '品类': product.category = values[index] || ''; break;
+                        case '开发季度': product.quarter = values[index] || ''; break;
+                        case '周期': product.cycle = values[index] || ''; break;
+                        case '图片路径': product.imageUrl = values[index] || ''; break;
+                    }
+                });
+
+                if (product.category) { // 只添加有效的数据行
+                    products.push(product);
+                }
+            }
+
+            return products;
+        }
+
+         // 删除产品功能
+        function deleteProduct(productId) {
+            const token = localStorage.getItem('githubToken');
+            if (!token) {
+                showNotification('请先进行认证', 'error');
+                return;
+            }
+
+            // 确认删除
+            if (!confirm('确定要删除这个产品吗？')) {
+                return;
+            }
+
+            // 创建临时进度显示
+            const progressNotification = document.createElement('div');
+            progressNotification.className = 'notification';
+            progressNotification.textContent = '正在删除产品...';
+            progressNotification.style.backgroundColor = '#3498db';
+            progressNotification.style.opacity = '1';
+            document.body.appendChild(progressNotification);
+
+            const csvFileName = 'products.csv';
+            const csvUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            // 首先获取现有的CSV文件内容和SHA
+            fetch(csvUrl, {
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('无法获取产品数据');
+                }
+                return response.json();
+            })
+            .then(data => {
+                progressNotification.textContent = '处理数据...';
+
+                // 解码CSV内容
+                const csvContent = decodeBase64(data.content);
+                const lines = csvContent.trim().split('\n');
+
+                if (lines.length < 2) {
+                    throw new Error('没有足够的数据可以删除');
+                }
+
+                // 找到要删除的产品行
+                const headers = lines[0];
+                const newLines = [headers];
+                let productToDelete = null;
+
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+
+                    const values = lines[i].split(',').map(v => {
+                        const trimmed = v.trim();
+                        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                            return trimmed.substring(1, trimmed.length - 1);
+                        }
+                        return trimmed;
+                    });
+
+                    // 假设ID在第一列
+                    if (values[0] !== productId) {
+                        newLines.push(lines[i]);
+                    } else {
+                        productToDelete = values;
+                    }
+                }
+
+                if (!productToDelete) {
+                    throw new Error('未找到要删除的产品');
+                }
+
+                // 更新CSV内容
+                const updatedCSV = newLines.join('\n') + '\n';
+
+                // 更新CSV文件
+                return uploadFileToGitHub(
+                    token,
+                    csvFileName,
+                    encodeBase64(updatedCSV),
+                    'base64',
+                    `删除产品: ID ${productId}`,
+                    data.sha
+                ).then(() => {
+                    progressNotification.textContent = '正在删除关联图片...';
+                    // 解析图片路径并删除图片文件
+                    const imageUrl = productToDelete[7]; // 假设图片路径在第8列
+                    if (imageUrl) {
+                        // 使用完整的图片路径（包含uploads前缀）
+                        return deleteFileFromGitHub(token, imageUrl).catch(() => {
+                            // 忽略删除图片失败的情况，避免因为图片不存在导致整个删除失败
+                            console.warn(`Failed to delete image: ${imageUrl}`);
+                        });
+                    }
+                });
+            })
+            .then(() => {
+                document.body.removeChild(progressNotification);
+                showNotification('产品删除成功', 'success');
+                // 重新加载产品数据
+                loadProductData();
+            })
+            .catch(error => {
+                document.body.removeChild(progressNotification);
+                // 如果是SHA冲突错误，重新尝试
+                if (error.message && error.message.includes('does not match')) {
+                    showNotification('检测到文件冲突，正在重新尝试删除...', 'error');
+                    setTimeout(() => {
+                        deleteProduct(productId);
+                    }, 1000);
+                } else {
+                    showNotification('删除失败: ' + error.message, 'error');
+                    console.error('删除错误:', error);
+                }
+            });
+        }
+
+         // 编辑产品功能
+        function editProduct(productId) {
+            // 保存当前滚动位置
+            const scrollPosition = window.scrollY;
+            window.editReturnPosition = scrollPosition;
+
+            // 隐藏上传区域内容，显示编辑区域
+            const uploadContent = uploadSection.querySelector('form');
+            if (uploadContent) uploadContent.style.display = 'none';
+            toggleUploadSection.textContent = '显示';
+            editSection.classList.add('show');
+            toggleEditSection.textContent = '隐藏';
+
+            // 滚动到编辑区域
+            editSection.scrollIntoView({ behavior: 'smooth'});
+
+            // 获取当前产品数据
+            const token = localStorage.getItem('githubToken');
+            if (!token) {
+                showNotification('请先进行认证', 'error');
+                return;
+            }
+
+            const csvFileName = 'products.csv';
+            const csvUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            fetch(csvUrl, {
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('无法获取产品数据');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 解码CSV内容
+                const csvContent = decodeBase64(data.content);
+                const products = parseCSV(csvContent);
+
+                // 找到要编辑的产品
+                const product = products.find(p => p.id == productId);
+                if (!product) {
+                    throw new Error('未找到要编辑的产品');
+                }
+
+                // 填充表单数据
+                document.getElementById('editProductId').value = product.id;
+                document.getElementById('editDeveloper').value = product.developer || '';
+                document.getElementById('editDevDate').value = product.devDate || '';
+                document.getElementById('editMaterial').value = product.material || '';
+                document.getElementById('editCategory').value = product.category || '';
+                document.getElementById('editQuarter').value = product.quarter || '';
+                document.getElementById('editCycle').value = product.cycle || '';
+
+                // 清空图片预览
+                editImagePreview.classList.add('hidden');
+
+                // 显示当前产品图片
+                const currentImage = document.getElementById('editCurrentImage');
+                if (product.imageUrl) {
+                    let imageUrl = '';
+                    if (product.imageUrl.startsWith('http')) {
+                        imageUrl = product.imageUrl;
+                    } else {
+                        imageUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${product.imageUrl}`;
+                    }
+                    currentImage.src = imageUrl;
+                    currentImage.classList.remove('hidden');
+                } else {
+                    currentImage.classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                showNotification('加载产品数据失败: ' + error.message, 'error');
+                console.error('加载产品数据错误:', error);
+            });
+        }
+
+
+        // 图片预览
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+
+        imageUploadArea.addEventListener('click', function() {
+            document.getElementById('productImage').click();
+        });
+
+        productImageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    uploadPlaceholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 添加拖拽上传功能到上传区域
+        imageUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            imageUploadArea.classList.add('drag-over');
+        });
+
+        imageUploadArea.addEventListener('dragleave', function() {
+            imageUploadArea.classList.remove('drag-over');
+        });
+
+        imageUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            imageUploadArea.classList.remove('drag-over');
+
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file, productImageInput, imagePreview, uploadPlaceholder);
+            } else {
+                showNotification('请拖拽有效的图片文件', 'error');
+            }
+        });
+
+        // 添加拖拽上传功能到编辑区域
+        const editImageUploadContainer = document.getElementById('editProductImage').parentElement;
+
+        editImageUploadContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            editImageUploadContainer.classList.add('drag-over');
+        });
+
+        editImageUploadContainer.addEventListener('dragleave', function() {
+            editImageUploadContainer.classList.remove('drag-over');
+        });
+
+        editImageUploadContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            editImageUploadContainer.classList.remove('drag-over');
+
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file, editProductImageInput, editImagePreview);
+            } else {
+                showNotification('请拖拽有效的图片文件', 'error');
+            }
+        });
+
+        // 处理图片文件的通用函数
+        function handleImageFile(file, inputElement, previewElement, placeholderElement) {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewElement.src = e.target.result;
+                    previewElement.classList.remove('hidden');
+                    if (placeholderElement) {
+                        placeholderElement.classList.add('hidden');
+                    }
+                };
+                reader.readAsDataURL(file);
+
+                // 更新input元素的files属性
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                inputElement.files = dataTransfer.files;
+            }
+        }
+
+        // 编辑图片预览
+        editProductImageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    editImagePreview.src = e.target.result;
+                    editImagePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 取消编辑按钮事件 - 修复无法使用的问题
+        cancelEditButton.addEventListener('click', () => {
+            // 隐藏编辑区域
+            editSection.classList.remove('show');
+
+            // 清空编辑表单
+            editForm.reset();
+
+            // 隐藏图片预览
+            editImagePreview.classList.add('hidden');
+            document.getElementById('editCurrentImage').classList.add('hidden');
+
+            // 显示上传区域
+            uploadSection.classList.remove('hidden');
+
+            // 恢复上传区域内容显示
+            const uploadContent = uploadSection.querySelector('form');
+            if (uploadContent) {
+                uploadContent.style.display = 'block';
+            }
+            toggleUploadSection.textContent = '隐藏';
+
+            // 返回到原来的位置
+            if (window.editReturnPosition !== undefined) {
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: window.editReturnPosition,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        });
+
+
+
+        // 编辑表单提交事件
+        editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const token = localStorage.getItem('githubToken');
+            if (!token) {
+                showNotification('请先进行认证', 'error');
+                return;
+            }
+
+            // 显示进度条
+            const progressContainer = document.getElementById('editProgress');
+            const progressFill = document.getElementById('editProgressFill');
+            const progressText = document.getElementById('editProgressText');
+            progressContainer.classList.remove('hidden');
+            progressFill.style.width = '10%';
+            progressText.textContent = '准备更新数据...';
+
+            // 获取表单数据
+            const productId = document.getElementById('editProductId').value;
+            const developer = document.getElementById('editDeveloper').value;
+            const devDate = document.getElementById('editDevDate').value;
+            const material = document.getElementById('editMaterial').value;
+            const category = document.getElementById('editCategory').value;
+            const quarter = document.getElementById('editQuarter').value;
+            const cycle = document.getElementById('editCycle').value;
+            const imageFile = editProductImageInput.files[0];
+
+            // 获取当前CSV数据
+            const csvFileName = 'products.csv';
+            const csvUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${csvFileName}`;
+
+            progressFill.style.width = '20%';
+            progressText.textContent = '正在获取产品数据...';
+
+            fetch(csvUrl, {
+                headers: {
+                    'Authorization': `token ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('无法获取产品数据');
+                }
+                return response.json();
+            })
+            .then(data => {
+                progressFill.style.width = '30%';
+                progressText.textContent = '处理产品数据...';
+
+                // 解码CSV内容
+                const csvContent = decodeBase64(data.content);
+                const lines = csvContent.trim().split('\n');
+
+                if (lines.length < 2) {
+                    throw new Error('没有足够的数据可以编辑');
+                }
+
+                // 找到要编辑的产品行并更新
+                const headers = lines[0];
+                const newLines = [headers];
+                let productFound = false;
+
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+
+                    const values = lines[i].split(',').map(v => {
+                        const trimmed = v.trim();
+                        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+                            return trimmed.substring(1, trimmed.length - 1);
+                        }
+                        return trimmed;
+                    });
+
+                    // 如果是目标产品，更新数据
+                    if (values[0] == productId) {
+                        productFound = true;
+
+                        // 更新产品数据
+                        const updatedProduct = {
+                            id: values[0], // 保持原ID
+                            developer: developer,
+                            devDate: devDate,
+                            material: material,
+                            category: category,
+                            quarter: quarter,
+                            cycle: cycle,
+                            imageUrl: values[7] // 保持原图片路径
+                        };
+
+                        // 如果上传了新图片，需要更新图片
+                        if (imageFile) {
+                            progressFill.style.width = '40%';
+                            progressText.textContent = '处理新图片...';
+
+                            // 上传新图片
+                            const timestamp = new Date().getTime();
+                            const imageFileName = `image_${timestamp}.${imageFile.name.split('.').pop()}`;
+                            updatedProduct.imageUrl = `uploads/img/${imageFileName}`;
+
+                            const reader = new FileReader();
+                            reader.onload = function() {
+                                progressFill.style.width = '50%';
+                                progressText.textContent = '正在上传新图片...';
+
+                                const imageData = reader.result.split(',')[1]; // 移除data:image/...;base64,前缀
+
+                                // 上传新图片
+                                uploadFileToGitHub(
+                                    token,
+                                    `img/${imageFileName}`,
+                                    imageData,
+                                    'base64',
+                                    `更新产品图片: ${imageFileName}`
+                                )
+                                .then(() => {
+                                    progressFill.style.width = '70%';
+                                    progressText.textContent = '新图片上传完成，正在删除旧图片...';
+                                    // 删除旧图片
+                                    if (values[7]) {
+                                        const oldImagePath = values[7]; // 使用完整的图片路径（包含uploads前缀）
+                                        return deleteFileFromGitHub(token, oldImagePath).catch(() => {
+                                            // 忽略删除旧图片失败的情况
+                                            console.warn(`Failed to delete old image: ${oldImagePath}`);
+                                        });
+                                    }
+                                })
+                                .then(() => {
+                                    progressFill.style.width = '80%';
+                                    progressText.textContent = '旧图片已删除，正在更新数据表...';
+                                    // 更新CSV文件
+                                    const updatedLine = productToCSVRow(updatedProduct);
+                                    newLines.push(updatedLine);
+
+                                    for (let j = i + 1; j < lines.length; j++) {
+                                        newLines.push(lines[j]);
+                                    }
+
+                                    const updatedCSV = newLines.join('\n') + '\n';
+                                    return updateCSVFile(token, csvFileName, updatedCSV, data.sha);
+                                })
+                                .then(() => {
+                                    progressFill.style.width = '100%';
+                                    progressText.textContent = '更新完成!';
+                                    showNotification('产品信息更新成功', 'success');
+                                    editForm.reset();
+                                    editSection.classList.remove('show');
+                                    uploadSection.classList.remove('hidden');
+                                    loadProductData();
+                                    // 隐藏进度条
+                                    setTimeout(() => {
+                                        progressContainer.classList.add('hidden');
+                                    }, 1000);
+                                })
+                                .catch(error => {
+                                    progressFill.style.width = '0%';
+                                    progressText.textContent = '更新失败';
+                                    showNotification('更新失败: ' + error.message, 'error');
+                                    console.error('更新错误:', error);
+                                    // 隐藏进度条
+                                    setTimeout(() => {
+                                        progressContainer.classList.add('hidden');
+                                    }, 2000);
+                                });
+                            };
+
+                            reader.readAsDataURL(imageFile);
+                            return; // 退出函数，因为异步处理
+                        } else {
+                            // 没有新图片，直接更新CSV
+                            const updatedLine = productToCSVRow(updatedProduct);
+                            newLines.push(updatedLine);
+                        }
+                    } else {
+                        // 不是目标产品，保持原样
+                        newLines.push(lines[i]);
+                    }
+                }
+
+                if (!productFound) {
+                    throw new Error('未找到要编辑的产品');
+                }
+
+                progressFill.style.width = '60%';
+                progressText.textContent = '正在更新数据表...';
+
+                // 更新CSV文件
+                const updatedCSV = newLines.join('\n') + '\n';
+                return updateCSVFile(token, csvFileName, updatedCSV, data.sha);
+            })
+            .then(() => {
+                if (!imageFile) { // 只有在没有上传新图片时才执行
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '更新完成!';
+                    showNotification('产品信息更新成功', 'success');
+                    editForm.reset();
+                    editSection.classList.remove('show');
+                    uploadSection.classList.remove('hidden');
+                    loadProductData();
+                    // 隐藏进度条
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                    }, 1000);
+                }
+            })
+            .catch(error => {
+                progressFill.style.width = '0%';
+                progressText.textContent = '更新失败';
+                showNotification('更新失败: ' + error.message, 'error');
+                console.error('更新错误:', error);
+                // 隐藏进度条
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                }, 2000);
+            });
+        });
+
+        // 更新CSV文件的辅助函数
+        function updateCSVFile(token, fileName, content, sha) {
+            return uploadFileToGitHub(
+                token,
+                fileName,
+                encodeBase64(content),
+                'base64',
+                '更新产品信息',
+                sha
+            )
+            .catch(error => {
+                // 如果是SHA冲突错误，重新尝试
+                if (error.message && error.message.includes('does not match')) {
+                    showNotification('检测到文件冲突，正在重新尝试...', 'error');
+                    // 等待一小段时间后重试
+                    return new Promise(resolve => {
+                        setTimeout(() => {
+                            // 重新获取文件内容和SHA
+                            const url = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${GITHUB_FOLDER}/${fileName}`;
+                            fetch(url, {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `token ${token}`
+                                }
+                            })
+                            .then(response => {
+                                if (response.ok) {
+                                    return response.json();
+                                }
+                                throw new Error('无法重新获取文件');
+                            })
+                            .then(data => {
+                                return uploadFileToGitHub(
+                                    token,
+                                    fileName,
+                                    encodeBase64(content),
+                                    'base64',
+                                    '更新产品信息',
+                                    data.sha
+                                );
+                            })
+                            .then(resolve)
+                            .catch(rejectError => {
+                                throw rejectError;
+                            });
+                        }, 1000);
+                    });
+                }
+                throw error;
+            });
+        }
+
+        // 刷新按钮点击事件
+        refreshButton.addEventListener('click', loadProductData);
+
+        // 应用筛选按钮事件
+        applyFilterButton.addEventListener('click', applyFilters);
+
+        // 重置筛选按钮事件
+        resetFilterButton.addEventListener('click', resetFilters);
+
+         // 切换区域显示/隐藏
+        toggleAuthSection.addEventListener('click', () => {
+            const authContent = authSection.querySelector('.form-group') || authSection.querySelector('form');
+            if (authContent) {
+                authContent.style.display = authContent.style.display === 'none' ? 'block' : 'none';
+                toggleAuthSection.textContent = authContent.style.display === 'none' ? '显示' : '隐藏';
+            }
+        });
+
+        toggleUploadSection.addEventListener('click', () => {
+            const uploadContent = uploadSection.querySelector('form');
+            if (uploadContent) {
+                uploadContent.style.display = uploadContent.style.display === 'none' ? 'block' : 'none';
+                toggleUploadSection.textContent = uploadContent.style.display === 'none' ? '显示' : '隐藏';
+            }
+        });
+
+        toggleEditSection.addEventListener('click', () => {
+            const editContent = editSection.querySelector('form');
+            if (editContent) {
+                editContent.style.display = editContent.style.display === 'none' ? 'block' : 'none';
+                toggleEditSection.textContent = editContent.style.display === 'none' ? '显示' : '隐藏';
+            }
+        });
+
+        toggleGallerySection.addEventListener('click', () => {
+            const galleryContent = gallerySection.querySelector('.filter-section');
+            const productList = gallerySection.querySelector('.gallery');
+            const pagination = gallerySection.querySelector('.pagination');
+
+            if (galleryContent && productList && pagination) {
+                const isHidden = galleryContent.style.display === 'none';
+                galleryContent.style.display = isHidden ? 'block' : 'none';
+                productList.style.display = isHidden ? 'grid' : 'none';
+                pagination.style.display = isHidden ? 'flex' : 'none';
+                toggleGallerySection.textContent = isHidden ? '隐藏' : '显示';
+            }
+        });
+
+        // 显示通知
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
