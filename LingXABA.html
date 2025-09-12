@@ -780,7 +780,7 @@
                 font-size: 14px;                
                 color: #000000;                
                 vertical-align: middle;                
-                ">2025-09-11 13:34:16
+                ">2025-09-12
                 </span>
             </a>
 
@@ -2242,18 +2242,13 @@
 
         // 页面加载时初始化
         window.addEventListener('DOMContentLoaded', function() {
-            // 显示更新时间
+            // 显示更新时间（使用运行时的时间，而不是动态获取当前时间）
             const updateTimeElement = document.getElementById('update-time');
             if (updateTimeElement) {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                updateTimeElement.textContent = `更新时间: ${year}-${month}-${day}`;
+                // 使用Python代码运行时生成的时间
+                updateTimeElement.textContent = '更新时间: 2025-09-12';
             }
-
+        
             initCardData();
             updatePaginationButtons();
         });
