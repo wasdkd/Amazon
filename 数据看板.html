@@ -156,27 +156,62 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* 添加复制字符串的样式 */
+        .copy-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .copy-string {
+            padding: 3px 8px;
+            border: 1px solid #007BFF;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            color: #007BFF;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            user-select: all;
+        }
+
+        .copy-string:hover {
+            background-color: #e9ecef;
+        }
+
+        .copy-string.copied {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>数据看板可视化</h1>
-            <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform">
-            <button style="
-                padding: 3px 8px;
-                margin-right: 10px;
-                border: none;
-                border-radius: 6px;
-                background-color: #007BFF;
-                color: white;
-                font-size: 15px;
-                cursor: pointer;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                transition: background-color 0.3s ease, transform 0.2s ease;
-            "
-            >返回平台</button>
-        </a>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform">
+                <button style="
+                    padding: 3px 8px;
+                    margin-right: 10px;
+                    border: none;
+                    border-radius: 6px;
+                    background-color: #007BFF;
+                    color: white;
+                    font-size: 15px;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    transition: background-color 0.3s ease, transform 0.2s ease;
+                "
+                >返回平台</button>
+            </a>
+                <div class="copy-container">
+                    <span class="copy-string" id="copyString" onclick="copyToClipboard()">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</span>
+                </div>
+            </div>
         </header>
 
         <div class="dashboard">
@@ -226,5 +261,23 @@
             <p>© 2025 数据看板 | 前台导航系统 v2.0</p>
         </footer>
     </div>
+
+    <script>
+        function copyToClipboard() {
+            const text = document.getElementById('copyString').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const element = document.getElementById('copyString');
+                element.textContent = '已复制!';
+                element.classList.add('copied');
+
+                setTimeout(() => {
+                    element.textContent = text;
+                    element.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+            });
+        }
+    </script>
 </body>
 </html>
