@@ -779,6 +779,28 @@
             toggleEditSection.textContent = '显  示';
         });
 
+        // 添加认证按钮点击事件处理
+        authButton.addEventListener('click', () => {
+            const token = githubTokenInput.value.trim();
+            if (token) {
+                authenticateWithToken(token);
+            } else {
+                showNotification('请输入GitHub Token', 'error');
+            }
+        });
+
+        // 添加回车键认证功能
+        githubTokenInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const token = githubTokenInput.value.trim();
+                if (token) {
+                    authenticateWithToken(token);
+                } else {
+                    showNotification('请输入GitHub Token', 'error');
+                }
+            }
+        });
+
         // 使用token认证
         function authenticateWithToken(token) {
             // 简单验证token格式（以ghp_开头）
