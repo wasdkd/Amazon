@@ -461,8 +461,9 @@
             </div>
             <div class="form-group">
                 <input type="password" id="githubToken" placeholder="输入您的GitHub Token">
+                <button id="authButton">认证</button>
             </div>
-            <button id="authButton">认证</button>
+
         </section>
 
         <!-- 编辑区域 -->
@@ -761,17 +762,17 @@
 
             // 默认隐藏认证区域内容（但保持区域可见，只隐藏内容）
             const authFormGroup = authSection.querySelector('.form-group');
-            const authButton = document.getElementById('authButton');
-            if (authFormGroup) authFormGroup.style.display = 'none';
-            if (authButton) authButton.style.display = 'none';
-            toggleAuthSection.textContent = '显  示';
+            if (authFormGroup) {
+                authFormGroup.style.display = 'none';
+                toggleAuthSection.textContent = '显  示';
+            }
 
             // 默认隐藏上传区域内容（但保持区域可见，只隐藏内容）
             const uploadContent = uploadSection.querySelector('form');
             if (uploadContent) {
                 uploadContent.style.display = 'none';
+                toggleUploadSection.textContent = '显  示';
             }
-            toggleUploadSection.textContent = '显  示';
 
             // 编辑区域默认隐藏
             editSection.classList.remove('show');
@@ -2734,28 +2735,33 @@
         // 重置筛选按钮事件
         resetFilterButton.addEventListener('click', resetFilters);
 
-         // 切换区域显示/隐藏
+          // 切换区域显示/隐藏
         toggleAuthSection.addEventListener('click', () => {
-            const authContent = authSection.querySelector('.form-group') || authSection.querySelector('form');
-            if (authContent) {
-                authContent.style.display = authContent.style.display === 'none' ? 'block' : 'none';
-                toggleAuthSection.textContent = authContent.style.display === 'none' ? '显示' : '隐藏';
+            const authFormGroup = authSection.querySelector('.form-group');
+            if (authFormGroup) {
+                const isHidden = authFormGroup.style.display === 'none';
+                authFormGroup.style.display = isHidden ? 'block' : 'none';
+                toggleAuthSection.textContent = isHidden ? '隐  藏' : '显  示';
             }
         });
 
         toggleUploadSection.addEventListener('click', () => {
             const uploadContent = uploadSection.querySelector('form');
             if (uploadContent) {
-                uploadContent.style.display = uploadContent.style.display === 'none' ? 'block' : 'none';
-                toggleUploadSection.textContent = uploadContent.style.display === 'none' ? '显示' : '隐藏';
+                const isHidden = uploadContent.style.display === 'none';
+                uploadContent.style.display = isHidden ? 'block' : 'none';
+                toggleUploadSection.textContent = isHidden ? '隐  藏' : '显  示';
             }
         });
 
         toggleEditSection.addEventListener('click', () => {
-            const editContent = editSection.querySelector('form');
-            if (editContent) {
-                editContent.style.display = editContent.style.display === 'none' ? 'block' : 'none';
-                toggleEditSection.textContent = editContent.style.display === 'none' ? '显示' : '隐藏';
+            const isHidden = !editSection.classList.contains('show');
+            if (isHidden) {
+                editSection.classList.add('show');
+                toggleEditSection.textContent = '隐  藏';
+            } else {
+                editSection.classList.remove('show');
+                toggleEditSection.textContent = '显  示';
             }
         });
 
@@ -2769,7 +2775,7 @@
                 galleryContent.style.display = isHidden ? 'block' : 'none';
                 productList.style.display = isHidden ? 'grid' : 'none';
                 pagination.style.display = isHidden ? 'flex' : 'none';
-                toggleGallerySection.textContent = isHidden ? '隐藏' : '显示';
+                toggleGallerySection.textContent = isHidden ? '隐  藏' : '显  示';
             }
         });
 
