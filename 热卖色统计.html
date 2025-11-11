@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>产品销量热卖色统计</title>
+  <title>热卖色统计</title>
   <style>
     :root {
       --bg: linear-gradient(180deg, #f8fafc 0%, #f7faff 100%);
@@ -18,6 +18,19 @@
       --title: #0ea5e9;   /* 青蓝标题 */
       --subtitle: #9333ea; /* 紫色副标题 */
     }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans SC", sans-serif; padding: 20px; color: var(--fg); background: var(--bg); }
+    h1 { font-size: 20px; margin: 0 0 8px; color: var(--title); }
+    h2 { font-size: 16px; margin: 24px 0 8px; color: var(--subtitle); }
+    .section { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 12px; background: var(--card); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    label { font-weight: 600; }
+    input[type="number"], input[type="text"] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 120px; }
+    input[type="file"] { padding: 6px; }
+    button { padding: 8px 12px; border: 1px solid var(--border); background: linear-gradient(180deg, #ffffff, #f3f4f6); border-radius: 8px; cursor: pointer; color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: background .2s ease, transform .05s ease; }
+    button:hover { background: linear-gradient(180deg, #f9fafb, #e5e7eb); }
+    button:active { transform: scale(0.98); }
+    button.primary { border-color: var(--primary); background: linear-gradient(180deg, #e0f2fe, #dbeafe); color: #0c4a6e; }
+    button.primary:hover { background: linear-gradient(180deg, #bae6fd, #bfdbfe); }
 
     /* 浅绿色按钮：解析、筛选、合并、拆分处理、统计销量、按ASIN匹配主图、生成颜色/尺码图片墙 */
     #imgBtnParseSelected,
@@ -44,19 +57,6 @@
     #btnRenderSizeGallery:hover {
       background: linear-gradient(180deg, #bbf7d0, #86efac);
     }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans SC", sans-serif; padding: 20px; color: var(--fg); background: var(--bg); }
-    h1 { font-size: 20px; margin: 0 0 8px; color: var(--title); }
-    h2 { font-size: 16px; margin: 24px 0 8px; color: var(--subtitle); }
-    .section { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 12px; background: var(--card); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    label { font-weight: 600; }
-    input[type="number"], input[type="text"] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 120px; }
-    input[type="file"] { padding: 6px; }
-    button { padding: 8px 12px; border: 1px solid var(--border); background: linear-gradient(180deg, #ffffff, #f3f4f6); border-radius: 8px; cursor: pointer; color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: background .2s ease, transform .05s ease; }
-    button:hover { background: linear-gradient(180deg, #f9fafb, #e5e7eb); }
-    button:active { transform: scale(0.98); }
-    button.primary { border-color: var(--primary); background: linear-gradient(180deg, #e0f2fe, #dbeafe); color: #0c4a6e; }
-    button.primary:hover { background: linear-gradient(180deg, #bae6fd, #bfdbfe); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
     .summary { font-size: 13px; color: var(--muted); }
     .file-list { font-size: 13px; color: #111827; margin-top: 8px; }
@@ -80,12 +80,29 @@
     /* 悬浮放大预览层（固定为 383×500） */
     .zoom-preview { position: fixed; z-index: 1000; pointer-events: none; width: 383px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.2); padding: 8px; }
     .zoom-preview img { width: 383px; height: 500px; object-fit: contain; }
+    /* 浅绿色按钮：第⑦步（流量） */
+    #btnRunTraffic,
+    #btnDownloadTrafficColorImageXlsx,
+    #btnDownloadTrafficSizeImageXlsx,
+    #btnRenderTrafficColorGallery,
+    #btnRenderTrafficSizeGallery {
+      background: linear-gradient(180deg, #d1fae5, #a7f3d0);
+      border-color: #86efac;
+      color: #064e3b;
+    }
+    #btnRunTraffic:hover,
+    #btnDownloadTrafficColorImageXlsx:hover,
+    #btnDownloadTrafficSizeImageXlsx:hover,
+    #btnRenderTrafficColorGallery:hover,
+    #btnRenderTrafficSizeGallery:hover {
+      background: linear-gradient(180deg, #bbf7d0, #86efac);
+    }
   </style>
   <!-- XLSX library (SheetJS) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <h1>产品销量热卖色统计</h1>
+  <h1>热卖色统计</h1>
   <div class="tips">每一步都可预览并下载结果。</div>
   <div class="row" style="margin-top:8px;">
     <button class="primary" onclick="location.href='热卖色一键执行.html'">前往快速处理</button>
@@ -197,6 +214,36 @@
     <div id="sizeGallery"></div>
   </div>
 
+  <div class="section" id="traffic-section">
+    <h2>⑦ 自然搜索词流量热卖色/尺码</h2>
+    <div class="row">
+      <label>选择文件：</label>
+      <input id="trafficFileInputFiles" type="file" multiple accept=".xlsx,.xls,.csv" />
+      <label>或选择文件夹：</label>
+      <input id="trafficFileInputFolder" type="file" webkitdirectory directory accept=".xlsx,.xls,.csv" />
+      <button id="btnRunTraffic" class="primary">执行第⑦步（解析并统计自然搜索词）</button>
+      <button id="btnDownloadTrafficColorImageXlsx" class="primary" disabled>下载颜色流量统计（含主图，xlsx）</button>
+      <button id="btnDownloadTrafficSizeImageXlsx" class="primary" disabled>下载尺码流量统计（含主图，xlsx）</button>
+    </div>
+    <div class="summary" id="trafficSummary"></div>
+    <h2>颜色（流量）统计（附主图）预览</h2>
+    <div class="preview" id="trafficColorImagePreview"></div>
+    <div class="divider"></div>
+    <h2>尺码（流量）统计（附主图）预览</h2>
+    <div class="preview" id="trafficSizeImagePreview"></div>
+    <div class="divider"></div>
+    <div class="row">
+      <button id="btnRenderTrafficColorGallery" disabled>生成颜色图片墙（流量）</button>
+      <button id="btnRenderTrafficSizeGallery" disabled>生成尺码图片墙（流量）</button>
+    </div>
+    <div class="tips">一行 10 张图，图片下方显示颜色/尺码与总自然搜索词及占比。</div>
+    <h2>父ASIN × 颜色（流量）</h2>
+    <div id="trafficColorGallery"></div>
+    <div class="divider"></div>
+    <h2>父ASIN × 尺码（流量）</h2>
+    <div id="trafficSizeGallery"></div>
+  </div>
+
   <!-- 悬浮放大预览层 -->
   <div id="zoomPreview" class="zoom-preview" style="display:none;">
     <img alt="预览" />
@@ -269,6 +316,19 @@
     const sizeGallery = document.getElementById('sizeGallery');
     const zoomPreview = document.getElementById('zoomPreview');
     const zoomImg = zoomPreview ? zoomPreview.querySelector('img') : null;
+    // 第⑦步：DOM元素
+    const trafficFileInputFiles = document.getElementById('trafficFileInputFiles');
+    const trafficFileInputFolder = document.getElementById('trafficFileInputFolder');
+    const btnRunTraffic = document.getElementById('btnRunTraffic');
+    const btnDownloadTrafficColorImageXlsx = document.getElementById('btnDownloadTrafficColorImageXlsx');
+    const btnDownloadTrafficSizeImageXlsx = document.getElementById('btnDownloadTrafficSizeImageXlsx');
+    const trafficSummary = document.getElementById('trafficSummary');
+    const trafficColorImagePreview = document.getElementById('trafficColorImagePreview');
+    const trafficSizeImagePreview = document.getElementById('trafficSizeImagePreview');
+    const btnRenderTrafficColorGallery = document.getElementById('btnRenderTrafficColorGallery');
+    const btnRenderTrafficSizeGallery = document.getElementById('btnRenderTrafficSizeGallery');
+    const trafficColorGallery = document.getElementById('trafficColorGallery');
+    const trafficSizeGallery = document.getElementById('trafficSizeGallery');
 
     // 工具方法
     function escapeHtml(str) {
@@ -315,6 +375,25 @@
       });
       table.appendChild(tbody);
       container.appendChild(table);
+    }
+
+    // 计算父ASIN分组占比
+    function computeRatios(arr, totalKey, ratioKey) {
+      if (!arr || !arr.length) return;
+      const groupTotals = new Map();
+      for (const o of arr) {
+        const parent = String(o['父ASIN'] || '').trim();
+        const val = Number(o[totalKey] || 0);
+        if (!groupTotals.has(parent)) groupTotals.set(parent, 0);
+        groupTotals.set(parent, groupTotals.get(parent) + (isNaN(val) ? 0 : val));
+      }
+      for (const o of arr) {
+        const parent = String(o['父ASIN'] || '').trim();
+        const total = groupTotals.get(parent) || 0;
+        const val = Number(o[totalKey] || 0);
+        const pct = total > 0 ? (val * 100 / total) : 0;
+        o[ratioKey] = Number.isFinite(pct) ? Number(pct.toFixed(2)) : 0;
+      }
     }
 
 
@@ -588,11 +667,11 @@
       const sUpdated = attachTo(statsSize, 'size');
 
       // 预览（含主图）
-      const colorHeaders = ['父ASIN', '颜色', '总销量', '代表ASIN', '产品详情链接', '商品主图'];
+      const colorHeaders = ['父ASIN', '颜色', '总销量', '销量占比%', '代表ASIN', '产品详情链接', '商品主图'];
       const color2D = [colorHeaders].concat(statsColor.slice(0, 50).map(o => colorHeaders.map(h => o[h])));
       renderTable(colorImagePreview, color2D, 50);
 
-      const sizeHeaders = ['父ASIN', '尺码', '总销量', '代表ASIN', '产品详情链接', '商品主图'];
+      const sizeHeaders = ['父ASIN', '尺码', '总销量', '销量占比%', '代表ASIN', '产品详情链接', '商品主图'];
       const size2D = [sizeHeaders].concat(statsSize.slice(0, 50).map(o => sizeHeaders.map(h => o[h])));
       renderTable(sizeImagePreview, size2D, 50);
 
@@ -631,7 +710,9 @@
       const imgSrc = normalizeMainImageUrl(String(item['商品主图'] || '').trim());
       const link = String(item['产品详情链接'] || '').trim();
       const label = type === 'color' ? String(item['颜色'] || '').trim() : String(item['尺码'] || '').trim();
-      const sales = String(item['总销量'] || '').trim();
+      const sales = (item.hasOwnProperty('总销量') ? String(item['总销量'] || '').trim() : '') || '';
+      const traffic = (item.hasOwnProperty('总自然搜索词') ? String(item['总自然搜索词'] || '').trim() : '') || '';
+      const ratio = (item.hasOwnProperty('销量占比%') ? String(item['销量占比%'] || '').trim() : (item.hasOwnProperty('自然搜索词占比%') ? String(item['自然搜索词占比%'] || '').trim() : '')) || '';
       const tile = document.createElement('div');
       tile.className = 'tile';
       if (imgSrc) {
@@ -679,7 +760,9 @@
       }
       const caption = document.createElement('div');
       caption.className = 'caption';
-      caption.textContent = `${type === 'color' ? '颜色' : '尺码'}：${label || '-'} ｜ 总销量：${sales || '0'}`;
+      const metricLabelBase = sales ? `总销量：${sales}` : `总自然搜索词：${traffic || '0'}`;
+      const metricLabel = ratio ? `${metricLabelBase} ｜ 占比：${ratio}%` : metricLabelBase;
+      caption.textContent = `${type === 'color' ? '颜色' : '尺码'}：${label || '-'} ｜ ${metricLabel}`;
       tile.appendChild(caption);
       return tile;
     }
@@ -752,6 +835,159 @@
       const m2 = String(str).match(/\b([A-Z0-9]{10})\b/);
       return m2 ? m2[1] : '';
     }
+    function extractASINFromLink(link) {
+      if (!link) return '';
+      const m = String(link).match(/\/dp\/([A-Z0-9]{10})/i);
+      return m ? m[1].toUpperCase() : '';
+    }
+
+    // 第⑦步：流量统计工具
+    function getTrafficHeaders(rows) {
+      if (!rows || !rows.length) return [];
+      const headers = Object.keys(rows[0]);
+      return headers.filter(h => /自然搜索|自然搜索词|natural\s*search/i.test(String(h || '')));
+    }
+    function rowTrafficTotal(row, trafficHeaders) {
+      let sum = 0;
+      for (const h of trafficHeaders) {
+        const v = row[h];
+        const s = (v == null ? '' : String(v)).replace(/,/g, '').trim();
+        const n = Number(s);
+        sum += isNaN(n) ? 0 : n;
+      }
+      return sum;
+    }
+    function attachImagesToTrafficStats(arr) {
+      if (!arr.length) return 0; let updated = 0;
+      for (const o of arr) {
+        const rep = String(o['代表ASIN'] || '').trim().toUpperCase() || extractASINFromLink(o['产品详情链接'] || '');
+        const imgVal = rep ? asinImageMap.get(rep) || '' : '';
+        o['商品主图'] = normalizeMainImageUrl(imgVal);
+        updated++;
+      }
+      return updated;
+    }
+
+    // 第⑦步：文件选择
+    let trafficPickedFilesRaw = [];
+    let trafficUploadedFiles = [];
+    let trafficMergedData = [];
+    let trafficProcessedData = [];
+    let trafficStatsColor = [];
+    let trafficStatsSize = [];
+
+    function handleTrafficPickedFiles(files) {
+      const excelFiles = Array.from(files || []).filter(f => /(\.xlsx|\.xls|\.csv)$/i.test(f.name));
+      trafficPickedFilesRaw = excelFiles.map((f) => ({ file: f, name: f.name, path: f.webkitRelativePath ? f.webkitRelativePath : f.name }));
+      trafficSummary.textContent = `第⑦步：已选择 ${trafficPickedFilesRaw.length} 个文件。`;
+    }
+    trafficFileInputFiles.addEventListener('change', (e) => { handleTrafficPickedFiles(e.target.files); });
+    trafficFileInputFolder.addEventListener('change', (e) => { handleTrafficPickedFiles(e.target.files); });
+
+    btnRunTraffic.addEventListener('click', async () => {
+      trafficUploadedFiles = [];
+      trafficMergedData = [];
+      trafficProcessedData = [];
+      trafficStatsColor = [];
+      trafficStatsSize = [];
+      trafficColorImagePreview.innerHTML = '';
+      trafficSizeImagePreview.innerHTML = '';
+      btnDownloadTrafficColorImageXlsx.disabled = true;
+      btnDownloadTrafficSizeImageXlsx.disabled = true;
+
+      if (!trafficPickedFilesRaw.length) { trafficSummary.textContent = '请先选择第⑦步流量数据文件。'; return; }
+      // 解析
+      const tasks = trafficPickedFilesRaw.map(async ({ file, name, path }) => {
+        try {
+          let wb;
+          if (/\.csv$/i.test(name)) { const text = await file.text(); wb = XLSX.read(text, { type: 'string' }); }
+          else { const buf = await file.arrayBuffer(); wb = XLSX.read(buf, { type: 'array' }); }
+          trafficUploadedFiles.push({ name, path, workbook: wb });
+        } catch (err) { console.error('第⑦步解析失败:', name, err); }
+      });
+      await Promise.all(tasks);
+      if (!trafficUploadedFiles.length) { trafficSummary.textContent = '解析失败或无可用的流量文件。'; return; }
+
+      // 合并每个文件的首子表
+      let rowsMerged = 0;
+      trafficUploadedFiles.forEach(({ name, workbook }) => {
+        const sn = (workbook.SheetNames || [])[0]; if (!sn) return;
+        const ws = workbook.Sheets[sn]; const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' }); if (!arr.length) return;
+        const headers = (arr[0] || []).map(h => String(h || '').trim()); const colCount = headers.length;
+        for (let i = 1; i < arr.length; i++) { const row = arr[i]; if (!row || !row.length) continue; const obj = {}; for (let c = 0; c < colCount; c++) { const key = headers[c] || `列${c+1}`; obj[key] = row[c] == null ? '' : row[c]; } obj['__来源文件'] = name; obj['__来源子表'] = sn; trafficMergedData.push(obj); rowsMerged++; }
+      });
+      if (!trafficMergedData.length) { trafficSummary.textContent = '未能从流量文件的首子表提取到任何行。'; return; }
+
+      // 拆分（解析SKU、父ASIN、链接）
+      trafficProcessedData = [];
+      trafficMergedData.forEach(row => {
+        const skuStr = row['SKU'] == null ? '' : String(row['SKU']); const { color, size } = parseSku(skuStr);
+        const parentFromCol = String(row['父ASIN'] || row['Parent ASIN'] || '').trim();
+        const parentAsin = parentFromCol || extractASIN(row['__来源子表']);
+        const childAsin = String(row['ASIN'] || row['asin'] || '').trim();
+        const link = childAsin ? `https://www.amazon.com/dp/${childAsin}` : '';
+        const out = { ...row, 颜色: color, 尺码: size, 父ASIN: parentAsin, 产品详情链接: link };
+        trafficProcessedData.push(out);
+      });
+
+      // 统计自然搜索词：先按唯一ASIN汇总，再按父ASIN×颜色/尺码分组
+      const trafficHeaders = getTrafficHeaders(trafficProcessedData);
+      const asinInfo = new Map();
+      for (const row of trafficProcessedData) {
+        const asinRaw = String(row['ASIN'] || row['asin'] || '').trim(); if (!asinRaw) continue;
+        const parent = String(row['父ASIN'] || '').trim();
+        const colorDisplay = String(row['颜色'] || '').trim(); const sizeDisplay = String(row['尺码'] || '').trim();
+        const colorKey = String(colorDisplay || '').trim().toLowerCase();
+        const sizeKey = String(sizeDisplay || '').trim().toLowerCase();
+        const link = row['产品详情链接'] || `https://www.amazon.com/dp/${asinRaw}`;
+        const rowTotal = rowTrafficTotal(row, trafficHeaders);
+        const prev = asinInfo.get(asinRaw);
+        if (!prev) asinInfo.set(asinRaw, { asin: asinRaw, total: rowTotal, parent, colorKey, colorDisplay, sizeKey, sizeDisplay, link, _bestColorRowTotal: rowTotal, _bestSizeRowTotal: rowTotal });
+        else { prev.total += rowTotal; if (rowTotal > (prev._bestColorRowTotal || -1)) { prev.colorKey = colorKey; prev.colorDisplay = colorDisplay; prev._bestColorRowTotal = rowTotal; } if (rowTotal > (prev._bestSizeRowTotal || -1)) { prev.sizeKey = sizeKey; prev.sizeDisplay = sizeDisplay; prev._bestSizeRowTotal = rowTotal; } }
+      }
+      const colorMap = new Map(); const sizeMap = new Map();
+      for (const info of asinInfo.values()) {
+        const { asin, total, parent, colorKey, colorDisplay, sizeKey, sizeDisplay, link } = info;
+        if (parent && colorKey) { const k = `${parent}|${colorKey}`; const curr = colorMap.get(k) || { 父ASIN: parent, 颜色: colorDisplay, 总自然搜索词: 0, 代表ASIN: asin, 产品详情链接: link, _repTotal: -1 }; curr.总自然搜索词 += total; if (total > curr._repTotal) { curr._repTotal = total; curr.代表ASIN = asin; curr.产品详情链接 = link; curr.颜色 = colorDisplay; } colorMap.set(k, curr); }
+        if (parent && sizeKey) { const k2 = `${parent}|${sizeKey}`; const curr2 = sizeMap.get(k2) || { 父ASIN: parent, 尺码: sizeDisplay, 总自然搜索词: 0, 代表ASIN: asin, 产品详情链接: link, _repTotal: -1 }; curr2.总自然搜索词 += total; if (total > curr2._repTotal) { curr2._repTotal = total; curr2.代表ASIN = asin; curr2.产品详情链接 = link; curr2.尺码 = sizeDisplay; } sizeMap.set(k2, curr2); }
+      }
+      trafficStatsColor = Array.from(colorMap.values()).map(o => { delete o._repTotal; return o; }).sort((a, b) => a.父ASIN.localeCompare(b.父ASIN) || Number(b['总自然搜索词']||0) - Number(a['总自然搜索词']||0));
+      trafficStatsSize = Array.from(sizeMap.values()).map(o => { delete o._repTotal; return o; }).sort((a, b) => a.父ASIN.localeCompare(b.父ASIN) || Number(b['总自然搜索词']||0) - Number(a['总自然搜索词']||0));
+
+      // 计算父ASIN分组占比（自然搜索词）
+      computeRatios(trafficStatsColor, '总自然搜索词', '自然搜索词占比%');
+      computeRatios(trafficStatsSize, '总自然搜索词', '自然搜索词占比%');
+
+      // 若已有主图映射（第⑤步），附加到结果
+      const cUpdated = attachImagesToTrafficStats(trafficStatsColor);
+      const sUpdated = attachImagesToTrafficStats(trafficStatsSize);
+
+      // 预览（含主图）
+      const colorHeaders = ['父ASIN', '颜色', '总自然搜索词', '自然搜索词占比%', '代表ASIN', '产品详情链接', '商品主图'];
+      const color2D = [colorHeaders].concat(trafficStatsColor.slice(0, 50).map(o => colorHeaders.map(h => o[h])));
+      renderTable(trafficColorImagePreview, color2D, 50);
+      const sizeHeaders = ['父ASIN', '尺码', '总自然搜索词', '自然搜索词占比%', '代表ASIN', '产品详情链接', '商品主图'];
+      const size2D = [sizeHeaders].concat(trafficStatsSize.slice(0, 50).map(o => sizeHeaders.map(h => o[h])));
+      renderTable(trafficSizeImagePreview, size2D, 50);
+
+      trafficSummary.textContent = `第⑦步完成：合并 ${rowsMerged} 行；颜色分组 ${trafficStatsColor.length} 条（主图更新 ${cUpdated}）；尺码分组 ${trafficStatsSize.length} 条（主图更新 ${sUpdated}）。`;
+      btnDownloadTrafficColorImageXlsx.disabled = !trafficStatsColor.length;
+      btnDownloadTrafficSizeImageXlsx.disabled = !trafficStatsSize.length;
+
+      // 启用并渲染流量图片墙
+      btnRenderTrafficColorGallery.disabled = !trafficStatsColor.length;
+      btnRenderTrafficSizeGallery.disabled = !trafficStatsSize.length;
+      if (trafficStatsColor.length) renderGallery(trafficStatsColor, trafficColorGallery, 'color');
+      if (trafficStatsSize.length) renderGallery(trafficStatsSize, trafficSizeGallery, 'size');
+    });
+
+    // 下载第⑦步（xlsx，含主图）
+    btnDownloadTrafficColorImageXlsx.addEventListener('click', () => { if (!trafficStatsColor.length) return; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.json_to_sheet(trafficStatsColor); XLSX.utils.book_append_sheet(wb, ws, 'TrafficColorStats'); XLSX.writeFile(wb, '颜色统计_自然搜索词.xlsx'); });
+    btnDownloadTrafficSizeImageXlsx.addEventListener('click', () => { if (!trafficStatsSize.length) return; const wb = XLSX.utils.book_new(); const ws = XLSX.utils.json_to_sheet(trafficStatsSize); XLSX.utils.book_append_sheet(wb, ws, 'TrafficSizeStats'); XLSX.writeFile(wb, '尺码统计_自然搜索词.xlsx'); });
+
+    // 流量图片墙渲染按钮绑定
+    btnRenderTrafficColorGallery.addEventListener('click', () => { if (!trafficStatsColor.length) return; renderGallery(trafficStatsColor, trafficColorGallery, 'color'); });
+    btnRenderTrafficSizeGallery.addEventListener('click', () => { if (!trafficStatsSize.length) return; renderGallery(trafficStatsSize, trafficSizeGallery, 'size'); });
 
     // 文件选择（文件模式）
     function handlePickedFiles(files) {
@@ -895,7 +1131,9 @@
       ok.className = 'summary';
       ok.textContent = `已解析 ${uploadedFiles.length} 个文件：${details}`;
       selectionList.appendChild(ok);
+      // 允许直接合并（无需先筛选）
       btnFilter.disabled = false;
+      btnMerge.disabled = false;
     });
 
     function resetStateExceptSelection() {
@@ -998,10 +1236,21 @@
       XLSX.writeFile(wbNew, '筛选结果_变体对比.xlsx');
     });
 
-    // ② 合并子表（指定表头行与子表个数）
+    // ② 合并子表（指定表头行与子表个数；筛选可选）
     btnMerge.addEventListener('click', () => {
-      if (!filteredSheets.length) {
-        mergeSummary.textContent = '请先完成筛选步骤。';
+      // 若未筛选，则遍历所有上传文件的全部工作表
+      const candidateSheets = filteredSheets.length ? filteredSheets : (function collectAllSheets(){
+        const all = [];
+        uploadedFiles.forEach(({ name, workbook }) => {
+          (workbook.SheetNames || []).forEach(sn => {
+            const ws = workbook.Sheets[sn];
+            if (ws) all.push({ sourceFile: name, sheetName: sn, worksheet: ws });
+          });
+        });
+        return all;
+      })();
+      if (!candidateSheets.length) {
+        mergeSummary.textContent = '未找到可合并的子表，请先上传文件或调整筛选关键字。';
         return;
       }
       const headerRowIdxInput = parseInt(headerRowInput.value, 10);
@@ -1020,7 +1269,7 @@
       let sheetsUsed = 0;
       let rowsMerged = 0;
 
-      filteredSheets.forEach(({ sourceFile, sheetName, worksheet }) => {
+      candidateSheets.forEach(({ sourceFile, sheetName, worksheet }) => {
         const arr = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
         if (!arr.length || headerRowIdx >= arr.length) return;
         const headers = (arr[headerRowIdx] || []).map(h => String(h || '').trim());
@@ -1072,7 +1321,7 @@
       const data2D = [headersAll].concat(mergedData.slice(0, 50).map(obj => headersAll.map(h => obj[h])));
       renderTable(mergePreview, data2D, 50);
 
-      mergeSummary.textContent = `合并完成：共 ${rowsMerged} 行，涉及 ${sheetsUsed} 个子表。`;
+      mergeSummary.textContent = `合并完成：共 ${rowsMerged} 行，涉及 ${sheetsUsed} 个子表。${filteredSheets.length ? '' : '（未筛选，已遍历所有子表）'}`;
       btnDownloadMergedXlsx.disabled = false;
       // 合并完成后允许进行拆分处理
       btnProcess.disabled = false;
@@ -1257,12 +1506,16 @@
       statsColor = Array.from(colorMap.values()).map(o => { delete o._repTotal; return o; }).sort((a, b) => a.父ASIN.localeCompare(b.父ASIN) || b.总销量 - a.总销量);
       statsSize = Array.from(sizeMap.values()).map(o => { delete o._repTotal; return o; }).sort((a, b) => a.父ASIN.localeCompare(b.父ASIN) || b.总销量 - a.总销量);
 
+      // 计算父ASIN分组占比（总销量）
+      computeRatios(statsColor, '总销量', '销量占比%');
+      computeRatios(statsSize, '总销量', '销量占比%');
+
       // 预览
-      const colorHeaders = ['父ASIN', '颜色', '总销量', '代表ASIN', '产品详情链接'];
+      const colorHeaders = ['父ASIN', '颜色', '总销量', '销量占比%', '代表ASIN', '产品详情链接'];
       const color2D = [colorHeaders].concat(statsColor.slice(0, 50).map(o => colorHeaders.map(h => o[h])));
       renderTable(colorPreview, color2D, 50);
 
-      const sizeHeaders = ['父ASIN', '尺码', '总销量', '代表ASIN', '产品详情链接'];
+      const sizeHeaders = ['父ASIN', '尺码', '总销量', '销量占比%', '代表ASIN', '产品详情链接'];
       const size2D = [sizeHeaders].concat(statsSize.slice(0, 50).map(o => sizeHeaders.map(h => o[h])));
       renderTable(sizePreview, size2D, 50);
 
