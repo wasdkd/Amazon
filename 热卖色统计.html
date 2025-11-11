@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>产品销量热卖色统计</title>
+  <style>
+    :root {
+      --bg: linear-gradient(180deg, #f8fafc 0%, #f7faff 100%);
+      --fg: #1f2937;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --primary: #60a5fa; /* 浅蓝 */
+      --primary-hover: #3b82f6;
+      --accent: #a78bfa;  /* 浅紫 */
+      --accent-hover: #8b5cf6;
+      --title: #0ea5e9;   /* 青蓝标题 */
+      --subtitle: #9333ea; /* 紫色副标题 */
+    }
+
+    /* 浅绿色按钮：解析、筛选、合并、拆分处理、统计销量、按ASIN匹配主图、生成颜色/尺码图片墙 */
+    #imgBtnParseSelected,
+    #btnParseSelected,
+    #btnFilter,
+    #btnMerge,
+    #btnProcess,
+    #btnAggregate,
+    #btnAttachImages,
+    #btnRenderColorGallery,
+    #btnRenderSizeGallery {
+      background: linear-gradient(180deg, #d1fae5, #a7f3d0);
+      border-color: #86efac;
+      color: #064e3b;
+    }
+    #imgBtnParseSelected:hover,
+    #btnParseSelected:hover,
+    #btnFilter:hover,
+    #btnMerge:hover,
+    #btnProcess:hover,
+    #btnAggregate:hover,
+    #btnAttachImages:hover,
+    #btnRenderColorGallery:hover,
+    #btnRenderSizeGallery:hover {
+      background: linear-gradient(180deg, #bbf7d0, #86efac);
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans SC", sans-serif; padding: 20px; color: var(--fg); background: var(--bg); }
+    h1 { font-size: 20px; margin: 0 0 8px; color: var(--title); }
+    h2 { font-size: 16px; margin: 24px 0 8px; color: var(--subtitle); }
+    .section { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 12px; background: var(--card); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    label { font-weight: 600; }
+    input[type="number"], input[type="text"] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; width: 120px; }
+    input[type="file"] { padding: 6px; }
+    button { padding: 8px 12px; border: 1px solid var(--border); background: linear-gradient(180deg, #ffffff, #f3f4f6); border-radius: 8px; cursor: pointer; color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: background .2s ease, transform .05s ease; }
+    button:hover { background: linear-gradient(180deg, #f9fafb, #e5e7eb); }
+    button:active { transform: scale(0.98); }
+    button.primary { border-color: var(--primary); background: linear-gradient(180deg, #e0f2fe, #dbeafe); color: #0c4a6e; }
+    button.primary:hover { background: linear-gradient(180deg, #bae6fd, #bfdbfe); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .summary { font-size: 13px; color: var(--muted); }
+    .file-list { font-size: 13px; color: #111827; margin-top: 8px; }
+    .preview { overflow: auto; max-height: 400px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    th, td { border: 1px solid var(--border); padding: 6px 8px; white-space: nowrap; }
+    th { background: #eef2ff; color: #1e293b; font-weight: 600; }
+    tbody tr:nth-child(odd) { background: #f8fafc; }
+    .tips { color: var(--muted); font-size: 12px; }
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
+    /* 第⑥步图片墙样式 */
+    .gallery-group { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 14px; background: var(--card); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .gallery-title { font-weight: 600; margin-bottom: 8px; color: #111827; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(10, minmax(80px, 1fr)); gap: 8px; align-items: start; }
+    .tile { border: 1px solid var(--border); border-radius: 10px; padding: 6px; background: var(--card); box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
+    .tile a { text-decoration: none; color: inherit; }
+    .tile img { width: 100%; height: 120px; object-fit: contain; background: #f9fafb; border-radius: 6px; }
+    .no-image { width: 100%; height: 100px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #6b7280; border-radius: 4px; font-size: 12px; }
+    .caption { font-size: 12px; margin-top: 4px; color: #374151; }
+
+    /* 悬浮放大预览层（固定为 383×500） */
+    .zoom-preview { position: fixed; z-index: 1000; pointer-events: none; width: 383px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 12px 40px rgba(2,6,23,0.2); padding: 8px; }
+    .zoom-preview img { width: 383px; height: 500px; object-fit: contain; }
+  </style>
+  <!-- XLSX library (SheetJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h1>产品销量热卖色统计</h1>
+  <div class="tips">每一步都可预览并下载结果。</div>
+  <div class="row" style="margin-top:8px;">
+    <button class="primary" onclick="location.href='热卖色一键执行.html'">前往快速处理</button>
+  </div>
+
+  <div class="section" id="upload-section">
+    <h2>上传Excel文件或文件夹</h2>
+    <div class="row">
+      <label>选择文件：</label>
+      <input id="fileInputFiles" type="file" multiple accept=".xlsx,.xls,.csv" />
+      <label>或选择文件夹：</label>
+      <input id="fileInputFolder" type="file" webkitdirectory directory accept=".xlsx,.xls,.csv" />
+      <button id="btnSelectAll" disabled>全选</button>
+      <button id="btnDeselectAll" disabled>全不选</button>
+      <button id="btnParseSelected" disabled>解析所选文件</button>
+      <button id="btnClear">清空</button>
+    </div>
+    <div class="file-list" id="selectionList"></div>
+  </div>
+
+  <div class="section" id="filter-section">
+    <h2>① 筛选子表（可自定义关键字）</h2>
+    <div class="row">
+      <label for="sheetKeyword">子表关键字：</label>
+      <input id="sheetKeyword" type="text" value="变体对比" style="width:160px;" />
+      <button id="btnFilter" disabled>筛选</button>
+      <button id="btnDownloadFiltered" disabled>下载筛选结果（xlsx）</button>
+    </div>
+    <div class="summary" id="filterSummary"></div>
+    <div class="preview" id="filterPreview"></div>
+  </div>
+
+  <div class="section" id="merge-section">
+    <h2>② 合并子表（指定表头行与子表个数）</h2>
+    <div class="row">
+      <label for="headerRow">表头所在行：</label>
+      <input id="headerRow" type="number" min="1" value="1" />
+      <label for="subtableCount">需要合并的子表个数：</label>
+      <input id="subtableCount" type="number" min="1" value="1" />
+      <button id="btnMerge" disabled>执行合并</button>
+      <button id="btnDownloadMergedXlsx" class="primary" disabled>下载合并结果（xlsx）</button>
+    </div>
+    <div class="summary" id="mergeSummary"></div>
+    <div class="preview" id="mergePreview"></div>
+  </div>
+
+  <div class="section" id="process-section">
+    <h2>③ 数据拆分处理（SKU解析、父ASIN与链接）</h2>
+    <div class="row">
+      <button id="btnProcess" disabled>执行拆分处理</button>
+      <button id="btnDownloadProcessedXlsx" class="primary" disabled>下载拆分结果（xlsx）</button>
+    </div>
+    <div class="summary" id="processSummary"></div>
+    <div class="preview" id="processPreview"></div>
+  </div>
+
+  <div class="section" id="aggregate-section">
+    <h2>④ 数据统计（父ASIN×颜色/尺码总销量）</h2>
+    <div class="row">
+      <button id="btnAggregate" disabled>统计销量</button>
+      <button id="btnDownloadColorXlsx" class="primary" disabled>下载颜色统计（xlsx）</button>
+      <button id="btnDownloadSizeXlsx" class="primary" disabled>下载尺码统计（xlsx）</button>
+    </div>
+    <div class="summary" id="aggregateSummary"></div>
+    <h2>颜色统计预览</h2>
+    <div class="preview" id="colorPreview"></div>
+    <div class="divider"></div>
+    <h2>尺码统计预览</h2>
+    <div class="preview" id="sizePreview"></div>
+  </div>
+
+  <div class="section" id="image-section">
+    <h2>⑤ 商品主图匹配（读取首子表，按ASIN）</h2>
+    <div class="row">
+      <label>选择文件：</label>
+      <input id="imgFileInputFiles" type="file" multiple accept=".xlsx,.xls,.csv" />
+      <label>或选择文件夹：</label>
+      <input id="imgFileInputFolder" type="file" webkitdirectory directory accept=".xlsx,.xls,.csv" />
+      <button id="imgBtnSelectAll" disabled>全选</button>
+      <button id="imgBtnDeselectAll" disabled>全不选</button>
+      <button id="imgBtnParseSelected" disabled>解析所选文件</button>
+      <button id="imgBtnClear">清空</button>
+    </div>
+    <div class="file-list" id="imgSelectionList"></div>
+    <div class="row">
+      <button id="btnAttachImages" class="primary" disabled>按ASIN匹配并添加“商品主图”</button>
+      <button id="btnDownloadColorImageXlsx" class="primary" disabled>下载颜色统计（含主图，xlsx）</button>
+      <button id="btnDownloadSizeImageXlsx" class="primary" disabled>下载尺码统计（含主图，xlsx）</button>
+    </div>
+    <div class="summary" id="imageSummary"></div>
+    <h2>颜色统计（附主图）预览</h2>
+    <div class="preview" id="colorImagePreview"></div>
+    <div class="divider"></div>
+    <h2>尺码统计（附主图）预览</h2>
+    <div class="preview" id="sizeImagePreview"></div>
+  </div>
+
+  <div class="section" id="viz-section">
+    <h2>⑥ 数据可视化（父ASIN图片墙）</h2>
+    <div class="row">
+      <button id="btnRenderColorGallery" disabled>生成颜色图片墙</button>
+      <button id="btnRenderSizeGallery" disabled>生成尺码图片墙</button>
+    </div>
+    <div class="tips">一行 10 张图，图片下方显示颜色/尺码与总销量。</div>
+    <h2>父ASIN × 颜色</h2>
+    <div id="colorGallery"></div>
+    <div class="divider"></div>
+    <h2>父ASIN × 尺码</h2>
+    <div id="sizeGallery"></div>
+  </div>
+
+  <!-- 悬浮放大预览层 -->
+  <div id="zoomPreview" class="zoom-preview" style="display:none;">
+    <img alt="预览" />
+  </div>
+
+  <script>
+    // 全局状态
+    let pickedFilesRaw = []; // [{ file, name, path, selected }]
+    let uploadedFiles = []; // [{ name, path, workbook }]
+    let filteredSheets = []; // [{ sourceFile, sheetName, worksheet }]
+    let mergedData = []; // Array of row objects
+    let processedData = []; // Array of row objects after step ③
+    let statsColor = []; // [{ 父ASIN, 颜色, 总销量, 代表ASIN, 产品详情链接 }]
+    let statsSize = [];  // [{ 父ASIN, 尺码, 总销量, 代表ASIN, 产品详情链接 }]
+    // 第⑤步：主图匹配相关状态
+    let imgPickedFilesRaw = []; // 与第①步类似的文件选择结构
+    let imgUploadedFiles = [];  // 上传并解析后的工作簿列表
+    let imageMergedData = [];   // 合并的首子表数据（表头在第一行）
+    let asinImageMap = new Map(); // asin(大写) -> 商品主图值
+
+    const fileInputFiles = document.getElementById('fileInputFiles');
+    const fileInputFolder = document.getElementById('fileInputFolder');
+    const btnSelectAll = document.getElementById('btnSelectAll');
+    const btnDeselectAll = document.getElementById('btnDeselectAll');
+    const btnParseSelected = document.getElementById('btnParseSelected');
+    const btnClear = document.getElementById('btnClear');
+    const selectionList = document.getElementById('selectionList');
+    const btnFilter = document.getElementById('btnFilter');
+    const btnDownloadFiltered = document.getElementById('btnDownloadFiltered');
+    const sheetKeyword = document.getElementById('sheetKeyword');
+    const filterSummary = document.getElementById('filterSummary');
+    const filterPreview = document.getElementById('filterPreview');
+    const headerRowInput = document.getElementById('headerRow');
+    const subtableCountInput = document.getElementById('subtableCount');
+    const btnMerge = document.getElementById('btnMerge');
+    const btnDownloadMergedXlsx = document.getElementById('btnDownloadMergedXlsx');
+    const mergeSummary = document.getElementById('mergeSummary');
+    const mergePreview = document.getElementById('mergePreview');
+
+    const btnProcess = document.getElementById('btnProcess');
+    const btnDownloadProcessedXlsx = document.getElementById('btnDownloadProcessedXlsx');
+    const processSummary = document.getElementById('processSummary');
+    const processPreview = document.getElementById('processPreview');
+
+    const btnAggregate = document.getElementById('btnAggregate');
+    const btnDownloadColorXlsx = document.getElementById('btnDownloadColorXlsx');
+    const btnDownloadSizeXlsx = document.getElementById('btnDownloadSizeXlsx');
+    const aggregateSummary = document.getElementById('aggregateSummary');
+    const colorPreview = document.getElementById('colorPreview');
+    const sizePreview = document.getElementById('sizePreview');
+    // 第⑤步：DOM元素
+    const imgFileInputFiles = document.getElementById('imgFileInputFiles');
+    const imgFileInputFolder = document.getElementById('imgFileInputFolder');
+    const imgBtnSelectAll = document.getElementById('imgBtnSelectAll');
+    const imgBtnDeselectAll = document.getElementById('imgBtnDeselectAll');
+    const imgBtnParseSelected = document.getElementById('imgBtnParseSelected');
+    const imgBtnClear = document.getElementById('imgBtnClear');
+    const imgSelectionList = document.getElementById('imgSelectionList');
+    const btnAttachImages = document.getElementById('btnAttachImages');
+    const btnDownloadColorImageXlsx = document.getElementById('btnDownloadColorImageXlsx');
+    const btnDownloadSizeImageXlsx = document.getElementById('btnDownloadSizeImageXlsx');
+    const imageSummary = document.getElementById('imageSummary');
+    const colorImagePreview = document.getElementById('colorImagePreview');
+    const sizeImagePreview = document.getElementById('sizeImagePreview');
+
+    // 第⑥步：DOM元素
+    const btnRenderColorGallery = document.getElementById('btnRenderColorGallery');
+    const btnRenderSizeGallery = document.getElementById('btnRenderSizeGallery');
+    const colorGallery = document.getElementById('colorGallery');
+    const sizeGallery = document.getElementById('sizeGallery');
+    const zoomPreview = document.getElementById('zoomPreview');
+    const zoomImg = zoomPreview ? zoomPreview.querySelector('img') : null;
+
+    // 工具方法
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, function (m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+      });
+    }
+
+    function isRowEmpty(row) {
+      if (!row || !Array.isArray(row)) return true;
+      return row.every(cell => {
+        const v = (cell == null ? '' : String(cell)).trim();
+        return v === '';
+      });
+    }
+
+    function renderTable(container, data2D, maxRows = 30) {
+      container.innerHTML = '';
+      if (!data2D || data2D.length === 0) {
+        container.textContent = '无数据可预览';
+        return;
+      }
+      const headers = (data2D[0] || []).map(h => String(h || '').trim());
+      const rows = data2D.slice(1, 1 + maxRows);
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h || '(空)';
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+      table.appendChild(thead);
+      const tbody = document.createElement('tbody');
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        for (let i = 0; i < headers.length; i++) {
+          const td = document.createElement('td');
+          td.textContent = r[i] == null ? '' : String(r[i]);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+
+
+    function uniqueSheetName(base, existing) {
+      let name = base;
+      let idx = 1;
+      while (existing.has(name)) {
+        name = `${base}_${idx++}`;
+      }
+      existing.add(name);
+      return name;
+    }
+
+    // 通用：规范化列名
+    function normHeader(h) {
+      return String(h || '').trim().toLowerCase();
+    }
+
+    // 第⑤步：文件选择（文件模式）
+    function handleImgPickedFiles(files) {
+      const excelFiles = Array.from(files || []).filter(f => /(\.xlsx|\.xls|\.csv)$/i.test(f.name));
+      if (!excelFiles.length) {
+        imgSelectionList.textContent = '未选择Excel/CSV文件。';
+        imgBtnSelectAll.disabled = true;
+        imgBtnDeselectAll.disabled = true;
+        imgBtnParseSelected.disabled = true;
+        return;
+      }
+      imgPickedFilesRaw = excelFiles.map((f) => ({
+        file: f,
+        name: f.name,
+        path: f.webkitRelativePath ? f.webkitRelativePath : f.name,
+        selected: true,
+      }));
+      renderImgSelectionList();
+    }
+
+    imgFileInputFiles.addEventListener('change', (e) => {
+      resetImageStepState();
+      handleImgPickedFiles(e.target.files);
+    });
+    imgFileInputFolder.addEventListener('change', (e) => {
+      resetImageStepState();
+      handleImgPickedFiles(e.target.files);
+    });
+
+    function renderImgSelectionList() {
+      imgSelectionList.innerHTML = '';
+      const count = imgPickedFilesRaw.length;
+      const summary = document.createElement('div');
+      summary.className = 'summary';
+      summary.textContent = `第⑤步：共选择 ${count} 个Excel/CSV 文件，可勾选需要解析的文件（读取首子表，表头在第一行）。`;
+      imgSelectionList.appendChild(summary);
+
+      const list = document.createElement('div');
+      imgPickedFilesRaw.forEach((item, idx) => {
+        const id = `img_chk_${idx}`;
+        const row = document.createElement('div');
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.id = id;
+        chk.checked = item.selected;
+        chk.addEventListener('change', () => {
+          item.selected = chk.checked;
+          updateImgParseButtonsState();
+        });
+        const label = document.createElement('label');
+        label.setAttribute('for', id);
+        label.textContent = ` ${item.path}`;
+        row.appendChild(chk);
+        row.appendChild(label);
+        list.appendChild(row);
+      });
+      imgSelectionList.appendChild(list);
+      imgBtnSelectAll.disabled = false;
+      imgBtnDeselectAll.disabled = false;
+      updateImgParseButtonsState();
+    }
+
+    function updateImgParseButtonsState() {
+      const anySelected = imgPickedFilesRaw.some(x => x.selected);
+      imgBtnParseSelected.disabled = !anySelected;
+    }
+
+    imgBtnSelectAll.addEventListener('click', () => {
+      imgPickedFilesRaw.forEach(x => x.selected = true);
+      renderImgSelectionList();
+    });
+    imgBtnDeselectAll.addEventListener('click', () => {
+      imgPickedFilesRaw.forEach(x => x.selected = false);
+      renderImgSelectionList();
+    });
+
+    function resetImageStepState() {
+      imgUploadedFiles = [];
+      imageMergedData = [];
+      asinImageMap = new Map();
+      imageSummary.textContent = '';
+      colorImagePreview.innerHTML = '';
+      sizeImagePreview.innerHTML = '';
+      btnAttachImages.disabled = true;
+      btnDownloadColorImageXlsx.disabled = true;
+      btnDownloadSizeImageXlsx.disabled = true;
+    }
+
+    imgBtnClear.addEventListener('click', () => {
+      imgFileInputFiles.value = '';
+      imgFileInputFolder.value = '';
+      imgPickedFilesRaw = [];
+      resetImageStepState();
+      imgSelectionList.textContent = '';
+      imgBtnSelectAll.disabled = true;
+      imgBtnDeselectAll.disabled = true;
+      imgBtnParseSelected.disabled = true;
+    });
+
+    // 解析并合并首子表（表头在第一行）
+    imgBtnParseSelected.addEventListener('click', async () => {
+      resetImageStepState();
+      const toParse = imgPickedFilesRaw.filter(x => x.selected);
+      if (!toParse.length) {
+        imgSelectionList.textContent = '请勾选至少一个文件再解析。';
+        return;
+      }
+      const status = document.createElement('div');
+      status.className = 'summary';
+      status.textContent = '正在解析第⑤步所选文件……';
+      imgSelectionList.appendChild(status);
+
+      const tasks = toParse.map(async ({ file, name, path }) => {
+        try {
+          let wb;
+          if (/\.csv$/i.test(name)) {
+            const text = await file.text();
+            wb = XLSX.read(text, { type: 'string' });
+          } else {
+            const buf = await file.arrayBuffer();
+            wb = XLSX.read(buf, { type: 'array' });
+          }
+          imgUploadedFiles.push({ name, path, workbook: wb });
+        } catch (err) {
+          console.error('第⑤步解析失败:', name, err);
+        }
+      });
+      await Promise.all(tasks);
+
+      status.textContent = '';
+      if (!imgUploadedFiles.length) {
+        const err = document.createElement('div');
+        err.className = 'summary';
+        err.textContent = '解析失败或没有可用的Excel/CSV文件（第⑤步）。';
+        imgSelectionList.appendChild(err);
+        return;
+      }
+
+      // 合并每个文件的第一个工作表，表头在第一行
+      imageMergedData = [];
+      let rowsMerged = 0;
+      imgUploadedFiles.forEach(({ name, workbook }) => {
+        const sn = (workbook.SheetNames || [])[0];
+        if (!sn) return;
+        const ws = workbook.Sheets[sn];
+        const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
+        if (!arr.length) return;
+        const headers = (arr[0] || []).map(h => String(h || '').trim());
+        const colCount = headers.length;
+        for (let i = 1; i < arr.length; i++) {
+          const row = arr[i];
+          if (!row || !row.length) continue;
+          const obj = {};
+          for (let c = 0; c < colCount; c++) {
+            const key = headers[c] || `列${c+1}`;
+            obj[key] = row[c] == null ? '' : row[c];
+          }
+          obj['__来源文件'] = name;
+          obj['__来源子表'] = sn;
+          imageMergedData.push(obj);
+          rowsMerged++;
+        }
+      });
+
+      if (!imageMergedData.length) {
+        imageSummary.textContent = '未能从所选文件的首子表提取到任何行，请检查文件内容。';
+        btnAttachImages.disabled = true;
+        return;
+      }
+
+      const details = imgUploadedFiles.map(u => `${u.path}（首子表：${(u.workbook.SheetNames||[])[0] || '无'}）`).join('； ');
+      imageSummary.textContent = `第⑤步已解析并合并：共 ${rowsMerged} 行（${imgUploadedFiles.length} 个文件）。${details}`;
+      // 若已完成第④步统计，允许进行主图匹配
+      btnAttachImages.disabled = !(statsColor.length || statsSize.length);
+    });
+
+    function findHeaderKey(headers) {
+      const lookup = new Map(headers.map(h => [normHeader(h), h]));
+      return function(candidates) {
+        for (const cand of candidates) {
+          const k = lookup.get(normHeader(cand));
+          if (k) return k;
+        }
+        return '';
+      };
+    }
+
+    function extractASINFromLink(link) {
+      if (!link) return '';
+      const m = String(link).match(/\/dp\/([A-Z0-9]{10})/i);
+      return m ? m[1].toUpperCase() : '';
+    }
+
+    // 规范化亚马逊主图URL：移除 ._AC... 等尺寸标记，保留扩展名
+    function normalizeMainImageUrl(url) {
+      if (!url) return '';
+      const s = String(url).trim();
+      // 典型格式：.../I/<name>._AC_US600_.jpg -> .../I/<name>.jpg
+      const r1 = s.replace(/(\/I\/[A-Za-z0-9%_-]+)\.[^\/]*\.(jpe?g|png|webp)(?:\?.*)?$/i, '$1.$2');
+      if (r1 !== s) return r1;
+      // 通用兜底：移除 ._xxxx 才接扩展名的片段
+      return s.replace(/\._[^\/]*\.(jpe?g|png|webp)(?:\?.*)?$/i, '.$1');
+    }
+
+    // 执行主图匹配：构建 ASIN->主图 映射，然后为统计结果添加“商品主图”列
+    btnAttachImages.addEventListener('click', () => {
+      if (!imageMergedData.length) {
+        imageSummary.textContent = '请先在第⑤步解析并合并首子表。';
+        return;
+      }
+      if (!statsColor.length && !statsSize.length) {
+        imageSummary.textContent = '请先完成④ 数据统计，再进行主图匹配。';
+        return;
+      }
+
+      // 识别 ASIN 与主图列名
+      const headers = Object.keys(imageMergedData[0] || {});
+      const picker = findHeaderKey(headers);
+      const asinKey = picker(['ASIN', 'asin', 'Asin', '子ASIN', '子asin']);
+      const imgKey = picker(['商品主图', '主图', 'Main Image', 'Image', 'Image URL', 'ImageURL', '主图链接', '图片', '图片链接', 'MainImage', 'primary image']);
+
+      asinImageMap = new Map();
+      if (!asinKey && !imgKey) {
+        imageSummary.textContent = '在首子表中未找到可识别的 ASIN 或 商品主图 列。';
+      } else {
+        for (const row of imageMergedData) {
+          let asinRaw = '';
+          if (asinKey) asinRaw = String(row[asinKey] || '').trim();
+          if (!asinRaw && row['产品详情链接']) asinRaw = extractASINFromLink(row['产品详情链接']);
+          const asin = asinRaw ? asinRaw.toUpperCase() : '';
+          const rawImg = imgKey ? (row[imgKey] == null ? '' : String(row[imgKey])) : '';
+          const imgVal = normalizeMainImageUrl(rawImg);
+          if (asin && imgVal && !asinImageMap.has(asin)) {
+            asinImageMap.set(asin, imgVal);
+          }
+        }
+      }
+
+      // 将“商品主图”追加到颜色/尺码统计结果中（按 代表ASIN 匹配）
+      const attachTo = (arr, type) => {
+        if (!arr.length) return 0;
+        let updated = 0;
+        for (const o of arr) {
+          const rep = String(o['代表ASIN'] || '').trim().toUpperCase() || extractASINFromLink(o['产品详情链接'] || '');
+          const imgVal = rep ? asinImageMap.get(rep) || '' : '';
+          o['商品主图'] = normalizeMainImageUrl(imgVal);
+          updated++;
+        }
+        return updated;
+      };
+
+      const cUpdated = attachTo(statsColor, 'color');
+      const sUpdated = attachTo(statsSize, 'size');
+
+      // 预览（含主图）
+      const colorHeaders = ['父ASIN', '颜色', '总销量', '代表ASIN', '产品详情链接', '商品主图'];
+      const color2D = [colorHeaders].concat(statsColor.slice(0, 50).map(o => colorHeaders.map(h => o[h])));
+      renderTable(colorImagePreview, color2D, 50);
+
+      const sizeHeaders = ['父ASIN', '尺码', '总销量', '代表ASIN', '产品详情链接', '商品主图'];
+      const size2D = [sizeHeaders].concat(statsSize.slice(0, 50).map(o => sizeHeaders.map(h => o[h])));
+      renderTable(sizeImagePreview, size2D, 50);
+
+      imageSummary.textContent = `主图匹配完成：颜色分组更新 ${cUpdated} 条；尺码分组更新 ${sUpdated} 条。`;
+      const hasColor = statsColor.length > 0;
+      const hasSize = statsSize.length > 0;
+      btnDownloadColorImageXlsx.disabled = !hasColor;
+      btnDownloadSizeImageXlsx.disabled = !hasSize;
+      // 允许可视化按钮
+      btnRenderColorGallery.disabled = !hasColor;
+      btnRenderSizeGallery.disabled = !hasSize;
+    });
+
+    // 下载含主图的统计结果
+    btnDownloadColorImageXlsx.addEventListener('click', () => {
+      if (!statsColor.length) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(statsColor);
+      XLSX.utils.book_append_sheet(wb, ws, 'ColorStatsWithImage');
+      XLSX.writeFile(wb, '颜色统计_含主图.xlsx');
+    });
+
+    // 第⑥步：工具函数与渲染逻辑
+    function groupByParent(arr) {
+      const map = new Map();
+      for (const o of arr) {
+        const p = String(o['父ASIN'] || '').trim();
+        if (!p) continue;
+        if (!map.has(p)) map.set(p, []);
+        map.get(p).push(o);
+      }
+      return map;
+    }
+
+    function makeTile(item, type) {
+      const imgSrc = normalizeMainImageUrl(String(item['商品主图'] || '').trim());
+      const link = String(item['产品详情链接'] || '').trim();
+      const label = type === 'color' ? String(item['颜色'] || '').trim() : String(item['尺码'] || '').trim();
+      const sales = String(item['总销量'] || '').trim();
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      if (imgSrc) {
+        const a = document.createElement('a');
+        a.href = link || '#';
+        a.target = '_blank';
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.alt = label || '商品图片';
+        // 悬浮大图预览
+        if (zoomPreview && zoomImg) {
+          const positionZoom = (e) => {
+            const vw = window.innerWidth || document.documentElement.clientWidth;
+            const vh = window.innerHeight || document.documentElement.clientHeight;
+            const pw = 383; // 预览层宽度
+            const ph = 500; // 预览层高度（固定）
+            const pad = 16;
+            let left = e.clientX + pad;
+            let top = e.clientY + pad;
+            if (left + pw + pad > vw) left = vw - pw - pad;
+            if (top + ph + pad > vh) top = vh - ph - pad;
+            if (left < pad) left = pad;
+            if (top < pad) top = pad;
+            zoomPreview.style.left = `${left}px`;
+            zoomPreview.style.top = `${top}px`;
+          };
+          img.addEventListener('mouseenter', (e) => {
+            zoomImg.src = img.src;
+            zoomPreview.style.display = 'block';
+            positionZoom(e);
+          });
+          img.addEventListener('mousemove', (e) => positionZoom(e));
+          img.addEventListener('mouseleave', () => {
+            zoomPreview.style.display = 'none';
+            zoomImg.src = '';
+          });
+        }
+        a.appendChild(img);
+        tile.appendChild(a);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'no-image';
+        placeholder.textContent = '无主图';
+        tile.appendChild(placeholder);
+      }
+      const caption = document.createElement('div');
+      caption.className = 'caption';
+      caption.textContent = `${type === 'color' ? '颜色' : '尺码'}：${label || '-'} ｜ 总销量：${sales || '0'}`;
+      tile.appendChild(caption);
+      return tile;
+    }
+
+    function renderGallery(statsArr, container, type) {
+      container.innerHTML = '';
+      if (!statsArr.length) {
+        const empty = document.createElement('div');
+        empty.className = 'summary';
+        empty.textContent = '暂无数据，请先完成④统计与⑤主图匹配。';
+        container.appendChild(empty);
+        return;
+      }
+      const groups = groupByParent(statsArr);
+      const parents = Array.from(groups.keys()).sort();
+      for (const parent of parents) {
+        const group = groups.get(parent) || [];
+        const wrap = document.createElement('div');
+        wrap.className = 'gallery-group';
+        const title = document.createElement('div');
+        title.className = 'gallery-title';
+        title.textContent = `父ASIN：${parent}`;
+        wrap.appendChild(title);
+        const grid = document.createElement('div');
+        grid.className = 'gallery-grid';
+        group.forEach(item => {
+          grid.appendChild(makeTile(item, type));
+        });
+        wrap.appendChild(grid);
+        container.appendChild(wrap);
+      }
+    }
+
+    btnRenderColorGallery.addEventListener('click', () => {
+      renderGallery(statsColor, colorGallery, 'color');
+    });
+    btnRenderSizeGallery.addEventListener('click', () => {
+      renderGallery(statsSize, sizeGallery, 'size');
+    });
+
+    btnDownloadSizeImageXlsx.addEventListener('click', () => {
+      if (!statsSize.length) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(statsSize);
+      XLSX.utils.book_append_sheet(wb, ws, 'SizeStatsWithImage');
+      XLSX.writeFile(wb, '尺码统计_含主图.xlsx');
+    });
+
+    function parseSku(skuStr) {
+      const result = { color: '', size: '' };
+      if (!skuStr) return result;
+      const tokens = String(skuStr).split('|').map(t => t.trim()).filter(Boolean);
+      for (const t of tokens) {
+        const parts = t.split(':');
+        if (parts.length >= 2) {
+          const key = parts[0].trim().toLowerCase();
+          const val = parts.slice(1).join(':').trim();
+          if (key.includes('color') || key.includes('colour')) result.color = val;
+          else if (key.includes('size')) result.size = val;
+        }
+      }
+      return result;
+    }
+
+    function extractASIN(str) {
+      if (!str) return '';
+      // 优先匹配以 B0 开头的 ASIN；否则回退到任意 10 位字母数字
+      const m1 = String(str).match(/\b(B0[A-Z0-9]{8})\b/);
+      if (m1) return m1[1];
+      const m2 = String(str).match(/\b([A-Z0-9]{10})\b/);
+      return m2 ? m2[1] : '';
+    }
+
+    // 文件选择（文件模式）
+    function handlePickedFiles(files) {
+      const excelFiles = Array.from(files || []).filter(f => /(\.xlsx|\.xls|\.csv)$/i.test(f.name));
+      if (!excelFiles.length) {
+        selectionList.textContent = '未选择Excel/CSV文件。';
+        btnSelectAll.disabled = true;
+        btnDeselectAll.disabled = true;
+        btnParseSelected.disabled = true;
+        return;
+      }
+      pickedFilesRaw = excelFiles.map((f) => ({
+        file: f,
+        name: f.name,
+        path: f.webkitRelativePath ? f.webkitRelativePath : f.name,
+        selected: true,
+      }));
+      renderSelectionList();
+    }
+
+    fileInputFiles.addEventListener('change', (e) => {
+      resetStateExceptSelection();
+      handlePickedFiles(e.target.files);
+    });
+    fileInputFolder.addEventListener('change', (e) => {
+      resetStateExceptSelection();
+      handlePickedFiles(e.target.files);
+    });
+
+    function renderSelectionList() {
+      selectionList.innerHTML = '';
+      const count = pickedFilesRaw.length;
+      const summary = document.createElement('div');
+      summary.className = 'summary';
+      summary.textContent = `共选择 ${count} 个Excel/CSV 文件，可勾选需要解析的文件。`;
+      selectionList.appendChild(summary);
+
+      const list = document.createElement('div');
+      pickedFilesRaw.forEach((item, idx) => {
+        const id = `chk_${idx}`;
+        const row = document.createElement('div');
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.id = id;
+        chk.checked = item.selected;
+        chk.addEventListener('change', () => {
+          item.selected = chk.checked;
+          updateParseButtonsState();
+        });
+        const label = document.createElement('label');
+        label.setAttribute('for', id);
+        label.textContent = ` ${item.path}`;
+        row.appendChild(chk);
+        row.appendChild(label);
+        list.appendChild(row);
+      });
+      selectionList.appendChild(list);
+      btnSelectAll.disabled = false;
+      btnDeselectAll.disabled = false;
+      updateParseButtonsState();
+    }
+
+    function updateParseButtonsState() {
+      const anySelected = pickedFilesRaw.some(x => x.selected);
+      btnParseSelected.disabled = !anySelected;
+    }
+
+    btnSelectAll.addEventListener('click', () => {
+      pickedFilesRaw.forEach(x => x.selected = true);
+      renderSelectionList();
+    });
+    btnDeselectAll.addEventListener('click', () => {
+      pickedFilesRaw.forEach(x => x.selected = false);
+      renderSelectionList();
+    });
+
+    btnParseSelected.addEventListener('click', async () => {
+      // 重置解析后状态
+      uploadedFiles = [];
+      filteredSheets = [];
+      mergedData = [];
+      processedData = [];
+      statsColor = [];
+      statsSize = [];
+      filterSummary.textContent = '';
+      filterPreview.innerHTML = '';
+      mergeSummary.textContent = '';
+      mergePreview.innerHTML = '';
+      processSummary.textContent = '';
+      processPreview.innerHTML = '';
+      aggregateSummary.textContent = '';
+      colorPreview.innerHTML = '';
+      sizePreview.innerHTML = '';
+      btnFilter.disabled = true;
+      btnDownloadFiltered.disabled = true;
+      btnMerge.disabled = true;
+      btnDownloadMergedXlsx.disabled = true;
+      btnProcess.disabled = true;
+      btnDownloadProcessedXlsx.disabled = true;
+      btnAggregate.disabled = true;
+      btnDownloadColorXlsx.disabled = true;
+      btnDownloadSizeXlsx.disabled = true;
+
+      const toParse = pickedFilesRaw.filter(x => x.selected);
+      if (!toParse.length) {
+        selectionList.textContent = '请勾选至少一个文件再解析。';
+        return;
+      }
+      const status = document.createElement('div');
+      status.className = 'summary';
+      status.textContent = '正在解析所选文件……';
+      selectionList.appendChild(status);
+
+      const tasks = toParse.map(async ({ file, name, path }) => {
+        try {
+          let wb;
+          if (/\.csv$/i.test(name)) {
+            const text = await file.text();
+            wb = XLSX.read(text, { type: 'string' });
+          } else {
+            const buf = await file.arrayBuffer();
+            wb = XLSX.read(buf, { type: 'array' });
+          }
+          uploadedFiles.push({ name, path, workbook: wb });
+        } catch (err) {
+          console.error('解析失败:', name, err);
+        }
+      });
+      await Promise.all(tasks);
+
+      status.textContent = '';
+      if (!uploadedFiles.length) {
+        const err = document.createElement('div');
+        err.className = 'summary';
+        err.textContent = '解析失败或没有可用的Excel/CSV文件。';
+        selectionList.appendChild(err);
+        return;
+      }
+      const details = uploadedFiles.map(u => `${u.path}（工作表：${u.workbook.SheetNames.length}）`).join('； ');
+      const ok = document.createElement('div');
+      ok.className = 'summary';
+      ok.textContent = `已解析 ${uploadedFiles.length} 个文件：${details}`;
+      selectionList.appendChild(ok);
+      btnFilter.disabled = false;
+    });
+
+    function resetStateExceptSelection() {
+      // 不清空 pickedFilesRaw，以便重新选择另一个输入源时覆盖
+      uploadedFiles = [];
+      filteredSheets = [];
+      mergedData = [];
+      processedData = [];
+      statsColor = [];
+      statsSize = [];
+      filterSummary.textContent = '';
+      filterPreview.innerHTML = '';
+      mergeSummary.textContent = '';
+      mergePreview.innerHTML = '';
+      processSummary.textContent = '';
+      processPreview.innerHTML = '';
+      aggregateSummary.textContent = '';
+      colorPreview.innerHTML = '';
+      sizePreview.innerHTML = '';
+      btnFilter.disabled = true;
+      btnDownloadFiltered.disabled = true;
+      btnMerge.disabled = true;
+      btnDownloadMergedXlsx.disabled = true;
+      btnProcess.disabled = true;
+      btnDownloadProcessedXlsx.disabled = true;
+      btnAggregate.disabled = true;
+      btnDownloadColorXlsx.disabled = true;
+      btnDownloadSizeXlsx.disabled = true;
+    }
+
+    btnClear.addEventListener('click', () => {
+      fileInputFiles.value = '';
+      fileInputFolder.value = '';
+      pickedFilesRaw = [];
+      resetStateExceptSelection();
+      selectionList.textContent = '';
+      btnSelectAll.disabled = true;
+      btnDeselectAll.disabled = true;
+      btnParseSelected.disabled = true;
+    });
+
+    // ① 筛选含“变体对比”的子表
+    btnFilter.addEventListener('click', () => {
+      if (!uploadedFiles.length) {
+        filterSummary.textContent = '请先上传文件再进行筛选。';
+        return;
+      }
+      filteredSheets = [];
+      const kwInput = sheetKeyword.value.trim();
+      const keyword = kwInput || '变体对比';
+      uploadedFiles.forEach(({ name, workbook }) => {
+        const matched = (workbook.SheetNames || []).filter(sn => String(sn).includes(keyword));
+        matched.forEach(sn => {
+          const ws = workbook.Sheets[sn];
+          if (ws) {
+            filteredSheets.push({ sourceFile: name, sheetName: sn, worksheet: ws });
+          }
+        });
+      });
+
+      if (!filteredSheets.length) {
+        filterSummary.textContent = '未在任何文件中找到包含“变体对比”的子表。';
+        filterPreview.innerHTML = '';
+        btnDownloadFiltered.disabled = true;
+        btnMerge.disabled = true;
+        return;
+      }
+
+      const total = filteredSheets.length;
+      const perFile = {};
+      filteredSheets.forEach(fs => {
+        perFile[fs.sourceFile] = (perFile[fs.sourceFile] || 0) + 1;
+      });
+      const breakdown = Object.entries(perFile).map(([fn, cnt]) => `${fn}: ${cnt}`).join('； ');
+      filterSummary.textContent = `共筛选到 ${total} 个子表。分布：${breakdown}`;
+
+      // 预览第一张匹配子表的前若干行
+      const first = filteredSheets[0].worksheet;
+      const arr = XLSX.utils.sheet_to_json(first, { header: 1, blankrows: false, defval: '' });
+      if (arr.length) {
+        renderTable(filterPreview, arr, 30);
+      } else {
+        filterPreview.textContent = '子表为空。';
+      }
+
+      btnDownloadFiltered.disabled = false;
+      btnMerge.disabled = false;
+    });
+
+    // 下载筛选结果工作簿
+    btnDownloadFiltered.addEventListener('click', () => {
+      if (!filteredSheets.length) return;
+      const wbNew = XLSX.utils.book_new();
+      const names = new Set();
+      filteredSheets.forEach(({ sourceFile, sheetName, worksheet }) => {
+        const base = `${sourceFile} - ${sheetName}`.slice(0, 28);
+        const unique = uniqueSheetName(base, names);
+        XLSX.utils.book_append_sheet(wbNew, worksheet, unique);
+      });
+      XLSX.writeFile(wbNew, '筛选结果_变体对比.xlsx');
+    });
+
+    // ② 合并子表（指定表头行与子表个数）
+    btnMerge.addEventListener('click', () => {
+      if (!filteredSheets.length) {
+        mergeSummary.textContent = '请先完成筛选步骤。';
+        return;
+      }
+      const headerRowIdxInput = parseInt(headerRowInput.value, 10);
+      const subCount = parseInt(subtableCountInput.value, 10);
+      if (isNaN(headerRowIdxInput) || headerRowIdxInput < 1) {
+        mergeSummary.textContent = '表头所在行必须为 ≥ 1 的数字。';
+        return;
+      }
+      if (isNaN(subCount) || subCount < 1) {
+        mergeSummary.textContent = '子表个数必须为 ≥ 1 的数字。';
+        return;
+      }
+
+      const headerRowIdx = headerRowIdxInput - 1; // 转为 0-based
+      mergedData = [];
+      let sheetsUsed = 0;
+      let rowsMerged = 0;
+
+      filteredSheets.forEach(({ sourceFile, sheetName, worksheet }) => {
+        const arr = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true, defval: '' });
+        if (!arr.length || headerRowIdx >= arr.length) return;
+        const headers = (arr[headerRowIdx] || []).map(h => String(h || '').trim());
+        const colCount = headers.length;
+        let i = headerRowIdx + 1;
+        let subMerged = 0;
+        while (i < arr.length && subMerged < subCount) {
+          // 跳过连续空行，找到子表开始
+          while (i < arr.length && isRowEmpty(arr[i])) i++;
+          if (i >= arr.length) break;
+          const block = [];
+          // 收集到下一个空行前的连续数据行为一个子表
+          while (i < arr.length && !isRowEmpty(arr[i])) {
+            block.push(arr[i]);
+            i++;
+          }
+          if (block.length) {
+            // 行对象化
+            block.forEach(row => {
+              const obj = {};
+              for (let c = 0; c < colCount; c++) {
+                const key = headers[c] || `列${c+1}`;
+                obj[key] = row[c] == null ? '' : row[c];
+              }
+              // 附加来源信息，便于追溯
+              obj['__来源文件'] = sourceFile;
+              obj['__来源子表'] = sheetName;
+              mergedData.push(obj);
+              rowsMerged++;
+            });
+            subMerged++;
+          }
+          // 此处 i 指向空行或末尾，循环会继续
+        }
+        if (subMerged > 0) sheetsUsed++;
+      });
+
+      if (!mergedData.length) {
+        mergeSummary.textContent = '未提取到可合并的行，请检查表头行与子表个数设置。';
+        mergePreview.innerHTML = '';
+        btnDownloadMergedXlsx.disabled = true;
+        btnProcess.disabled = true;
+        btnDownloadProcessedXlsx.disabled = true;
+        return;
+      }
+
+      // 预览（限制50行）
+      const headersAll = Object.keys(mergedData[0]);
+      const data2D = [headersAll].concat(mergedData.slice(0, 50).map(obj => headersAll.map(h => obj[h])));
+      renderTable(mergePreview, data2D, 50);
+
+      mergeSummary.textContent = `合并完成：共 ${rowsMerged} 行，涉及 ${sheetsUsed} 个子表。`;
+      btnDownloadMergedXlsx.disabled = false;
+      // 合并完成后允许进行拆分处理
+      btnProcess.disabled = false;
+    });
+
+    // 下载合并结果（xlsx）
+    btnDownloadMergedXlsx.addEventListener('click', () => {
+      if (!mergedData.length) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(mergedData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Merged');
+      XLSX.writeFile(wb, '合并结果.xlsx');
+    });
+
+
+
+    // ③ 数据拆分处理
+    btnProcess.addEventListener('click', () => {
+      if (!mergedData.length) {
+        processSummary.textContent = '请先完成合并步骤。';
+        return;
+      }
+      processedData = [];
+
+      const baseHeaders = Object.keys(mergedData[0] || {});
+      const newHeaders = ['颜色', '尺码', '父ASIN', '产品详情链接'];
+      const headerSet = new Set(baseHeaders);
+      newHeaders.forEach(h => headerSet.add(h));
+      const finalHeaders = Array.from(headerSet);
+
+      let rowsProcessed = 0;
+      mergedData.forEach(row => {
+        const skuStr = row['SKU'] == null ? '' : String(row['SKU']);
+        const { color, size } = parseSku(skuStr);
+        // 父ASIN从 __来源子表 提取；产品详情链接使用行内 ASIN
+        const parentAsin = extractASIN(row['__来源子表']);
+        const childAsin = String(row['ASIN'] || row['asin'] || '').trim();
+        const link = childAsin ? `https://www.amazon.com/dp/${childAsin}` : '';
+        const out = { ...row };
+        out['颜色'] = color;
+        out['尺码'] = size;
+        out['父ASIN'] = parentAsin;
+        out['产品详情链接'] = link;
+        processedData.push(out);
+        rowsProcessed++;
+      });
+
+      // 预览前 50 行
+      const data2D = [finalHeaders].concat(
+        processedData.slice(0, 50).map(obj => finalHeaders.map(h => obj[h]))
+      );
+      renderTable(processPreview, data2D, 50);
+      processSummary.textContent = `拆分处理完成：共 ${rowsProcessed} 行。`;
+      btnDownloadProcessedXlsx.disabled = false;
+      // 允许进行统计
+      btnAggregate.disabled = false;
+    });
+
+    // 下载拆分结果（xlsx）
+    btnDownloadProcessedXlsx.addEventListener('click', () => {
+      if (!processedData.length) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(processedData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Processed');
+      XLSX.writeFile(wb, '拆分处理结果.xlsx');
+    });
+
+
+
+    function getSalesHeaders(rows) {
+      if (!rows || !rows.length) return [];
+      const headers = Object.keys(rows[0]);
+      return headers.filter(h => /^202/.test(String(h)));
+    }
+
+    function toNumber(val) {
+      if (val == null) return 0;
+      const s = String(val).replace(/,/g, '').trim();
+      const n = Number(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function rowSalesTotal(row, saleHeaders) {
+      let sum = 0;
+      for (const h of saleHeaders) sum += toNumber(row[h]);
+      return sum;
+    }
+
+    function canonicalKey(val) {
+      return String(val || '').trim().toLowerCase();
+    }
+
+    // ④ 数据统计
+    btnAggregate.addEventListener('click', () => {
+      if (!processedData.length) {
+        aggregateSummary.textContent = '请先完成③拆分处理。';
+        return;
+      }
+      const saleHeaders = getSalesHeaders(processedData);
+      if (!saleHeaders.length) {
+        aggregateSummary.textContent = '未找到以“202”开头的销量列，请检查数据。';
+        return;
+      }
+
+      // 先按唯一 ASIN 汇总总销量，同时记录其父ASIN、颜色、尺码、链接等代表信息
+      const asinInfo = new Map(); // asin -> { asin, total, parent, colorKey, colorDisplay, sizeKey, sizeDisplay, link }
+      for (const row of processedData) {
+        const asinRaw = String(row['ASIN'] || row['asin'] || '').trim();
+        if (!asinRaw) continue; // 无 ASIN 的行不参与“按唯一 ASIN 汇总”
+        const parent = String(row['父ASIN'] || '').trim();
+        const colorDisplay = String(row['颜色'] || '').trim();
+        const sizeDisplay = String(row['尺码'] || '').trim();
+        const colorKey = canonicalKey(colorDisplay);
+        const sizeKey = canonicalKey(sizeDisplay);
+        const link = row['产品详情链接'] || `https://www.amazon.com/dp/${asinRaw}`;
+        const rowTotal = rowSalesTotal(row, saleHeaders);
+
+        const prev = asinInfo.get(asinRaw);
+        if (!prev) {
+          asinInfo.set(asinRaw, {
+            asin: asinRaw,
+            total: rowTotal,
+            parent,
+            colorKey,
+            colorDisplay,
+            sizeKey,
+            sizeDisplay,
+            link,
+            _bestColorRowTotal: rowTotal,
+            _bestSizeRowTotal: rowTotal,
+          });
+        } else {
+          prev.total += rowTotal;
+          // 当同一 ASIN 在多行出现时，选用“行销量更大”的颜色/尺码作为代表显示
+          if (rowTotal > (prev._bestColorRowTotal || -1)) {
+            prev.colorKey = colorKey;
+            prev.colorDisplay = colorDisplay;
+            prev._bestColorRowTotal = rowTotal;
+          }
+          if (rowTotal > (prev._bestSizeRowTotal || -1)) {
+            prev.sizeKey = sizeKey;
+            prev.sizeDisplay = sizeDisplay;
+            prev._bestSizeRowTotal = rowTotal;
+          }
+        }
+      }
+
+      // 再按 父ASIN×颜色/尺码 分组，使用“唯一 ASIN 总销量”进行汇总
+      const colorMap = new Map(); // key: parent|colorKey -> { 父ASIN, 颜色, 总销量, 代表ASIN, 产品详情链接 }
+      const sizeMap = new Map();  // key: parent|sizeKey  -> { 父ASIN, 尺码, 总销量, 代表ASIN, 产品详情链接 }
+
+      for (const info of asinInfo.values()) {
+        const { asin, total, parent, colorKey, colorDisplay, sizeKey, sizeDisplay, link } = info;
+        if (parent && colorKey) {
+          const k = `${parent}|${colorKey}`;
+          const curr = colorMap.get(k) || { 父ASIN: parent, 颜色: colorDisplay, 总销量: 0, 代表ASIN: asin, 产品详情链接: link, _repTotal: -1 };
+          curr.总销量 += total;
+          // 代表ASIN采用分组内“ASIN总销量”更大的那条
+          if (total > curr._repTotal) {
+            curr._repTotal = total;
+            curr.代表ASIN = asin;
+            curr.产品详情链接 = link;
+            curr.颜色 = colorDisplay; // 颜色展示与代表ASIN保持一致
+          }
+          colorMap.set(k, curr);
+        }
+        if (parent && sizeKey) {
+          const k2 = `${parent}|${sizeKey}`;
+          const curr2 = sizeMap.get(k2) || { 父ASIN: parent, 尺码: sizeDisplay, 总销量: 0, 代表ASIN: asin, 产品详情链接: link, _repTotal: -1 };
+          curr2.总销量 += total;
+          if (total > curr2._repTotal) {
+            curr2._repTotal = total;
+            curr2.代表ASIN = asin;
+            curr2.产品详情链接 = link;
+            curr2.尺码 = sizeDisplay; // 尺码展示与代表ASIN保持一致
+          }
+          sizeMap.set(k2, curr2);
+        }
+      }
+
+      // 输出结果数组并排序：先按父ASIN，后按总销量降序
+      statsColor = Array.from(colorMap.values()).map(o => { delete o._repTotal; return o; }).sort((a, b) => a.父ASIN.localeCompare(b.父ASIN) || b.总销量 - a.总销量);
+      statsSize = Array.from(sizeMap.values()).map(o => { delete o._repTotal; return o; }).sort((a, b) => a.父ASIN.localeCompare(b.父ASIN) || b.总销量 - a.总销量);
+
+      // 预览
+      const colorHeaders = ['父ASIN', '颜色', '总销量', '代表ASIN', '产品详情链接'];
+      const color2D = [colorHeaders].concat(statsColor.slice(0, 50).map(o => colorHeaders.map(h => o[h])));
+      renderTable(colorPreview, color2D, 50);
+
+      const sizeHeaders = ['父ASIN', '尺码', '总销量', '代表ASIN', '产品详情链接'];
+      const size2D = [sizeHeaders].concat(statsSize.slice(0, 50).map(o => sizeHeaders.map(h => o[h])));
+      renderTable(sizePreview, size2D, 50);
+
+      aggregateSummary.textContent = `统计完成：颜色分组 ${statsColor.length} 条；尺码分组 ${statsSize.length} 条。`;
+      btnDownloadColorXlsx.disabled = false;
+      btnDownloadSizeXlsx.disabled = false;
+      // 若统计完成，允许第⑥步渲染按钮
+      btnRenderColorGallery.disabled = !statsColor.length;
+      btnRenderSizeGallery.disabled = !statsSize.length;
+    });
+
+    // 下载统计结果（xlsx/csv）
+    btnDownloadColorXlsx.addEventListener('click', () => {
+      if (!statsColor.length) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(statsColor);
+      XLSX.utils.book_append_sheet(wb, ws, 'ColorStats');
+      XLSX.writeFile(wb, '颜色统计.xlsx');
+    });
+
+    btnDownloadSizeXlsx.addEventListener('click', () => {
+      if (!statsSize.length) return;
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(statsSize);
+      XLSX.utils.book_append_sheet(wb, ws, 'SizeStats');
+      XLSX.writeFile(wb, '尺码统计.xlsx');
+    });
+
+  </script>
+</body>
+</html>
