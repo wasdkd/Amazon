@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>可视化存档库（uploads2）</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card:#fff;
+      --border:#e5e7eb;
+      --fg:#111827;
+      --muted:#6b7280;
+      --primary:#3b82f6;
+      --accent:#ef4444;
+      --ok:#10b981;
+      /* 过滤区与控件配色 */
+      --filter-bg-start:#eef2ff;        /* 淡蓝起始色 */
+      --filter-bg-end:#f1f5f9;          /* 过渡到灰白 */
+      --filter-border:#c7d2fe;          /* 过滤区边框 */
+      --ctrl-bg:#f0f7ff;                /* 输入/下拉背景 */
+      --ctrl-border:#c7d2fe;            /* 输入/下拉边框 */
+      --ctrl-focus-border:#60a5fa;      /* 焦点边框 */
+      --ctrl-focus-ring:rgba(59,130,246,0.18); /* 焦点环 */
+      --btn-primary:#2563eb;            /* 搜索按钮主色 */
+      --btn-primary-hover:#1d4ed8;
+      --btn-reset-bg:#fff1f2;           /* 重置按钮背景 */
+      --btn-reset-border:#fecdd3;
+      --btn-reset-text:#be123c;
+      --btn-reset-hover:#ffe4e6;
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans SC", sans-serif; background: var(--bg); color: var(--fg); padding: 16px; }
+    h1 { margin: 0 0 12px; font-size: 20px; color: #0ea5e9; }
+    .section { background: var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; margin-top:12px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    input[type="text"] { padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; }
+    button { padding:8px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; }
+    button.primary { border-color: var(--primary); background: #dbeafe; color:#1e40af; }
+    .summary { color: var(--muted); font-size: 13px; }
+    /* 文字卡片视图不再展示 */
+    .grid { display:none; }
+    .card { display:none; }
+    .card-title { display:none; }
+    .block { border:1px dashed #93c5fd; border-radius:8px; padding:8px; margin-top:6px; }
+    .block.sales { border-color:#3b82f6; }
+    .block.traffic { border-color:#ef4444; }
+    .kvs { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
+    .pagination { display:flex; gap:8px; align-items:center; margin-top:10px; }
+    /* 图片墙样式（对齐快速页面：一行10张、完整展示图片） */
+    .gallery-group { border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; padding: 12px; margin-top: 14px; background: var(--card); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .gallery-title { font-weight: 600; margin-bottom: 8px; color: #111827; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(8, minmax(80px, 1fr)); gap: 8px; align-items: start; }
+    .tile { border:1px solid var(--border); border-radius:8px; padding:6px; background:#fff; }
+    .tile img { width:100%; height:120px; object-fit:contain; background:#f9fafb; border-radius:6px; border:1px solid #e5e7eb; }
+    .caption { font-size:12px; color:#374151; margin-top:4px; }
+    /* 顶部粘性头部与查找条 */
+    .sticky-header { position: sticky; top: 0; z-index: 20; background: var(--bg); padding-top: 4px; padding-bottom: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .sticky-search {
+      position: sticky;
+      top: var(--sticky-header-height, 74px);
+      z-index: 15;
+      background: linear-gradient(180deg, var(--filter-bg-start), var(--filter-bg-end));
+      border: 1px solid var(--filter-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 6px 16px rgba(59,130,246,0.08);
+    }
+    /* 过滤区控件：柔和浅色背景与焦点状态 */
+    #searchRow input[type="text"],
+    #searchRow select {
+      padding:6px 10px;
+      background: var(--ctrl-bg);
+      border:1px solid var(--ctrl-border);
+      border-radius:8px;
+      color: var(--fg);
+      box-shadow: inset 0 1px 2px rgba(59,130,246,0.06);
+      transition: box-shadow .15s ease, border-color .15s ease, background-color .15s ease;
+    }
+    #searchRow input[type="text"]:focus,
+    #searchRow select:focus {
+      outline: none;
+      border-color: var(--ctrl-focus-border);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px var(--ctrl-focus-ring);
+    }
+    /* 搜索与重置按钮的定制色（仅用于筛选区） */
+    #searchRow #btnSearch {
+      border:1px solid var(--btn-primary);
+      background: var(--btn-primary);
+      color: #fff;
+      border-radius:10px;
+      transition: background-color .15s ease, transform .05s ease;
+    }
+    #searchRow #btnSearch:hover { background: var(--btn-primary-hover); }
+    #searchRow #btnSearch:active { transform: translateY(1px); }
+    #searchRow #btnReset {
+      border:1px solid var(--btn-reset-border);
+      background: var(--btn-reset-bg);
+      color: var(--btn-reset-text);
+      border-radius:10px;
+      transition: background-color .15s ease, transform .05s ease;
+    }
+    #searchRow #btnReset:hover { background: var(--btn-reset-hover); }
+    #searchRow #btnReset:active { transform: translateY(1px); }
+    .stats-bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="stickyHeader" class="sticky-header">
+    <h1>热卖色可视化存档库</h1>
+    <div id="headerCompact" class="row stats-bar" style="margin-bottom:6px;">
+      <button onclick="location.href='快速页面.html'">前往快速处理</button>
+      <span id="statProducts">产品数量（父ASIN）：-</span>
+    </div>
+<!--    <div id="statsBar" class="summary stats-bar">-->
+<!--      <span id="statLatestDate">最新上传日期：-</span>-->
+<!--    </div>-->
+  </div>
+  <div id="searchRow" class="row sticky-search" style="margin-top:8px;">
+    <input id="qGlobal" type="text" placeholder="全局查找（父ASIN/ASIN/面料/颜色/尺码）" style="width:320px;" />
+    <input id="qParent" type="text" placeholder="父ASIN查找" />
+    <input id="qFabric" type="text" placeholder="面料查找" />
+    <label for="qCategory">品类：</label>
+    <select id="qCategory"><option value="">全部品类</option></select>
+    <button id="btnSearch">查找</button>
+    <button id="btnReset">重置</button>
+  </div>
+  <div class="section">
+    <div class="row">
+      <label for="libToken">GitHub Token（可选，防止限流）：</label>
+      <input id="libToken" type="text" placeholder="粘贴个人访问令牌" style="width:280px;" />
+      <button id="btnLoad" class="primary">加载数据</button>
+      <button id="btnExportXlsx" disabled>下载表格数据（xlsx）</button>
+      <span id="loadStatus" class="summary"></span>
+    </div>
+    <!-- 已将筛选区移至粘性头部，确保始终固定在顶部 -->
+    <div class="row pagination">
+      <button id="btnPrev">上一页</button>
+      <span id="pageInfo" class="summary"></span>
+      <button id="btnNext">下一页</button>
+    </div>
+  </div>
+
+<!--  <div class="section">-->
+<!--    <div id="cards" class="grid"></div>-->
+<!--  </div>-->
+
+  <div class="section">
+    <h2>热卖色图片墙可视化</h2>
+<!--    <div class="summary">每个父ASIN一个大框，内部包含销量与流量词的热卖色，以及热卖尺码的结论。</div>-->
+    <div id="libParentGallery"></div>
+  </div>
+
+  <script>
+    // 动态计算标题区高度，避免筛选区被遮挡
+    function refreshStickyOffsets(){
+      const header = document.getElementById('stickyHeader');
+      if (!header) return;
+      const h = header.offsetHeight;
+      document.documentElement.style.setProperty('--sticky-header-height', h + 'px');
+    }
+    window.addEventListener('load', refreshStickyOffsets);
+    window.addEventListener('resize', refreshStickyOffsets);
+    const libToken = document.getElementById('libToken');
+    const btnLoad = document.getElementById('btnLoad');
+    const btnExportXlsx = document.getElementById('btnExportXlsx');
+    const loadStatus = document.getElementById('loadStatus');
+    const qGlobal = document.getElementById('qGlobal');
+    const qParent = document.getElementById('qParent');
+    const qFabric = document.getElementById('qFabric');
+    const qCategory = document.getElementById('qCategory');
+    const btnSearch = document.getElementById('btnSearch');
+    const btnReset = document.getElementById('btnReset');
+    const cards = document.getElementById('cards'); // 不再使用
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const pageInfo = document.getElementById('pageInfo');
+    // 顶部统计元素
+    const statProducts = document.getElementById('statProducts');
+    const statLatestDate = document.getElementById('statLatestDate');
+    // 图墙容器（移入脚本作用域，修复未定义问题）
+    const libSalesColorGallery = document.getElementById('libSalesColorGallery');
+    const libSalesSizeGallery = document.getElementById('libSalesSizeGallery');
+    const libTrafficColorGallery = document.getElementById('libTrafficColorGallery');
+    const libTrafficSizeGallery = document.getElementById('libTrafficSizeGallery');
+    const libParentGallery = document.getElementById('libParentGallery');
+
+    let dataset = []; // 保留结构但不渲染
+    let filtered = [];
+    let libStats = { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
+    let filteredStats = { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
+    let page = 1;
+    const pageSize = 10;
+
+    (function initToken(){ try { const saved = localStorage.getItem('gh_token'); if (saved) libToken.value = saved; } catch(e){} })();
+
+    // 计算并刷新顶部统计信息
+function updateHeaderStatsFromRows(rows){
+  try {
+    if (!rows || !rows.length){
+      statProducts && (statProducts.textContent = '产品数量（父ASIN）：0');
+      statLatestDate && (statLatestDate.textContent = '最新上传日期：-');
+      return;
+    }
+    const headers = (rows[0]||[]).map(h=>String(h||'').trim());
+    const idxParent = headers.indexOf('父ASIN');
+    const idxDate = headers.indexOf('上传日期');
+    const parents = new Set();
+    const latestOfParent = new Map();
+    const isExcelSerial = (s) => { if (s==null) return false; const n = Number(String(s).trim()); return isFinite(n) && n>20000 && n<60000; };
+    const excelSerialToDate = (n) => { const base = new Date(1899, 11, 30); const ms = n * 86400000; return new Date(base.getTime() + ms); };
+    const toLocalDateTimeStr = (d) => { const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return `${y}-${m}-${dd} ${hh}:${mm}`; };
+    const normalizeDate = (s) => {
+      const raw = String(s||'').trim();
+      if (!raw) return { ts: null, str: '' };
+      if (isExcelSerial(raw)) { const d = excelSerialToDate(Number(raw)); return { ts: d.getTime(), str: toLocalDateTimeStr(d) }; }
+      const t = Date.parse(raw);
+      if (!isNaN(t)) { const d = new Date(t); return { ts: d.getTime(), str: toLocalDateTimeStr(d) }; }
+      // 兼容中文日期：YYYY年MM月DD日 可选 HH:mm/HH:mm:ss
+      const m = raw.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})(?:\D+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (m) { const y=Number(m[1]); const mo=Number(m[2])-1; const d0=Number(m[3]); const hh=Number(m[4]||0); const mm=Number(m[5]||0); const ss=Number(m[6]||0); const d=new Date(y,mo,d0,hh,mm,ss); return { ts: d.getTime(), str: toLocalDateTimeStr(d) }; }
+      return { ts: null, str: raw };
+    };
+    for (let i=1;i<rows.length;i++){
+      const r = rows[i]||[];
+      const p = String(r[idxParent]||'').trim(); if (!p) continue; parents.add(p);
+      const d = normalizeDate(r[idxDate]); if (!d.str) continue;
+      const prev = latestOfParent.get(p);
+      if (!prev || (prev.ts!=null && d.ts!=null ? d.ts > prev.ts : String(d.str) > String(prev.str))) {
+        latestOfParent.set(p, d);
+      }
+    }
+    let latestGlobal = null;
+    latestOfParent.forEach(v=>{ if (latestGlobal===null) latestGlobal=v; else { if (latestGlobal.ts!=null && v.ts!=null ? v.ts>latestGlobal.ts : String(v.str)>String(latestGlobal.str)) latestGlobal=v; } });
+    const latestStr = latestGlobal ? (latestGlobal.str || '-') : '-';
+    statProducts && (statProducts.textContent = `产品数量（父ASIN）：${parents.size}`);
+    statLatestDate && (statLatestDate.textContent = `最新上传日期：${latestStr}`);
+    // 统计刷新可能改变标题高度，重算粘性偏移
+    refreshStickyOffsets();
+  } catch(err) {
+    statLatestDate && (statLatestDate.textContent = `统计异常：${err.message}`);
+  }
+}
+
+    // 导出当前库的四张表到 xlsx
+    function exportLibXlsx(){
+      try {
+        if (!libStats || (!libStats.salesColor?.length && !libStats.salesSize?.length && !libStats.trafficColor?.length && !libStats.trafficSize?.length)){
+          alert('暂无可导出的数据，请先加载。');
+          return;
+        }
+        const wb = XLSX.utils.book_new();
+        const add = (name, arr) => { const ws = XLSX.utils.json_to_sheet(arr || []); XLSX.utils.book_append_sheet(wb, ws, name); };
+        add('销量-颜色', libStats.salesColor);
+        add('销量-尺码', libStats.salesSize);
+        add('流量-颜色', libStats.trafficColor);
+        add('流量-尺码', libStats.trafficSize);
+        const ts = new Date();
+        const fname = `visual_library_${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')}_${String(ts.getHours()).padStart(2,'0')}${String(ts.getMinutes()).padStart(2,'0')}.xlsx`;
+        XLSX.writeFile(wb, fname);
+      } catch(err){
+        alert('导出失败：' + err.message);
+      }
+    }
+    btnExportXlsx.addEventListener('click', exportLibXlsx);
+
+    async function fetchFixedCsv(token){
+      // 优先使用 GitHub API（CORS 友好），避免 raw.githubusercontent.com 导致的跨域错误
+      try {
+        const url = 'https://api.github.com/repos/wasdkd/Amazon/contents/uploads2/quick_results.csv';
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const json = await resp.json();
+          const b64 = json.content || '';
+          const bin = atob(b64);
+          const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+          return new TextDecoder('utf-8').decode(bytes);
+        }
+      } catch(e) {}
+      if (token) {
+        try {
+          const url = 'https://api.github.com/repos/wasdkd/Amazon/contents/uploads2/quick_results.csv';
+          const headers = { 'Authorization': `Bearer ${token}` };
+          const resp = await fetch(url, { headers });
+          if (resp.status === 404) return '';
+          if (!resp.ok) throw new Error(`读取库CSV失败：HTTP ${resp.status}`);
+          const json = await resp.json();
+          const b64 = json.content || '';
+          const bin = atob(b64);
+          const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+          return new TextDecoder('utf-8').decode(bytes);
+        } catch(e) {}
+      }
+      // 回退到本地文件
+      try {
+        const localResp = await fetch('uploads2/quick_results.csv');
+        if (localResp.ok) { return await localResp.text(); }
+      } catch(e) {}
+      return '';
+    }
+    function csvRows(text){ try { const wb = XLSX.read(text, { type:'string' }); const ws = wb.Sheets[wb.SheetNames[0]]; return XLSX.utils.sheet_to_json(ws, { header:1, defval:'' }); } catch(e){ return text.split(/\r?\n/).filter(Boolean).map(l=>l.split(',')); } }
+
+    function numberize(s){ const n = parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
+    function aggregateFromRows(rows){
+      if (!rows.length) return new Map();
+      const headers = (rows[0]||[]).map(h=>String(h||'').trim());
+      const idxDate = headers.indexOf('上传日期');
+      const idxParent = headers.indexOf('父ASIN');
+      // 兼容导出的表头：类型 / 类型(销量/流量)，维度 / 维度(颜色/尺码)
+      const idxType = headers.findIndex(h => /^类型/.test(h));
+      const idxDim = headers.findIndex(h => /^维度/.test(h));
+      const idxTag = headers.indexOf('标签');
+      const idxSales = headers.indexOf('销量');
+      const idxTraffic = headers.indexOf('流量');
+      const idxFabric = headers.indexOf('面料');
+      const map = new Map();
+      for (let i=1;i<rows.length;i++){
+        const r = rows[i];
+        const parent = String(r[idxParent]||'').trim(); if (!parent) continue;
+        const type = String(r[idxType]||'').trim();
+        const dim = String(r[idxDim]||'').trim();
+        const tag = String(r[idxTag]||'').trim();
+        const sales = numberize(r[idxSales]||'');
+        const traffic = numberize(r[idxTraffic]||'');
+        const fabric = String(r[idxFabric]||'').trim();
+        const date = String(r[idxDate]||'').trim();
+        const obj = map.get(parent) || { parent, fabric:'', date:'' , salesColor: new Map(), salesSize: new Map(), trafficColor: new Map(), trafficSize: new Map() };
+        // 保存最近的非空面料与日期
+        if (fabric) obj.fabric = fabric;
+        if (date) obj.date = date;
+        if (type === '销量' && dim === '颜色') obj.salesColor.set(tag, (obj.salesColor.get(tag)||0) + sales);
+        if (type === '销量' && dim === '尺码') obj.salesSize.set(tag, (obj.salesSize.get(tag)||0) + sales);
+        if (type === '流量' && dim === '颜色') obj.trafficColor.set(tag, (obj.trafficColor.get(tag)||0) + traffic);
+        if (type === '流量' && dim === '尺码') obj.trafficSize.set(tag, (obj.trafficSize.get(tag)||0) + traffic);
+        map.set(parent, obj);
+      }
+      return map;
+    }
+    function topKV(map){ let topKey='', topVal=0; map.forEach((v,k)=>{ if(v>topVal){ topVal=v; topKey=k; } }); return { key: topKey, val: topVal } }
+    function buildDataset(groupMap){
+      const arr = [];
+      groupMap.forEach(obj => {
+        const c1 = topKV(obj.salesColor), s1 = topKV(obj.salesSize);
+        const c2 = topKV(obj.trafficColor), s2 = topKV(obj.trafficSize);
+        arr.push({ parent: obj.parent, fabric: obj.fabric, date: obj.date, salesTopColor: c1.key, salesTopSize: s1.key, trafficTopColor: c2.key, trafficTopSize: s2.key });
+      });
+      return arr;
+    }
+    function renderCards(list){ /* 已移除卡片展示 */ }
+    function applyFilters(){
+      const g = (qGlobal.value||'').trim().toLowerCase();
+      const p = (qParent.value||'').trim().toLowerCase();
+      const f = (qFabric.value||'').trim().toLowerCase();
+      const c = (qCategory.value||'').trim();
+      function matchItem(o){
+        const hay = [o['父ASIN'], o['面料'], o['品类']||'', o['颜色']||o['尺码']||'', o['产品详情链接']||''].map(x=>String(x||'').toLowerCase()).join('|');
+        if (g && !hay.includes(g)) return false;
+        if (p && !String(o['父ASIN']||'').toLowerCase().includes(p)) return false;
+        if (f && !String(o['面料']||'').toLowerCase().includes(f)) return false;
+        if (c && String(o['品类']||'') !== c) return false;
+        return true;
+      }
+      filteredStats = {
+        salesColor: libStats.salesColor.filter(matchItem),
+        salesSize: libStats.salesSize.filter(matchItem),
+        trafficColor: libStats.trafficColor.filter(matchItem),
+        trafficSize: libStats.trafficSize.filter(matchItem),
+      };
+      renderCombinedByParent(filteredStats, libParentGallery, libStats.fabricMap, libStats.categoryMap);
+    }
+
+    // ===== 图片墙渲染（复用快速页思路） =====
+    function groupByParent(arr){ const map=new Map(); for(const o of arr){ const p=String(o['父ASIN']||'').trim(); if(!p) continue; if(!map.has(p)) map.set(p, []); map.get(p).push(o); } return map; }
+    function makeTile(item, type) {
+      const imgSrc = String(item['商品主图'] || '').trim();
+      const link = String(item['产品详情链接'] || '').trim();
+      const label = type === 'color' ? String(item['颜色'] || '').trim() : String(item['尺码'] || '').trim();
+      const sales = String(item['总销量'] || '').trim();
+      const traffic = String(item['总自然搜索词'] || '').trim();
+      const ratio = String(item['销量占比%'] || item['自然搜索词占比%'] || '').trim();
+      // 面料不再在每张图片的说明中展示，仅在父ASIN标题中展示
+      const tile = document.createElement('div'); tile.className='tile';
+      if (imgSrc) {
+        const a=document.createElement('a'); a.href=link||'#'; a.target='_blank';
+        const img=document.createElement('img'); img.src=imgSrc; img.alt=label||'商品图片'; a.appendChild(img); tile.appendChild(a);
+      }
+      const caption=document.createElement('div'); caption.className='caption';
+      const baseLabel = sales ? `总销量：${sales}` : `总流量词：${traffic || '0'}`;
+      const metricLabel = ratio ? `${baseLabel} ｜ 占比：${ratio}%` : baseLabel;
+      caption.textContent = `${type==='color'?'颜色':'尺码'}：${label||'-'} ｜ ${metricLabel}`;
+      tile.appendChild(caption);
+      return tile;
+    }
+    function computeSizeRanking(items){
+      const totals = new Map();
+      (items||[]).forEach(it => {
+        const size = String(it['尺码']||'').trim();
+        const rawSales = it['总销量'];
+        const rawTraffic = it['总自然搜索词'];
+        const raw = rawSales!==undefined && rawSales!=='' ? rawSales : rawTraffic;
+        const val = Number(String(raw||'').replace(/[^0-9.\-]/g,'')) || 0;
+        if (size) totals.set(size, (totals.get(size)||0) + val);
+      });
+      const arr = Array.from(totals.entries()).map(([size, val]) => ({ size, val }));
+      arr.sort((a,b)=> b.val - a.val);
+      return arr.length ? arr.map(x => `${x.size}(${x.val})`).join(' > ') : '无数据';
+    }
+    // 为每个父ASIN生成稳定的配色（移入脚本内）
+    function accentForParent(parent){
+      const s = String(parent||'');
+      let hash = 0; for (let i=0;i<s.length;i++){ hash = (hash*31 + s.charCodeAt(i)) >>> 0; }
+      const hue = hash % 360;
+      const color = `hsl(${hue}, 70%, 50%)`;
+      const bg = `hsla(${hue}, 70%, 58%, 0.06)`;
+      return { color, bg };
+    }
+    function renderGallery(statsArr, container, type, fabricMap) {
+      container.innerHTML='';
+      if (!statsArr.length) { const empty=document.createElement('div'); empty.className='summary'; empty.textContent='暂无数据，请先在快速页面上传。'; container.appendChild(empty); return; }
+      const groups = groupByParent(statsArr);
+      const parents = Array.from(groups.keys()).sort();
+      for (const parent of parents) {
+        const group = groups.get(parent)||[];
+        const wrap=document.createElement('div'); wrap.className='gallery-group';
+        const accent = accentForParent(parent);
+        wrap.style.borderColor = accent.color;
+        wrap.style.borderLeftColor = accent.color;
+        wrap.style.background = accent.bg;
+        const title=document.createElement('div'); title.className='gallery-title'; title.style.color = accent.color; const fabricTitle = fabricMap && fabricMap.get(parent) ? `（面料：${fabricMap.get(parent)}）` : ''; title.textContent = `父ASIN：${parent}${fabricTitle}`; wrap.appendChild(title);
+        if (type === 'size') {
+          const sec=document.createElement('div'); sec.className='summary'; sec.style.fontWeight='600'; sec.style.color=accent.color; sec.style.borderLeft='4px solid '+accent.color; sec.style.paddingLeft='8px';
+          sec.textContent = `热卖尺码结论：${computeSizeRanking(group)}`;
+          wrap.appendChild(sec);
+        } else {
+          const grid=document.createElement('div'); grid.className='gallery-grid';
+          group.forEach(item => { grid.appendChild(makeTile(item, type)); });
+          wrap.appendChild(grid);
+        }
+        container.appendChild(wrap);
+      }
+    }
+    // 聚合：一个父ASIN一个大框，内部四个子区域（销量热卖色、自然搜索词热卖色、销量热卖尺码、自然搜索词热卖尺码）
+    function renderCombinedByParent(stats, container, fabricMap, categoryMap){
+      // 改为调用瀑布流懒加载渲染
+      renderCombinedLazy(stats, container, fabricMap, categoryMap);
+    }
+
+    // ===== 瀑布流懒加载实现 =====
+    let lazyParents = [];
+    let lazyIndex = 0;
+    const CHUNK_SIZE = 12; // 每次追加 12 个父ASIN分组
+    let lazyObserver = null;
+    let lazySentinel = null;
+    function buildParents(stats){
+      const gSC = groupByParent(stats.salesColor);
+      const gSS = groupByParent(stats.salesSize);
+      const gTC = groupByParent(stats.trafficColor);
+      const gTS = groupByParent(stats.trafficSize);
+      return { gSC, gSS, gTC, gTS, parents: Array.from(new Set([...gSC.keys(), ...gSS.keys(), ...gTC.keys(), ...gTS.keys()])).sort() };
+    }
+    function appendChunk(ctx, container, fabricMap, categoryMap){
+      const { gSC, gSS, gTC, gTS, parents } = ctx;
+      const start = lazyIndex;
+      const end = Math.min(parents.length, start + CHUNK_SIZE);
+      for (let i = start; i < end; i++){
+        const parent = parents[i];
+        const wrap=document.createElement('div'); wrap.className='gallery-group';
+        const accent = accentForParent(parent);
+        wrap.style.borderColor = accent.color;
+        wrap.style.borderLeftColor = accent.color;
+        wrap.style.background = accent.bg;
+        const fabricTxt = fabricMap && fabricMap.get(parent) ? `面料：${fabricMap.get(parent)}` : '';
+        const categoryTxt = categoryMap && categoryMap.get(parent) ? ` ｜ 品类：${categoryMap.get(parent)}` : '';
+        const title=document.createElement('div'); title.className='gallery-title'; title.style.color = accent.color; title.textContent = `父ASIN：${parent}${fabricTxt?`（${fabricTxt}${categoryTxt}）`: (categoryTxt?`（${categoryTxt.slice(3)}）`:'')}`; wrap.appendChild(title);
+        const gridWrap = document.createElement('div'); gridWrap.style.display='grid'; gridWrap.style.gridTemplateColumns='1fr 1fr'; gridWrap.style.gap='12px';
+        function addSection(name, items, type, color, mode){
+          const sec=document.createElement('div'); sec.style.border='1px dashed '+color; sec.style.borderRadius='8px'; sec.style.padding='8px';
+          const st=document.createElement('div'); st.style.fontWeight='600'; st.style.color=color; st.style.borderLeft='4px solid '+color; st.style.paddingLeft='8px'; st.textContent=name; sec.appendChild(st);
+          if (mode==='ranking'){
+            const r=document.createElement('div'); r.className='summary'; r.style.marginTop='6px'; r.textContent = `结论：${computeSizeRanking(items)}`;
+            sec.appendChild(r);
+          } else {
+            const grid=document.createElement('div'); grid.className='gallery-grid';
+            (items||[]).forEach(it=>{ grid.appendChild(makeTile(it, type)); });
+            if (!(items&&items.length)){ const empty=document.createElement('div'); empty.className='summary'; empty.textContent='暂无数据'; sec.appendChild(empty); }
+            sec.appendChild(grid);
+          }
+          gridWrap.appendChild(sec);
+        }
+        addSection('销量热卖色', gSC.get(parent)||[], 'color', '#3b82f6', 'tiles');
+        addSection('流量词热卖色', gTC.get(parent)||[], 'color', '#ef4444', 'tiles');
+        addSection('销量热卖尺码', gSS.get(parent)||[], 'size', '#3b82f6', 'ranking');
+        addSection('流量词热卖尺码', gTS.get(parent)||[], 'size', '#ef4444', 'ranking');
+        wrap.appendChild(gridWrap);
+        container.appendChild(wrap);
+      }
+      lazyIndex = end;
+    }
+    function renderCombinedLazy(stats, container, fabricMap, categoryMap){
+      container.innerHTML='';
+      const ctx = buildParents(stats);
+      if (!ctx.parents.length){ const empty=document.createElement('div'); empty.className='summary'; empty.textContent='暂无数据，请先在快速页面上传。'; container.appendChild(empty); return; }
+      lazyIndex = 0;
+      appendChunk(ctx, container, fabricMap, categoryMap);
+      // 放置哨兵
+      if (!lazySentinel){ lazySentinel = document.createElement('div'); lazySentinel.style.height='1px'; lazySentinel.style.margin='1px 0'; }
+      container.appendChild(lazySentinel);
+      // 隐藏原分页控件
+      const pg = document.querySelector('.row.pagination'); if (pg) pg.style.display='none';
+      // 观察者
+      if (lazyObserver) { try { lazyObserver.disconnect(); } catch(e){} }
+      lazyObserver = new IntersectionObserver(entries => {
+        for (const entry of entries){
+          if (entry.isIntersecting){
+            appendChunk(ctx, container, fabricMap, categoryMap);
+            if (lazyIndex >= ctx.parents.length){ try { lazyObserver.disconnect(); } catch(e){} }
+          }
+        }
+      }, { root: null, rootMargin: '200px', threshold: 0 });
+      lazyObserver.observe(lazySentinel);
+    }
+    function buildGalleryStats(rows){
+      if (!rows.length) return { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
+      const headers = (rows[0]||[]).map(h=>String(h||'').trim());
+      const idxDate = headers.indexOf('上传日期');
+      const idxParent = headers.indexOf('父ASIN');
+      const idxType = headers.findIndex(h => /^类型/.test(h));
+      const idxDim = headers.findIndex(h => /^维度/.test(h));
+      const idxTag = headers.indexOf('标签');
+      const idxSales = headers.indexOf('销量');
+      const idxSalesPct = headers.indexOf('销量占比%');
+      const idxTraffic = headers.indexOf('流量');
+      const idxTrafficPct = headers.indexOf('自然搜索词占比%');
+      const idxLink = headers.findIndex(h=>/(产品详情链接|产品详情页链接|产品链接)/.test(h));
+      const idxImg = headers.findIndex(h=>/(商品主图|主图链接|Image\s*URL|ImageURL|Main\s*Image|MainImage)/i.test(h));
+      const idxFabric = headers.indexOf('面料');
+      const idxCategory = headers.indexOf('品类');
+      const fabricMap = new Map();
+      const categoryMap = new Map();
+      const arr = { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
+      for (let i=1;i<rows.length;i++){
+        const r = rows[i]||[];
+        const parent=String(r[idxParent]||'').trim(); if (!parent) continue;
+        const type=String(r[idxType]||'').trim();
+        const dim=String(r[idxDim]||'').trim();
+        const tag=String(r[idxTag]||'').trim();
+        const link=String(idxLink>=0? (r[idxLink]||'') : '').trim();
+        const img=String(idxImg>=0? (r[idxImg]||'') : '').trim();
+        const fabric = String(idxFabric>=0 ? (r[idxFabric]||'') : '').trim();
+        const category = String(idxCategory>=0 ? (r[idxCategory]||'') : '').trim();
+        if (fabric) fabricMap.set(parent, fabric);
+        if (category) categoryMap.set(parent, category);
+        if (type==='销量' && dim==='颜色') arr.salesColor.push({'父ASIN':parent,'面料':fabric,'品类':category,'颜色':tag,'总销量':r[idxSales]||'', '销量占比%':r[idxSalesPct]||'', '产品详情链接':link, '商品主图':img});
+        if (type==='销量' && dim==='尺码') arr.salesSize.push({'父ASIN':parent,'面料':fabric,'品类':category,'尺码':tag,'总销量':r[idxSales]||'', '销量占比%':r[idxSalesPct]||'', '产品详情链接':link, '商品主图':img});
+        if (type==='流量' && dim==='颜色') arr.trafficColor.push({'父ASIN':parent,'面料':fabric,'品类':category,'颜色':tag,'总自然搜索词':r[idxTraffic]||'', '自然搜索词占比%':r[idxTrafficPct]||'', '产品详情链接':link, '商品主图':img});
+        if (type==='流量' && dim==='尺码') arr.trafficSize.push({'父ASIN':parent,'面料':fabric,'品类':category,'尺码':tag,'总自然搜索词':r[idxTraffic]||'', '自然搜索词占比%':r[idxTrafficPct]||'', '产品详情链接':link, '商品主图':img});
+      }
+      arr.fabricMap = fabricMap;
+      arr.categoryMap = categoryMap;
+      return arr;
+    }
+
+    btnSearch.addEventListener('click', applyFilters);
+    // 在筛选区绑定回车键触发查找
+    const searchRowEl = document.getElementById('searchRow');
+    if (searchRowEl) {
+      searchRowEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyFilters();
+        }
+      });
+    }
+    btnReset.addEventListener('click', () => { qGlobal.value=''; qParent.value=''; qFabric.value=''; qCategory.value=''; filteredStats = { salesColor: libStats.salesColor.slice(), salesSize: libStats.salesSize.slice(), trafficColor: libStats.trafficColor.slice(), trafficSize: libStats.trafficSize.slice() }; renderCombinedByParent(filteredStats, libParentGallery, libStats.fabricMap, libStats.categoryMap); });
+    btnPrev.addEventListener('click', () => { if (page>1){ page--; renderCards(filtered); } });
+    btnNext.addEventListener('click', () => { const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)); if (page<totalPages){ page++; renderCards(filtered); } });
+
+    async function loadData(){
+      const token = (libToken.value||'').trim();
+      loadStatus.textContent = '正在读取固定表 quick_results.csv...';
+      try {
+        const text = await fetchFixedCsv(token);
+        if (!text){ loadStatus.textContent = '未发现 quick_results.csv，请先在快速页面上传。'; return; }
+        const rows = csvRows(text);
+        // 刷新顶部统计信息
+        updateHeaderStatsFromRows(rows);
+        const stats = buildGalleryStats(rows);
+        libStats = stats;
+        // 启用导出按钮
+        btnExportXlsx.disabled = false;
+        filteredStats = { salesColor: stats.salesColor.slice(), salesSize: stats.salesSize.slice(), trafficColor: stats.trafficColor.slice(), trafficSize: stats.trafficSize.slice() };
+        // 填充品类下拉
+        qCategory.innerHTML=''; const optAll=document.createElement('option'); optAll.value=''; optAll.textContent='全部品类'; qCategory.appendChild(optAll);
+        const categories = Array.from(new Set(Array.from(stats.categoryMap.values()).filter(Boolean))).sort();
+        categories.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; qCategory.appendChild(o); });
+        // 按父ASIN聚合渲染
+        renderCombinedByParent(filteredStats, libParentGallery, stats.fabricMap, stats.categoryMap);
+        loadStatus.textContent = `加载完成：已按父ASIN聚合展示。`;
+      } catch (err) {
+        loadStatus.textContent = `加载失败：${err.message}`;
+        btnExportXlsx.disabled = true;
+      }
+    }
+    btnLoad.addEventListener('click', loadData);
+    // 进入页面自动加载
+    (function(){ loadData(); })();
+  </script>
+</body>
+</html>
