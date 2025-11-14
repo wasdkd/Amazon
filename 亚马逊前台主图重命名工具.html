@@ -433,71 +433,91 @@
             }
 
             processExcelData(jsonData) {
-                if (!jsonData || jsonData.length < 2) {
-                    throw new Error('Excel文件内容为空或格式不正确');
-                }
+    if (!jsonData || jsonData.length < 2) {
+        throw new Error('Excel文件内容为空或格式不正确');
+    }
 
-                // 解析标题行
-                const headers = jsonData[0];
-                this.log(`Excel列标题: ${headers.join(', ')}`, 'info');
+    // 解析标题行
+    const headers = jsonData[0];
+    this.log(`Excel列标题: ${headers.join(', ')}`, 'info');
 
-                // 检查必要的列
-                const skuIndex = headers.findIndex(h =>
-                    h && (h.toString().includes('SKU') || h.toString().includes('*SKU'))
-                );
-                const materialIndex = headers.findIndex(h =>
-                    h && (h.toString().includes('产品材质') || h.toString().includes('材质'))
-                );
+    // 检查必要的列
+    const skuIndex = headers.findIndex(h =>
+        h && (h.toString().includes('SKU') || h.toString().includes('*SKU'))
+    );
+    const materialIndex = headers.findIndex(h =>
+        h && (h.toString().includes('产品材质') || h.toString().includes('材质'))
+    );
 
-                if (skuIndex === -1) {
-                    throw new Error('Excel文件中找不到SKU列，请确保文件包含"*SKU"列');
-                }
+    if (skuIndex === -1) {
+        throw new Error('Excel文件中找不到SKU列，请确保文件包含"*SKU"列');
+    }
 
-                if (materialIndex === -1) {
-                    throw new Error('Excel文件中找不到产品材质列，请确保文件包含"产品材质"列');
-                }
+    if (materialIndex === -1) {
+        throw new Error('Excel文件中找不到产品材质列，请确保文件包含"产品材质"列');
+    }
 
-                // 解析数据行
-                this.excelData = [];
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    if (row.length > Math.max(skuIndex, materialIndex)) {
-                        const sku = row[skuIndex] ? row[skuIndex].toString().trim() : '';
-                        const material = row[materialIndex] ? row[materialIndex].toString().trim() : '';
+    // 解析数据行
+    this.excelData = [];
+    for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (row.length > Math.max(skuIndex, materialIndex)) {
+            const sku = row[skuIndex] ? row[skuIndex].toString().trim() : '';
+            const material = row[materialIndex] ? row[materialIndex].toString().trim() : '';
 
-                        if (sku) {
-                            // 处理SKU - 提取两个下划线中间的部分
-                            let processedSku = sku;
-                            if (sku.includes('_')) {
-                                const parts = sku.split('_');
-                                if (parts.length > 1) {
-                                    processedSku = parts[1];
-                                }
-                            }
+            if (sku) {
+                // 处理SKU - 提取用于匹配的部分
+                let processedSku = sku;
+                let skuPrefix = sku; // 用于压缩包命名的前缀
 
-                            this.excelData.push({
-                                originalSku: sku,
-                                sku: processedSku.toLowerCase().replace(/[\s-_]/g, ''),
-                                material: material
-                            });
-                        }
+                // 特殊处理AW开头的SKU，如: AW25D02_LS1066_Black_S
+                if (sku.startsWith('AW') && (sku.match(/_/g) || []).length >= 2) {
+                    const parts = sku.split('_');
+                    // 提取颜色部分作为匹配SKU (如: Black)
+                    if (parts.length >= 3) {
+                        processedSku = parts[2];
+                    }
+                    // 提取前两部分作为压缩包命名前缀 (如: AW25D02_LS1066)
+                    if (parts.length >= 2) {
+                        skuPrefix = parts[0] + '_' + parts[1];
+                    }
+                } else if (sku.includes('_')) {
+                    // 其他包含下划线的SKU，提取两个下划线中间的部分用于匹配
+                    const parts = sku.split('_');
+                    if (parts.length > 1) {
+                        processedSku = parts[1];
+                    }
+                    // 使用第一部分作为压缩包命名前缀
+                    if (parts.length > 0) {
+                        skuPrefix = parts[0];
                     }
                 }
 
-                this.log(`解析到 ${this.excelData.length} 条SKU记录`, 'info');
-
-                // 显示解析结果用于调试
-                let debugInfo = '<strong>解析的SKU数据（前10条）:</strong><br>';
-                this.excelData.slice(0, 10).forEach((item, index) => {
-                    debugInfo += `${index + 1}. 原始SKU: "${item.originalSku}" → 处理后: "${item.sku}" → 材质: "${item.material}"<br>`;
+                this.excelData.push({
+                    originalSku: sku,
+                    sku: processedSku.toLowerCase().replace(/[\s-_]/g, ''),
+                    material: material,
+                    skuPrefix: skuPrefix  // 添加skuPrefix用于压缩包命名
                 });
-
-                const debugDiv = document.getElementById('matchDebug');
-                if (debugDiv) {
-                    debugDiv.innerHTML = debugInfo;
-                    document.getElementById('debugInfo').style.display = 'block';
-                }
             }
+        }
+    }
+
+    this.log(`解析到 ${this.excelData.length} 条SKU记录`, 'info');
+
+    // 显示解析结果用于调试
+    let debugInfo = '<strong>解析的SKU数据（前10条）:</strong><br>';
+    this.excelData.slice(0, 10).forEach((item, index) => {
+        debugInfo += `${index + 1}. 原始SKU: "${item.originalSku}" → 处理后: "${item.sku}" → 材质: "${item.material}"<br>`;
+    });
+
+    const debugDiv = document.getElementById('matchDebug');
+    if (debugDiv) {
+        debugDiv.innerHTML = debugInfo;
+        document.getElementById('debugInfo').style.display = 'block';
+    }
+}
+
 
             async renameImages() {
                 this.log('开始处理图片重命名...', 'info');
@@ -583,39 +603,43 @@
 
             // 修改 createDownloadZip 方法
             async createDownloadZip(renamedFiles) {
-                this.log('正在创建ZIP压缩包...', 'info');
+    this.log('正在创建ZIP压缩包...', 'info');
 
-                const zip = new JSZip();
+    const zip = new JSZip();
 
-                // 从Excel数据中提取SKU前缀用于命名
-                let skuPrefix = "重命名后的图片";
-                if (this.excelData && this.excelData.length > 0) {
-                    const firstSKU = this.excelData[0].originalSku;
-                    // 提取SKU前缀（如LSa1007）
-                    const skuParts = firstSKU.split('_');
-                    if (skuParts.length > 0) {
-                        skuPrefix = skuParts[0];
-                    }
-                }
-
-                // 添加所有重命名后的图片到ZIP
-                for (const fileInfo of renamedFiles) {
-                    zip.file(fileInfo.newName, fileInfo.file);
-                    this.log(`已添加文件: ${fileInfo.newName}`, 'info');
-                }
-
-                // 生成ZIP文件
-                this.log('生成ZIP文件数据...', 'info');
-                const zipBlob = await zip.generateAsync({
-                    type: 'blob',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 }
-                });
-
-                // 使用SKU前缀命名ZIP文件
-                this.downloadBlob(zipBlob, `${skuPrefix}_图片.zip`);
-                this.log('ZIP压缩包已生成并开始下载', 'success');
+    // 从Excel数据中提取SKU前缀用于命名
+    let skuPrefix = "重命名后的图片";
+    if (this.excelData && this.excelData.length > 0) {
+        // 优先使用skuPrefix，如果没有则使用原始逻辑
+        if (this.excelData[0].skuPrefix) {
+            skuPrefix = this.excelData[0].skuPrefix;
+        } else {
+            const firstSKU = this.excelData[0].originalSku;
+            const skuParts = firstSKU.split('_');
+            if (skuParts.length > 0) {
+                skuPrefix = skuParts[0];
             }
+        }
+    }
+
+    // 添加所有重命名后的图片到ZIP
+    for (const fileInfo of renamedFiles) {
+        zip.file(fileInfo.newName, fileInfo.file);
+        this.log(`已添加文件: ${fileInfo.newName}`, 'info');
+    }
+
+    // 生成ZIP文件
+    this.log('生成ZIP文件数据...', 'info');
+    const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+    });
+
+    // 使用SKU前缀命名ZIP文件
+    this.downloadBlob(zipBlob, `${skuPrefix}_图片.zip`);
+    this.log('ZIP压缩包已生成并开始下载', 'success');
+}
 
             downloadBlob(blob, filename) {
                 const url = URL.createObjectURL(blob);
