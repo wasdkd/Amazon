@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线图片批量重命名工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+        .content { padding: 40px; }
+        .config-section { background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 30px; }
+        .config-section h2 { margin-bottom: 20px; color: #2c3e50; }
+        .upload-area { border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 8px; background: white; margin-bottom: 20px; transition: all 0.3s ease; }
+        .upload-area:hover { border-color: #3498db; background: #f8f9fa; }
+        .file-input-group { margin-bottom: 20px; text-align: left; }
+        .file-input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; }
+        .file-input { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; background: white; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; margin: 5px; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-primary:hover { background: #2980b9; transform: translateY(-2px); }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #219a52; transform: translateY(-2px); }
+        .btn:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
+        .status-section { background: #fff3cd; padding: 20px; border-radius: 8px; margin-top: 20px; display: none; }
+        .progress-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 15px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); width: 0%; transition: width 0.3s ease; }
+        .log-output { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; margin-top: 15px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; color: #3498db; }
+        .stat-label { color: #7f8c8d; margin-top: 5px; }
+        .instructions { background: #e8f4fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .instructions h3 { color: #2c3e50; margin-bottom: 10px; }
+        .instructions ol { margin-left: 20px; }
+        .instructions li { margin-bottom: 8px; }
+        .footer { text-align: center; padding: 20px; color: #7f8c8d; border-top: 1px solid #ecf0f1; }
+        .debug-info { background: #e8f4fd; padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 12px; }
+        .mode-selector { display: flex; gap: 15px; margin-bottom: 20px; }
+        .mode-option { flex: 1; text-align: center; padding: 15px; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
+        .mode-option:hover { border-color: #3498db; background: #f8f9fa; }
+        .mode-option.active { border-color: #3498db; background: #e3f2fd; }
+        .selection-panel { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none; }
+        .selection-item { margin-bottom: 10px; padding: 10px; background: white; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ 在线图片批量重命名工具</h1>
+            <p>基于浏览器的图片处理工具 - 无需安装，直接使用</p>
+        </div>
+
+        <div class="content">
+            <div class="instructions">
+                <h3>使用说明</h3>
+                <ol>
+                    <li>选择上传模式（分步上传或组合上传）</li>
+                    <li>上传Excel文件（必须包含"*SKU"和"产品材质"列）</li>
+                    <li>上传图片文件夹（包含需要重命名的图片）</li>
+                    <li>点击"开始处理"按钮</li>
+                    <li>下载处理后的图片压缩包</li>
+                </ol>
+                <p><strong>注意：</strong>所有处理都在您的浏览器中进行，文件不会上传到任何服务器。</p>
+            </div>
+
+            <div class="config-section">
+                <h2>📁 文件上传</h2>
+
+                <!-- 上传模式选择 -->
+                <div class="file-input-group">
+                    <label>上传模式选择:</label>
+                    <div class="mode-selector">
+                        <div class="mode-option active" data-mode="separate">
+                            <h4>分步上传</h4>
+                            <p>分别选择Excel文件和图片文件夹</p>
+                        </div>
+                        <div class="mode-option" data-mode="combined">
+                            <h4>组合上传</h4>
+                            <p>选择包含Excel和图片的文件夹</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分步上传区域 -->
+                <div id="separateUploadSection">
+                    <div class="file-input-group">
+                        <label>Excel 文件 (*.xlsx, *.xls) - 必须包含"*SKU"和"产品材质"列:</label>
+                        <input type="file" id="excelFile" class="file-input" accept=".xlsx, .xls">
+                    </div>
+
+                    <div class="file-input-group">
+                        <label>图片文件夹 (包含需要重命名的图片):</label>
+                        <input type="file" id="imageFiles" class="file-input" accept="image/*" multiple webkitdirectory>
+                        <small style="color: #666;">注意：请选择包含图片的文件夹，而不是单个图片文件</small>
+                    </div>
+                </div>
+
+                <!-- 组合上传区域 -->
+                <div id="combinedUploadSection" style="display: none;">
+                    <div class="file-input-group">
+                        <label>选择包含Excel和图片的文件夹:</label>
+                        <input type="file" id="combinedUpload" class="file-input" multiple webkitdirectory>
+                        <small style="color: #666;">选择包含Excel文件和图片文件的文件夹</small>
+                    </div>
+
+                    <!-- 文件选择确认面板 -->
+                    <div id="fileSelectionPanel" class="selection-panel">
+                        <h4>请确认要使用的文件:</h4>
+                        <div id="excelFileSelection"></div>
+                        <div id="imageFileSelection"></div>
+                        <button id="confirmFileSelection" class="btn btn-primary" style="margin-top: 15px;">确认选择</button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-success" id="processBtn">🚀 开始处理文件</button>
+                </div>
+            </div>
+
+            <div class="status-section" id="statusSection">
+                <h3>📊 处理状态</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="statusText">准备就绪...</div>
+
+                <div class="stats" id="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="excelRows">0</div>
+                        <div class="stat-label">Excel数据行</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="imageFilesCount">0</div>
+                        <div class="stat-label">图片文件</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="processedFiles">0</div>
+                        <div class="stat-label">已处理</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="matchedFiles">0</div>
+                        <div class="stat-label">成功匹配</div>
+                    </div>
+                </div>
+
+                <div class="log-output" id="logOutput"></div>
+
+                <div class="debug-info" id="debugInfo" style="display: none;">
+                    <h4>调试信息</h4>
+                    <div id="excelPreview"></div>
+                    <div id="matchDebug"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 在线图片批量重命名工具 </p>
+        </div>
+    </div>
+
+    <!-- 引入必要的库 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <script>
+        // 完整的应用逻辑
+        class ImageRenameTool {
+            constructor() {
+                this.excelData = null;
+                this.imageFiles = [];
+                this.processedCount = 0;
+                this.matchedCount = 0;
+                this.selectedExcelFile = null;
+                this.selectedImageFiles = [];
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // 上传模式切换
+                const modeOptions = document.querySelectorAll('.mode-option');
+                modeOptions.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        modeOptions.forEach(opt => opt.classList.remove('active'));
+                        e.currentTarget.classList.add('active');
+                        this.toggleUploadMode(e.currentTarget.dataset.mode);
+                    });
+                });
+
+                // 组合上传功能
+                document.getElementById('combinedUpload').addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleCombinedUpload(Array.from(e.target.files));
+                    }
+                });
+
+                // 确认文件选择
+                document.getElementById('confirmFileSelection').addEventListener('click', () => {
+                    this.confirmFileSelection();
+                });
+
+                document.getElementById('processBtn').addEventListener('click', () => {
+                    this.processFiles();
+                });
+
+                // 显示文件选择信息
+                document.getElementById('excelFile').addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.log(`已选择Excel文件: ${e.target.files[0].name}`, 'info');
+                    }
+                });
+
+                document.getElementById('imageFiles').addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.log(`已选择 ${e.target.files.length} 个图片文件`, 'info');
+                    }
+                });
+            }
+
+            // 切换上传模式
+            toggleUploadMode(mode) {
+                const separateSection = document.getElementById('separateUploadSection');
+                const combinedSection = document.getElementById('combinedUploadSection');
+
+                if (mode === 'separate') {
+                    separateSection.style.display = 'block';
+                    combinedSection.style.display = 'none';
+                    document.getElementById('fileSelectionPanel').style.display = 'none';
+                } else {
+                    separateSection.style.display = 'none';
+                    combinedSection.style.display = 'block';
+                }
+            }
+
+            // 处理组合上传
+            handleCombinedUpload(files) {
+                // 查找所有Excel文件
+                const excelFiles = files.filter(file =>
+                    file.name.endsWith('.xlsx') || file.name.endsWith('.xls'));
+
+                // 查找所有图片文件
+                const imageFiles = files.filter(file =>
+                    file.type.startsWith('image/') || this.isImageFileByExtension(file.name));
+
+                if (excelFiles.length > 0 || imageFiles.length > 0) {
+                    this.showFileSelectionPanel(excelFiles, imageFiles);
+                }
+            }
+
+            // 显示文件选择面板
+            showFileSelectionPanel(excelFiles, imageFiles) {
+                const panel = document.getElementById('fileSelectionPanel');
+                const excelSelection = document.getElementById('excelFileSelection');
+                const imageSelection = document.getElementById('imageFileSelection');
+
+                // 清空面板内容
+                excelSelection.innerHTML = '';
+                imageSelection.innerHTML = '';
+
+                // 显示Excel文件选择
+                if (excelFiles.length > 0) {
+                    excelSelection.innerHTML = '<h5>Excel文件:</h5>';
+                    excelFiles.forEach((file, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'selection-item';
+                        div.innerHTML = `
+                            <label style="display: block; cursor: pointer;">
+                                <input type="radio" name="selectedExcel" value="${index}"
+                                       ${index === 0 ? 'checked' : ''}>
+                                ${file.name}
+                            </label>
+                        `;
+                        excelSelection.appendChild(div);
+                    });
+                } else {
+                    excelSelection.innerHTML = '<p style="color: #e74c3c;">未找到Excel文件</p>';
+                }
+
+                // 显示图片文件信息
+                if (imageFiles.length > 0) {
+                    imageSelection.innerHTML = `
+                        <h5>图片文件:</h5>
+                        <p>共找到 ${imageFiles.length} 个图片文件</p>
+                    `;
+                } else {
+                    imageSelection.innerHTML = '<p style="color: #e74c3c;">未找到图片文件</p>';
+                }
+
+                // 显示面板
+                panel.style.display = 'block';
+
+                // 保存文件列表供后续使用
+                this.excelFilesList = excelFiles;
+                this.imageFilesList = imageFiles;
+            }
+
+            // 确认文件选择
+            confirmFileSelection() {
+                // 获取选中的Excel文件
+                const selectedExcelRadio = document.querySelector('input[name="selectedExcel"]:checked');
+                let selectedExcelFile = null;
+
+                if (selectedExcelRadio && this.excelFilesList && this.excelFilesList.length > 0) {
+                    const selectedIndex = parseInt(selectedExcelRadio.value);
+                    selectedExcelFile = this.excelFilesList[selectedIndex];
+                } else if (this.excelFilesList && this.excelFilesList.length > 0) {
+                    selectedExcelFile = this.excelFilesList[0]; // 默认选择第一个
+                }
+
+                // 保存选中的文件
+                this.selectedExcelFile = selectedExcelFile;
+                this.selectedImageFiles = this.imageFilesList || [];
+
+                // 显示确认信息
+                if (selectedExcelFile) {
+                    this.log(`已选择Excel文件: ${selectedExcelFile.name}`, 'info');
+                }
+
+                if (this.selectedImageFiles.length > 0) {
+                    this.log(`已选择 ${this.selectedImageFiles.length} 个图片文件`, 'info');
+                }
+
+                // 隐藏选择面板
+                document.getElementById('fileSelectionPanel').style.display = 'none';
+            }
+
+            // 添加文件扩展名判断方法
+            isImageFileByExtension(filename) {
+                const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'];
+                const lowerFileName = filename.toLowerCase();
+                return imageExtensions.some(ext => lowerFileName.endsWith(ext));
+            }
+
+            async processFiles() {
+                let excelFile = null;
+                let imageFiles = [];
+
+                // 根据当前模式获取文件
+                const currentMode = document.querySelector('.mode-option.active').dataset.mode;
+
+                if (currentMode === 'separate') {
+                    const excelFileInput = document.getElementById('excelFile');
+                    const imageFilesInput = document.getElementById('imageFiles');
+
+                    if (!excelFileInput.files.length) {
+                        this.log('错误：请选择Excel文件', 'error');
+                        return;
+                    }
+
+                    if (!imageFilesInput.files.length) {
+                        this.log('错误：请选择图片文件夹', 'error');
+                        return;
+                    }
+
+                    excelFile = excelFileInput.files[0];
+                    imageFiles = Array.from(imageFilesInput.files);
+                } else {
+                    if (!this.selectedExcelFile) {
+                        this.log('错误：请选择Excel文件', 'error');
+                        return;
+                    }
+
+                    if (!this.selectedImageFiles || this.selectedImageFiles.length === 0) {
+                        this.log('错误：请选择图片文件', 'error');
+                        return;
+                    }
+
+                    excelFile = this.selectedExcelFile;
+                    imageFiles = this.selectedImageFiles;
+                }
+
+                this.showProcessingUI();
+                this.log('开始处理文件...', 'info');
+
+                try {
+                    // 1. 读取Excel文件（使用XLSX库正确解析）
+                    await this.readExcelFile(excelFile);
+
+                    // 2. 处理图片文件
+                    this.imageFiles = imageFiles;
+                    this.updateStats();
+
+                    // 3. 执行重命名逻辑
+                    const renamedFiles = await this.renameImages();
+
+                    // 4. 创建ZIP文件并下载
+                    await this.createDownloadZip(renamedFiles);
+
+                    this.log(`处理完成！成功匹配 ${this.matchedCount} 个文件`, 'success');
+                } catch (error) {
+                    this.log(`处理过程中出现错误: ${error.message}`, 'error');
+                    console.error(error);
+                } finally {
+                    this.hideProcessingUI();
+                }
+            }
+
+            async readExcelFile(file) {
+                this.log('正在读取Excel文件...', 'info');
+
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        try {
+                            // 使用XLSX库解析Excel文件
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+
+                            // 获取第一个工作表
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+
+                            // 转换为JSON
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                            // 处理Excel数据
+                            this.processExcelData(jsonData);
+
+                            this.log(`成功解析Excel文件，共 ${this.excelData.length} 行数据`, 'success');
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+
+                    reader.onerror = () => reject(new Error('读取文件失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            processExcelData(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    throw new Error('Excel文件内容为空或格式不正确');
+                }
+
+                // 解析标题行
+                const headers = jsonData[0];
+                this.log(`Excel列标题: ${headers.join(', ')}`, 'info');
+
+                // 检查必要的列
+                const skuIndex = headers.findIndex(h =>
+                    h && (h.toString().includes('SKU') || h.toString().includes('*SKU'))
+                );
+                const materialIndex = headers.findIndex(h =>
+                    h && (h.toString().includes('产品材质') || h.toString().includes('材质'))
+                );
+
+                if (skuIndex === -1) {
+                    throw new Error('Excel文件中找不到SKU列，请确保文件包含"*SKU"列');
+                }
+
+                if (materialIndex === -1) {
+                    throw new Error('Excel文件中找不到产品材质列，请确保文件包含"产品材质"列');
+                }
+
+                // 解析数据行
+                this.excelData = [];
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row.length > Math.max(skuIndex, materialIndex)) {
+                        const sku = row[skuIndex] ? row[skuIndex].toString().trim() : '';
+                        const material = row[materialIndex] ? row[materialIndex].toString().trim() : '';
+
+                        if (sku) {
+                            // 处理SKU - 提取两个下划线中间的部分
+                            let processedSku = sku;
+                            if (sku.includes('_')) {
+                                const parts = sku.split('_');
+                                if (parts.length > 1) {
+                                    processedSku = parts[1];
+                                }
+                            }
+
+                            this.excelData.push({
+                                originalSku: sku,
+                                sku: processedSku.toLowerCase().replace(/[\s-_]/g, ''),
+                                material: material
+                            });
+                        }
+                    }
+                }
+
+                this.log(`解析到 ${this.excelData.length} 条SKU记录`, 'info');
+
+                // 显示解析结果用于调试
+                let debugInfo = '<strong>解析的SKU数据（前10条）:</strong><br>';
+                this.excelData.slice(0, 10).forEach((item, index) => {
+                    debugInfo += `${index + 1}. 原始SKU: "${item.originalSku}" → 处理后: "${item.sku}" → 材质: "${item.material}"<br>`;
+                });
+
+                const debugDiv = document.getElementById('matchDebug');
+                if (debugDiv) {
+                    debugDiv.innerHTML = debugInfo;
+                    document.getElementById('debugInfo').style.display = 'block';
+                }
+            }
+
+            async renameImages() {
+                this.log('开始处理图片重命名...', 'info');
+                const renamedFiles = [];
+                this.matchedCount = 0;
+
+                for (let i = 0; i < this.imageFiles.length; i++) {
+                    const imageFile = this.imageFiles[i];
+                    const result = this.generateNewFileName(imageFile.name);
+
+                    renamedFiles.push({
+                        file: imageFile,
+                        newName: result.newName,
+                        originalName: imageFile.name,
+                        matched: result.matched
+                    });
+
+                    if (result.matched) {
+                        this.matchedCount++;
+                    }
+
+                    this.processedCount++;
+                    this.updateProgress((i + 1) / this.imageFiles.length * 100);
+                    this.updateStats();
+
+                    // 添加小延迟以避免阻塞UI
+                    if (i % 10 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                this.log(`匹配结果: ${this.matchedCount} 个文件成功匹配, ${this.imageFiles.length - this.matchedCount} 个文件匹配不上`, 'info');
+                return renamedFiles;
+            }
+
+            generateNewFileName(originalFileName) {
+                // 从文件名提取SKU（实际上是颜色）
+                const parts = originalFileName.split('-');
+                let extractedSku = '';
+
+                if (parts.length >= 3) {
+                    // 格式: 任意内容-SKU-颜色.扩展名 (如: SKU-01-Blue Purple.jpg)
+                    // 提取颜色部分作为SKU
+                    const colorPart = parts.slice(2).join('-'); // 处理颜色中可能包含连字符的情况
+                    extractedSku = colorPart.split('.')[0].toLowerCase().replace(/[\s-_]/g, '');
+                } else if (parts.length === 2) {
+                    // 格式: SKU-颜色.扩展名
+                    const colorPart = parts[1];
+                    extractedSku = colorPart.split('.')[0].toLowerCase().replace(/[\s-_]/g, '');
+                } else {
+                    // 其他格式，尝试直接使用文件名（不含扩展名）
+                    const nameWithoutExt = originalFileName.split('.')[0];
+                    extractedSku = nameWithoutExt.toLowerCase().replace(/[\s-_]/g, '');
+                }
+
+                // 在Excel数据中查找匹配的材质
+                const matchedRecord = this.excelData.find(item =>
+                    item.sku === extractedSku
+                );
+
+                if (matchedRecord && matchedRecord.material) {
+                    const newName = `${this.cleanFilename(matchedRecord.material)}.jpg`;
+                    this.log(`匹配成功: ${originalFileName} → ${newName} (SKU: ${extractedSku})`, 'success');
+                    return { newName: newName, matched: true };
+                } else {
+                    // 没有匹配的记录
+                    const nameWithoutExt = originalFileName.split('.')[0];
+                    const newName = `${this.cleanFilename(nameWithoutExt)}_匹配不上.jpg`;
+                    this.log(`匹配失败: ${originalFileName} → ${newName} (提取的SKU: ${extractedSku})`, 'warning');
+                    return { newName: newName, matched: false };
+                }
+            }
+
+            cleanFilename(filename) {
+                // 清理文件名中的非法字符
+                const illegalChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
+                let cleanName = filename;
+                illegalChars.forEach(char => {
+                    cleanName = cleanName.replace(new RegExp('\\' + char, 'g'), '_');
+                });
+                return cleanName.trim();
+            }
+
+            // 修改 createDownloadZip 方法
+            async createDownloadZip(renamedFiles) {
+                this.log('正在创建ZIP压缩包...', 'info');
+
+                const zip = new JSZip();
+
+                // 从Excel数据中提取SKU前缀用于命名
+                let skuPrefix = "重命名后的图片";
+                if (this.excelData && this.excelData.length > 0) {
+                    const firstSKU = this.excelData[0].originalSku;
+                    // 提取SKU前缀（如LSa1007）
+                    const skuParts = firstSKU.split('_');
+                    if (skuParts.length > 0) {
+                        skuPrefix = skuParts[0];
+                    }
+                }
+
+                // 添加所有重命名后的图片到ZIP
+                for (const fileInfo of renamedFiles) {
+                    zip.file(fileInfo.newName, fileInfo.file);
+                    this.log(`已添加文件: ${fileInfo.newName}`, 'info');
+                }
+
+                // 生成ZIP文件
+                this.log('生成ZIP文件数据...', 'info');
+                const zipBlob = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+
+                // 使用SKU前缀命名ZIP文件
+                this.downloadBlob(zipBlob, `${skuPrefix}_图片.zip`);
+                this.log('ZIP压缩包已生成并开始下载', 'success');
+            }
+
+            downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            showProcessingUI() {
+                document.getElementById('processBtn').disabled = true;
+                document.getElementById('processBtn').textContent = '处理中...';
+                document.getElementById('statusSection').style.display = 'block';
+                this.processedCount = 0;
+                this.matchedCount = 0;
+                this.updateProgress(0);
+            }
+
+            hideProcessingUI() {
+                document.getElementById('processBtn').disabled = false;
+                document.getElementById('processBtn').textContent = '🚀 开始处理文件';
+            }
+
+            updateProgress(percent) {
+                document.getElementById('progressFill').style.width = percent + '%';
+                document.getElementById('statusText').textContent = `处理进度: ${percent.toFixed(1)}%`;
+            }
+
+            updateStats() {
+                document.getElementById('excelRows').textContent = this.excelData ? this.excelData.length : 0;
+                document.getElementById('imageFilesCount').textContent = this.imageFiles.length;
+                document.getElementById('processedFiles').textContent = this.processedCount;
+                document.getElementById('matchedFiles').textContent = this.matchedCount;
+            }
+
+            log(message, type = 'info') {
+                const logOutput = document.getElementById('logOutput');
+                const timestamp = new Date().toLocaleTimeString();
+                const color = type === 'error' ? '#e74c3c' :
+                             type === 'success' ? '#27ae60' :
+                             type === 'warning' ? '#f39c12' : '#3498db';
+
+                const logEntry = document.createElement('div');
+                logEntry.innerHTML = `<span style="color: ${color}">[${timestamp}] ${message}</span>`;
+                logOutput.appendChild(logEntry);
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查必要的库是否已加载
+            if (typeof XLSX === 'undefined') {
+                alert('错误：XLSX库加载失败，请检查网络连接或刷新页面重试');
+                return;
+            }
+
+            if (typeof JSZip === 'undefined') {
+                alert('错误：JSZip库加载失败，请检查网络连接或刷新页面重试');
+                return;
+            }
+
+            new ImageRenameTool();
+        });
+    </script>
+</body>
+</html>
