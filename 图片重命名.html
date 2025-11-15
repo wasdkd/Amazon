@@ -1,0 +1,1143 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>图片重命名工具</title>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>-->
+<!--    <style>-->
+<!--        body {-->
+<!--            font-family: Arial, sans-serif;-->
+<!--            max-width: 800px;-->
+<!--            margin: 0 auto;-->
+<!--            padding: 20px;-->
+<!--            background-color: #f5f5f5;-->
+<!--        }-->
+<!--        .container {-->
+<!--            background-color: white;-->
+<!--            padding: 30px;-->
+<!--            border-radius: 10px;-->
+<!--            box-shadow: 0 2px 10px rgba(0,0,0,0.1);-->
+<!--        }-->
+<!--        h1 {-->
+<!--            text-align: center;-->
+<!--            color: #333;-->
+<!--        }-->
+<!--        .upload-area {-->
+<!--            border: 2px dashed #ccc;-->
+<!--            border-radius: 10px;-->
+<!--            padding: 40px;-->
+<!--            text-align: center;-->
+<!--            margin: 20px 0;-->
+<!--            transition: border-color 0.3s;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+<!--        .upload-area:hover {-->
+<!--            border-color: #007bff;-->
+<!--        }-->
+<!--        .upload-area.dragover {-->
+<!--            border-color: #007bff;-->
+<!--            background-color: #f8f9fa;-->
+<!--        }-->
+<!--        .file-input {-->
+<!--            display: none;-->
+<!--        }-->
+<!--        .btn {-->
+<!--            background-color: #007bff;-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            padding: 12px 24px;-->
+<!--            font-size: 16px;-->
+<!--            border-radius: 5px;-->
+<!--            cursor: pointer;-->
+<!--            margin: 10px;-->
+<!--        }-->
+<!--        .btn:hover {-->
+<!--            background-color: #0056b3;-->
+<!--        }-->
+<!--        .btn:disabled {-->
+<!--            background-color: #ccc;-->
+<!--            cursor: not-allowed;-->
+<!--        }-->
+<!--        .progress-container {-->
+<!--            margin: 20px 0;-->
+<!--            display: none;-->
+<!--        }-->
+<!--        .progress-bar {-->
+<!--            width: 100%;-->
+<!--            height: 20px;-->
+<!--            background-color: #e0e0e0;-->
+<!--            border-radius: 10px;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+<!--        .progress-fill {-->
+<!--            height: 100%;-->
+<!--            background-color: #007bff;-->
+<!--            width: 0%;-->
+<!--            transition: width 0.3s;-->
+<!--        }-->
+<!--        .result-container {-->
+<!--            margin: 20px 0;-->
+<!--            display: none;-->
+<!--        }-->
+<!--        .log {-->
+<!--            background-color: #f8f9fa;-->
+<!--            border: 1px solid #dee2e6;-->
+<!--            border-radius: 5px;-->
+<!--            padding: 15px;-->
+<!--            height: 200px;-->
+<!--            overflow-y: auto;-->
+<!--            font-family: monospace;-->
+<!--            font-size: 14px;-->
+<!--        }-->
+<!--        .file-list {-->
+<!--            margin: 15px 0;-->
+<!--        }-->
+<!--        .file-item {-->
+<!--            padding: 8px;-->
+<!--            border-bottom: 1px solid #eee;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div class="container">-->
+<!--        <h1>图片重命名工具</h1>-->
+
+<!--        <div class="upload-area" id="uploadArea">-->
+<!--            <p>点击选择文件夹或拖拽文件夹到此处</p>-->
+<!--            <p>支持 JPG, JPEG, PNG, GIF, BMP 格式</p>-->
+<!--            <input type="file" class="file-input" id="fileInput" multiple webkitdirectory directory>-->
+<!--            <button class="btn" id="selectBtn">选择文件夹</button>-->
+<!--        </div>-->
+
+<!--        <div class="file-list" id="fileList"></div>-->
+
+<!--        <div style="text-align: center;">-->
+<!--            <button class="btn" id="processBtn" disabled>开始处理</button>-->
+<!--            <button class="btn" id="downloadBtn" disabled>下载结果</button>-->
+<!--        </div>-->
+
+<!--        <div class="progress-container" id="progressContainer">-->
+<!--            <p>处理进度:</p>-->
+<!--            <div class="progress-bar">-->
+<!--                <div class="progress-fill" id="progressFill"></div>-->
+<!--            </div>-->
+<!--            <p id="progressText">0%</p>-->
+<!--        </div>-->
+
+<!--        <div class="result-container" id="resultContainer">-->
+<!--            <h3>处理日志:</h3>-->
+<!--            <div class="log" id="log"></div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        // 全局变量-->
+<!--        let uploadedFiles = [];-->
+<!--        let zip = null;-->
+<!--        let processedFiles = [];-->
+
+<!--        // DOM元素-->
+<!--        const uploadArea = document.getElementById('uploadArea');-->
+<!--        const fileInput = document.getElementById('fileInput');-->
+<!--        const selectBtn = document.getElementById('selectBtn');-->
+<!--        const processBtn = document.getElementById('processBtn');-->
+<!--        const downloadBtn = document.getElementById('downloadBtn');-->
+<!--        const fileList = document.getElementById('fileList');-->
+<!--        const progressContainer = document.getElementById('progressContainer');-->
+<!--        const progressFill = document.getElementById('progressFill');-->
+<!--        const progressText = document.getElementById('progressText');-->
+<!--        const resultContainer = document.getElementById('resultContainer');-->
+<!--        const logElement = document.getElementById('log');-->
+
+<!--        // 事件监听器-->
+<!--        selectBtn.addEventListener('click', () => fileInput.click());-->
+<!--        fileInput.addEventListener('change', handleFileSelect);-->
+<!--        processBtn.addEventListener('click', processImages);-->
+<!--        downloadBtn.addEventListener('click', downloadZip);-->
+
+<!--        // 拖拽事件-->
+<!--        uploadArea.addEventListener('dragover', (e) => {-->
+<!--            e.preventDefault();-->
+<!--            uploadArea.classList.add('dragover');-->
+<!--        });-->
+
+<!--        uploadArea.addEventListener('dragleave', () => {-->
+<!--            uploadArea.classList.remove('dragover');-->
+<!--        });-->
+
+<!--        uploadArea.addEventListener('drop', (e) => {-->
+<!--            e.preventDefault();-->
+<!--            uploadArea.classList.remove('dragover');-->
+<!--            const files = Array.from(e.dataTransfer.files);-->
+<!--            handleFiles(files);-->
+<!--        });-->
+
+<!--        // 处理文件选择-->
+<!--        function handleFileSelect(e) {-->
+<!--            const files = Array.from(e.target.files);-->
+<!--            handleFiles(files);-->
+<!--        }-->
+
+<!--        // 处理文件-->
+<!--        function handleFiles(files) {-->
+<!--            uploadedFiles = [];-->
+<!--            fileList.innerHTML = '';-->
+
+<!--            files.forEach(file => {-->
+<!--                if (isImageFile(file.name)) {-->
+<!--                    uploadedFiles.push(file);-->
+<!--                    const fileItem = document.createElement('div');-->
+<!--                    fileItem.className = 'file-item';-->
+<!--                    fileItem.textContent = file.webkitRelativePath || file.name;-->
+<!--                    fileList.appendChild(fileItem);-->
+<!--                }-->
+<!--            });-->
+
+<!--            if (uploadedFiles.length > 0) {-->
+<!--                processBtn.disabled = false;-->
+<!--                addToLog(`已选择 ${uploadedFiles.length} 个图片文件`);-->
+<!--            } else {-->
+<!--                processBtn.disabled = true;-->
+<!--                addToLog('未选择有效的图片文件');-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 检查是否为图片文件-->
+<!--        function isImageFile(filename) {-->
+<!--            const ext = filename.toLowerCase().split('.').pop();-->
+<!--            return ['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext);-->
+<!--        }-->
+
+<!--        // 添加日志-->
+<!--        function addToLog(message) {-->
+<!--            const logEntry = document.createElement('div');-->
+<!--            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;-->
+<!--            logElement.appendChild(logEntry);-->
+<!--            logElement.scrollTop = logElement.scrollHeight;-->
+<!--        }-->
+
+<!--        // 更新进度-->
+<!--        function updateProgress(percent) {-->
+<!--            progressFill.style.width = percent + '%';-->
+<!--            progressText.textContent = Math.round(percent) + '%';-->
+<!--        }-->
+
+<!--        // 提取父文件夹信息-->
+<!--        function extractParentInfo(filePath) {-->
+<!--            // 使用文件的相对路径来提取文件夹信息-->
+<!--            const pathParts = filePath.split('/');-->
+
+<!--            if (pathParts.length < 2) {-->
+<!--                return { parentFolder: "", subFolder: "", fileName: filePath };-->
+<!--            }-->
+
+<!--            const fileName = pathParts[pathParts.length - 1];-->
+
+<!--            // 判断是否有子文件夹结构-->
+<!--            if (pathParts.length >= 3) {-->
+<!--                // 有子文件夹：.../父文件夹/子文件夹/文件名-->
+<!--                return {-->
+<!--                    parentFolder: pathParts[pathParts.length - 3],-->
+<!--                    subFolder: pathParts[pathParts.length - 2],-->
+<!--                    fileName: fileName-->
+<!--                };-->
+<!--            } else if (pathParts.length === 2) {-->
+<!--                // 无子文件夹：.../父文件夹/文件名-->
+<!--                return {-->
+<!--                    parentFolder: pathParts[pathParts.length - 2],-->
+<!--                    subFolder: "",-->
+<!--                    fileName: fileName-->
+<!--                };-->
+<!--            }-->
+
+<!--            return { parentFolder: "", subFolder: "", fileName: fileName };-->
+<!--        }-->
+
+<!--        // 提取SKU-->
+<!--        function extractSkuFromParent(parentFolder) {-->
+<!--            if (!parentFolder) return "";-->
+
+<!--            const parts = parentFolder.split('-');-->
+
+<!--            // 方式1: 按照指定格式提取（第3个部分，索引2）- 处理类似 EZau208 的SKU-->
+<!--            if (parts.length >= 3) {-->
+<!--                const skuCandidate = parts[2];-->
+<!--                if (-->
+<!--                    /^[A-Za-z]/.test(skuCandidate) &&-->
+<!--                    /[A-Za-z]/.test(skuCandidate) &&-->
+<!--                    /\d/.test(skuCandidate) &&-->
+<!--                    skuCandidate.length >= 4 &&-->
+<!--                    skuCandidate.length <= 15 &&-->
+<!--                    !['主图', '副图', '主、副图'].includes(skuCandidate)-->
+<!--                ) {-->
+<!--                    return skuCandidate;-->
+<!--                }-->
+<!--            }-->
+
+<!--            // 方式2: 按照指定格式提取（第4个部分，索引3）- 处理带下划线的SKU-->
+<!--            if (parts.length >= 4) {-->
+<!--                const skuCandidate = parts[3];-->
+<!--                if (-->
+<!--                    /[A-Za-z]/.test(skuCandidate) &&-->
+<!--                    (/\d/.test(skuCandidate) || skuCandidate.includes('_')) &&-->
+<!--                    !/第[一二三四五六七八九十\d]+版/.test(skuCandidate) &&-->
+<!--                    !['主图', '副图', '主、副图'].includes(skuCandidate) &&-->
+<!--                    skuCandidate.length >= 4-->
+<!--                ) {-->
+<!--                    return skuCandidate;-->
+<!--                }-->
+<!--            }-->
+
+<!--            // 方式3: 直接搜索符合SKU格式的部分-->
+<!--            const skuPatterns = [-->
+<!--                /([A-Z0-9]+_[A-Z0-9]+)/g,-->
+<!--                /([A-Za-z]{2,}[A-Za-z]*\d{2,})/g,-->
+<!--                /([A-Z]{2}\d{4,8})/g-->
+<!--            ];-->
+
+<!--            for (const pattern of skuPatterns) {-->
+<!--                const matches = parentFolder.match(pattern);-->
+<!--                if (matches) {-->
+<!--                    for (const match of matches) {-->
+<!--                        if (-->
+<!--                            match.length >= 4 &&-->
+<!--                            match.length <= 20 &&-->
+<!--                            /[A-Za-z]/.test(match) &&-->
+<!--                            (/\d/.test(match) || match.includes('_')) &&-->
+<!--                            !/第[一二三四五六七八九十\d]+版/.test(match) &&-->
+<!--                            !['主图', '副图', '主、副图'].includes(match)-->
+<!--                        ) {-->
+<!--                            return match;-->
+<!--                        }-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+
+<!--            return "";-->
+<!--        }-->
+
+<!--        // 提取图片类型和版本-->
+<!--        function extractImageTypeAndVersion(subFolder, parentFolder) {-->
+<!--            let imageType = "";-->
+<!--            let version = "";-->
+
+<!--            // 提取图片类型（主图/副图）-->
+<!--            if (subFolder.includes("主图")) {-->
+<!--                imageType = "1主图";-->
+<!--            } else if (subFolder.includes("副图")) {-->
+<!--                imageType = "2副图";-->
+<!--            } else if (subFolder.includes("主、副图")) {-->
+<!--                // 在这种情况下，我们可能需要从文件名本身判断是主图还是副图-->
+<!--            } else if (parentFolder.includes("主图")) {-->
+<!--                imageType = "1主图";-->
+<!--            } else if (parentFolder.includes("副图")) {-->
+<!--                imageType = "2副图";-->
+<!--            }-->
+
+<!--            // 从子文件夹名中提取版本信息-->
+<!--            const versionMatch = subFolder.match(/(第[一二三四五六七八九十\d]+版)/);-->
+<!--            if (versionMatch) {-->
+<!--                version = convertChineseNumber(versionMatch[1]);-->
+<!--            } else {-->
+<!--                // 如果没有找到版本信息，尝试其他模式-->
+<!--                if (subFolder.includes("第一版") || subFolder.includes("版1")) {-->
+<!--                    version = "第一版";-->
+<!--                } else if (subFolder.includes("第二版") || subFolder.includes("版2")) {-->
+<!--                    version = "第二版";-->
+<!--                } else if (subFolder.includes("第三版") || subFolder.includes("版3")) {-->
+<!--                    version = "第三版";-->
+<!--                } else if (subFolder.includes("版")) {-->
+<!--                    const versionNumMatch = subFolder.match(/(\d+)版/);-->
+<!--                    if (versionNumMatch) {-->
+<!--                        version = `第${versionNumMatch[1]}版`;-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+
+<!--            return { imageType, version };-->
+<!--        }-->
+
+<!--        // 转换中文数字-->
+<!--        function convertChineseNumber(chineseNum) {-->
+<!--            const chineseToArabic = {-->
+<!--                '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',-->
+<!--                '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'-->
+<!--            };-->
+
+<!--            const match = chineseNum.match(/第([一二三四五六七八九十\d]+)版/);-->
+<!--            if (match) {-->
+<!--                const numStr = match[1];-->
+<!--                if (chineseToArabic[numStr]) {-->
+<!--                    return `第${chineseToArabic[numStr]}版`;-->
+<!--                } else {-->
+<!--                    return `第${numStr}版`;-->
+<!--                }-->
+<!--            }-->
+
+<!--            return chineseNum;-->
+<!--        }-->
+
+<!--        // 提取基础文件名-->
+<!--        function extractBaseFilename(fileName) {-->
+<!--            // 移除文件扩展名-->
+<!--            let baseName = fileName.replace(/\.[^/.]+$/, "");-->
+
+<!--            // 移除末尾的数字版本号（如 -1, -2 等）-->
+<!--            baseName = baseName.replace(/-\d+$/, '');-->
+
+<!--            return baseName;-->
+<!--        }-->
+
+<!--        // 清理文件名部分-->
+<!--        function cleanFilenamePart(part) {-->
+<!--            if (!part) return "";-->
+
+<!--            // 移除不需要的特殊字符，但保留原始文件名的内容-->
+<!--            let cleaned = part.replace(/[【】（）()\s]/g, '');-->
+
+<!--            // 替换连续的分隔符-->
+<!--            cleaned = cleaned.replace(/-+/g, '-');-->
+
+<!--            return cleaned.replace(/^-+|-+$/g, '');-->
+<!--        }-->
+
+<!--        // 处理单个图片-->
+<!--        function processSingleImage(file) {-->
+<!--            return new Promise((resolve) => {-->
+<!--                try {-->
+<!--                    // 使用文件的相对路径来提取文件夹信息-->
+<!--                    const relativePath = file.webkitRelativePath || file.name;-->
+<!--                    const { parentFolder, subFolder, fileName } = extractParentInfo(relativePath);-->
+
+<!--                    // 提取各个部分-->
+<!--                    const baseFilename = extractBaseFilename(fileName);  // 保留原始文件名-->
+<!--                    const sku = extractSkuFromParent(parentFolder);  // SKU-->
+<!--                    const { imageType, version } = extractImageTypeAndVersion(subFolder, parentFolder);  // 图片类型和版本-->
+
+<!--                    // 如果从子文件夹没有获取到图片类型，尝试从文件名或父文件夹获取-->
+<!--                    let finalImageType = imageType;-->
+<!--                    if (!finalImageType) {-->
+<!--                        if (parentFolder.includes("主图") || fileName.startsWith(("主图", "main"))) {-->
+<!--                            finalImageType = "1主图";-->
+<!--                        } else if (parentFolder.includes("副图") || fileName.startsWith(("副图", "sub"))) {-->
+<!--                            finalImageType = "2副图";-->
+<!--                        } else {-->
+<!--                            // 默认作为副图处理-->
+<!--                            finalImageType = "2副图";-->
+<!--                        }-->
+<!--                    }-->
+
+<!--                    // 提取文件本身的数字编号（如 -1.jpg 中的 1）-->
+<!--                    const fileNumberMatch = fileName.match(/-(\d+)\.\w+$/);-->
+<!--                    const fileNumber = fileNumberMatch ? fileNumberMatch[1] : "1";-->
+
+<!--                    // 构建新文件名-->
+<!--                    const parts = [-->
+<!--                        baseFilename,  // 保留原始文件名-->
+<!--                        sku,  // SKU-->
+<!--                        finalImageType,  // 图片类型-->
+<!--                        version,  // 版本-->
+<!--                    ];-->
+
+<!--                    // 如果是副图，添加文件编号-->
+<!--                    if (finalImageType === "2副图") {-->
+<!--                        parts.push(fileNumber);-->
+<!--                    }-->
+
+<!--                    // 过滤掉空的部分并清理-->
+<!--                    const nonEmptyParts = parts-->
+<!--                        .filter(part => part)-->
+<!--                        .map(part => cleanFilenamePart(part));-->
+
+<!--                    // 组合新文件名-->
+<!--                    const newFilename = nonEmptyParts.join("-") + ".jpg";-->
+
+<!--                    resolve({-->
+<!--                        originalName: fileName,-->
+<!--                        newName: newFilename,-->
+<!--                        file: file,-->
+<!--                        success: true-->
+<!--                    });-->
+<!--                } catch (error) {-->
+<!--                    resolve({-->
+<!--                        originalName: file.name,-->
+<!--                        newName: file.name,-->
+<!--                        file: file,-->
+<!--                        success: false,-->
+<!--                        error: error.message-->
+<!--                    });-->
+<!--                }-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 处理图片-->
+<!--        async function processImages() {-->
+<!--            if (uploadedFiles.length === 0) return;-->
+
+<!--            // 显示进度条-->
+<!--            progressContainer.style.display = 'block';-->
+<!--            resultContainer.style.display = 'block';-->
+<!--            processBtn.disabled = true;-->
+<!--            downloadBtn.disabled = true;-->
+
+<!--            addToLog('开始处理图片...');-->
+<!--            addToLog(`找到 ${uploadedFiles.length} 个图片文件`);-->
+
+<!--            // 初始化ZIP-->
+<!--            zip = new JSZip();-->
+<!--            processedFiles = [];-->
+
+<!--            // 处理每个文件-->
+<!--            for (let i = 0; i < uploadedFiles.length; i++) {-->
+<!--                const file = uploadedFiles[i];-->
+<!--                const result = await processSingleImage(file);-->
+<!--                processedFiles.push(result);-->
+
+<!--                if (result.success) {-->
+<!--                    addToLog(`已处理：${result.originalName} -> ${result.newName}`);-->
+<!--                    // 添加到ZIP-->
+<!--                    zip.file(result.newName, file);-->
+<!--                } else {-->
+<!--                    addToLog(`处理文件 ${result.originalName} 时出错: ${result.error}`);-->
+<!--                }-->
+
+<!--                // 更新进度-->
+<!--                const progress = ((i + 1) / uploadedFiles.length) * 100;-->
+<!--                updateProgress(progress);-->
+<!--            }-->
+
+<!--            // 完成处理-->
+<!--            const successCount = processedFiles.filter(f => f.success).length;-->
+<!--            addToLog(`\n图片处理完成！成功处理 ${successCount}/${uploadedFiles.length} 个文件`);-->
+
+<!--            // 启用下载按钮-->
+<!--            downloadBtn.disabled = false;-->
+<!--        }-->
+
+<!--        // 下载ZIP-->
+<!--        async function downloadZip() {-->
+<!--            if (!zip) return;-->
+
+<!--            try {-->
+<!--                const content = await zip.generateAsync({type: "blob"});-->
+<!--                const link = document.createElement('a');-->
+<!--                link.href = URL.createObjectURL(content);-->
+<!--                link.download = "重命名图片.zip";-->
+<!--                document.body.appendChild(link);-->
+<!--                link.click();-->
+<!--                document.body.removeChild(link);-->
+<!--                addToLog('ZIP文件已下载');-->
+<!--            } catch (error) {-->
+<!--                addToLog(`下载失败: ${error.message}`);-->
+<!--            }-->
+<!--        }-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片重命名工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .file-input {
+            display: none;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .result-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .file-list {
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .file-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .folder-list {
+            margin: 15px 0;
+            text-align: left;
+        }
+        .folder-item {
+            padding: 5px;
+            background-color: #e9ecef;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>图片重命名工具</h1>
+
+        <div class="upload-area" id="uploadArea">
+            <p>点击选择文件夹或拖拽文件夹到此处</p>
+            <p>支持 JPG, JPEG, PNG, GIF, BMP 格式</p>
+            <p>可多次选择文件夹添加到列表中</p>
+            <input type="file" class="file-input" id="fileInput" webkitdirectory directory>
+            <button class="btn" id="selectBtn">选择文件夹</button>
+        </div>
+
+        <div class="folder-list" id="folderList"></div>
+        <div class="file-list" id="fileList"></div>
+
+        <div style="text-align: center;">
+            <button class="btn" id="processBtn" disabled>开始处理</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="progress-container" id="progressContainer">
+            <p>处理进度:</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">0%</p>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <h3>处理日志:</h3>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let selectedFolders = [];
+        let uploadedFiles = [];
+        let zip = null;
+        let processedFiles = [];
+
+        // DOM元素
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectBtn = document.getElementById('selectBtn');
+        const processBtn = document.getElementById('processBtn');
+        const fileList = document.getElementById('fileList');
+        const folderList = document.getElementById('folderList');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const resultContainer = document.getElementById('resultContainer');
+        const logElement = document.getElementById('log');
+        const statusElement = document.getElementById('status');
+
+        // 事件监听器
+        selectBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        processBtn.addEventListener('click', processImages);
+
+        // 拖拽事件
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        });
+
+        // 处理文件选择
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        }
+
+        // 处理文件
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            // 获取文件夹路径
+            const folderPaths = new Set();
+            const validFiles = [];
+
+            files.forEach(file => {
+                if (isImageFile(file.name)) {
+                    validFiles.push(file);
+                    const relativePath = file.webkitRelativePath || file.name;
+                    const pathParts = relativePath.split('/');
+                    if (pathParts.length >= 2) {
+                        folderPaths.add(pathParts[0]); // 添加根文件夹
+                    }
+                }
+            });
+
+            // 添加新文件夹到列表
+            folderPaths.forEach(folderPath => {
+                if (!selectedFolders.includes(folderPath)) {
+                    selectedFolders.push(folderPath);
+                    const folderItem = document.createElement('div');
+                    folderItem.className = 'folder-item';
+                    folderItem.textContent = `📁 ${folderPath} (${validFiles.filter(f =>
+                        (f.webkitRelativePath || f.name).startsWith(folderPath)).length} 个文件)`;
+                    folderList.appendChild(folderItem);
+                }
+            });
+
+            // 合并文件到已上传文件列表
+            uploadedFiles = [...uploadedFiles, ...validFiles];
+
+            // 更新文件列表显示
+            updateFileList();
+
+            if (uploadedFiles.length > 0) {
+                processBtn.disabled = false;
+                statusElement.textContent = `已选择 ${selectedFolders.length} 个文件夹，共 ${uploadedFiles.length} 个图片文件`;
+            } else {
+                processBtn.disabled = true;
+                statusElement.textContent = '未选择有效的图片文件';
+            }
+        }
+
+        // 更新文件列表显示
+        function updateFileList() {
+            fileList.innerHTML = '';
+            uploadedFiles.slice(0, 20).forEach(file => { // 只显示前20个文件
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.textContent = file.webkitRelativePath || file.name;
+                fileList.appendChild(fileItem);
+            });
+
+            if (uploadedFiles.length > 20) {
+                const moreItem = document.createElement('div');
+                moreItem.className = 'file-item';
+                moreItem.textContent = `... 还有 ${uploadedFiles.length - 20} 个文件`;
+                fileList.appendChild(moreItem);
+            }
+        }
+
+        // 检查是否为图片文件
+        function isImageFile(filename) {
+            const ext = filename.toLowerCase().split('.').pop();
+            return ['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext);
+        }
+
+        // 添加日志
+        function addToLog(message) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // 更新进度
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = Math.round(percent) + '%';
+        }
+
+        // 提取父文件夹信息
+        function extractParentInfo(filePath) {
+            // 使用文件的相对路径来提取文件夹信息
+            const pathParts = filePath.split('/');
+
+            if (pathParts.length < 2) {
+                return { parentFolder: "", subFolder: "", fileName: filePath };
+            }
+
+            const fileName = pathParts[pathParts.length - 1];
+
+            // 判断是否有子文件夹结构
+            if (pathParts.length >= 3) {
+                // 有子文件夹：.../父文件夹/子文件夹/文件名
+                return {
+                    parentFolder: pathParts[pathParts.length - 3],
+                    subFolder: pathParts[pathParts.length - 2],
+                    fileName: fileName
+                };
+            } else if (pathParts.length === 2) {
+                // 无子文件夹：.../父文件夹/文件名
+                return {
+                    parentFolder: pathParts[pathParts.length - 2],
+                    subFolder: "",
+                    fileName: fileName
+                };
+            }
+
+            return { parentFolder: "", subFolder: "", fileName: fileName };
+        }
+
+        // 提取SKU
+        function extractSkuFromParent(parentFolder) {
+            if (!parentFolder) return "";
+
+            const parts = parentFolder.split('-');
+
+            // 方式1: 按照指定格式提取（第3个部分，索引2）- 处理类似 EZau208 的SKU
+            if (parts.length >= 3) {
+                const skuCandidate = parts[2];
+                if (
+                    /^[A-Za-z]/.test(skuCandidate) &&
+                    /[A-Za-z]/.test(skuCandidate) &&
+                    /\d/.test(skuCandidate) &&
+                    skuCandidate.length >= 4 &&
+                    skuCandidate.length <= 15 &&
+                    !['主图', '副图', '主、副图'].includes(skuCandidate)
+                ) {
+                    return skuCandidate;
+                }
+            }
+
+            // 方式2: 按照指定格式提取（第4个部分，索引3）- 处理带下划线的SKU
+            if (parts.length >= 4) {
+                const skuCandidate = parts[3];
+                if (
+                    /[A-Za-z]/.test(skuCandidate) &&
+                    (/\d/.test(skuCandidate) || skuCandidate.includes('_')) &&
+                    !/第[一二三四五六七八九十\d]+版/.test(skuCandidate) &&
+                    !['主图', '副图', '主、副图'].includes(skuCandidate) &&
+                    skuCandidate.length >= 4
+                ) {
+                    return skuCandidate;
+                }
+            }
+
+            // 方式3: 直接搜索符合SKU格式的部分
+            const skuPatterns = [
+                /([A-Z0-9]+_[A-Z0-9]+)/g,
+                /([A-Za-z]{2,}[A-Za-z]*\d{2,})/g,
+                /([A-Z]{2}\d{4,8})/g
+            ];
+
+            for (const pattern of skuPatterns) {
+                const matches = parentFolder.match(pattern);
+                if (matches) {
+                    for (const match of matches) {
+                        if (
+                            match.length >= 4 &&
+                            match.length <= 20 &&
+                            /[A-Za-z]/.test(match) &&
+                            (/\d/.test(match) || match.includes('_')) &&
+                            !/第[一二三四五六七八九十\d]+版/.test(match) &&
+                            !['主图', '副图', '主、副图'].includes(match)
+                        ) {
+                            return match;
+                        }
+                    }
+                }
+            }
+
+            return "";
+        }
+
+        // 提取图片类型和版本
+        function extractImageTypeAndVersion(subFolder, parentFolder) {
+            let imageType = "";
+            let version = "";
+
+            // 提取图片类型（主图/副图）
+            if (subFolder.includes("主图")) {
+                imageType = "1主图";
+            } else if (subFolder.includes("副图")) {
+                imageType = "2副图";
+            } else if (subFolder.includes("主、副图")) {
+                // 在这种情况下，我们可能需要从文件名本身判断是主图还是副图
+            } else if (parentFolder.includes("主图")) {
+                imageType = "1主图";
+            } else if (parentFolder.includes("副图")) {
+                imageType = "2副图";
+            }
+
+            // 从子文件夹名中提取版本信息
+            const versionMatch = subFolder.match(/(第[一二三四五六七八九十\d]+版)/);
+            if (versionMatch) {
+                version = convertChineseNumber(versionMatch[1]);
+            } else {
+                // 如果没有找到版本信息，尝试其他模式
+                if (subFolder.includes("第一版") || subFolder.includes("版1")) {
+                    version = "第一版";
+                } else if (subFolder.includes("第二版") || subFolder.includes("版2")) {
+                    version = "第二版";
+                } else if (subFolder.includes("第三版") || subFolder.includes("版3")) {
+                    version = "第三版";
+                } else if (subFolder.includes("版")) {
+                    const versionNumMatch = subFolder.match(/(\d+)版/);
+                    if (versionNumMatch) {
+                        version = `第${versionNumMatch[1]}版`;
+                    }
+                }
+            }
+
+            return { imageType, version };
+        }
+
+        // 转换中文数字
+        function convertChineseNumber(chineseNum) {
+            const chineseToArabic = {
+                '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
+                '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'
+            };
+
+            const match = chineseNum.match(/第([一二三四五六七八九十\d]+)版/);
+            if (match) {
+                const numStr = match[1];
+                if (chineseToArabic[numStr]) {
+                    return `第${chineseToArabic[numStr]}版`;
+                } else {
+                    return `第${numStr}版`;
+                }
+            }
+
+            return chineseNum;
+        }
+
+        // 提取基础文件名
+        function extractBaseFilename(fileName) {
+            // 移除文件扩展名
+            let baseName = fileName.replace(/\.[^/.]+$/, "");
+
+            // 移除末尾的数字版本号（如 -1, -2 等）
+            baseName = baseName.replace(/-\d+$/, '');
+
+            return baseName;
+        }
+
+        // 清理文件名部分
+        function cleanFilenamePart(part) {
+            if (!part) return "";
+
+            // 移除不需要的特殊字符，但保留原始文件名的内容
+            let cleaned = part.replace(/[【】（）()\s]/g, '');
+
+            // 替换连续的分隔符
+            cleaned = cleaned.replace(/-+/g, '-');
+
+            return cleaned.replace(/^-+|-+$/g, '');
+        }
+
+        // 处理单个图片
+        function processSingleImage(file) {
+            return new Promise((resolve) => {
+                try {
+                    // 使用文件的相对路径来提取文件夹信息
+                    const relativePath = file.webkitRelativePath || file.name;
+                    const { parentFolder, subFolder, fileName } = extractParentInfo(relativePath);
+
+                    // 提取各个部分
+                    const baseFilename = extractBaseFilename(fileName);  // 保留原始文件名
+                    const sku = extractSkuFromParent(parentFolder);  // SKU
+                    const { imageType, version } = extractImageTypeAndVersion(subFolder, parentFolder);  // 图片类型和版本
+
+                    // 如果从子文件夹没有获取到图片类型，尝试从文件名或父文件夹获取
+                    let finalImageType = imageType;
+                    if (!finalImageType) {
+                        if (parentFolder.includes("主图") || fileName.startsWith("主图") || fileName.startsWith("main")) {
+                            finalImageType = "1主图";
+                        } else if (parentFolder.includes("副图") || fileName.startsWith("副图") || fileName.startsWith("sub")) {
+                            finalImageType = "2副图";
+                        } else {
+                            // 默认作为副图处理
+                            finalImageType = "2副图";
+                        }
+                    }
+
+                    // 提取文件本身的数字编号（如 -1.jpg 中的 1）
+                    const fileNumberMatch = fileName.match(/-(\d+)\.\w+$/);
+                    const fileNumber = fileNumberMatch ? fileNumberMatch[1] : "1";
+
+                    // 构建新文件名
+                    const parts = [
+                        baseFilename,  // 保留原始文件名
+                        sku,  // SKU
+                        finalImageType,  // 图片类型
+                        version,  // 版本
+                    ];
+
+                    // 如果是副图，添加文件编号
+                    if (finalImageType === "2副图") {
+                        parts.push(fileNumber);
+                    }
+
+                    // 过滤掉空的部分并清理
+                    const nonEmptyParts = parts
+                        .filter(part => part)
+                        .map(part => cleanFilenamePart(part));
+
+                    // 组合新文件名
+                    const newFilename = nonEmptyParts.join("-") + ".jpg";
+
+                    resolve({
+                        originalName: fileName,
+                        newName: newFilename,
+                        file: file,
+                        success: true
+                    });
+                } catch (error) {
+                    resolve({
+                        originalName: file.name,
+                        newName: file.name,
+                        file: file,
+                        success: false,
+                        error: error.message
+                    });
+                }
+            });
+        }
+
+        // 处理图片
+        async function processImages() {
+            if (uploadedFiles.length === 0) return;
+
+            // 显示进度条
+            progressContainer.style.display = 'block';
+            resultContainer.style.display = 'block';
+            processBtn.disabled = true;
+            statusElement.textContent = '处理中...';
+
+            addToLog('开始处理图片...');
+            addToLog(`找到 ${uploadedFiles.length} 个图片文件`);
+
+            // 初始化ZIP
+            zip = new JSZip();
+            processedFiles = [];
+
+            // 处理每个文件
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const file = uploadedFiles[i];
+                const result = await processSingleImage(file);
+                processedFiles.push(result);
+
+                if (result.success) {
+                    addToLog(`已处理：${result.originalName} -> ${result.newName}`);
+                    // 添加到ZIP
+                    zip.file(result.newName, file);
+                } else {
+                    addToLog(`处理文件 ${result.originalName} 时出错: ${result.error}`);
+                }
+
+                // 更新进度
+                const progress = ((i + 1) / uploadedFiles.length) * 100;
+                updateProgress(progress);
+            }
+
+            // 完成处理
+            const successCount = processedFiles.filter(f => f.success).length;
+            addToLog(`\n图片处理完成！成功处理 ${successCount}/${uploadedFiles.length} 个文件`);
+            statusElement.textContent = `处理完成！成功 ${successCount}/${uploadedFiles.length} 个文件`;
+
+            // 自动下载ZIP
+            await downloadZip();
+        }
+
+        // 下载ZIP
+        async function downloadZip() {
+            if (!zip) return;
+
+            try {
+                statusElement.textContent = '正在生成ZIP文件...';
+                const content = await zip.generateAsync({type: "blob"});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = "重命名图片.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                addToLog('ZIP文件已自动下载');
+                statusElement.textContent = 'ZIP文件已下载';
+            } catch (error) {
+                addToLog(`下载失败: ${error.message}`);
+                statusElement.textContent = '下载失败';
+            }
+        }
+    </script>
+</body>
+</html>
+
