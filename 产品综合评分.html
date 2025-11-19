@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊初步选品推荐系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 1600px;
+            margin: auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .upload-box {
+            border: 3px dashed #667eea;
+            padding: 20px 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            border-radius: 10px;
+            background-color: #f8f9ff;
+            transition: all 0.3s ease;
+        }
+        .upload-box:hover {
+            border-color: #764ba2;
+            background-color: #f0f2ff;
+            transform: translateY(-2px);
+        }
+        #file-input {
+            display: none;
+        }
+        .upload-icon {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .weight-control {
+            margin: 5px 0;
+        }
+        .weight-control label {
+            display: inline-block;
+            width: 150px;
+            font-weight: 500;
+        }
+        .weight-control input {
+            width: 150px;
+        }
+        .weight-value {
+            display: inline-block;
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .dynamic-config {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .config-row {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .config-row label {
+            font-weight: 500;
+            min-width: 120px;
+        }
+        .config-row input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #results {
+            margin-top: 20px;
+            display: none;
+        }
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .sticky-filters {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            padding: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .filter-group label {
+            font-weight: 500;
+            color: #555;
+            font-size: 0.9em;
+        }
+        .filter-group select, .filter-group input {
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .export-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: auto;
+            font-size: 0.9em;
+        }
+        .export-btn:hover {
+            background: linear-gradient(135deg, #218838, #1ea085);
+        }
+        .table-container {
+            position: relative;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.85em;
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        tr:hover {
+            background-color: #f8f9ff;
+            transition: all 0.2s ease;
+        }
+        .score-cell {
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .score-excellent {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .score-good {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .score-average {
+            background-color: #ffeaa7;
+            color: #856404;
+        }
+        .score-poor {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .product-image {
+            width: 100px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .product-title {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .asin-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .asin-link:hover {
+            text-decoration: underline;
+        }
+        .positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .neutral {
+            color: #6c757d;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-right: 3px;
+        }
+        .badge-bestseller {
+            background: #ffd700;
+            color: #000;
+        }
+        .badge-amazon-choice {
+            background: #007bff;
+            color: white;
+        }
+        .badge-new-release {
+            background: #28a745;
+            color: white;
+        }
+        .badge-prime {
+            background: #00a8e1;
+            color: white;
+        }
+        .growth-up {
+            color: #28a745;
+        }
+        .growth-down {
+            color: #dc3545;
+        }
+        .dimension-scores {
+            display: flex;
+            gap: 5px;
+            margin-top: 3px;
+            flex-wrap: wrap;
+        }
+        .dimension-score {
+            font-size: 0.7em;
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        .metric-detail {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 2px;
+        }
+        .score-breakdown {
+            margin-top: 3px;
+            font-size: 0.7em;
+            color: #666;
+        }
+        .chinese-title {
+            font-size: 0.7em;
+            color: #666;
+            margin-top: 2px;
+            line-height: 1.2;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .bsr-display {
+            font-weight: bold;
+            color: #333;
+        }
+        .data-guide {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .data-guide h3 {
+            color: #333;
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        .guide-section {
+            margin-bottom: 10px;
+        }
+        .guide-section h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+        .guide-section p {
+            font-size: 0.9em;
+            margin: 3px 0;
+        }
+        /* 新增样式 */
+        .guide-toggle-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .guide-toggle-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            display: block;
+            width: 100%;
+        }
+
+        .guide-toggle-btn:hover {
+            background: linear-gradient(135deg, #5a6fd8, #6a4190);
+        }
+
+        .metrics-guide {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .metrics-guide h3 {
+            color: #333;
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+
+        .metrics-section {
+            margin-bottom: 15px;
+        }
+
+        .metrics-section h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .metrics-table th,
+        .metrics-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .metrics-table th {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .metrics-formula {
+            font-family: 'Courier New', monospace;
+            background-color: #f0f0f0;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .percentile-info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👗 亚马逊初步选品推荐系统</h1>
+        <p class="subtitle">基于多维度的选品分析，精准识别潜力商品</p>
+
+        <div class="upload-box" onclick="document.getElementById('file-input').click()">
+            <div class="upload-icon">📊</div>
+            <h3>上传卖家精灵产品数据文件</h3>
+            <p>支持 Excel (.xlsx, .xls) 或 CSV 格式</p>
+            <p><small>请确保文件包含完整的卖家精灵数据字段</small></p>
+            <input type="file" id="file-input" accept=".xlsx, .xls, .csv">
+        </div>
+
+        <div class="controls" id="controls">
+            <h3>🔧 权重配置</h3>
+            <p>根据您的选品策略调整各维度的重要性：</p>
+
+            <div class="weight-control">
+                <label for="weight-sales">销售表现 (30%):</label>
+                <input type="range" id="weight-sales" min="0" max="100" value="30">
+                <span class="weight-value" id="value-sales">30%</span>
+            </div>
+
+            <div class="weight-control">
+                <label for="weight-profit">利润潜力 (25%):</label>
+                <input type="range" id="weight-profit" min="0" max="100" value="25">
+                <span class="weight-value" id="value-profit">25%</span>
+            </div>
+
+            <div class="weight-control">
+                <label for="weight-competition">竞争分析 (20%):</label>
+                <input type="range" id="weight-competition" min="0" max="100" value="20">
+                <span class="weight-value" id="value-competition">20%</span>
+            </div>
+
+            <div class="weight-control">
+                <label for="weight-quality">产品质量 (15%):</label>
+                <input type="range" id="weight-quality" min="0" max="100" value="15">
+                <span class="weight-value" id="value-quality">15%</span>
+            </div>
+
+            <div class="weight-control">
+                <label for="weight-growth">增长潜力 (10%):</label>
+                <input type="range" id="weight-growth" min="0" max="100" value="10">
+                <span class="weight-value" id="value-growth">10%</span>
+            </div>
+
+            <button onclick="recalculateScores()" style="margin-top: 10px; padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                应用权重并重新计算
+            </button>
+
+            <!-- 动态参数配置 -->
+            <div class="dynamic-config">
+                <h3>⚙️ 动态参数配置</h3>
+                <div class="config-row">
+                    <label>最佳价格区间:</label>
+                    <input type="number" id="price-min" value="15" min="0" max="100"> -
+                    <input type="number" id="price-max" value="30" min="0" max="200">
+                </div>
+                <div class="config-row">
+                    <label>理想评分数范围:</label>
+                    <input type="number" id="review-min" value="100" min="0" max="10000"> -
+                    <input type="number" id="review-max" value="5000" min="0" max="50000">
+                </div>
+                <div class="config-row">
+                    <label>BSR排名阈值:</label>
+                    <input type="number" id="bsr-major" value="5000" min="0" max="100000"> (大类)
+                    <input type="number" id="bsr-minor" value="100" min="0" max="10000"> (小类)
+                </div>
+                <div class="config-row">
+                    <label>理想卖家数:</label>
+                    <input type="number" id="seller-count" value="3" min="1" max="20">
+                </div>
+                <div class="config-row">
+                    <label>理想上架时间:</label>
+                    <input type="number" id="listing-min" value="90" min="0" max="365"> -
+                    <input type="number" id="listing-max" value="360" min="0" max="730"> (天)
+                </div>
+                <button onclick="updateAllConfig()" style="margin-top: 10px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    更新所有配置并重新计算
+                </button>
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="results-header">
+                <h2>🎯 推荐产品列表</h2>
+                <button class="export-btn" onclick="exportResults()">📥 导出推荐结果</button>
+            </div>
+
+            <div class="sticky-filters">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>价格:</label>
+                        <input type="number" id="min-price" placeholder="最低" style="width: 70px;">
+                        <span>-</span>
+                        <input type="number" id="max-price" placeholder="最高" style="width: 70px;">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>销量≥:</label>
+                        <input type="number" id="min-sales" placeholder="最小销量" style="width: 70px;">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>评分≥:</label>
+                        <select id="min-rating">
+                            <option value="0">不限</option>
+                            <option value="4.0">4.0</option>
+                            <option value="4.2">4.2</option>
+                            <option value="4.5">4.5</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>卖家≤:</label>
+                        <select id="max-sellers">
+                            <option value="999">不限</option>
+                            <option value="3">3个</option>
+                            <option value="5">5个</option>
+                            <option value="10">10个</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>排序:</label>
+                        <select id="sort-by" onchange="sortProducts()">
+                            <option value="score">推荐分数</option>
+                            <option value="sales">月销量</option>
+                            <option value="revenue">月销售额</option>
+                            <option value="profitScore">利润潜力</option>
+                            <option value="competitionScore">竞争优势</option>
+                            <option value="qualityScore">产品质量</option>
+                        </select>
+                    </div>
+
+                    <button onclick="applyFilters()" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                        应用筛选
+                    </button>
+                </div>
+            </div>
+
+            <div id="percentile-info-container"></div>
+
+            <p>找到 <span id="product-count">0</span> 个产品 |
+                <span id="avg-price">平均价格: $0</span> |
+                <span id="avg-sales">平均月销量: 0</span> |
+                <span id="avg-rating">平均评分: 0</span> |
+                <span id="avg-score">平均推荐分: 0</span>
+            </p>
+
+            <div class="table-container">
+                <table id="result-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>产品信息</th>
+                            <th>综合评分</th>
+                            <th>价格/利润</th>
+                            <th>销售表现</th>
+                            <th>竞争分析</th>
+                            <th>产品质量</th>
+                            <th>增长潜力</th>
+                            <th>产品标识</th>
+                        </tr>
+                    </thead>
+                    <tbody id="result-body">
+                        <!-- 结果将由JavaScript动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 数据解读指南 -->
+            <div class="data-guide" id="data-guide" style="display: none;">
+                <h3>📊 数据解读指南</h3>
+
+                <div class="guide-section">
+                    <h4>🎯 综合推荐分数 (0-100分)</h4>
+                    <p><strong>90-100分</strong>: 极品机会 - 强烈推荐 | <strong>80-89分</strong>: 优质产品 - 重点考虑 | <strong>70-79分</strong>: 良好产品 - 值得关注 | <strong>60-69分</strong>: 一般产品 - 谨慎选择 | <strong>&lt;60分</strong>: 风险较高 - 建议规避</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>📈 销售表现 (30%) - 市场接受度</h4>
+                    <p><strong>月销量</strong>: 500-5000件为理想范围 | <strong>月销售额</strong>: $5,000-$50,000确保利润空间 | <strong>销量增长率</strong>: +10% ~ +50%表示趋势向上</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>💰 利润潜力 (25%) - 盈利能力</h4>
+                    <p><strong>价格区间</strong>: $15-$30平衡销量与利润 | <strong>预估毛利率</strong>: >40%才有足够利润 | <strong>评分数/销售额比</strong>: 0.5-2倍反映评价真实性</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>⚔️ 竞争分析 (20%) - 市场竞争程度</h4>
+                    <p><strong>卖家数量</strong>: 1-5个竞争较小 | <strong>BSR排名</strong>: 大类&lt;5,000, 小类&lt;100为佳 | BSR越小排名越好</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>⭐ 产品质量 (15%) - 用户满意度</h4>
+                    <p><strong>评分</strong>: 4.2-4.8星产品质量好 | <strong>评分数</strong>: 100-2000个数据可靠 | <strong>留评率</strong>: 0.1%-1%为正常范围</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>🚀 增长潜力 (10%) - 发展空间</h4>
+                    <p><strong>上架时间</strong>: 3-12个月新品有潜力 | <strong>月新增评价</strong>: 持续增长反映活跃度 | <strong>营销标识</strong>: Best Seller等有流量优势</p>
+                </div>
+
+                <div class="guide-section">
+                    <h4>💡 选品建议</h4>
+                    <p>优先选择: 评分80+ | 月销量1000-3000 | 价格$20-35 | 卖家≤3 | BSR排名稳定 | 毛利率>35% | 上架6-18个月的产品</p>
+                </div>
+            </div>
+
+            <button onclick="toggleDataGuide()" style="margin-top: 15px; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                📖 显示/隐藏数据解读指南
+            </button>
+        </div>
+        <!-- 新增指标体系按钮和面板 -->
+    <div class="guide-toggle-container">
+        <button class="guide-toggle-btn" onclick="toggleMetricsGuide()">
+            📊 指标体系与计算方式
+        </button>
+    </div>
+<!--        &lt;!&ndash; 添加到页面中适当位置 &ndash;&gt;-->
+<!--<div class="scoring-example" id="scoring-example" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">-->
+<!--    <h3>📊 产品评分计算示例</h3>-->
+<!--    <p>以下以产品 <strong>B0BJJK5QFP</strong> 为例，详细展示评分计算过程：</p>-->
+
+<!--    <div class="example-section">-->
+<!--        <h4>产品基本信息</h4>-->
+<!--        <div class="product-info-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 10px 0;">-->
+<!--            <div class="info-item"><strong>ASIN:</strong> B0BJJK5QFP</div>-->
+<!--            <div class="info-item"><strong>价格:</strong> $38.58</div>-->
+<!--            <div class="info-item"><strong>月销量:</strong> 5,040件</div>-->
+<!--            <div class="info-item"><strong>月销售额:</strong> $194,443</div>-->
+<!--            <div class="info-item"><strong>销量增长率:</strong> 55%</div>-->
+<!--            <div class="info-item"><strong>评分:</strong> 4.7</div>-->
+<!--            <div class="info-item"><strong>评分数:</strong> 4,258</div>-->
+<!--            <div class="info-item"><strong>月新增评分数:</strong> 108</div>-->
+<!--            <div class="info-item"><strong>大类BSR:</strong> 6,237</div>-->
+<!--            <div class="info-item"><strong>小类BSR:</strong> 52</div>-->
+<!--            <div class="info-item"><strong>卖家数:</strong> 2</div>-->
+<!--            <div class="info-item"><strong>上架天数:</strong> 1,560天</div>-->
+<!--            <div class="info-item"><strong>留评率:</strong> 2.14%</div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div class="example-section">-->
+<!--        <h4>75%分位数基准值</h4>-->
+<!--        <div class="percentile-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 10px 0;">-->
+<!--            <div class="percentile-item"><strong>月销量:</strong> 3,750</div>-->
+<!--            <div class="percentile-item"><strong>月销售额:</strong> $125,000</div>-->
+<!--            <div class="percentile-item"><strong>评分数:</strong> 3,500</div>-->
+<!--            <div class="percentile-item"><strong>大类BSR:</strong> 8,500</div>-->
+<!--            <div class="percentile-item"><strong>小类BSR:</strong> 150</div>-->
+<!--            <div class="percentile-item"><strong>卖家数:</strong> 3</div>-->
+<!--            <div class="percentile-item"><strong>销量增长率:</strong> 35%</div>-->
+<!--            <div class="percentile-item"><strong>月新增评分数:</strong> 85</div>-->
+<!--            <div class="percentile-item"><strong>留评率:</strong> 1.8%</div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div class="example-section">-->
+<!--        <h4>各维度详细计算过程</h4>-->
+
+<!--        <div class="dimension-calculation" style="margin: 15px 0; padding: 10px; background: white; border-radius: 5px;">-->
+<!--            <h5>1. 销售表现维度 (权重30%)</h5>-->
+<!--            <ul style="padding-left: 20px;">-->
+<!--                <li><strong>月销量评分:</strong> (5,040 / 3,750) × 0.4 = 1.344 × 0.4 = 0.538</li>-->
+<!--                <li><strong>月销售额评分:</strong> (194,443 / 125,000) × 0.4 = 1.555 × 0.4 = 0.622</li>-->
+<!--                <li><strong>销量增长率评分:</strong> (55 / 35) × 0.2 = 1.571 × 0.2 = 0.314</li>-->
+<!--                <li><strong>销售表现总分:</strong> 0.538 + 0.622 + 0.314 = 1.474 → 限制在1.000 (最大值)</li>-->
+<!--                <li><strong>销售表现贡献:</strong> 1.000 × 30% = 0.300</li>-->
+<!--            </ul>-->
+<!--        </div>-->
+
+<!--        <div class="dimension-calculation" style="margin: 15px 0; padding: 10px; background: white; border-radius: 5px;">-->
+<!--            <h5>2. 利润潜力维度 (权重25%)</h5>-->
+<!--            <ul style="padding-left: 20px;">-->
+<!--                <li><strong>价格区间评分:</strong> $38.58 在 $30-50 范围内，得分 = 0.7</li>-->
+<!--                <li><strong>评分数/销售额比评分:</strong> 4,258 / (194,443 / 38.58) = 0.845 → 在 0.5-2 之间，得分 = 0.8</li>-->
+<!--                <li><strong>毛利率评分:</strong> 预估毛利率 64.3% ≥ 40%，得分 = 0.9</li>-->
+<!--                <li><strong>利润潜力总分:</strong> (0.7 × 0.4) + (0.8 × 0.3) + (0.9 × 0.3) = 0.28 + 0.24 + 0.27 = 0.79</li>-->
+<!--                <li><strong>利润潜力贡献:</strong> 0.79 × 25% = 0.198</li>-->
+<!--            </ul>-->
+<!--        </div>-->
+
+<!--        <div class="dimension-calculation" style="margin: 15px 0; padding: 10px; background: white; border-radius: 5px;">-->
+<!--            <h5>3. 竞争分析维度 (权重20%)</h5>-->
+<!--            <ul style="padding-left: 20px;">-->
+<!--                <li><strong>卖家数量评分:</strong> 2 个卖家 ≤ 3 个，得分 = 0.9 → 0.9 × 0.4 = 0.36</li>-->
+<!--                <li><strong>大类BSR评分:</strong> (1 - 6,237 / 8,500) × 0.3 = 0.266 × 0.3 = 0.080</li>-->
+<!--                <li><strong>小类BSR评分:</strong> (1 - 52 / 150) × 0.3 = 0.653 × 0.3 = 0.196</li>-->
+<!--                <li><strong>竞争分析总分:</strong> 0.36 + 0.080 + 0.196 = 0.636</li>-->
+<!--                <li><strong>竞争分析贡献:</strong> 0.636 × 20% = 0.127</li>-->
+<!--            </ul>-->
+<!--        </div>-->
+
+<!--        <div class="dimension-calculation" style="margin: 15px 0; padding: 10px; background: white; border-radius: 5px;">-->
+<!--            <h5>4. 产品质量维度 (权重15%)</h5>-->
+<!--            <ul style="padding-left: 20px;">-->
+<!--                <li><strong>评分评分:</strong> (4.7 / 5) × 0.5 = 0.94 × 0.5 = 0.47</li>-->
+<!--                <li><strong>评分数评分:</strong> 4,258 在 100-5000 范围内，得分 = 0.8 → 0.8 × 0.3 = 0.24</li>-->
+<!--                <li><strong>留评率评分:</strong> 2.14% 在 1%-3% 范围内，得分 = 0.5 → 0.5 × 0.2 = 0.1</li>-->
+<!--                <li><strong>产品质量总分:</strong> 0.47 + 0.24 + 0.1 = 0.81</li>-->
+<!--                <li><strong>产品质量贡献:</strong> 0.81 × 15% = 0.122</li>-->
+<!--            </ul>-->
+<!--        </div>-->
+
+<!--        <div class="dimension-calculation" style="margin: 15px 0; padding: 10px; background: white; border-radius: 5px;">-->
+<!--            <h5>5. 增长潜力维度 (权重10%)</h5>-->
+<!--            <ul style="padding-left: 20px;">-->
+<!--                <li><strong>上架时间评分:</strong> 1,560 天不在 90-360 天范围内，得分 = 0.4 → 0.4 × 0.4 = 0.16</li>-->
+<!--                <li><strong>月新增评价评分:</strong> (108 / 85) × 0.4 = 1.271 × 0.4 = 0.508</li>-->
+<!--                <li><strong>营销标识加分:</strong> 假设具有 Best Seller 标识，加分 = 0.1</li>-->
+<!--                <li><strong>增长潜力总分:</strong> 0.16 + 0.508 + 0.1 = 0.768</li>-->
+<!--                <li><strong>增长潜力贡献:</strong> 0.768 × 10% = 0.077</li>-->
+<!--            </ul>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div class="final-score" style="margin: 20px 0; padding: 15px; background: white; border-radius: 5px; border: 2px solid #667eea;">-->
+<!--        <h4>最终综合评分计算</h4>-->
+<!--        <p><strong>综合评分 =</strong> 销售表现贡献 + 利润潜力贡献 + 竞争分析贡献 + 产品质量贡献 + 增长潜力贡献</p>-->
+<!--        <p><strong>综合评分 =</strong> 0.300 + 0.198 + 0.127 + 0.122 + 0.077 = 0.824</p>-->
+<!--        <p><strong>转换为百分制:</strong> 0.824 × 100 = <span style="font-size: 1.2em; font-weight: bold; color: #28a745;">82.4分</span></p>-->
+<!--        <p>根据评分等级标准，该产品属于 <span style="font-weight: bold; color: #28a745;">优质产品 - 重点考虑</span> 级别</p>-->
+<!--    </div>-->
+
+<!--    <div class="scoring-notes" style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 5px;">-->
+<!--        <h4>评分说明</h4>-->
+<!--        <ul style="padding-left: 20px;">-->
+<!--            <li>所有数值指标均使用75%分位数作为基准进行归一化处理，避免极值产品对评分的影响</li>-->
+<!--            <li>归一化值限制最大为2，防止极端值对评分体系的过度影响</li>-->
+<!--            <li>BSR排名采用反向处理，数值越小得分越高</li>-->
+<!--            <li>各维度权重总和为100%，确保评分体系的平衡性</li>-->
+<!--        </ul>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; 添加显示/隐藏按钮 &ndash;&gt;-->
+<!--<button onclick="toggleScoringExample()" style="margin-top: 15px; padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">-->
+<!--    📊 显示/隐藏评分计算示例-->
+<!--</button>-->
+        <!-- 添加到页面中适当位置 -->
+<div class="scoring-example" id="scoring-example" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">
+    <h3>📊 产品评分计算示例</h3>
+    <p>以下以产品 <strong>B0BJJK5QFP</strong> 为例，详细展示评分计算过程：</p>
+
+    <div class="example-section" style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <h4 style="color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 5px;">产品基本信息</h4>
+        <div class="product-info-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 10px 0;">
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>ASIN:</strong> B0BJJK5QFP</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>价格:</strong> $38.58</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>月销量:</strong> 5,040件</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>月销售额:</strong> $194,443</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>销量增长率:</strong> 55%</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>评分:</strong> 4.7</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>评分数:</strong> 4,258</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>月新增评分数:</strong> 108</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>大类BSR:</strong> 6,237</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>小类BSR:</strong> 52</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>卖家数:</strong> 2</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>上架天数:</strong> 1,560天</div>
+            <div class="info-item" style="padding: 8px; background: #f8f9ff; border-radius: 5px;"><strong>留评率:</strong> 2.14%</div>
+        </div>
+    </div>
+
+    <div class="example-section" style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <h4 style="color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 5px;">75%分位数基准值</h4>
+        <div class="percentile-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 10px 0;">
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>月销量:</strong> 3,750</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>月销售额:</strong> $125,000</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>评分数:</strong> 3,500</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>大类BSR:</strong> 8,500</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>小类BSR:</strong> 150</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>卖家数:</strong> 3</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>销量增长率:</strong> 35%</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>月新增评分数:</strong> 85</div>
+            <div class="percentile-item" style="padding: 8px; background: #e3f2fd; border-radius: 5px;"><strong>留评率:</strong> 1.8%</div>
+        </div>
+    </div>
+
+    <div class="example-section" style="margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e0e0e0;">
+        <h4 style="color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 5px;">各维度详细计算过程</h4>
+
+        <div class="dimension-calculation" style="margin: 15px 0; padding: 15px; background: #fff8f0; border-radius: 5px; border-left: 3px solid #ffa500;">
+            <h5 style="color: #ffa500;">1. 销售表现维度 (权重30%)</h5>
+            <ul style="padding-left: 20px;">
+                <li><strong>月销量评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 5,040 / 3,750 = 1.344</li>
+                <li style="margin-left: 20px; font-family: monospace;">限制最大值为2，所以为1.344</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 1.344 × 0.4 = 0.538</li>
+                <li style="margin-top: 10px;"><strong>月销售额评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 194,443 / 125,000 = 1.555</li>
+                <li style="margin-left: 20px; font-family: monospace;">限制最大值为2，所以为1.555</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 1.555 × 0.4 = 0.622</li>
+                <li style="margin-top: 10px;"><strong>销量增长率评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 55 / 35 = 1.571</li>
+                <li style="margin-left: 20px; font-family: monospace;">限制最大值为2，所以为1.571</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 1.571 × 0.2 = 0.314</li>
+                <li style="margin-top: 10px;"><strong>销售表现总分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.538 + 0.622 + 0.314 = 1.474</li>
+                <li style="margin-left: 20px; font-family: monospace;">→ 限制在1.000 (最大值)</li>
+                <li style="margin-top: 10px;"><strong>销售表现贡献:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">1.000 × 30% = 0.300</li>
+            </ul>
+        </div>
+
+        <div class="dimension-calculation" style="margin: 15px 0; padding: 15px; background: #f0fff0; border-radius: 5px; border-left: 3px solid #28a745;">
+            <h5 style="color: #28a745;">2. 利润潜力维度 (权重25%)</h5>
+            <ul style="padding-left: 20px;">
+                <li><strong>价格区间评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">$38.58 在 $30-50 范围内</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.7</li>
+                <li style="margin-top: 10px;"><strong>评分数/销售额比评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">比值 = 4,258 / (194,443 / 38.58) = 0.845</li>
+                <li style="margin-left: 20px; font-family: monospace;">在 0.5-2 之间</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.8</li>
+                <li style="margin-top: 10px;"><strong>毛利率评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">预估毛利率 64.3% ≥ 40%</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.9</li>
+                <li style="margin-top: 10px;"><strong>利润潜力总分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">(0.7 × 0.4) + (0.8 × 0.3) + (0.9 × 0.3) = 0.28 + 0.24 + 0.27 = 0.79</li>
+                <li style="margin-top: 10px;"><strong>利润潜力贡献:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.79 × 25% = 0.198</li>
+            </ul>
+        </div>
+
+        <div class="dimension-calculation" style="margin: 15px 0; padding: 15px; background: #fff0f0; border-radius: 5px; border-left: 3px solid #dc3545;">
+            <h5 style="color: #dc3545;">3. 竞争分析维度 (权重20%)</h5>
+            <ul style="padding-left: 20px;">
+                <li><strong>卖家数量评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">2 个卖家 ≤ 3 个</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.9</li>
+                <li style="margin-left: 20px; font-family: monospace;">贡献 = 0.9 × 0.4 = 0.36</li>
+                <li style="margin-top: 10px;"><strong>大类BSR评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 6,237 / 8,500 = 0.734</li>
+                <li style="margin-left: 20px; font-family: monospace;">反向处理值 = 1 - 0.734 = 0.266</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.266 × 0.3 = 0.080</li>
+                <li style="margin-top: 10px;"><strong>小类BSR评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 52 / 150 = 0.347</li>
+                <li style="margin-left: 20px; font-family: monospace;">反向处理值 = 1 - 0.347 = 0.653</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.653 × 0.3 = 0.196</li>
+                <li style="margin-top: 10px;"><strong>竞争分析总分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.36 + 0.080 + 0.196 = 0.636</li>
+                <li style="margin-top: 10px;"><strong>竞争分析贡献:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.636 × 20% = 0.127</li>
+            </ul>
+        </div>
+
+        <div class="dimension-calculation" style="margin: 15px 0; padding: 15px; background: #f8f0ff; border-radius: 5px; border-left: 3px solid #6f42c1;">
+            <h5 style="color: #6f42c1;">4. 产品质量维度 (权重15%)</h5>
+            <ul style="padding-left: 20px;">
+                <li><strong>评分评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 4.7 / 5 = 0.94</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.94 × 0.5 = 0.47</li>
+                <li style="margin-top: 10px;"><strong>评分数评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">4,258 在 100-5000 范围内</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.8</li>
+                <li style="margin-left: 20px; font-family: monospace;">贡献 = 0.8 × 0.3 = 0.24</li>
+                <li style="margin-top: 10px;"><strong>留评率评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">2.14% 在 1%-3% 范围内</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.5</li>
+                <li style="margin-left: 20px; font-family: monospace;">贡献 = 0.5 × 0.2 = 0.1</li>
+                <li style="margin-top: 10px;"><strong>产品质量总分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.47 + 0.24 + 0.1 = 0.81</li>
+                <li style="margin-top: 10px;"><strong>产品质量贡献:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.81 × 15% = 0.122</li>
+            </ul>
+        </div>
+
+        <div class="dimension-calculation" style="margin: 15px 0; padding: 15px; background: #f0f8ff; border-radius: 5px; border-left: 3px solid #17a2b8;">
+            <h5 style="color: #17a2b8;">5. 增长潜力维度 (权重10%)</h5>
+            <ul style="padding-left: 20px;">
+                <li><strong>上架时间评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">1,560 天不在 90-360 天范围内</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 0.4</li>
+                <li style="margin-left: 20px; font-family: monospace;">贡献 = 0.4 × 0.4 = 0.16</li>
+                <li style="margin-top: 10px;"><strong>月新增评价评分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">归一化值 = 108 / 85 = 1.271</li>
+                <li style="margin-left: 20px; font-family: monospace;">限制最大值为2，所以为1.271</li>
+                <li style="margin-left: 20px; font-family: monospace;">得分 = 1.271 × 0.4 = 0.508</li>
+                <li style="margin-top: 10px;"><strong>营销标识加分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">假设具有 Best Seller 标识</li>
+                <li style="margin-left: 20px; font-family: monospace;">加分 = 0.1</li>
+                <li style="margin-top: 10px;"><strong>增长潜力总分:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.16 + 0.508 + 0.1 = 0.768</li>
+                <li style="margin-top: 10px;"><strong>增长潜力贡献:</strong></li>
+                <li style="margin-left: 20px; font-family: monospace;">0.768 × 10% = 0.077</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="final-score" style="margin: 20px 0; padding: 20px; background: white; border-radius: 8px; border: 2px solid #667eea;">
+        <h4 style="color: #667eea;">最终综合评分计算</h4>
+        <p><strong>综合评分 =</strong> 销售表现贡献 + 利润潜力贡献 + 竞争分析贡献 + 产品质量贡献 + 增长潜力贡献</p>
+        <p><strong>综合评分 =</strong> 0.300 + 0.198 + 0.127 + 0.122 + 0.077 = 0.824</p>
+        <p><strong>转换为百分制:</strong> 0.824 × 100 = <span style="font-size: 1.2em; font-weight: bold; color: #28a745;">82.4分</span></p>
+        <p>根据评分等级标准，该产品属于 <span style="font-weight: bold; color: #28a745;">优质产品 - 重点考虑</span> 级别</p>
+    </div>
+
+    <div class="scoring-notes" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #b3d9ff;">
+        <h4 style="color: #667eea;">评分说明</h4>
+        <ul style="padding-left: 20px;">
+            <li>所有数值指标均使用75%分位数作为基准进行归一化处理，避免极值产品对评分的影响</li>
+            <li>归一化值限制最大为2，防止极端值对评分体系的过度影响</li>
+            <li>BSR排名采用反向处理，数值越小得分越高</li>
+            <li>各维度权重总和为100%，确保评分体系的平衡性</li>
+        </ul>
+    </div>
+</div>
+
+<!-- 添加显示/隐藏按钮 -->
+<button onclick="toggleScoringExample()" style="margin-top: 15px; padding: 8px 15px; background: linear-gradient(135deg, #17a2b8, #138496); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    📊 显示/隐藏评分计算示例
+</button>
+    </div>
+
+    <script>
+        // 全局变量
+        let allProducts = [];
+        let filteredProducts = [];
+        let percentile75 = {}; // 存储75%分位数
+        // 动态配置参数
+        let dynamicConfig = {
+            priceMin: 15,
+            priceMax: 30,
+            reviewMin: 100,
+            reviewMax: 5000,
+            bsrMajorThreshold: 5000,
+            bsrMinorThreshold: 100,
+            sellerCountThreshold: 3,
+            listingMin: 90,
+            listingMax: 360
+        };
+
+        const fileInput = document.getElementById('file-input');
+        const resultsDiv = document.getElementById('results');
+        const controlsDiv = document.getElementById('controls');
+        const resultBody = document.getElementById('result-body');
+        const productCountSpan = document.getElementById('product-count');
+        const avgPriceSpan = document.getElementById('avg-price');
+        const avgSalesSpan = document.getElementById('avg-sales');
+        const avgRatingSpan = document.getElementById('avg-rating');
+        const avgScoreSpan = document.getElementById('avg-score');
+        const dataGuideDiv = document.getElementById('data-guide');
+        const percentileInfoContainer = document.getElementById('percentile-info-container');
+
+        // 初始化权重滑块事件
+        initializeWeightSliders();
+
+        // 处理文件选择和读取
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                processExcelData(data);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // 支持拖拽功能
+        const uploadBox = document.querySelector('.upload-box');
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.style.borderColor = '#764ba2';
+            uploadBox.style.transform = 'translateY(-5px)';
+        });
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.style.borderColor = '#667eea';
+            uploadBox.style.transform = 'translateY(0)';
+        });
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.style.borderColor = '#667eea';
+            uploadBox.style.transform = 'translateY(0)';
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files;
+                const event = new Event('change');
+                fileInput.dispatchEvent(event);
+            }
+        });
+
+        function toggleDataGuide() {
+            if (dataGuideDiv.style.display === 'none') {
+                dataGuideDiv.style.display = 'block';
+            } else {
+                dataGuideDiv.style.display = 'none';
+            }
+        }
+
+        function initializeWeightSliders() {
+            // 为所有权重滑块添加事件监听
+            const sliders = ['sales', 'profit', 'competition', 'quality', 'growth'];
+            sliders.forEach(slider => {
+                const sliderElement = document.getElementById(`weight-${slider}`);
+                const valueElement = document.getElementById(`value-${slider}`);
+
+                sliderElement.addEventListener('input', function() {
+                    valueElement.textContent = `${this.value}%`;
+                    normalizeWeights();
+                });
+            });
+        }
+
+        function normalizeWeights() {
+            // 确保所有权重总和为100%
+            const sliders = ['sales', 'profit', 'competition', 'quality', 'growth'];
+            const values = sliders.map(slider => parseInt(document.getElementById(`weight-${slider}`).value));
+            const total = values.reduce((sum, value) => sum + value, 0);
+
+            if (total !== 100) {
+                const factor = 100 / total;
+                sliders.forEach(slider => {
+                    const sliderElement = document.getElementById(`weight-${slider}`);
+                    const valueElement = document.getElementById(`value-${slider}`);
+                    const newValue = Math.round(parseInt(sliderElement.value) * factor);
+                    sliderElement.value = newValue;
+                    valueElement.textContent = `${newValue}%`;
+                });
+            }
+        }
+
+        function getWeights() {
+            return {
+                sales: parseInt(document.getElementById('weight-sales').value) / 100,
+                profit: parseInt(document.getElementById('weight-profit').value) / 100,
+                competition: parseInt(document.getElementById('weight-competition').value) / 100,
+                quality: parseInt(document.getElementById('weight-quality').value) / 100,
+                growth: parseInt(document.getElementById('weight-growth').value) / 100
+            };
+        }
+
+        // 更新所有动态配置
+        function updateAllConfig() {
+            dynamicConfig.priceMin = parseInt(document.getElementById('price-min').value) || 15;
+            dynamicConfig.priceMax = parseInt(document.getElementById('price-max').value) || 30;
+            dynamicConfig.reviewMin = parseInt(document.getElementById('review-min').value) || 100;
+            dynamicConfig.reviewMax = parseInt(document.getElementById('review-max').value) || 5000;
+            dynamicConfig.bsrMajorThreshold = parseInt(document.getElementById('bsr-major').value) || 5000;
+            dynamicConfig.bsrMinorThreshold = parseInt(document.getElementById('bsr-minor').value) || 100;
+            dynamicConfig.sellerCountThreshold = parseInt(document.getElementById('seller-count').value) || 3;
+            dynamicConfig.listingMin = parseInt(document.getElementById('listing-min').value) || 90;
+            dynamicConfig.listingMax = parseInt(document.getElementById('listing-max').value) || 360;
+
+            recalculateScores();
+        }
+
+        // 计算75%分位数的函数
+        function calculatePercentile(data, percentile) {
+            if (data.length === 0) return 0;
+            const sorted = data.slice().sort((a, b) => a - b);
+            const index = (percentile / 100) * (sorted.length - 1);
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            if (lower === upper) {
+                return sorted[lower];
+            }
+            const weight = index - lower;
+            return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+        }
+
+        function processExcelData(data) {
+            try {
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+
+                // 将Excel数据转换为JSON
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                if (jsonData.length < 2) {
+                    alert('Excel文件中没有数据！');
+                    return;
+                }
+
+                // 假设第一行是标题行 - 去掉换行符
+                const headers = jsonData[0].map(h => h ? h.toString().trim().replace(/\n/g, '') : '');
+                const rows = jsonData.slice(1).filter(row => row.length > 0);
+
+                console.log("Excel标题:", headers);
+                console.log("数据行数:", rows.length);
+
+                // 根据您提供的数据格式映射字段 - 修复品牌字段并添加大类BSR
+                const headerMap = {
+                    asin: ['ASIN'],
+                    parentAsin: ['父ASIN'], // 添加父ASIN字段
+                    brand: ['品牌'],
+                    title: ['商品标题'],
+                    titleTranslation: ['标题(翻译)'],
+                    productUrl: ['商品详情页链接'],
+                    imageUrl: ['商品主图'],
+                    category: ['小类目'],
+                    bsrMajor: ['大类BSR', '大类目BSR'], // 添加大类BSR
+                    bsrMinor: ['小类BSR', '小类目BSR'], // 小类BSR
+                    monthlySales: ['月销量'],
+                    salesGrowth: ['月销量增长率'],
+                    monthlyRevenue: ['月销售额($)'],
+                    price: ['价格($)'],
+                    coupon: ['Coupon'],
+                    qaCount: ['Q&A数'],
+                    reviewCount: ['评分数'],
+                    monthlyReviewGrowth: ['月新增评分数'],
+                    rating: ['评分'],
+                    reviewRate: ['留评率'],
+                    fbaFee: ['FBA($)'],
+                    profitMargin: ['毛利率'],
+                    listingDate: ['上架时间'],
+                    listingDays: ['上架天数'],
+                    delivery: ['配送方式'],
+                    sellerCount: ['卖家数'],
+                    buyboxSeller: ['Buybox卖家'],
+                    sellerLocation: ['卖家所属地'],
+                    bestSeller: ['Best Seller标识'],
+                    amazonChoice: ['Amazon\'s Choice'],
+                    newRelease: ['New Release标识'],
+                    aPlus: ['A+页面'],
+                    video: ['视频介绍'],
+                    spAd: ['SP广告'],
+                    brandStory: ['品牌故事'],
+                    brandAd: ['品牌广告'],
+                    promotion: ['7天促销']
+                };
+
+                // 查找对应的列索引
+                const columnIndex = {};
+                Object.keys(headerMap).forEach(key => {
+                    columnIndex[key] = -1;
+                    headerMap[key].some(header => {
+                        const idx = headers.findIndex(h => h && h.toString().trim() === header);
+                        if (idx > -1) {
+                            columnIndex[key] = idx;
+                            console.log(`找到列: ${header} -> ${key}`);
+                            return true;
+                        }
+                        return false;
+                    });
+                });
+
+                // 处理每一行数据，计算推荐分数
+                let allProductsRaw = [];
+                rows.forEach((row, index) => {
+                    if (row.length === 0) return;
+
+                    // 提取数据，处理可能为空的情况
+                    const getValue = (key, isNumber = true) => {
+                        const idx = columnIndex[key];
+                        if (idx === -1 || row[idx] === undefined || row[idx] === null || row[idx] === '') {
+                            return isNumber ? 0 : '';
+                        }
+
+                        if (isNumber) {
+                            // 处理数字，移除货币符号、逗号、百分号等
+                            let value = String(row[idx]);
+                            value = value.replace(/[^\d.-]/g, '');
+                            const numValue = Number(value);
+                            return isNaN(numValue) ? 0 : numValue;
+                        } else {
+                            return String(row[idx]).trim();
+                        }
+                    };
+
+                    const getStringValue = (key) => {
+                        const idx = columnIndex[key];
+                        if (idx === -1 || row[idx] === undefined || row[idx] === null || row[idx] === '') {
+                            return '';
+                        }
+                        return String(row[idx]).trim();
+                    };
+
+                    const product = {
+                        asin: getStringValue('asin') || `product-${index}`,
+                        parentAsin: getStringValue('parentAsin'), // 父ASIN
+                        brand: getStringValue('brand'),
+                        title: getStringValue('title') || '未知产品',
+                        titleTranslation: getStringValue('titleTranslation'),
+                        productUrl: getStringValue('productUrl'),
+                        imageUrl: getStringValue('imageUrl'),
+                        category: getStringValue('category'),
+                        bsrMajor: getValue('bsrMajor'), // 大类BSR
+                        bsrMinor: getValue('bsrMinor'), // 小类BSR
+                        monthlySales: getValue('monthlySales'),
+                        salesGrowth: getValue('salesGrowth'),
+                        monthlyRevenue: getValue('monthlyRevenue'),
+                        price: getValue('price'),
+                        hasCoupon: getStringValue('coupon') ? true : false,
+                        qaCount: getValue('qaCount'),
+                        reviewCount: getValue('reviewCount'),
+                        monthlyReviewGrowth: getValue('monthlyReviewGrowth'),
+                        rating: getValue('rating'),
+                        reviewRate: getValue('reviewRate'),
+                        fbaFee: getValue('fbaFee'),
+                        profitMargin: getValue('profitMargin'),
+                        listingDate: getStringValue('listingDate'),
+                        listingDays: getValue('listingDays'),
+                        delivery: getStringValue('delivery'),
+                        sellerCount: getValue('sellerCount'),
+                        buyboxSeller: getStringValue('buyboxSeller'),
+                        sellerLocation: getStringValue('sellerLocation'),
+                        bestSeller: getStringValue('bestSeller') === 'Y',
+                        amazonChoice: getStringValue('amazonChoice') === 'Y',
+                        newRelease: getStringValue('newRelease') === 'Y',
+                        hasAPlus: getStringValue('aPlus') === 'Y',
+                        hasVideo: getStringValue('video') === 'Y',
+                        hasSpAd: getStringValue('spAd') === 'Y',
+                        hasBrandStory: getStringValue('brandStory') === 'Y',
+                        hasBrandAd: getStringValue('brandAd') === 'Y',
+                        hasPromotion: getStringValue('promotion') === 'Y',
+                        rowIndex: index + 2 // Excel中的行号（从1开始，标题占1行）
+                    };
+
+                    allProductsRaw.push(product);
+                });
+
+                console.log(`处理前产品数量: ${allProductsRaw.length}`);
+
+                // 去重逻辑：先按父ASIN去重，再按ASIN去重
+                allProducts = deduplicateProducts(allProductsRaw);
+
+                console.log(`去重后产品数量: ${allProducts.length}`);
+
+                if (allProducts.length === 0) {
+                    alert('未能从Excel中提取到有效产品数据。请检查文件格式和列标题。');
+                    return;
+                }
+
+                // 计算所有产品的分数
+                calculateAllScores();
+
+                // 显示控制面板和结果
+                controlsDiv.style.display = 'block';
+                displayResults(allProducts);
+
+            } catch (error) {
+                console.error('处理Excel数据时出错:', error);
+                alert('处理文件时出错: ' + error.message);
+            }
+        }
+
+        // 去重函数：先按父ASIN去重，再按ASIN去重
+        function deduplicateProducts(products) {
+            // 第一步：按父ASIN去重
+            const parentAsinMap = new Map();
+            const asinMap = new Map();
+            const deduplicatedProducts = [];
+
+            // 先处理有父ASIN的产品
+            products.forEach(product => {
+                if (product.parentAsin && product.parentAsin.trim() !== '') {
+                    // 如果父ASIN已存在，跳过（保留第一个）
+                    if (!parentAsinMap.has(product.parentAsin)) {
+                        parentAsinMap.set(product.parentAsin, true);
+                        deduplicatedProducts.push(product);
+                    }
+                } else {
+                    // 没有父ASIN的产品，按ASIN处理
+                    if (!asinMap.has(product.asin)) {
+                        asinMap.set(product.asin, true);
+                        deduplicatedProducts.push(product);
+                    }
+                }
+            });
+
+            // 第二步：确保没有重复的ASIN（处理可能遗漏的情况）
+            const finalProducts = [];
+            const finalAsinMap = new Map();
+
+            deduplicatedProducts.forEach(product => {
+                if (!finalAsinMap.has(product.asin)) {
+                    finalAsinMap.set(product.asin, true);
+                    finalProducts.push(product);
+                }
+            });
+
+            return finalProducts;
+        }
+
+        function calculateAllScores() {
+            const weights = getWeights();
+
+            // 计算各项指标的75%分位数用于归一化
+            percentile75 = {
+                monthlySales: calculatePercentile(allProducts.map(p => p.monthlySales).filter(v => v > 0), 75),
+                monthlyRevenue: calculatePercentile(allProducts.map(p => p.monthlyRevenue).filter(v => v > 0), 75),
+                rating: 5,
+                reviewCount: calculatePercentile(allProducts.map(p => p.reviewCount).filter(v => v > 0), 75),
+                bsrMajor: calculatePercentile(allProducts.map(p => p.bsrMajor > 0 ? p.bsrMajor : null).filter(v => v !== null), 75),
+                bsrMinor: calculatePercentile(allProducts.map(p => p.bsrMinor > 0 ? p.bsrMinor : null).filter(v => v !== null), 75),
+                sellerCount: calculatePercentile(allProducts.map(p => p.sellerCount).filter(v => v > 0), 75),
+                salesGrowth: calculatePercentile(allProducts.map(p => Math.abs(p.salesGrowth)).filter(v => v > 0), 75),
+                monthlyReviewGrowth: calculatePercentile(allProducts.map(p => p.monthlyReviewGrowth).filter(v => v > 0), 75),
+                reviewRate: calculatePercentile(allProducts.map(p => p.reviewRate).filter(v => v > 0), 75)
+            };
+
+            // 确保分位数不为0，避免除以0的错误
+            Object.keys(percentile75).forEach(key => {
+                if (percentile75[key] <= 0) {
+                    percentile75[key] = 1;
+                }
+            });
+
+            allProducts.forEach(product => {
+                // 计算各维度分数
+                const scores = calculateProductScore(product, weights, percentile75);
+
+                // 合并分数到产品对象
+                Object.assign(product, scores);
+
+                // 计算综合分数 - 确保得到0-100的总分
+                const weightedScore =
+                    product.salesScore * weights.sales +
+                    product.profitScore * weights.profit +
+                    product.competitionScore * weights.competition +
+                    product.qualityScore * weights.quality +
+                    product.growthScore * weights.growth;
+
+                // 转换为0-100的分数
+                product.score = Math.min(100, Math.max(0, Math.round(weightedScore * 100)));
+
+                // 计算各维度的贡献分数（用于显示）
+                product.salesContribution = Math.round(product.salesScore * weights.sales * 100);
+                product.profitContribution = Math.round(product.profitScore * weights.profit * 100);
+                product.competitionContribution = Math.round(product.competitionScore * weights.competition * 100);
+                product.qualityContribution = Math.round(product.qualityScore * weights.quality * 100);
+                product.growthContribution = Math.round(product.growthScore * weights.growth * 100);
+            });
+
+            // 按分数排序
+            allProducts.sort((a, b) => b.score - a.score);
+        }
+
+        function calculateProductScore(product, weights, percentile75) {
+            // 归一化函数 - 使用75%分位数作为基准
+            const normalize = (value, percentile, reverse = false) => {
+                if (percentile <= 0) return 0;
+                const normalized = value / percentile;
+                // 限制归一化值不超过2，避免极端值影响
+                const clamped = Math.min(normalized, 2);
+                return reverse ? 1 - clamped : clamped;
+            };
+
+            // 1. 销售表现维度 (30%)
+            let salesScore = 0;
+            salesScore += normalize(product.monthlySales, percentile75.monthlySales) * 0.4;
+            salesScore += normalize(product.monthlyRevenue, percentile75.monthlyRevenue) * 0.4;
+
+            // 销量增长率处理
+            if (product.salesGrowth > 0) {
+                salesScore += normalize(product.salesGrowth, percentile75.salesGrowth) * 0.2;
+            } else if (product.salesGrowth < 0) {
+                salesScore -= normalize(Math.abs(product.salesGrowth), percentile75.salesGrowth) * 0.1;
+            }
+
+            // 2. 利润潜力维度 (25%)
+            let profitScore = 0;
+            // 价格区间评分 - 使用动态配置
+            let priceScore = 0;
+            if (product.price >= dynamicConfig.priceMin && product.price <= dynamicConfig.priceMax) {
+                priceScore = 0.9; // 最佳区间
+            } else if (product.price >= (dynamicConfig.priceMin - 5) && product.price < dynamicConfig.priceMin) {
+                priceScore = 0.7;
+            } else if (product.price > dynamicConfig.priceMax && product.price <= (dynamicConfig.priceMax + 20)) {
+                priceScore = 0.7;
+            } else if (product.price > (dynamicConfig.priceMax + 20) && product.price <= (dynamicConfig.priceMax + 50)) {
+                priceScore = 0.4;
+            } else if (product.price < (dynamicConfig.priceMin - 5)) {
+                priceScore = 0.3;
+            } else {
+                priceScore = 0.2;
+            }
+
+            profitScore += priceScore * 0.4;
+
+            // 评分数/销售额比 - 反映评价真实性
+            let reviewSalesRatio = 0;
+            if (product.monthlyRevenue > 0 && product.reviewCount > 0) {
+                const ratio = product.reviewCount / (product.monthlyRevenue / product.price);
+                // 理想比值在0.5-2之间
+                if (ratio >= 0.5 && ratio <= 2) reviewSalesRatio = 0.8;
+                else if (ratio >= 0.2 && ratio <= 5) reviewSalesRatio = 0.5;
+                else reviewSalesRatio = 0.2;
+            }
+            profitScore += reviewSalesRatio * 0.3;
+
+            // 毛利率估算
+            let marginScore = 0;
+            // 简单估算：假设FBA费用为$5-8，头程$2-4，产品成本$3-8
+            const estimatedCost = 5 + 3 + (product.price * 0.15); // FBA + 头程 + 产品成本估算
+            const estimatedMargin = (product.price - estimatedCost) / product.price;
+            if (estimatedMargin >= 0.4) marginScore = 0.9;
+            else if (estimatedMargin >= 0.3) marginScore = 0.7;
+            else if (estimatedMargin >= 0.2) marginScore = 0.5;
+            else marginScore = 0.2;
+
+            profitScore += marginScore * 0.3;
+
+            // 3. 竞争分析维度 (20%)
+            let competitionScore = 0;
+            // 卖家数量评分 - 使用动态配置
+            let sellerScore = 0;
+            if (product.sellerCount <= dynamicConfig.sellerCountThreshold) sellerScore = 0.9;
+            else if (product.sellerCount <= (dynamicConfig.sellerCountThreshold + 2)) sellerScore = 0.7;
+            else if (product.sellerCount <= (dynamicConfig.sellerCountThreshold + 7)) sellerScore = 0.5;
+            else sellerScore = 0.2;
+
+            competitionScore += sellerScore * 0.4;
+
+            // BSR排名评分 - 同时使用大类和小类BSR - 使用动态配置
+            let bsrMajorScore = 0;
+            let bsrMinorScore = 0;
+            if (product.bsrMajor > 0) {
+                bsrMajorScore = normalize(product.bsrMajor, percentile75.bsrMajor, true) * 0.3;
+            }
+            if (product.bsrMinor > 0) {
+                bsrMinorScore = normalize(product.bsrMinor, percentile75.bsrMinor, true) * 0.3;
+            }
+            competitionScore += bsrMajorScore + bsrMinorScore;
+
+            // 4. 产品质量维度 (15%)
+            let qualityScore = 0;
+            // 评分
+            qualityScore += normalize(product.rating, 5) * 0.5;
+
+            // 评分数健康度 - 使用动态配置
+            let reviewHealth = 0;
+            if (product.reviewCount >= dynamicConfig.reviewMin && product.reviewCount <= dynamicConfig.reviewMax) {
+                reviewHealth = 0.8;
+            } else if (product.reviewCount > dynamicConfig.reviewMax) {
+                reviewHealth = 0.6;
+            } else if (product.reviewCount >= (dynamicConfig.reviewMin / 2)) {
+                reviewHealth = 0.5;
+            } else {
+                reviewHealth = 0.2;
+            }
+
+            qualityScore += reviewHealth * 0.3;
+
+            // 留评率健康度
+            let reviewRateHealth = 0;
+            if (product.reviewRate >= 0.001 && product.reviewRate <= 0.01) reviewRateHealth = 0.8; // 0.1%-1%正常
+            else if (product.reviewRate > 0.01 && product.reviewRate <= 0.03) reviewRateHealth = 0.5; // 1%-3%偏高
+            else if (product.reviewRate > 0.03) reviewRateHealth = 0.2; // >3%异常
+            else reviewRateHealth = 0.5; // <0.1%可能评价较少
+
+            qualityScore += reviewRateHealth * 0.2;
+
+            // 5. 增长潜力维度 (10%)
+            let growthScore = 0;
+            // 上架时间评分 - 使用动态配置
+            let listingScore = 0;
+            if (product.listingDays >= dynamicConfig.listingMin && product.listingDays <= dynamicConfig.listingMax) {
+                listingScore = 0.8; // 理想区间
+            } else if (product.listingDays < dynamicConfig.listingMin) {
+                listingScore = 0.6; // 太新，数据不稳定
+            } else {
+                listingScore = 0.4; // 老品增长有限
+            }
+
+            growthScore += listingScore * 0.4;
+
+            // 月新增评价 - 修复显示逻辑
+            let reviewGrowthValue = 0;
+            if (product.monthlyReviewGrowth > 0) {
+                reviewGrowthValue = normalize(product.monthlyReviewGrowth, percentile75.monthlyReviewGrowth) * 0.4;
+            }
+            // 如果是负增长或0，不扣分也不加分
+            growthScore += reviewGrowthValue;
+
+            // 营销标识加分
+            let marketingBonus = 0;
+            if (product.bestSeller) marketingBonus += 0.1;
+            if (product.amazonChoice) marketingBonus += 0.1;
+            if (product.hasAPlus) marketingBonus += 0.05;
+            if (product.hasVideo) marketingBonus += 0.05;
+
+            growthScore += Math.min(0.2, marketingBonus);
+
+            return {
+                salesScore: Math.min(1, Math.max(0, salesScore)),
+                profitScore: Math.min(1, Math.max(0, profitScore)),
+                competitionScore: Math.min(1, Math.max(0, competitionScore)),
+                qualityScore: Math.min(1, Math.max(0, qualityScore)),
+                growthScore: Math.min(1, Math.max(0, growthScore)),
+                estimatedMargin: estimatedMargin
+            };
+        }
+
+        function displayResults(products) {
+            resultBody.innerHTML = '';
+            filteredProducts = [...products];
+
+            // 显示75%分位数信息
+            displayPercentileInfo();
+
+            // 计算平均值
+            const avgPrice = products.reduce((sum, p) => sum + p.price, 0) / products.length;
+            const avgSales = products.reduce((sum, p) => sum + p.monthlySales, 0) / products.length;
+            const avgRating = products.reduce((sum, p) => sum + p.rating, 0) / products.length;
+            const avgScore = products.reduce((sum, p) => sum + p.score, 0) / products.length;
+
+            avgPriceSpan.textContent = `平均价格: $${avgPrice.toFixed(2)}`;
+            avgSalesSpan.textContent = `平均月销量: ${Math.round(avgSales).toLocaleString()}`;
+            avgRatingSpan.textContent = `平均评分: ${avgRating.toFixed(1)}`;
+            avgScoreSpan.textContent = `平均推荐分: ${avgScore.toFixed(1)}`;
+
+            filteredProducts.forEach((product, index) => {
+                const row = document.createElement('tr');
+
+                // 根据分数设置行样式
+                let scoreClass = 'score-poor';
+                if (product.score >= 80) scoreClass = 'score-excellent';
+                else if (product.score >= 60) scoreClass = 'score-good';
+                else if (product.score >= 40) scoreClass = 'score-average';
+
+                // 构建产品标识
+                const badges = [];
+                if (product.bestSeller) badges.push('<span class="badge badge-bestseller">BS</span>');
+                if (product.amazonChoice) badges.push('<span class="badge badge-amazon-choice">AC</span>');
+                if (product.newRelease) badges.push('<span class="badge badge-new-release">New</span>');
+                if (product.delivery === 'FBA') badges.push('<span class="badge badge-prime">FBA</span>');
+                if (product.hasCoupon) badges.push('<span class="badge" style="background:#6f42c1;color:white;">Coupon</span>');
+
+                // 格式化百分比显示
+                const formattedSalesGrowth = product.salesGrowth ?
+                    `${product.salesGrowth > 0 ? '+' : ''}${product.salesGrowth.toFixed(2)}%` : '-';
+
+                const formattedReviewRate = (product.reviewRate * 100).toFixed(2) + '%';
+
+                // 直接显示月新增评分数值，不再显示"评价稳定"
+                let reviewGrowthDisplay = `${product.monthlyReviewGrowth} 新增评价`;
+                if (product.monthlyReviewGrowth > 0) {
+                    reviewGrowthDisplay = `<span class="growth-up">+${product.monthlyReviewGrowth} 新增评价</span>`;
+                } else if (product.monthlyReviewGrowth < 0) {
+                    reviewGrowthDisplay = `<span class="growth-down">${product.monthlyReviewGrowth} 新增评价</span>`;
+                }
+
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            ${product.imageUrl ?
+                                `<img src="${product.imageUrl}" alt="${product.title}" class="product-image" onerror="this.style.display='none'">` :
+                                '<div style="width:60px;height:60px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:8px;">无图片</div>'
+                            }
+                            <div style="flex: 1;">
+                                <div class="product-title" title="${product.title}">
+                                    <a href="${product.productUrl || '#'}" target="_blank" class="asin-link">${product.asin}</a>
+                                </div>
+                                <div style="font-weight:500;margin:2px 0;font-size:0.9em;">${product.title}</div>
+                                ${product.titleTranslation ?
+                                    `<div class="chinese-title" title="${product.titleTranslation}">${product.titleTranslation}</div>` :
+                                    ''
+                                }
+                                <div style="font-size: 0.8em; color: #666;">
+                                    <strong>${product.brand || '未知品牌'}</strong> | ${product.category || '未知类目'}
+                                </div>
+                                <div style="font-size: 0.75em; color: #888; margin-top: 2px;">
+                                    上架: ${product.listingDate || '未知'} (${product.listingDays || 0}天)
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="score-cell ${scoreClass}">
+                        <strong style="font-size: 1.1em;">${product.score}</strong>
+                        <div class="score-breakdown">
+                            销${product.salesContribution} + 利${product.profitContribution} + 竞${product.competitionContribution} + 质${product.qualityContribution} + 增${product.growthContribution}
+                        </div>
+                        <div class="dimension-scores">
+                            <span class="dimension-score" title="销售表现">销:${Math.round(product.salesScore * 100)}</span>
+                            <span class="dimension-score" title="利润潜力">利:${Math.round(product.profitScore * 100)}</span>
+                            <span class="dimension-score" title="竞争分析">竞:${Math.round(product.competitionScore * 100)}</span>
+                            <span class="dimension-score" title="产品质量">质:${Math.round(product.qualityScore * 100)}</span>
+                            <span class="dimension-score" title="增长潜力">增:${Math.round(product.growthScore * 100)}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <strong>$${product.price.toFixed(2)}</strong>
+                        <div class="metric-detail">
+                            预估毛利率: ${(product.estimatedMargin * 100).toFixed(1)}%
+                        </div>
+                        ${product.hasCoupon ? '<div class="metric-detail" style="color:#6f42c1;">有优惠券</div>' : ''}
+                    </td>
+                    <td>
+                        <strong>${product.monthlySales.toLocaleString()}</strong>
+                        <div class="metric-detail">
+                            $${(product.monthlyRevenue > 0 ? product.monthlyRevenue : product.monthlySales * product.price).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        </div>
+                        <div class="${product.salesGrowth > 0 ? 'growth-up' : product.salesGrowth < 0 ? 'growth-down' : ''} metric-detail">
+                            ${formattedSalesGrowth}
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            <strong>${product.sellerCount} 卖家</strong>
+                            <div class="metric-detail bsr-display">
+                                大类BSR: ${product.bsrMajor > 0 ? product.bsrMajor.toLocaleString() : 'N/A'}
+                            </div>
+                            <div class="metric-detail bsr-display">
+                                小类BSR: ${product.bsrMinor > 0 ? product.bsrMinor.toLocaleString() : 'N/A'}
+                            </div>
+                            <div class="metric-detail">
+                                ${product.sellerLocation || '未知产地'}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            <span class="${product.rating >= 4.0 ? 'positive' : product.rating >= 3.5 ? 'neutral' : 'negative'}">
+                                ⭐ ${product.rating.toFixed(1)}
+                            </span>
+                            <div class="metric-detail">
+                                ${product.reviewCount.toLocaleString()} 评价
+                            </div>
+                            <div class="metric-detail">
+                                留评率: ${formattedReviewRate}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            ${product.listingDays ? `${product.listingDays}天` : '未知'}
+                            <div class="metric-detail">
+                                ${reviewGrowthDisplay}
+                            </div>
+                            <div class="metric-detail">
+                                ${product.bestSeller ? 'Best Seller' : product.amazonChoice ? 'Amazon\'s Choice' : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        ${badges.join('') || '<span style="color:#999;font-size:0.8em;">无</span>'}
+                    </td>
+                `;
+                resultBody.appendChild(row);
+            });
+
+            productCountSpan.textContent = filteredProducts.length.toLocaleString();
+            resultsDiv.style.display = 'block';
+
+            // 滚动到结果区域
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 显示75%分位数信息
+        function displayPercentileInfo() {
+            percentileInfoContainer.innerHTML = `
+                <div class="percentile-info">
+                    <strong>75%分位数基准值：</strong>
+                    月销量=${percentile75.monthlySales.toLocaleString()}，
+                    月销售额=$${percentile75.monthlyRevenue.toLocaleString()}，
+                    评分数=${percentile75.reviewCount.toLocaleString()}，
+                    大类BSR=${percentile75.bsrMajor.toLocaleString()}，
+                    小类BSR=${percentile75.bsrMinor.toLocaleString()}，
+                    卖家数=${percentile75.sellerCount}
+                </div>
+            `;
+        }
+
+        function recalculateScores() {
+            calculateAllScores();
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const minPrice = parseFloat(document.getElementById('min-price').value) || 0;
+            const maxPrice = parseFloat(document.getElementById('max-price').value) || Infinity;
+            const minSales = parseFloat(document.getElementById('min-sales').value) || 0;
+            const minRating = parseFloat(document.getElementById('min-rating').value) || 0;
+            const maxSellers = parseInt(document.getElementById('max-sellers').value) || 999;
+
+            let filtered = allProducts.filter(product =>
+                product.price >= minPrice &&
+                product.price <= maxPrice &&
+                product.monthlySales >= minSales &&
+                product.rating >= minRating &&
+                product.sellerCount <= maxSellers
+            );
+
+            // 应用排序
+            const sortBy = document.getElementById('sort-by').value;
+            switch(sortBy) {
+                case 'sales':
+                    filtered.sort((a, b) => b.monthlySales - a.monthlySales);
+                    break;
+                case 'revenue':
+                    const revenueA = a.monthlyRevenue > 0 ? a.monthlyRevenue : a.monthlySales * a.price;
+                    const revenueB = b.monthlyRevenue > 0 ? b.monthlyRevenue : b.monthlySales * b.price;
+                    filtered.sort((a, b) => revenueB - revenueA);
+                    break;
+                case 'profitScore':
+                    filtered.sort((a, b) => b.profitScore - a.profitScore);
+                    break;
+                case 'competitionScore':
+                    filtered.sort((a, b) => b.competitionScore - a.competitionScore);
+                    break;
+                case 'qualityScore':
+                    filtered.sort((a, b) => b.qualityScore - a.qualityScore);
+                    break;
+                default:
+                    // 默认按推荐分数排序
+                    filtered.sort((a, b) => b.score - a.score);
+            }
+
+            displayResults(filtered);
+        }
+
+        function sortProducts() {
+            applyFilters();
+        }
+
+        function exportResults() {
+            try {
+                // 准备导出的数据
+                const exportData = filteredProducts.map((product, index) => {
+                    const revenue = product.monthlyRevenue > 0 ? product.monthlyRevenue : product.monthlySales * product.price;
+                    return {
+                        '排名': index + 1,
+                        'ASIN': product.asin,
+                        '父ASIN': product.parentAsin || '',
+                        '品牌': product.brand || '',
+                        '产品标题': product.title,
+                        '中文标题': product.titleTranslation || '',
+                        '类目': product.category || '',
+                        '综合推荐分数': product.score,
+                        '销售表现分': Math.round(product.salesScore * 100),
+                        '利润潜力分': Math.round(product.profitScore * 100),
+                        '竞争分析分': Math.round(product.competitionScore * 100),
+                        '产品质量分': Math.round(product.qualityScore * 100),
+                        '增长潜力分': Math.round(product.growthScore * 100),
+                        '价格': product.price,
+                        '月销量': product.monthlySales,
+                        '月销售额': revenue,
+                        '销量增长率': product.salesGrowth.toFixed(2) + '%',
+                        '评分': product.rating,
+                        '评分数': product.reviewCount,
+                        '留评率': (product.reviewRate * 100).toFixed(2) + '%',
+                        '月新增评价': product.monthlyReviewGrowth,
+                        '大类BSR排名': product.bsrMajor,
+                        '小类BSR排名': product.bsrMinor,
+                        '卖家数量': product.sellerCount,
+                        '卖家所在地': product.sellerLocation || '',
+                        '上架时间': product.listingDate || '',
+                        '上架天数': product.listingDays,
+                        '预估毛利率': (product.estimatedMargin * 100).toFixed(1) + '%',
+                        'Best Seller': product.bestSeller ? '是' : '否',
+                        'Amazon\'s Choice': product.amazonChoice ? '是' : '否',
+                        '优惠券': product.hasCoupon ? '是' : '否',
+                        '产品链接': product.productUrl || ''
+                    };
+                });
+
+                // 创建工作表
+                const ws = XLSX.utils.json_to_sheet(exportData);
+
+                // 创建工作簿并添加工作表
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "推荐产品");
+
+                // 生成Excel文件并下载
+                const date = new Date().toISOString().split('T')[0];
+                XLSX.writeFile(wb, `亚马逊推荐产品_${date}.xlsx`);
+
+            } catch (error) {
+                console.error('导出失败:', error);
+                alert('导出失败: ' + error.message);
+            }
+        }
+
+        // 修改 toggleMetricsGuide 函数中的指标体系表格
+function toggleMetricsGuide() {
+    // 创建指标体系面板（如果不存在）
+    let metricsGuide = document.getElementById('metrics-guide');
+    if (!metricsGuide) {
+        metricsGuide = document.createElement('div');
+        metricsGuide.id = 'metrics-guide';
+        metricsGuide.className = 'metrics-guide';
+        metricsGuide.style.display = 'none';
+        metricsGuide.innerHTML = `
+            <h3>📊 指标体系与计算方式</h3>
+
+            <div class="metrics-section">
+                <h4>综合评分计算方式</h4>
+                <p><strong>综合评分 = 销售表现分×30% + 利润潜力分×25% + 竞争分析分×20% + 产品质量分×15% + 增长潜力分×10%</strong></p>
+                <p>说明：所有数值指标均使用75%分位数作为基准进行归一化处理，避免极值产品对评分的影响</p>
+            </div>
+
+            <div class="metrics-section">
+                <h4>权重分配说明</h4>
+                <p>在每个维度中，各项指标的权重分配如下：</p>
+                <p><strong>销售表现 (30%)</strong>：月销量(40%) + 月销售额(40%) + 销量增长率(20%)</p>
+                <p><strong>利润潜力 (25%)</strong>：价格区间(40%) + 评分数/销售额比(30%) + 毛利率(30%)</p>
+                <p><strong>竞争分析 (20%)</strong>：卖家数量(40%) + 大类BSR(30%) + 小类BSR(30%)</p>
+                <p><strong>产品质量 (15%)</strong>：评分(50%) + 评分数(30%) + 留评率(20%)</p>
+                <p><strong>增长潜力 (10%)</strong>：上架时间(40%) + 月新增评价(40%) + 营销标识(20%)</p>
+            </div>
+
+            <!-- 添加真实的75%分位数数值显示 -->
+            <div class="metrics-section">
+                <h4>真实75%分位数基准值</h4>
+                <p><strong>当前数据集的75%分位数：</strong></p>
+                <ul>
+                    <li>月销量：${percentile75.monthlySales.toLocaleString()}</li>
+                    <li>月销售额：$${percentile75.monthlyRevenue.toLocaleString()}</li>
+                    <li>评分数：${percentile75.reviewCount.toLocaleString()}</li>
+                    <li>大类BSR：${percentile75.bsrMajor.toLocaleString()}</li>
+                    <li>小类BSR：${percentile75.bsrMinor.toLocaleString()}</li>
+                    <li>卖家数：${percentile75.sellerCount}</li>
+                    <li>销量增长率：${percentile75.salesGrowth.toFixed(2)}%</li>
+                    <li>月新增评价：${percentile75.monthlyReviewGrowth}</li>
+                    <li>留评率：${(percentile75.reviewRate * 100).toFixed(4)}%</li>
+                </ul>
+            </div>
+
+            <div class="metrics-section">
+                <h4>各维度详细计算方式</h4>
+                <table class="metrics-table">
+                    <thead>
+                        <tr>
+                            <th>维度</th>
+                            <th>指标</th>
+                            <th>权重</th>
+                            <th>计算方式</th>
+                            <th>评分标准</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="3">销售表现 (30%)</td>
+                            <td>月销量</td>
+                            <td>12%</td>
+                            <td>(产品月销量 / 75%分位数月销量) × 0.4<br>（最大值限制为2，避免极端值影响）</td>
+                            <td>值越大得分越高</td>
+                        </tr>
+                        <tr>
+                            <td>月销售额</td>
+                            <td>12%</td>
+                            <td>(产品月销售额 / 75%分位数月销售额) × 0.4<br>（最大值限制为2，避免极端值影响）</td>
+                            <td>值越大得分越高</td>
+                        </tr>
+                        <tr>
+                            <td>销量增长率</td>
+                            <td>6%</td>
+                            <td>正增长：(增长率 / 75%分位数增长率) × 0.2<br>负增长：-(|增长率| / 75%分位数增长率) × 0.1</td>
+                            <td>正增长加分，负增长扣分</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="3">利润潜力 (25%)</td>
+                            <td>价格区间</td>
+                            <td>10%</td>
+                            <td>根据价格区间评分：<br>$$${dynamicConfig.priceMin}-${dynamicConfig.priceMax}: 0.9分<br>其他区间递减</td>
+                            <td>最佳区间$${dynamicConfig.priceMin}-$${dynamicConfig.priceMax}得0.9分</td>
+                        </tr>
+                        <tr>
+                            <td>评分数/销售额比</td>
+                            <td>7.5%</td>
+                            <td>比值在0.5-2间得0.8分，0.2-5间得0.5分，其他得0.2分</td>
+                            <td>理想比值0.5-2反映评价真实性</td>
+                        </tr>
+                        <tr>
+                            <td>毛利率</td>
+                            <td>7.5%</td>
+                            <td>预估毛利率 = (售价 - 预估成本) / 售价 × 100%<br>≥40%得0.9分，≥30%得0.7分，≥20%得0.5分，其他得0.2分</td>
+                            <td>预估成本=5+3+(售价×0.15)</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="3">竞争分析 (20%)</td>
+                            <td>卖家数量</td>
+                            <td>8%</td>
+                            <td>≤${dynamicConfig.sellerCountThreshold}个得0.9分，≤${dynamicConfig.sellerCountThreshold+2}个得0.7分，≤${dynamicConfig.sellerCountThreshold+7}个得0.5分，其他得0.2分</td>
+                            <td>卖家数量越少竞争越小</td>
+                        </tr>
+                        <tr>
+                            <td>大类BSR排名</td>
+                            <td>6%</td>
+                            <td>(1 - 产品BSR / 75%分位数BSR) × 0.3<br>（最大值限制为2，避免极端值影响）</td>
+                            <td>BSR越小排名越好</td>
+                        </tr>
+                        <tr>
+                            <td>小类BSR排名</td>
+                            <td>6%</td>
+                            <td>(1 - 产品BSR / 75%分位数BSR) × 0.3<br>（最大值限制为2，避免极端值影响）</td>
+                            <td>BSR越小排名越好</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="3">产品质量 (15%)</td>
+                            <td>评分</td>
+                            <td>7.5%</td>
+                            <td>(产品评分 / 5) × 0.5</td>
+                            <td>评分越高得分越高</td>
+                        </tr>
+                        <tr>
+                            <td>评分数</td>
+                            <td>4.5%</td>
+                            <td>${dynamicConfig.reviewMin}-${dynamicConfig.reviewMax}个得0.8分，>${dynamicConfig.reviewMax}个得0.6分，${dynamicConfig.reviewMin/2}-${dynamicConfig.reviewMin}个得0.5分，<${dynamicConfig.reviewMin/2}个得0.2分</td>
+                            <td>评分数在${dynamicConfig.reviewMin}-${dynamicConfig.reviewMax}间数据可靠</td>
+                        </tr>
+                        <tr>
+                            <td>留评率</td>
+                            <td>3%</td>
+                            <td>0.1%-1%得0.8分，1%-3%得0.5分，>3%得0.2分，<0.1%得0.5分</td>
+                            <td>0.1%-1%为正常范围</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="3">增长潜力 (10%)</td>
+                            <td>上架时间</td>
+                            <td>4%</td>
+                            <td>${dynamicConfig.listingMin}-${dynamicConfig.listingMax}天得0.8分，<${dynamicConfig.listingMin}天得0.6分，其他得0.4分</td>
+                            <td>${dynamicConfig.listingMin/30}-${dynamicConfig.listingMax/30}个月新品有潜力</td>
+                        </tr>
+                        <tr>
+                            <td>月新增评价</td>
+                            <td>4%</td>
+                            <td>(新增评价数 / 75%分位数新增评价数) × 0.4（仅正增长加分）<br>（最大值限制为2，避免极端值影响）</td>
+                            <td>仅正增长加分</td>
+                        </tr>
+                        <tr>
+                            <td>营销标识</td>
+                            <td>2%</td>
+                            <td>Best Seller +0.1分，Amazon's Choice +0.1分，A+页面 +0.05分，视频介绍 +0.05分</td>
+                            <td>最多加0.2分</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="metrics-section">
+                <h4>综合评分等级</h4>
+                <p><strong>90-100分</strong>: 极品机会 - 强烈推荐</p>
+                <p><strong>80-89分</strong>: 优质产品 - 重点考虑</p>
+                <p><strong>70-79分</strong>: 良好产品 - 值得关注</p>
+                <p><strong>60-69分</strong>: 一般产品 - 谨慎选择</p>
+                <p><strong>&lt;60分</strong>: 风险较高 - 建议规避</p>
+            </div>
+
+            <div class="metrics-section">
+                <h4>为什么使用75%分位数？</h4>
+                <p>1. <strong>减少极值影响</strong>：避免少数极端高销量产品拉高基准值，导致大部分产品得分过低</p>
+                <p>2. <strong>更合理的基准</strong>：75%分位数代表了行业中上水平的产品表现，作为基准更具代表性</p>
+                <p>3. <strong>稳定性更好</strong>：相比最大值，75%分位数在不同数据集中更稳定，评分更具可比性</p>
+                <p>4. <strong>防止过度膨胀</strong>：通过限制最大归一化值为2，避免极端产品对评分体系的过度影响</p>
+            </div>
+        `;
+        document.querySelector('.container').appendChild(metricsGuide);
+    }
+
+    // 切换显示状态
+    if (metricsGuide.style.display === 'none') {
+        metricsGuide.style.display = 'block';
+        // 滚动到面板位置
+        metricsGuide.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        metricsGuide.style.display = 'none';
+    }
+}
+function toggleScoringExample() {
+    const example = document.getElementById('scoring-example');
+    if (example.style.display === 'none') {
+        example.style.display = 'block';
+    } else {
+        example.style.display = 'none';
+    }
+}
+    </script>
+</body>
+</html>
