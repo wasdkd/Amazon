@@ -462,6 +462,25 @@
                         <td>每个徽章20分</td>
                         <td>平台背书提升信任度</td>
                     </tr>
+                <tr>
+    <td class="logic-dim" rowspan="3">季节性(3%)</td>
+    <td>季节性强度</td>
+    <td>40分</td>
+    <td>强度&gt;0.5得40分；0.3-0.5得20分；0.1-0.3得10分；&lt;0.1得0分</td>
+    <td>季节性越明显得分越高</td>
+</tr>
+<tr>
+    <td>高峰月份稳定性</td>
+    <td>20分</td>
+    <td>连续两年高峰得20分；一年高峰得10分；无规律得0分</td>
+    <td>高峰月份一致性</td>
+</tr>
+<tr>
+    <td>季节性增长趋势</td>
+    <td>40分</td>
+    <td>增长得40分；稳定得20分；下降得0分</td>
+    <td>高峰期间销量趋势</td>
+</tr>
                 </tbody>
             </table>
         </div>
@@ -649,7 +668,7 @@
 // ================= 1. 全局配置 =================
 const CONFIG = {
     // 用户可调权重 (总和100)
-    weights: { sales: 25, profit: 20, competition: 18, quality: 15, trend: 10, history: 4, growth: 8 },
+    weights: { sales: 25, profit: 20, competition: 18, quality: 15, trend: 7, history: 4, growth: 8, seasonality: 3 },
     // 用户可调阈值
     params: {
         price_min: 15, price_max: 60,
@@ -658,7 +677,8 @@ const CONFIG = {
         sellers_max: 3,
         rating_min: 4.2, reviews_min: 50, reviews_max: 2000,
         review_rate_min: 0.01, review_rate_max: 0.08,
-        trend_growth: 0.1, listing_days_new: 180
+        trend_growth: 0.1, listing_days_new: 180,
+        seasonality_threshold: 0.3 // 季节性强度阈值
     }
 };
 
@@ -708,6 +728,12 @@ const INTERNAL_RULES = {
     trend_stability_good: 15,    // 中等稳定15分 - 稳定性中等
     trend_stability_poor: 0,     // 不稳定0分 - 稳定性警示
 
+    // 季节性分析 (总分100分)
+    seasonality_strong: 40,     // 强季节性40分
+    seasonality_moderate: 20,   // 中等季节性20分
+    seasonality_weak: 10,       // 弱季节性10分
+    seasonality_consistent: 0,  // 无季节性0分
+
     // 历史深度 (总分100分)
     hist_month: 5,          // 每月5分，20个月满分 - 生命周期验证
 
@@ -719,12 +745,13 @@ const INTERNAL_RULES = {
 // 字段中文名
 const LABEL_MAP = {
     sales: "销售表现", profit: "利润潜力", competition: "竞争环境",
-    quality: "产品质量", trend: "销量趋势", history: "历史深度", growth: "增长潜力",
+    quality: "产品质量", trend: "销量趋势", history: "历史深度", growth: "增长潜力", seasonality: "季节性",
     price_min: "最低价格($)", price_max: "最高价格($)", margin_ideal: "理想毛利(0.4)", margin_min: "及格毛利(0.25)",
     bsr_major_max: "大类排名红线", bsr_minor_max: "小类排名红线", sellers_max: "跟卖上限",
     rating_min: "评分及格线", reviews_min: "最少评价数", reviews_max: "红海评价数",
     review_rate_min: "留评率下限", review_rate_max: "留评率上限",
-    trend_growth: "高增长阈值(0.1)", listing_days_new: "新品天数"
+    trend_growth: "高增长阈值(0.1)", listing_days_new: "新品天数",
+    seasonality_threshold: "季节性强度阈值(0.3)"
 };
 
 // 详细的规则说明
@@ -744,6 +771,7 @@ const RULE_DESCRIPTIONS = {
     trend_data: "≥3个月数据得30分，1-2个月得15分，无数据得0分",
     trend_slope: "强趋势(>0.1)得40分，温和趋势(>0.05)得30分，弱趋势(>0)得10分，下跌趋势(≤0)得0分",
     trend_stability: "高度稳定(CV<0.2)得30分，中等稳定(CV<0.5)得15分，不稳定(CV≥0.5)得0分",
+    seasonality_strong: "强季节性(强度>0.5)得40分，中等季节性(0.3-0.5)得20分，弱季节性(0.1-0.3)得10分，无季节性(<0.1)得0分",
     history: "每月得5分，上限100分",
     new_product: "上架≤180天得40分",
     badges: "每个Amazon徽章得20分"
@@ -756,6 +784,7 @@ let currentBenchmarks = {};
 function init() {
     renderConfig();
     validateWeights();
+    setTimeout(insertSeasonalityToDictTable, 100);
 }
 
 function renderConfig() {
@@ -772,6 +801,7 @@ function renderConfig() {
         pHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${CONFIG.params[k]}" step="0.01" onchange="updateCfg('params','${k}',this.value)"></div>`;
     }
     document.getElementById('config-params').innerHTML = pHtml;
+
 }
 
 function updateCfg(type, k, v) {
@@ -928,12 +958,48 @@ function getBenchmarks() {
 
 function calculateLinearRegressionSlope(values) {
     if (!values || values.length < 2) return 0;
-    const n = values.length;
+
+    // 限制数据范围：只使用最近6-12个月的数据
+    let filteredValues;
+    if (values.length >= 6) {
+        // 如果有6个月或以上数据，取最近的6-12个月
+        const endIndex = values.length - 1; // 最新月份的索引
+        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月，最少取6个月
+        const availableMonths = endIndex - startIndex + 1;
+
+        // 确保至少取6个月数据
+        if (availableMonths >= 6) {
+            filteredValues = values.slice(Math.max(0, endIndex - 11), endIndex + 1);
+        } else {
+            // 如果可用月份少于6个月（理论上不会发生，但作为保险）
+            filteredValues = values.slice(-6);
+        }
+    } else {
+        // 如果少于6个月，使用所有可用数据
+        filteredValues = [...values];
+    }
+
+    const n = filteredValues.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-    for (let i = 0; i < n; i++) { sumX += i; sumY += values[i]; sumXY += i * values[i]; sumXX += i * i; }
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += filteredValues[i];
+        sumXY += i * filteredValues[i];
+        sumXX += i * i;
+    }
+
+    const denominator = (n * sumXX - sumX * sumX);
+    if (denominator === 0) return 0;
+
+    const slope = (n * sumXY - sumX * sumY) / denominator;
     const mean = sumY / n;
-    return mean > 0 ? slope / mean : 0;
+
+    // 如果均值太小，避免除以0或极小数
+    if (Math.abs(mean) < 0.0001) return 0;
+
+    // 返回归一化斜率 (增长率)
+    return slope / mean;
 }
 
 function findHotMonths(history) {
@@ -1109,45 +1175,61 @@ function calculateScores(item, history, bm) {
         });
 
         // 长期趋势得分 (40分)
-        const vals = history.map(h=>h.val);
-        trendSlope = calculateLinearRegressionSlope(vals);
+        const vals = history.map(h => h.val);
+        let usedMonthsInfo = ""; // 用于记录使用了多少个月的数据
+
+        // 根据新规则确定使用的数据范围
+        let filteredVals;
+        if (vals.length >= 6) {
+            // 如果有6个月或以上数据，取最近的6-12个月
+            const endIndex = vals.length - 1;
+            const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
+            filteredVals = vals.slice(startIndex, endIndex + 1);
+            usedMonthsInfo = `使用最近${filteredVals.length}个月数据`;
+        } else {
+            // 如果少于6个月，使用所有数据
+            filteredVals = [...vals];
+            usedMonthsInfo = `数据不足6个月，使用全部${filteredVals.length}个月数据`;
+        }
+
+        trendSlope = calculateLinearRegressionSlope(filteredVals);
         hotMonth = findHotMonths(history);
 
         let slope_pts = 0;
-        if(trendSlope > 0.1) {
+        if (trendSlope > 0.1) {
             slope_pts = R.trend_slope_perfect;
             logs.push({
-                dim:'趋势', item:'长期趋势',
-                formula:`${trendSlope.toFixed(3)} > 0.1`,
-                calc:`强趋势`,
-                res:slope_pts,
+                dim: '趋势', item: '长期趋势',
+                formula: `${trendSlope.toFixed(3)} > 0.1`,
+                calc: '强趋势',
+                res: slope_pts,
                 rule: RULE_DESCRIPTIONS.trend_slope
             });
-        } else if(trendSlope > 0.05) {
+        } else if (trendSlope > 0.05) {
             slope_pts = R.trend_slope_good;
             logs.push({
-                dim:'趋势', item:'长期趋势',
-                formula:`${trendSlope.toFixed(3)} > 0.05`,
-                calc:`温和趋势`,
-                res:slope_pts,
+                dim: '趋势', item: '长期趋势',
+                formula: `${trendSlope.toFixed(3)} > 0.05`,
+                calc: '温和趋势',
+                res: slope_pts,
                 rule: RULE_DESCRIPTIONS.trend_slope
             });
-        } else if(trendSlope > 0) {
+        } else if (trendSlope > 0) {
             slope_pts = R.trend_slope_weak;
             logs.push({
-                dim:'趋势', item:'长期趋势',
-                formula:`${trendSlope.toFixed(3)} > 0`,
-                calc:`弱趋势`,
-                res:slope_pts,
+                dim: '趋势', item: '长期趋势',
+                formula: `${trendSlope.toFixed(3)} > 0`,
+                calc: '弱趋势',
+                res: slope_pts,
                 rule: RULE_DESCRIPTIONS.trend_slope
             });
         } else {
             slope_pts = R.trend_slope_neg;
             logs.push({
-                dim:'趋势', item:'长期趋势',
-                formula:`${trendSlope.toFixed(3)} ≤ 0`,
-                calc:`下跌趋势`,
-                res:slope_pts,
+                dim: '趋势', item: '长期趋势',
+                formula: `${trendSlope.toFixed(3)} ≤ 0`,
+                calc: '下跌趋势',
+                res: slope_pts,
                 rule: RULE_DESCRIPTIONS.trend_slope
             });
         }
@@ -1244,7 +1326,48 @@ function calculateScores(item, history, bm) {
 
     score_trend = Math.min(100, Math.max(0, score_trend));
 
-    // --- 6. 历史 (History) - 总分100分 ---
+    // --- 6. 季节性分析 (Seasonality) - 总分100分 ---
+    let score_seasonality = 0;
+    let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
+
+    if (history.length >= 12) {
+    seasonalityData = analyzeSeasonality(history);
+
+    // 根据季节性强度赋分
+    let seasonalityScore = 0;
+    if (seasonalityData.strength > 0.5) {
+        seasonalityScore = R.seasonality_strong;
+    } else if (seasonalityData.strength > 0.3) {
+        seasonalityScore = R.seasonality_moderate;
+    } else if (seasonalityData.strength > 0.1) {
+        seasonalityScore = R.seasonality_weak;
+    } else {
+        seasonalityScore = R.seasonality_consistent;
+    }
+
+    score_seasonality = seasonalityScore;
+
+    // 添加详细日志
+    logs.push({
+        dim: '季节性',
+        item: '季节性强度',
+        formula: `强度: ${seasonalityData.strength.toFixed(3)}`,
+        calc: `${seasonalityData.pattern}`,
+        res: seasonalityScore,
+        rule: RULE_DESCRIPTIONS.seasonality_strong
+    });
+} else {
+    logs.push({
+        dim: '季节性',
+        item: '数据完整性',
+        formula: `${history.length}个月历史数据`,
+        calc: '需要至少12个月数据',
+        res: 0,
+        rule: '需要至少12个月数据进行季节性分析'
+    });
+}
+
+    // --- 7. 历史 (History) - 总分100分 ---
     let score_hist = Math.min(history.length * R.hist_month, 100);
     logs.push({
         dim:'历史', item:'存活',
@@ -1254,7 +1377,7 @@ function calculateScores(item, history, bm) {
         rule: RULE_DESCRIPTIONS.history
     });
 
-    // --- 7. 潜力 (Growth) - 总分100分 ---
+    // --- 8. 潜力 (Growth) - 总分100分 ---
     let score_growth = 0;
     // 上架天数
     if(item.listing_days>0 && item.listing_days<P.listing_days_new) {
@@ -1300,13 +1423,58 @@ function calculateScores(item, history, bm) {
         score_comp*W.competition +
         score_qual*W.quality +
         score_trend*W.trend +
+        score_seasonality*W.seasonality +
         score_hist*W.history +
         score_growth*W.growth
     )/100;
 
-    return { totalScore: total.toFixed(1), subScores: {sales:score_sales, profit:score_profit, competition:score_comp, quality:score_qual, trend:score_trend, history:score_hist, growth:score_growth}, trendData:{slope:trendSlope, hotMonth:hotMonth}, logs:logs };
+    return {
+        totalScore: total.toFixed(1),
+        subScores: {
+            sales:score_sales,
+            profit:score_profit,
+            competition:score_comp,
+            quality:score_qual,
+            trend:score_trend,
+            seasonality:score_seasonality,
+            history:score_hist,
+            growth:score_growth
+        },
+        trendData:{slope:trendSlope, hotMonth:hotMonth, seasonality: seasonalityData},
+        logs:logs
+    };
 }
+function insertSeasonalityToDictTable() {
+    // 在指标体系表中添加季节性指标行
+    const dictTable = document.querySelector('.dict-table tbody');
+    if (dictTable) {
+        const seasonalityRows = `        <tr>
+            <td class="dict-dim" rowspan="3">季节性 (3%)</td>
+            <td>季节性强度</td>
+            <td>1%</td>
+            <td>强度&gt;0.5→40分；0.3-0.5→20分；0.1-0.3→10分；&lt;0.1→0分</td>
+            <td>季节性越明显得分越高</td>
+            <td>基于月度销量变异系数计算</td>
+        </tr>
+        <tr>
+            <td>高峰月份稳定性</td>
+            <td>1%</td>
+            <td>连续两年高峰→40分；一年高峰→20分；无规律→0分</td>
+            <td>高峰月份一致性</td>
+            <td>评估季节性可预测性</td>
+        </tr>
+        <tr>
+            <td>季节性增长趋势</td>
+            <td>1%</td>
+            <td>增长→40分；稳定→20分；下降→0分</td>
+            <td>高峰期间销量趋势</td>
+            <td>评估季节性产品发展潜力</td>
+        </tr>`;
 
+        // 插入到表格的最后
+        dictTable.innerHTML += seasonalityRows;
+    }
+}
 // ================= 6. 渲染 =================
 function applyFilter() {
     const f = {
@@ -1353,6 +1521,7 @@ function renderTable() {
         let scoreClass = item.totalScore>=80 ? 'score-high' : (item.totalScore>=60 ? 'score-mid' : 'score-low');
         let slopePct = (item.trendData.slope*100).toFixed(1)+'%';
         let slopeClass = item.trendData.slope>0 ? 'trend-up' : 'trend-down';
+        let seasonalityInfo = item.trendData.seasonality?.pattern || '无数据';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -1398,7 +1567,7 @@ function renderTable() {
                     <canvas id="chart-${idx}"></canvas>
                 </div>
                 <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">长期斜率: ${slopePct}</div>
-                ${item.trendData.hotMonth!=='无' ? `<span class="hot-month-tag">热卖月份🔥${item.trendData.hotMonth}</span>` : ''}
+                <div style="font-size:10px;color:#666">季节性: ${seasonalityInfo}</div>
             </td>
             <td>
                 <div style="font-weight:bold; font-size:20px">${item.history.length}</div>
@@ -1429,26 +1598,65 @@ function showBigChart(idx) {
     const modal = document.getElementById('chart-modal');
     modal.style.display = 'flex';
 
-    if(window.bigChart) window.bigChart.destroy();
+    if (window.bigChart) window.bigChart.destroy();
     const ctx = document.getElementById('large-chart').getContext('2d');
 
     const stats = document.getElementById('chart-stats');
-    const vals = item.history.map(h=>h.val);
-    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
-    const std = Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-mean,2),0)/vals.length);
-    const cv = mean?std/mean:0;
+    const vals = item.history.map(h => h.val);
 
-    stats.innerHTML = `
-        <div style="flex:1;border-right:1px solid #ddd"><div style="color:#888">长期斜率</div><div style="font-size:16px;font-weight:bold">${(item.trendData.slope*100).toFixed(1)}%</div></div>
-        <div style="flex:1;border-right:1px solid #ddd"><div style="color:#888">稳定性(CV)</div><div style="font-size:16px;font-weight:bold">${cv.toFixed(2)}</div></div>
-        <div style="flex:1;border-right:1px solid #ddd"><div style="color:#888">热卖月份</div><div style="font-size:16px;font-weight:bold;color:#c0392b">${item.trendData.hotMonth}</div></div>
-        <div style="flex:1"><div style="color:#888">最新销量</div><div style="font-size:16px;font-weight:bold">${vals[vals.length-1]}</div></div>
+    // 计算统计指标
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
+    const cv = mean ? std / mean : 0;
+
+    // 获取高峰月份
+    const peakMonths = item.trendData.seasonality?.peakMonths?.join(', ') || '无数据';
+
+    // 计算实际用于长期斜率计算的数据范围
+    let usedMonthsInfo = "";
+    let actualDataLength = vals.length;
+    if (vals.length >= 6) {
+        // 如果有6个月或以上数据，取最近的6-12个月（与 calculateScores 中的逻辑一致）
+        const endIndex = vals.length - 1;
+        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
+        actualDataLength = endIndex - startIndex + 1;
+        usedMonthsInfo = `基于最近${actualDataLength}个月数据`;
+    } else if (vals.length > 0) {
+        usedMonthsInfo = `数据不足6个月，使用全部${actualDataLength}个月数据`;
+    } else {
+        usedMonthsInfo = "无历史数据";
+    }
+
+    // 修复布局的HTML结构
+    stats.innerHTML = `        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px;background:#f8f9fa;">
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">长期斜率</div>
+                <div style="font-size:16px;font-weight:bold">${(item.trendData.slope * 100).toFixed(1)}%</div>
+                <div style="font-size:10px;color:#999">${usedMonthsInfo}</div>
+            </div>
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">稳定性(CV)</div>
+                <div style="font-size:16px;font-weight:bold">${cv.toFixed(2)}</div>
+            </div>
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">季节性强度</div>
+                <div style="font-size:16px;font-weight:bold">${(item.trendData.seasonality?.strength*100 || 0).toFixed(1)}%</div>
+            </div>
+            <div style="flex:1;min-width:120px">
+                <div style="color:#888;font-size:12px">最新销量</div>
+                <div style="font-size:16px;font-weight:bold">${vals[vals.length - 1] || 0}</div>
+            </div>
+            <div style="flex-basis:100%;margin-top:10px;padding-top:10px;border-top:1px solid #eee;text-align:center;">
+                <div style="color:#888;font-size:12px">高峰月份</div>
+                <div style="font-size:14px;font-weight:bold;color:#c0392b">${peakMonths}</div>
+            </div>
+        </div>
     `;
 
     window.bigChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: item.history.map(h=>h.date),
+            labels: item.history.map(h => h.date),
             datasets: [{
                 label: '月销量',
                 data: vals,
@@ -1462,12 +1670,13 @@ function showBigChart(idx) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: {
-                datalabels: { align: 'top', color: '#666', font: {size:11}, formatter: (v) => v }
+                datalabels: { align: 'top', color: '#666', font: { size: 11 }, formatter: (v) => v }
             }
         },
         plugins: [ChartDataLabels]
     });
 }
+
 
 function showLog(idx) {
     const item = filteredData[idx];
@@ -1484,17 +1693,29 @@ function showLog(idx) {
 
     const groups = {};
     item.logs.forEach(l => { if(!groups[l.dim]) groups[l.dim]=[]; groups[l.dim].push(l); });
-    const order = ['销售','利润','竞争','质量','趋势','历史','潜力'];
+    const order = ['销售','利润','竞争','质量','趋势','历史','潜力','季节性'];
+
+    // 修复维度映射，添加季节性映射
+    const dimKeyMap = {
+        '销售':'sales',
+        '利润':'profit',
+        '竞争':'competition',
+        '质量':'quality',
+        '趋势':'trend',
+        '历史':'history',
+        '潜力':'growth',
+        '季节性':'seasonality'
+    };
 
     order.forEach(dim => {
         if(groups[dim]) {
-            let w = CONFIG.weights[{'销售':'sales','利润':'profit','竞争':'competition','质量':'quality','趋势':'trend','历史':'history','潜力':'growth'}[dim]];
-            let subScore = item.subScores[{'销售':'sales','利润':'profit','竞争':'competition','质量':'quality','趋势':'trend','历史':'history','潜力':'growth'}[dim]];
+            // 使用修复后的映射对象
+            let w = CONFIG.weights[dimKeyMap[dim]];
+            let subScore = item.subScores[dimKeyMap[dim]];
 
             groups[dim].forEach((l, i) => {
                 html += `<tr>
-                    ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}
-                    <td>${l.item}</td>
+                    ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}                    <td>${l.item}</td>
                     <td class="calc-formula">${l.formula}</td>
                     <td class="calc-step">${l.calc}</td>
                     <td class="calc-score-cell">${l.res>0?'+':''}${l.res.toFixed(1)}</td>
@@ -1731,6 +1952,17 @@ function generateDimensionCards(item) {
             ]
         },
         {
+            name: '季节性',
+            key: 'seasonality',
+            score: item.subScores.seasonality,
+            weight: CONFIG.weights.seasonality,
+            metrics: [
+                `季节性强度: ${(item.trendData.seasonality?.strength*100 || 0).toFixed(1)}%`,
+                `季节性模式: ${item.trendData.seasonality?.pattern || '无数据'}`,
+                `高峰月份: ${(item.trendData.seasonality?.peakMonths || []).join(', ') || 'N/A'}`
+            ]
+        },
+        {
             name: '历史深度',
             key: 'history',
             score: item.subScores.history,
@@ -1769,6 +2001,7 @@ function generateDimensionCards(item) {
     `).join('');
 }
 
+
 // 获取得分对应的颜色
 function getScoreColor(score) {
     if (score >= 80) return '#27ae60'; // 绿色
@@ -1780,25 +2013,27 @@ function getScoreColor(score) {
 function drawRadarChart(canvasId, item) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
-    // 维度数据
-    const labels = ['销售表现', '利润潜力', '竞争环境', '质量口碑', '销量趋势', '历史深度', '增长潜力'];
+    // 维度数据 - 添加季节性
+    const labels = ['销售表现', '利润潜力', '竞争环境', '质量口碑', '销量趋势', '季节性', '历史深度', '增长潜力'];
     const data = [
         item.subScores.sales,
         item.subScores.profit,
         item.subScores.competition,
         item.subScores.quality,
         item.subScores.trend,
+        item.subScores.seasonality, // 添加季节性得分
         item.subScores.history,
         item.subScores.growth
     ];
 
-    // 权重信息
+    // 权重信息 - 添加季节性权重
     const weights = [
         CONFIG.weights.sales,
         CONFIG.weights.profit,
         CONFIG.weights.competition,
         CONFIG.weights.quality,
         CONFIG.weights.trend,
+        CONFIG.weights.seasonality, // 添加季节性权重
         CONFIG.weights.history,
         CONFIG.weights.growth
     ];
@@ -1865,12 +2100,67 @@ function drawRadarChart(canvasId, item) {
     });
 }
 
+
 // 修改 showLog 函数以包含增强版可视化解释
 const originalShowLog = showLog;
 showLog = function(idx) {
     originalShowLog(idx);
     showEnhancedVisualization(idx);
 };
+
+// 添加季节性分析函数
+function analyzeSeasonality(history) {
+    if (!history || history.length < 12) {
+        return { strength: 0, pattern: "数据不足", peakMonths: [] };
+    }
+
+    // 按月份分组计算平均销量
+    const monthlyData = {};
+    history.forEach(item => {
+        const month = parseInt(item.date.split('-')[1]);
+        if (!monthlyData[month]) {
+            monthlyData[month] = [];
+        }
+        monthlyData[month].push(item.val);
+    });
+
+    // 计算每个月的平均销量
+    const monthlyAverages = {};
+    Object.keys(monthlyData).forEach(month => {
+        const sum = monthlyData[month].reduce((a, b) => a + b, 0);
+        monthlyAverages[month] = sum / monthlyData[month].length;
+    });
+
+    // 计算总体平均销量
+    const allValues = Object.values(monthlyAverages);
+    const overallAverage = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+
+    // 计算季节性强度 (变异系数)
+    const variance = allValues.reduce((sum, value) => sum + Math.pow(value - overallAverage, 2), 0) / allValues.length;
+    const stdDev = Math.sqrt(variance);
+    const seasonalityStrength = overallAverage > 0 ? stdDev / overallAverage : 0;
+
+    // 识别销售高峰期
+    const sortedMonths = Object.keys(monthlyAverages).sort((a, b) => monthlyAverages[b] - monthlyAverages[a]);
+    const peakMonths = sortedMonths.slice(0, 3).map(m => `${m}月`);
+
+    // 确定季节性模式
+    let pattern = "无明显季节性";
+    if (seasonalityStrength > 0.5) {
+        pattern = "强季节性";
+    } else if (seasonalityStrength > 0.3) {
+        pattern = "中等季节性";
+    } else if (seasonalityStrength > 0.1) {
+        pattern = "弱季节性";
+    }
+
+    return {
+        strength: seasonalityStrength,
+        pattern: pattern,
+        peakMonths: peakMonths
+    };
+}
+
 init();
 </script>
 </body>
