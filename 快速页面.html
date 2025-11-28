@@ -1000,7 +1000,7 @@
         const inp = document.createElement('input'); inp.type='text'; inp.placeholder='面料（例如：棉、麻、涤纶、真丝 等）'; inp.style.width='220px'; inp.dataset.parent=p; inp.value = prefillMap.get(p)||''; inp.className='fabric-input';
         // 品类下拉
         const sel = document.createElement('select'); sel.dataset.parent=p; sel.className='category-select'; sel.style.width='160px'; sel.style.marginLeft='8px';
-        const options = ['', '背心',	'内衣\\衬衣',	'抹胸',	'紧身裤',	'连体泳衣',	'卫衣',	'卫衣长裤',	'毛衣',	'裤裙',	'半裙',	'坎肩',	'短裤',	'上衣',	'塑身衣',	'格子衫',	'比基尼',	'套装',	'连体短裤',	'长袍',	'长裤',	'背带裤',	'性感睡裙',	'瑜伽裤',	'皮衣',	'连体长裤',	'夹克',	'连衣裙',	'罩衫',	'外套',	'开襟羊毛衫',	'开衫',	'七分裤',	'连体衣',	'西装外套',	'套头衫','其他'];
+        const options = ['', '背心',	'内衣\\衬衣',	'抹胸',	'紧身裤',	'连体泳衣',	'卫衣',	'卫衣长裤',	'毛衣',	'裤裙',	'半裙',	'坎肩',	'短裤',	'上衣',	'塑身衣',	'格子衫',	'比基尼',	'套装',	'连体短裤',	'长袍', '牛仔裤',	'长裤',	'背带裤',	'性感睡裙',	'瑜伽裤',	'皮衣',	'连体长裤',	'夹克',	'连衣裙',	'罩衫',	'外套',	'开襟羊毛衫',	'开衫',	'七分裤',	'连体衣',	'西装外套',	'套头衫','其他'];
         options.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent = v? v : '请选择品类'; sel.appendChild(o); });
         row.appendChild(lab); row.appendChild(inp); row.appendChild(sel); box.appendChild(row);
       }); fabricForm.appendChild(box);
