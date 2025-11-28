@@ -231,7 +231,7 @@
         <div class="upload-grid">
             <div class="drop-zone" onclick="document.getElementById('file-main').click()">
                 <strong style="color:var(--primary); font-size:14px;">1. 上传主数据</strong>
-                <div style="font-size:11px; color:#999; margin-top:5px;">卖家精灵插件导出(勾选翻译标题)</div>
+                <div style="font-size:11px; color:#999; margin-top:5px;">卖家精灵插件导出</div>
                 <input type="file" id="file-main" hidden accept=".xlsx,.xls,.csv">
                 <div id="status-main" class="file-status"></div>
             </div>
@@ -1328,34 +1328,73 @@ function calculateScores(item, history, bm) {
 
     // --- 6. 季节性分析 (Seasonality) - 总分100分 ---
     let score_seasonality = 0;
-    let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
+let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
 
-    if (history.length >= 12) {
+if (history.length >= 12) {
     seasonalityData = analyzeSeasonality(history);
 
-    // 根据季节性强度赋分
-    let seasonalityScore = 0;
+    // 1. 季节性强度得分 (40分)
+    let seasonalityStrengthScore = 0;
     if (seasonalityData.strength > 0.5) {
-        seasonalityScore = R.seasonality_strong;
+        seasonalityStrengthScore = R.seasonality_strong;
     } else if (seasonalityData.strength > 0.3) {
-        seasonalityScore = R.seasonality_moderate;
+        seasonalityStrengthScore = R.seasonality_moderate;
     } else if (seasonalityData.strength > 0.1) {
-        seasonalityScore = R.seasonality_weak;
+        seasonalityStrengthScore = R.seasonality_weak;
     } else {
-        seasonalityScore = R.seasonality_consistent;
+        seasonalityStrengthScore = R.seasonality_consistent;
     }
 
-    score_seasonality = seasonalityScore;
-
-    // 添加详细日志
     logs.push({
         dim: '季节性',
         item: '季节性强度',
         formula: `强度: ${seasonalityData.strength.toFixed(3)}`,
         calc: `${seasonalityData.pattern}`,
-        res: seasonalityScore,
+        res: seasonalityStrengthScore,
         rule: RULE_DESCRIPTIONS.seasonality_strong
     });
+
+    // 2. 高峰月份稳定性得分 (20分)
+    let peakStabilityScore = 0;
+    if (seasonalityData.peakStability === "连续两年高峰") {
+        peakStabilityScore = 20; // 原规则中应该是20分，但描述写的是40分
+    } else if (seasonalityData.peakStability === "一年高峰") {
+        peakStabilityScore = 10;
+    } else {
+        peakStabilityScore = 0;
+    }
+
+    logs.push({
+        dim: '季节性',
+        item: '高峰月份稳定性',
+        formula: `${seasonalityData.peakStability}`,
+        calc: `${seasonalityData.peakStability}`,
+        res: peakStabilityScore,
+        rule: "连续两年高峰得20分；一年高峰得10分；无规律得0分"
+    });
+
+    // 3. 季节性增长趋势得分 (40分)
+    let seasonalGrowthScore = 0;
+    if (seasonalityData.growthTrend > 0) {
+        seasonalGrowthScore = 40;
+    } else if (seasonalityData.growthTrend === 0) {
+        seasonalGrowthScore = 20;
+    } else {
+        seasonalGrowthScore = 0;
+    }
+
+    logs.push({
+        dim: '季节性',
+        item: '季节性增长趋势',
+        formula: `斜率: ${seasonalityData.growthTrend.toFixed(3)}`,
+        calc: `${seasonalityData.growthTrend > 0 ? '增长' : (seasonalityData.growthTrend === 0 ? '稳定' : '下降')}`,
+        res: seasonalGrowthScore,
+        rule: "增长得40分；稳定得20分；下降得0分"
+    });
+
+    // 季节性总分 = 季节性强度(40%) + 高峰月份稳定性(20%) + 季节性增长趋势(40%)
+    score_seasonality = seasonalityStrengthScore * 0.4 + peakStabilityScore * 0.2 + seasonalGrowthScore * 0.4;
+
 } else {
     logs.push({
         dim: '季节性',
@@ -2114,17 +2153,30 @@ showLog = function(idx) {
 // 添加季节性分析函数
 function analyzeSeasonality(history) {
     if (!history || history.length < 12) {
-        return { strength: 0, pattern: "数据不足", peakMonths: [] };
+        return {
+            strength: 0,
+            pattern: "数据不足",
+            peakMonths: [],
+            peakStability: "无规律",
+            growthTrend: 0
+        };
     }
 
     // 按月份分组计算平均销量
     const monthlyData = {};
+    const yearlyData = {}; // 按年份和月份分组
+
     history.forEach(item => {
-        const month = parseInt(item.date.split('-')[1]);
-        if (!monthlyData[month]) {
-            monthlyData[month] = [];
-        }
+        const parts = item.date.split('-');
+        const year = parts[0];
+        const month = parseInt(parts[1]);
+
+        if (!monthlyData[month]) monthlyData[month] = [];
         monthlyData[month].push(item.val);
+
+        if (!yearlyData[year]) yearlyData[year] = {};
+        if (!yearlyData[year][month]) yearlyData[year][month] = [];
+        yearlyData[year][month].push(item.val);
     });
 
     // 计算每个月的平均销量
@@ -2157,10 +2209,74 @@ function analyzeSeasonality(history) {
         pattern = "弱季节性";
     }
 
+    // 分析高峰月份稳定性 (检查同一月份在不同年份是否都表现为销售高峰)
+    let peakStability = "无规律";
+    if (Object.keys(yearlyData).length >= 2 && peakMonths.length > 0) {
+        const peakMonthNum = parseInt(peakMonths[0]); // 取第一个高峰月份
+        let yearsWithPeak = 0;
+        let totalYears = 0;
+
+        for (const year in yearlyData) {
+            totalYears++;
+            if (yearlyData[year][peakMonthNum]) {
+                // 检查该月份是否在该年份中属于高峰月份
+                const monthlyAveragesForYear = {};
+                for (const month in yearlyData[year]) {
+                    const sum = yearlyData[year][month].reduce((a, b) => a + b, 0);
+                    monthlyAveragesForYear[month] = sum / yearlyData[year][month].length;
+                }
+
+                const sortedMonthsInYear = Object.keys(monthlyAveragesForYear)
+                    .sort((a, b) => monthlyAveragesForYear[b] - monthlyAveragesForYear[a]);
+
+                // 如果该月份在前3个高峰月份中
+                if (sortedMonthsInYear.slice(0, 3).map(m => parseInt(m)).includes(peakMonthNum)) {
+                    yearsWithPeak++;
+                }
+            }
+        }
+
+        if (yearsWithPeak >= 2) {
+            peakStability = "连续两年高峰";
+        } else if (yearsWithPeak === 1) {
+            peakStability = "一年高峰";
+        }
+    }
+
+    // 计算季节性增长趋势 (对高峰月份进行线性回归分析)
+    let growthTrend = 0;
+    if (peakMonths.length > 0) {
+        const peakMonthNum = parseInt(peakMonths[0]);
+        const peakMonthData = [];
+
+        // 收集所有年份中该高峰月份的数据
+        for (const year in yearlyData) {
+            if (yearlyData[year][peakMonthNum]) {
+                const sum = yearlyData[year][peakMonthNum].reduce((a, b) => a + b, 0);
+                const avg = sum / yearlyData[year][peakMonthNum].length;
+                peakMonthData.push({
+                    year: parseInt(year),
+                    value: avg
+                });
+            }
+        }
+
+        // 按年份排序
+        peakMonthData.sort((a, b) => a.year - b.year);
+
+        // 如果有足够的数据点，计算线性回归斜率
+        if (peakMonthData.length >= 2) {
+            const values = peakMonthData.map(d => d.value);
+            growthTrend = calculateLinearRegressionSlope(values);
+        }
+    }
+
     return {
         strength: seasonalityStrength,
         pattern: pattern,
-        peakMonths: peakMonths
+        peakMonths: peakMonths,
+        peakStability: peakStability,
+        growthTrend: growthTrend
     };
 }
 
