@@ -118,7 +118,7 @@
 
         /* 指标体系表 */
         .dict-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        .dict-table th { background: #F1F407; padding: 8px; border: 1px solid #ddd; text-align: left; color: #333; font-weight: bold; }
+        .dict-table th { background: #F1F407; padding: 8px; border: 1px solid #ddd; text-align: center; color: #333; font-weight: bold; }
         .dict-table td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
         .dict-dim { font-weight: bold; color: var(--primary); background: #fdfdfd; }
 
@@ -504,7 +504,7 @@
                         <td>40分</td>
                         <td>(当月销量 / Q3分位销量) × 40 (封顶1.5倍)</td>
                         <td>销量越高越好</td>
-                        <td>基础分40，超过基准1.5倍封顶60分</td>
+                        <td>基础分40，超过基准1.5倍封顶60分。保证评分体系的相对平衡性</td>
                     </tr>
                     <tr>
                         <td>月销售额</td>
@@ -1454,21 +1454,24 @@ function insertSeasonalityToDictTable() {
             <td>40分</td>
             <td>强度&gt;0.5→40分；0.3-0.5→20分；0.1-0.3→10分；&lt;0.1→0分</td>
             <td>季节性越明显得分越高</td>
-            <td>基于月度销量变异系数计算</td>
+            <td>基于月度销量变异系数(标准差/均值)计算</td>
         </tr>
         <tr>
             <td>高峰月份稳定性</td>
             <td>20分</td>
             <td>连续两年高峰→40分；一年高峰→20分；无规律→0分</td>
             <td>高峰月份一致性</td>
-            <td>评估季节性可预测性</td>
+            <td>评估季节性可预测性,检查同一月份在不同年份是否都表现为销售高峰</td>
         </tr>
         <tr>
             <td>季节性增长趋势</td>
             <td>40分</td>
             <td>增长→40分；稳定→20分；下降→0分</td>
             <td>高峰期间销量趋势</td>
-            <td>评估季节性产品发展潜力</td>
+            <td>评估季节性产品发展潜力。计算步骤：
+按高峰月份进行分组
+例如，12月是高峰月份，则提取所有12月的销量数据
+对12月销量数据应用线性回归分析，计算斜率</td>
         </tr>`;
 
         // 插入到表格的最后
