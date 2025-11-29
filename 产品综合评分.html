@@ -53,6 +53,7 @@
         .filter-container { background: #e9ecef; padding: 10px; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .filter-item { display: flex; align-items: center; gap: 5px; font-size: 14px; }
         .filter-item input { width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; }
+        .filter-item select { padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
         .search-box { flex: 1; min-width: 10px; }
         .search-box input { width: 60%; padding: 6px; border: 1px solid #999; border-radius: 4px; font-weight: bold; }
 
@@ -360,17 +361,25 @@
     </div>
 
     <!-- 3. 筛选与搜索 -->
-    <div class="panel" style="background:#eef2f5; border:none;">
-        <div class="filter-container">
-            <div class="search-box">
-                <input type="text" id="f-search" placeholder="🔍 全局搜索 ASIN / 标题 / 品牌..." oninput="applyFilter()">
-            </div>
-            <div class="filter-item"><label>评分≥</label><input type="number" id="f-score" onchange="applyFilter()"></div>
-            <div class="filter-item"><label>月销≥</label><input type="number" id="f-sales" onchange="applyFilter()"></div>
-            <div class="filter-item"><label>价格:</label><input type="number" id="f-p-min" placeholder="Min" onchange="applyFilter()"> - <input type="number" id="f-p-max" placeholder="Max" onchange="applyFilter()"></div>
-            <button class="btn btn-outline" onclick="resetFilter()">重置</button>
+<div class="panel" style="background:#eef2f5; border:none;">
+    <div class="filter-container">
+        <div class="search-box">
+            <input type="text" id="f-search" placeholder="🔍 全局搜索 ASIN / 标题 / 品牌...">
         </div>
+        <div class="filter-item">
+            <label>数据展示:</label>
+            <select id="f-history-filter" style="padding:4px; border:1px solid #ccc; border-radius:3px; font-size:12px;">
+                <option value="all">全部产品数据</option>
+                <option value="has-history">有历史销量数据</option>
+            </select>
+        </div>
+        <div class="filter-item"><label>综合评分≥</label><input type="number" id="f-score"></div>
+        <div class="filter-item"><label>月销≥</label><input type="number" id="f-sales"></div>
+        <div class="filter-item"><label>价格:</label><input type="number" id="f-p-min" placeholder="Min"> - <input type="number" id="f-p-max" placeholder="Max"></div>
+        <button class="btn btn-primary" onclick="applyFilter()">🔍 筛选</button>
+        <button class="btn btn-outline" onclick="resetFilter()">🔄 重置</button>
     </div>
+</div>
 
     <!-- 4. 统计与表格 -->
     <div class="panel" style="padding:0; overflow:hidden">
@@ -390,7 +399,7 @@
                         <th style="width:170px">质量与口碑</th>
                         <th style="width:150px">销量趋势</th>
                         <th style="width:70px">季节性</th>
-                        <th style="width:150px">运营因素</th> <!-- 新增列 -->
+                        <th style="width:150px">运营因素</th>
                     </tr>
                 </thead>
                 <tbody id="table-body">
@@ -398,9 +407,21 @@
                 </tbody>
             </table>
         </div>
-        <div style="padding:10px; background:#f9f9f9; border-top:1px solid #ccc; text-align:right; font-size:12px; color:#666;">
-            共 <span id="total-count">0</span> 条数据，当前筛选显示 <span id="display-count">0</span> 条
+        <div style="padding:10px; background:#f9f9f9; border-top:1px solid #ccc; display:flex; justify-content:space-between; align-items:center;">
+    <div style="font-size:12px; color:#666;">
+        共 <span id="total-count">0</span> 条数据，当前显示 <span id="display-count">0</span> 条
+    </div>
+    <div id="pagination-controls" style="display:flex; gap:5px; align-items:center;">
+        <button class="btn btn-outline" onclick="changePage(currentPage-1)" id="prev-btn">上一页</button>
+        <span id="page-info" style="font-size:12px; margin:0 10px;"></span>
+        <button class="btn btn-outline" onclick="changePage(currentPage+1)" id="next-btn">下一页</button>
+        <div style="display:flex; align-items:center; gap:5px; margin-left:10px;">
+            <span style="font-size:12px;">跳转到</span>
+            <input type="number" id="page-input" style="width:50px; padding:3px; border:1px solid #ccc; border-radius:3px;" min="1">
+            <button class="btn btn-outline" onclick="goToPage()">GO</button>
         </div>
+    </div>
+</div>
     </div>
 
     <!-- 5. 指标体系表 (隐藏面板) -->
@@ -599,6 +620,8 @@
 </div>
 
 <script>
+    let currentPage = 1;
+const itemsPerPage = 200; // 每页显示200条数据
 // ================= 1. 全局配置 =================
 const CONFIG = {
     // 用户可调权重 (总和100)
@@ -730,6 +753,8 @@ let currentBenchmarks = {};
 function init() {
     renderConfig();
     validateWeights();
+    // 为页码输入框设置默认值
+    document.getElementById('page-input').value = '';
 }
 
 function renderConfig() {
@@ -1533,34 +1558,59 @@ let score_price_ops = p_pts + ratio_pts;
 function applyFilter() {
     const f = {
         search: document.getElementById('f-search').value.toLowerCase(),
-        score: parseFloat(document.getElementById('f-score').value)||0,
-        sales: parseFloat(document.getElementById('f-sales').value)||0,
-        minP: parseFloat(document.getElementById('f-p-min').value)||0,
-        maxP: parseFloat(document.getElementById('f-p-max').value)||999999
+        historyFilter: document.getElementById('f-history-filter').value,
+        score: parseFloat(document.getElementById('f-score').value) || 0,
+        sales: parseFloat(document.getElementById('f-sales').value) || 0,
+        minP: parseFloat(document.getElementById('f-p-min').value) || 0,
+        maxP: parseFloat(document.getElementById('f-p-max').value) || 999999
     };
 
     filteredData = processedData.filter(i => {
-        const matchSearch = i.asin.toLowerCase().includes(f.search) || i.title.toLowerCase().includes(f.search) || (i.brand && i.brand.toLowerCase().includes(f.search));
+        const matchSearch = i.asin.toLowerCase().includes(f.search) ||
+                           i.title.toLowerCase().includes(f.search) ||
+                           (i.brand && i.brand.toLowerCase().includes(f.search));
+
+        const matchHistory = f.historyFilter === 'all' ||
+                            (f.historyFilter === 'has-history' && i.history && i.history.length > 0);
+
         return matchSearch &&
-               parseFloat(i.totalScore)>=f.score &&
-               i.sales>=f.sales &&
-               i.price>=f.minP && i.price<=f.maxP;
+               matchHistory &&
+               parseFloat(i.totalScore) >= f.score &&
+               i.sales >= f.sales &&
+               i.price >= f.minP &&
+               i.price <= f.maxP;
     });
+
+    // 筛选条件改变时重置到第一页
+    currentPage = 1;
     renderTable();
 }
 
 function resetFilter() {
-    document.querySelectorAll('.filter-container input').forEach(i=>i.value='');
+    document.getElementById('f-search').value = '';
+    document.getElementById('f-history-filter').value = 'all';
+    document.getElementById('f-score').value = '';
+    document.getElementById('f-sales').value = '';
+    document.getElementById('f-p-min').value = '';
+    document.getElementById('f-p-max').value = '';
     applyFilter();
 }
 
 function renderTable() {
     const tbody = document.getElementById('table-body');
     tbody.innerHTML = '';
+
     document.getElementById('total-count').innerText = rawData.length;
     document.getElementById('display-count').innerText = filteredData.length;
 
-    filteredData.slice(0, 200).forEach((item, idx) => {
+    // 计算分页信息
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+    const pageData = filteredData.slice(startIndex, endIndex);
+
+    // 只渲染当前页数据
+    pageData.forEach((item, idx) => {
         let badges = '';
         if(item.is_bs) badges+=`<span class="badge bg-bs">Best Seller</span>`;
         if(item.is_ac) badges+=`<span class="badge bg-ac">Amazon Choice</span>`;
@@ -1580,7 +1630,7 @@ function renderTable() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${idx+1}</td>
+            <td>${startIndex + idx + 1}</td>
             <td class="col-info">
                 <div class="p-flex">
                     <div class="p-img-wrap">
@@ -1599,7 +1649,7 @@ function renderTable() {
             </td>
             <td>
                 <div class="score-val ${scoreClass}">${item.totalScore}</div>
-                <button class="btn-calc" onclick="showLog(${idx})">🔍 计算详情</button>
+                <button class="btn-calc" onclick="showLog(${startIndex + idx})">🔍 计算详情</button>
             </td>
             <td>
                 <div class="m-row"><span class="m-k">📦月销</span><span class="m-v">${item.sales}</span></div>
@@ -1620,8 +1670,8 @@ function renderTable() {
                 <div class="m-row"><span class="m-k">📝留评</span><span class="m-v">${(item.review_rate*100).toFixed(2)}%</span></div>
             </td>
             <td>
-                <div class="chart-wrap" onclick="showBigChart(${idx})">
-                    <canvas id="chart-${idx}"></canvas>
+                <div class="chart-wrap" onclick="showBigChart(${startIndex + idx})">
+                    <canvas id="chart-${startIndex + idx}"></canvas>
                 </div>
                 <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">长期斜率: ${slopePct}</div>
                 <div style="font-size:10px;color:#666">历史月数: ${item.history.length}</div>
@@ -1635,12 +1685,23 @@ function renderTable() {
                 <div class="m-row"><span class="m-k">🕒上架</span><span class="m-v">${listingDays}天</span></div>
                 <div class="m-row"><span class="m-k">🌍卖家</span><span class="m-v">${sellerLocation}</span></div>
                 <div class="m-row"><span class="m-k">📦配送</span><span class="m-v">${buyboxType}</span></div>
-                <div style="font-size:11px;margin-top:5px;font-weight:bold;color:${operationScore>=70?'27ae60':operationScore>=50?'f39c12':'c0392b'}">得分: ${operationScore.toFixed(1)}</div>
+                 <div style="font-size:11px;margin-top:5px;font-weight:bold;color:${operationScore>=70?'27ae60':operationScore>=50?'f39c12':'c0392b'}">得分: ${operationScore.toFixed(1)}</div>
             </td>
         `;
         tbody.appendChild(tr);
-        setTimeout(() => drawMiniChart(`chart-${idx}`, item.history), 0);
+
+        // 延迟绘制迷你图表以避免阻塞UI
+        setTimeout(() => drawMiniChart(`chart-${startIndex + idx}`, item.history), 0);
     });
+
+    // 更新分页控件
+    updatePaginationControls(totalPages);
+
+    // 移除性能提示（因为我们现在有了分页功能）
+    const existingNote = document.querySelector('.performance-note');
+    if (existingNote) {
+        existingNote.remove();
+    }
 }
 
 // ================= 7. 图表与弹窗 =================
@@ -2145,6 +2206,51 @@ function getBase64(url) {
         img.onerror = () => resolve(null);
     });
 }
+// 更新分页控件
+function updatePaginationControls(totalPages) {
+    // 更新页码信息
+    document.getElementById('page-info').innerText =
+        `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+
+    // 启用/禁用导航按钮
+    document.getElementById('prev-btn').disabled = (currentPage <= 1);
+    document.getElementById('next-btn').disabled = (currentPage >= totalPages);
+
+    // 更新页码输入框的最大值
+    document.getElementById('page-input').max = totalPages;
+}
+
+// 切换页面
+function changePage(newPage) {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        renderTable();
+
+        // 滚动到表格顶部
+        document.querySelector('.table-wrapper').scrollTop = 0;
+    }
+}
+
+// 跳转到指定页面
+function goToPage() {
+    const pageInput = document.getElementById('page-input');
+    const pageNumber = parseInt(pageInput.value);
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        currentPage = pageNumber;
+        renderTable();
+
+        // 清空输入框并滚动到顶部
+        pageInput.value = '';
+        document.querySelector('.table-wrapper').scrollTop = 0;
+    } else {
+        alert(`请输入有效的页码 (1-${totalPages})`);
+    }
+}
+
 
 // 辅助函数
 function parseNum(v) { if(typeof v==='number')return v; if(!v)return 0; let s=v.toString().replace(/[$,%]/g,''); let n=parseFloat(s); if(v.toString().includes('%'))n/=100; return isNaN(n)?0:n; }
