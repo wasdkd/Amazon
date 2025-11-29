@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <style>
+        /* 样式保持不变，与之前相同 */
         :root {
             --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --warning: #f39c12; --danger: #c0392b;
             --bg: #f4f6f9; --border: #dde1e6;
@@ -207,6 +208,98 @@
     font-size: 11px;
     color: #666;
 }
+/* 雷达图容器 */
+        .radar-chart-container {
+            width: 400px;
+            height: 300px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        /* 维度详情卡片 */
+        .dimension-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .dimension-card {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .dimension-card-header {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .dimension-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .dimension-progress {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .dimension-progress-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .dimension-key-metrics {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 权重信息展示 */
+        .weight-info {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .weight-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #27ae60;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin: 0 3px;
+        }
+
+        /* 可视化容器 */
+        .visualization-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .visualization-left {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .visualization-right {
+            flex: 1;
+            min-width: 400px;
+        }
     </style>
 </head>
 <body>
@@ -274,9 +367,6 @@
             </div>
             <div class="filter-item"><label>评分≥</label><input type="number" id="f-score" onchange="applyFilter()"></div>
             <div class="filter-item"><label>月销≥</label><input type="number" id="f-sales" onchange="applyFilter()"></div>
-            <div class="filter-item"><label>毛利%≥</label><input type="number" id="f-margin" onchange="applyFilter()"></div>
-            <div class="filter-item"><label>评价数≥</label><input type="number" id="f-reviews" onchange="applyFilter()"></div>
-            <div class="filter-item"><label>评分≥</label><input type="number" id="f-rating" step="0.1" onchange="applyFilter()"></div>
             <div class="filter-item"><label>价格:</label><input type="number" id="f-p-min" placeholder="Min" onchange="applyFilter()"> - <input type="number" id="f-p-max" placeholder="Max" onchange="applyFilter()"></div>
             <button class="btn btn-outline" onclick="resetFilter()">重置</button>
         </div>
@@ -294,11 +384,12 @@
                         <th style="width:40px">#</th>
                         <th class="col-info">产品信息</th>
                         <th style="width:90px">综合评分</th>
-                        <th style="width:170px">销售与利润</th>
+                        <th style="width:170px">销售表现</th>
+                        <th style="width:170px">定价与转化</th>
                         <th style="width:170px">竞争环境</th>
                         <th style="width:170px">质量与口碑</th>
                         <th style="width:150px">销量趋势</th>
-                        <th style="width:70px">历史深度</th>
+                        <th style="width:70px">季节性</th>
                     </tr>
                 </thead>
                 <tbody id="table-body">
@@ -323,10 +414,6 @@
             <h4>🎯 赋分逻辑设计原则</h4>
             <ul>
                 <li><strong>每个维度总分100分</strong>：便于标准化和比较</li>
-<!--                <li><strong>核心指标高分</strong>：关键业务指标赋予更高分数</li>-->
-<!--                <li><strong>合理分布</strong>：避免单个指标权重过大</li>-->
-<!--                <li><strong>阈值明确</strong>：每个得分区间都有明确的业务含义</li>-->
-<!--                <li><strong>数据缺失惩罚</strong>：无数据或数据不足会相应扣分，避免数据缺失反而得分高</li>-->
             </ul>
 
             <h4>📊 具体赋分逻辑说明</h4>
@@ -342,7 +429,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="logic-dim" rowspan="3">销售表现(25%)</td>
+                        <td class="logic-dim" rowspan="3">销售表现(30%)</td>
                         <td>月销量</td>
                         <td>40分</td>
                         <td>基准值40分，1.5倍封顶60分</td>
@@ -362,42 +449,30 @@
                     </tr>
 
                     <tr>
-                        <td class="logic-dim" rowspan="3">利润潜力(20%)</td>
+                        <td class="logic-dim" rowspan="2">定价与转化(25%)</td>
                         <td>销售价</td>
-                        <td>40分</td>
-                        <td>理想区间40分，可接受20分</td>
+                        <td>60分</td>
+                        <td>理想区间60分，可接受30分，低于理想区间0分</td>
                         <td>价格决定利润空间和运营成本承受能力</td>
                     </tr>
                     <tr>
-                        <td>毛利率</td>
-                        <td>40分</td>
-                        <td>≥40%得40分，≥25%得20分</td>
-                        <td>毛利率是盈利能力的核心指标</td>
-                    </tr>
-                    <tr>
                         <td>评销比</td>
-                        <td>20分</td>
-                        <td>合理区间20分，其他10分</td>
+                        <td>40分</td>
+                        <td>合理区间40分，其他20分</td>
                         <td>反映自然流量转化效率</td>
                     </tr>
 
                     <tr>
-                        <td class="logic-dim" rowspan="3">竞争环境(18%)</td>
-                        <td>卖家数</td>
-                        <td>40分</td>
-                        <td>独家40分，寡头20分</td>
-                        <td>竞争程度直接影响运营难度</td>
-                    </tr>
-                    <tr>
+                        <td class="logic-dim" rowspan="2">竞争环境(15%)</td>
                         <td>大类BSR</td>
-                        <td>30分</td>
-                        <td>头部30分，腰部15分</td>
+                        <td>50分</td>
+                        <td>头部50分，腰部25分</td>
                         <td>大类排名反映整体竞争力</td>
                     </tr>
                     <tr>
                         <td>小类BSR</td>
-                        <td>30分</td>
-                        <td>头部30分，腰部15分</td>
+                        <td>50分</td>
+                        <td>头部50分，腰部25分</td>
                         <td>小类排名决定细分市场地位</td>
                     </tr>
 
@@ -424,63 +499,39 @@
                     <tr>
                         <td class="logic-dim" rowspan="3">销量趋势(10%)</td>
                         <td>数据完整性</td>
-                        <td>30分</td>
-                        <td>≥3个月30分，1-2个月15分，无数据0分</td>
+                        <td>40分</td>
+                        <td>≥3个月40分，1-2个月20分，无数据0分</td>
                         <td>数据质量决定分析可靠性</td>
                     </tr>
                     <tr>
-                        <td>长期趋势</td>
-                        <td>40分</td>
-                        <td>强趋势40分，温和30分，弱趋势10分，下跌0分</td>
+                        <td>最近一年趋势</td>
+                        <td>60分</td>
+                        <td>强趋势60分，温和45分，弱趋势15分，下跌0分</td>
                         <td>趋势方向决定市场机会</td>
                     </tr>
                     <tr>
-                        <td>销量稳定性</td>
-                        <td>30分</td>
-                        <td>高度稳定30分，中等稳定15分，不稳定0分</td>
-                        <td>稳定性影响库存和资金规划</td>
+
                     </tr>
 
                     <tr>
-                        <td class="logic-dim">历史深度(4%)</td>
-                        <td>历史销量(月数)</td>
-                        <td>100分</td>
-                        <td>每月5分，体现生命周期验证</td>
-                        <td>存续时间验证产品生命力</td>
-                    </tr>
-
-                    <tr>
-                        <td class="logic-dim" rowspan="2">增长潜力(8%)</td>
-                        <td>新品标识</td>
+                        <td class="logic-dim" rowspan="3">季节性(5%)</td>
+                        <td>季节性强度</td>
                         <td>40分</td>
-                        <td>新品期40分</td>
-                        <td>新品有更大增长空间</td>
+                        <td>强度>0.5得40分；0.3-0.5得20分；0.1-0.3得10分；<0.1得0分</td>
+                        <td>季节性越明显得分越高</td>
                     </tr>
                     <tr>
-                        <td>Amazon徽章</td>
-                        <td>60分</td>
-                        <td>每个徽章20分</td>
-                        <td>平台背书提升信任度</td>
+                        <td>高峰月份稳定性</td>
+                        <td>20分</td>
+                        <td>连续两年高峰得20分；一年高峰得10分；无规律得0分</td>
+                        <td>高峰月份一致性</td>
                     </tr>
-                <tr>
-    <td class="logic-dim" rowspan="3">季节性(3%)</td>
-    <td>季节性强度</td>
-    <td>40分</td>
-    <td>强度&gt;0.5得40分；0.3-0.5得20分；0.1-0.3得10分；&lt;0.1得0分</td>
-    <td>季节性越明显得分越高</td>
-</tr>
-<tr>
-    <td>高峰月份稳定性</td>
-    <td>20分</td>
-    <td>连续两年高峰得20分；一年高峰得10分；无规律得0分</td>
-    <td>高峰月份一致性</td>
-</tr>
-<tr>
-    <td>季节性增长趋势</td>
-    <td>40分</td>
-    <td>增长得40分；稳定得20分；下降得0分</td>
-    <td>高峰期间销量趋势</td>
-</tr>
+                    <tr>
+                        <td>季节性增长趋势</td>
+                        <td>40分</td>
+                        <td>增长得40分；稳定得20分；下降得0分</td>
+                        <td>高峰期间销量趋势</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -499,7 +550,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="dict-dim" rowspan="3">销售表现 (25%)</td>
+                        <td class="dict-dim" rowspan="3">销售表现 (30%)</td>
                         <td>月销量</td>
                         <td>40分</td>
                         <td>(当月销量 / Q3分位销量) × 40 (封顶1.5倍)</td>
@@ -521,46 +572,32 @@
                         <td>基于近期3个月或原表增长率</td>
                     </tr>
                     <tr>
-                        <td class="dict-dim" rowspan="3">利润潜力 (20%)</td>
+                        <td class="dict-dim" rowspan="2">定价与转化 (25%)</td>
                         <td>销售价</td>
-                        <td>40分</td>
-                        <td>在[15,60]区间→40分；超范围→20分</td>
+                        <td>60分</td>
+                        <td>在[15,60]区间→60分；>60→30分；<15→0分</td>
                         <td>合理价格区间得满分</td>
                         <td>价格过低或过高都扣分</td>
                     </tr>
                     <tr>
-                        <td>毛利率</td>
-                        <td>40分</td>
-                        <td>≥40%→40分；25%-40%→20分；<25%→0分</td>
-                        <td>毛利率越高越加分</td>
-                        <td>理想毛利40%以上</td>
-                    </tr>
-                    <tr>
                         <td>评销比</td>
-                        <td>20分</td>
-                        <td>在[0.5%, 8%]→20分；其他→10分</td>
+                        <td>40分</td>
+                        <td>在[0.5%, 8%]→40分；其他→20分</td>
                         <td>留评合理可持续</td>
                         <td>评论数/销量，防止刷评</td>
                     </tr>
                     <tr>
-                        <td class="dict-dim" rowspan="3">竞争环境 (18%)</td>
-                        <td>卖家数</td>
-                        <td>40分</td>
-                        <td>独家→40分；≤3个→20分；>3→0分</td>
-                        <td>独家或少跟卖加分</td>
-                        <td>跟卖越多竞争越激烈</td>
-                    </tr>
-                    <tr>
+                        <td class="dict-dim" rowspan="2">竞争环境 (15%)</td>
                         <td>大类BSR</td>
-                        <td>30分</td>
-                        <td>≤2000→30分；≤5000→15分；>5000→0分</td>
+                        <td>50分</td>
+                        <td>≤2000→50分；≤5000→25分；>5000→0分</td>
                         <td>BSR越靠前越优</td>
                         <td>大类排名越靠前越好</td>
                     </tr>
                     <tr>
                         <td>小类BSR</td>
-                        <td>30分</td>
-                        <td><50→30分；<100→15分；≥100→0分</td>
+                        <td>50分</td>
+                        <td><50→50分；<100→25分；≥100→0分</td>
                         <td>小类前列更优秀</td>
                         <td>小类排名越靠前越好</td>
                     </tr>
@@ -589,47 +626,42 @@
                     <tr>
                         <td class="dict-dim" rowspan="3">销量趋势 (10%)</td>
                         <td>数据完整性</td>
-                        <td>30分</td>
-                        <td>≥3个月→30分；1-2个月→15分；无数据→0分</td>
+                        <td>40分</td>
+                        <td>≥3个月→40分；1-2个月→20分；无数据→0分</td>
                         <td>数据越完整越可靠</td>
                         <td>数据质量决定分析可靠性</td>
                     </tr>
                     <tr>
-                        <td>长期趋势</td>
-                        <td>40分</td>
-                        <td>>0.1→40分；>0.05→30分；>0→10分；≤0→0分</td>
+                        <td>最近一年趋势</td>
+                        <td>60分</td>
+                        <td>>0.1→60分；>0.05→45分；>0→15分；≤0→0分</td>
                         <td>趋势越强越加分</td>
                         <td>线性回归斜率，核心趋势指标</td>
                     </tr>
                     <tr>
-                        <td>销量稳定性</td>
-                        <td>30分</td>
-                        <td>CV<0.2→30分；CV<0.5→15分；CV≥0.5→0分</td>
-                        <td>越稳定得分越高</td>
-                        <td>CV=标准差/均值，稳定性指标</td>
+
                     </tr>
                     <tr>
-                        <td class="dict-dim">历史深度 (4%)</td>
-                        <td>历史销量(月)</td>
-                        <td>100分</td>
-                        <td>每月+5分(上限100分)</td>
-                        <td>存续时间越长越加分</td>
-                        <td>12个月=60分</td>
-                    </tr>
-                    <tr>
-                        <td class="dict-dim" rowspan="2">增长潜力 (8%)</td>
-                        <td>新品标识</td>
+                        <td class="dict-dim" rowspan="3">季节性 (5%)</td>
+                        <td>季节性强度</td>
                         <td>40分</td>
-                        <td>上架≤180天→+40分</td>
-                        <td>新品趋势判定</td>
-                        <td>新品期内加分</td>
+                        <td>强度>0.5→40分；0.3-0.5→20分；0.1-0.3→10分；<0.1→0分</td>
+                        <td>季节性越明显得分越高</td>
+                        <td>基于月度销量变异系数(标准差/均值)计算</td>
                     </tr>
                     <tr>
-                        <td>Amazon徽章</td>
-                        <td>60分</td>
-                        <td>每个徽章+20分(BS/AC/New)</td>
-                        <td>徽章越多信任度越高</td>
-                        <td>最多3个徽章=60分</td>
+                        <td>高峰月份稳定性</td>
+                        <td>20分</td>
+                        <td>连续两年高峰→20分；一年高峰→10分；无规律→0分</td>
+                        <td>高峰月份一致性</td>
+                        <td>评估季节性可预测性,检查同一月份在不同年份是否都表现为销售高峰</td>
+                    </tr>
+                    <tr>
+                        <td>季节性增长趋势</td>
+                        <td>40分</td>
+                        <td>增长→40分；稳定→20分；下降→0分</td>
+                        <td>高峰期间销量趋势</td>
+                        <td>评估季节性产品发展潜力。计算步骤： 按高峰月份进行分组 例如，12月是高峰月份，则提取所有12月的销量数据 对12月销量数据应用线性回归分析，计算斜率</td>
                     </tr>
                 </tbody>
             </table>
@@ -668,16 +700,20 @@
 // ================= 1. 全局配置 =================
 const CONFIG = {
     // 用户可调权重 (总和100)
-    weights: { sales: 25, profit: 20, competition: 18, quality: 15, trend: 7, history: 4, growth: 8, seasonality: 3 },
+    weights: { sales: 25, // 销售表现
+        price_ops: 20, //定价与转化
+        competition: 20, // 竞争环境
+        quality: 15, // 质量口碑
+        trend: 12,  //销量趋势
+        seasonality: 8  //季节性
+    },
     // 用户可调阈值
     params: {
         price_min: 15, price_max: 60,
-        margin_ideal: 0.40, margin_min: 0.25,
         bsr_major_max: 5000, bsr_minor_max: 100,
-        sellers_max: 3,
         rating_min: 4.2, reviews_min: 50, reviews_max: 2000,
         review_rate_min: 0.01, review_rate_max: 0.08,
-        trend_growth: 0.1, listing_days_new: 180,
+        trend_growth: 0.1,
         seasonality_threshold: 0.3 // 季节性强度阈值
     }
 };
@@ -691,20 +727,18 @@ const INTERNAL_RULES = {
     growth_mid: 10,         // 正增长10分 - 基本增长要求
     growth_neg: -10,        // 负增长扣10分 - 衰退警示
 
-    // 利润潜力 (总分100分 = 40 + 40 + 20)
-    price_perfect: 40,      // 理想价格40分 - 价格决定利润空间
-    price_ok: 20,           // 可接受价格20分 - 价格在合理范围
-    margin_perfect: 40,     // 高毛利40分 - 盈利能力核心指标
-    margin_ok: 20,          // 及格毛利20分 - 基本盈利要求
-    ratio_base: 20,         // 合理评销比20分 - 自然流量质量指标
+    // 定价与转化 (总分100分 = 价格60分 + 评销比40分)
+    price_perfect: 60,      // 理想价格60分 - 价格决定利润空间
+    price_ok: 30,           // 可接受价格30分 - 价格在合理范围
+    price_low: 0,           // 价格过低0分
+    ratio_base: 40,         // 合理评销比40分 - 自然流量质量指标
+    ratio_partial: 20,      // 不合理评销比20分
 
-    // 竞争环境 (总分100分 = 40 + 30 + 30)
-    seller_perfect: 40,     // 独家40分 - 竞争程度核心指标
-    seller_ok: 20,          // 寡头20分 - 竞争程度可接受
-    bsr_maj_perfect: 30,    // 大类头部30分 - 整体市场地位
-    bsr_maj_ok: 15,         // 大类腰部15分 - 市场地位可接受
-    bsr_min_perfect: 30,    // 小类头部30分 - 细分市场地位
-    bsr_min_ok: 15,         // 小类腰部15分 - 细分市场地位可接受
+    // 竞争环境 (总分100分 = 50 + 50)
+    bsr_maj_perfect: 50,    // 大类头部50分 - 整体市场地位
+    bsr_maj_ok: 25,         // 大类腰部25分 - 市场地位可接受
+    bsr_min_perfect: 50,    // 小类头部50分 - 细分市场地位
+    bsr_min_ok: 25,         // 小类腰部25分 - 细分市场地位可接受
 
     // 质量口碑 (总分100分 = 40 + 30 + 30)
     rating_perfect: 40,     // 高评分40分 - 产品质量核心指标
@@ -714,43 +748,40 @@ const INTERNAL_RULES = {
     rate_perfect: 30,       // 自然留评率30分 - 流量质量指标
     rate_ok: 15,            // 其他留评率15分 - 留评率异常警示
 
-    // 销量趋势 (总分100分 = 数据完整性30分 + 长期趋势40分 + 稳定性30分)
-    trend_data_complete: 30,    // 完整数据30分 - 数据质量指标
-    trend_data_partial: 15,     // 部分数据15分 - 数据质量中等
+    // 销量趋势 (总分100分 = 数据完整性40分 + 最近一年趋势60分)
+     trend_data_complete: 40,    // 完整数据40分 - 数据质量指标
+    trend_data_partial: 20,     // 部分数据20分 - 数据质量中等
     trend_data_none: 0,         // 无数据0分 - 数据质量差
 
-    trend_slope_perfect: 40,    // 强趋势40分 - 趋势方向核心指标
-    trend_slope_good: 30,       // 温和趋势30分 - 趋势方向中等
-    trend_slope_weak: 10,       // 弱趋势10分 - 趋势方向基础
+    trend_slope_perfect: 60,    // 强趋势60分 - 趋势方向核心指标
+    trend_slope_good: 45,       // 温和趋势45分 - 趋势方向中等
+    trend_slope_weak: 15,       // 弱趋势15分 - 趋势方向基础
     trend_slope_neg: 0,         // 下跌趋势0分 - 趋势方向警示
-
-    trend_stability_perfect: 30, // 高度稳定30分 - 稳定性核心指标
-    trend_stability_good: 15,    // 中等稳定15分 - 稳定性中等
-    trend_stability_poor: 0,     // 不稳定0分 - 稳定性警示
 
     // 季节性分析 (总分100分)
     seasonality_strong: 40,     // 强季节性40分
     seasonality_moderate: 20,   // 中等季节性20分
     seasonality_weak: 10,       // 弱季节性10分
-    seasonality_consistent: 0,  // 无季节性0分
+    seasonality_none: 0,        // 无季节性0分
 
-    // 历史深度 (总分100分)
-    hist_month: 5,          // 每月5分，20个月满分 - 生命周期验证
+    peak_stability_perfect: 20, // 高峰稳定性20分
+    peak_stability_good: 10,    // 高峰稳定性10分
+    peak_stability_poor: 0,     // 高峰稳定性0分
 
-    // 增长潜力 (总分100分 = 40 + 60)
-    new_product: 40,        // 新品40分 - 新品期增长红利
-    badge_bonus: 20         // 每个徽章20分 - 平台背书价值
+    seasonal_growth_perfect: 40, // 季节性增长40分
+    seasonal_growth_ok: 20,      // 季节性稳定20分
+    seasonal_growth_poor: 0      // 季节性下降0分
 };
 
 // 字段中文名
 const LABEL_MAP = {
-    sales: "销售表现", profit: "利润潜力", competition: "竞争环境",
-    quality: "产品质量", trend: "销量趋势", history: "历史深度", growth: "增长潜力", seasonality: "季节性",
-    price_min: "最低价格($)", price_max: "最高价格($)", margin_ideal: "理想毛利(0.4)", margin_min: "及格毛利(0.25)",
-    bsr_major_max: "大类排名红线", bsr_minor_max: "小类排名红线", sellers_max: "跟卖上限",
+    sales: "销售表现", price_ops: "定价与转化", competition: "竞争环境",
+    quality: "产品质量", trend: "销量趋势", seasonality: "季节性",
+    price_min: "最低价格($)", price_max: "最高价格($)",
+    bsr_major_max: "大类排名红线", bsr_minor_max: "小类排名红线",
     rating_min: "评分及格线", reviews_min: "最少评价数", reviews_max: "红海评价数",
     review_rate_min: "留评率下限", review_rate_max: "留评率上限",
-    trend_growth: "高增长阈值(0.1)", listing_days_new: "新品天数",
+    trend_growth: "高增长阈值(0.1)",
     seasonality_threshold: "季节性强度阈值(0.3)"
 };
 
@@ -759,22 +790,19 @@ const RULE_DESCRIPTIONS = {
     sales_vol: "基准值40分，超过基准1.5倍封顶60分",
     sales_rev: "基准值40分，超过基准1.5倍封顶60分",
     sales_growth: "高增长(>10%)得20分，正增长得10分，负增长扣10分",
-    price: "价格在15-60美元区间得40分，超出范围得20分",
-    margin: "毛利率≥40%得40分，25%-40%得20分，<25%得0分",
-    review_ratio: "评销比在0.5%-8%区间得20分，其他得10分",
-    sellers: "独家卖家得40分，≤3个卖家得20分，>3个得0分",
-    bsr_major: "大类BSR≤2000得30分，≤5000得15分，>5000得0分",
-    bsr_minor: "小类BSR<50得30分，<100得15分，≥100得0分",
+    price: "价格在15-60美元区间得60分，大于60美元得30分，低于15美元得0分",
+    review_ratio: "评销比在0.5%-8%区间得40分，其他得20分",
+    bsr_major: "大类BSR≤2000得50分，≤5000得25分，>5000得0分",
+    bsr_minor: "小类BSR<50得50分，<100得25分，≥100得0分",
     rating: "评分≥4.5得40分，≥4.2得20分，<4.2得0分",
     reviews: "评论数50-2000得30分，<50得20分，>2000得0分",
     review_rate: "留评率1%-8%得30分，其他得15分",
-    trend_data: "≥3个月数据得30分，1-2个月得15分，无数据得0分",
-    trend_slope: "强趋势(>0.1)得40分，温和趋势(>0.05)得30分，弱趋势(>0)得10分，下跌趋势(≤0)得0分",
+    trend_data: "≥3个月数据得40分，1-2个月得20分，无数据得0分",
+    trend_slope: "强趋势(>0.1)得60分，温和趋势(>0.05)得45分，弱趋势(>0)得15分，下跌趋势(≤0)得0分",
     trend_stability: "高度稳定(CV<0.2)得30分，中等稳定(CV<0.5)得15分，不稳定(CV≥0.5)得0分",
-    seasonality_strong: "强季节性(强度>0.5)得40分，中等季节性(0.3-0.5)得20分，弱季节性(0.1-0.3)得10分，无季节性(<0.1)得0分",
-    history: "每月得5分，上限100分",
-    new_product: "上架≤180天得40分",
-    badges: "每个Amazon徽章得20分"
+    seasonality_strength: "强度>0.5得40分；0.3-0.5得20分；0.1-0.3得10分；<0.1得0分",
+    peak_stability: "连续两年高峰得20分；一年高峰得10分；无规律得0分",
+    seasonal_growth: "增长得40分；稳定得20分；下降得0分"
 };
 
 let rawData = [], processedData = [], filteredData = [], historyMap = new Map();
@@ -784,7 +812,6 @@ let currentBenchmarks = {};
 function init() {
     renderConfig();
     validateWeights();
-    setTimeout(insertSeasonalityToDictTable, 100);
 }
 
 function renderConfig() {
@@ -801,7 +828,6 @@ function renderConfig() {
         pHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${CONFIG.params[k]}" step="0.01" onchange="updateCfg('params','${k}',this.value)"></div>`;
     }
     document.getElementById('config-params').innerHTML = pHtml;
-
 }
 
 function updateCfg(type, k, v) {
@@ -1002,1155 +1028,7 @@ function calculateLinearRegressionSlope(values) {
     return slope / mean;
 }
 
-function findHotMonths(history) {
-    if(!history || history.length < 6) return "无";
-    const monthMap = {};
-    history.forEach(h => {
-        const m = h.date.match(/-(\d{1,2})/);
-        if(m) {
-            const month = parseInt(m[1]);
-            if(!monthMap[month]) monthMap[month] = [];
-            monthMap[month].push(h.val);
-        }
-    });
-    let maxAvg = 0, hotMonth = "";
-    for(let m in monthMap) {
-        const avg = monthMap[m].reduce((a,b)=>a+b,0)/monthMap[m].length;
-        if(avg > maxAvg) { maxAvg = avg; hotMonth = m + "月"; }
-    }
-    return hotMonth;
-}
-
-function calculateScores(item, history, bm) {
-    const W = CONFIG.weights, P = CONFIG.params, R = INTERNAL_RULES;
-    let logs = [];
-
-    // --- 1. 销售 (Sales) - 总分100分 ---
-    let s_sales_raw = Math.min(item.sales/bm.sales, 1.5);
-    let s_sales_pts = s_sales_raw * R.sales_vol_weight;
-    logs.push({
-        dim:'销售', item:'月销量',
-        formula:`${item.sales} ÷ ${bm.sales} = ${s_sales_raw.toFixed(2)}`,
-        calc:`${s_sales_raw.toFixed(2)} × ${R.sales_vol_weight}分`,
-        res:s_sales_pts,
-        rule: RULE_DESCRIPTIONS.sales_vol
-    });
-
-    let s_rev_raw = Math.min(item.revenue/bm.revenue, 1.5);
-    let s_rev_pts = s_rev_raw * R.sales_rev_weight;
-    logs.push({
-        dim:'销售', item:'销售额',
-        formula:`${Math.round(item.revenue)} ÷ ${Math.round(bm.revenue)} = ${s_rev_raw.toFixed(2)}`,
-        calc:`${s_rev_raw.toFixed(2)} × ${R.sales_rev_weight}分`,
-        res:s_rev_pts,
-        rule: RULE_DESCRIPTIONS.sales_rev
-    });
-
-    let growthRate = item.sales_growth;
-    let growthLogic = "原表增长率";
-    if(!growthRate && history.length >= 3) {
-        const recent = history.slice(-3);
-        if(recent[0].val > 0) {
-            growthRate = (recent[recent.length-1].val - recent[0].val) / recent[0].val;
-            growthLogic = `(末${recent[recent.length-1].val} - 初${recent[0].val}) ÷ ${recent[0].val}`;
-        }
-    }
-    let s_growth_pts = growthRate > P.trend_growth ? R.growth_high : (growthRate > 0 ? R.growth_mid : R.growth_neg);
-    logs.push({
-        dim:'销售', item:'近期增长',
-        formula:`${growthLogic} = ${(growthRate*100).toFixed(1)}%`,
-        calc:`对比阈值${P.trend_growth*100}%`,
-        res:s_growth_pts,
-        rule: RULE_DESCRIPTIONS.sales_growth
-    });
-
-    let score_sales = Math.min(100, s_sales_pts + s_rev_pts + s_growth_pts);
-
-    // --- 2. 利润 (Profit) - 总分100分 ---
-    let p_pts = (item.price>=P.price_min && item.price<=P.price_max) ? R.price_perfect : (item.price>P.price_max ? R.price_ok : 0);
-    logs.push({
-        dim:'利润', item:'价格',
-        formula:`$${item.price}`,
-        calc:`区间 ${P.price_min}-${P.price_max}`,
-        res:p_pts,
-        rule: RULE_DESCRIPTIONS.price
-    });
-
-    let m = item.margin||0;
-    let m_pts = m>=P.margin_ideal ? R.margin_perfect : (m>=P.margin_min ? R.margin_ok : 0);
-    logs.push({
-        dim:'利润', item:'毛利率',
-        formula:`${(m*100).toFixed(0)}%`,
-        calc:`>=${P.margin_ideal*100}%满分`,
-        res:m_pts,
-        rule: RULE_DESCRIPTIONS.margin
-    });
-
-    let ratio = item.sales > 0 ? (item.reviews / item.sales) : 0;
-    let ratio_pts = (ratio >= 0.005 && ratio <= 0.08) ? R.ratio_base : (R.ratio_base / 2);
-    logs.push({
-        dim:'利润', item:'评销比',
-        formula:`${item.reviews} ÷ ${item.sales} = ${(ratio*100).toFixed(2)}%`,
-        calc:`0.5%-8%区间`,
-        res:ratio_pts,
-        rule: RULE_DESCRIPTIONS.review_ratio
-    });
-
-    let score_profit = p_pts + m_pts + ratio_pts;
-
-    // --- 3. 竞争 (Competition) - 总分100分 ---
-    let sel_pts = item.sellers<=1 ? R.seller_perfect : (item.sellers<=P.sellers_max ? R.seller_ok : 0);
-    logs.push({
-        dim:'竞争', item:'卖家数',
-        formula:`${item.sellers}`,
-        calc:`≤${P.sellers_max}加分`,
-        res:sel_pts,
-        rule: RULE_DESCRIPTIONS.sellers
-    });
-
-    let bsr_pts = (item.bsr_major>0 && item.bsr_major<2000) ? R.bsr_maj_perfect : (item.bsr_major<P.bsr_major_max ? R.bsr_maj_ok : 0);
-    logs.push({
-        dim:'竞争', item:'大类BSR',
-        formula:`${item.bsr_major}`,
-        calc:`<${P.bsr_major_max}达标`,
-        res:bsr_pts,
-        rule: RULE_DESCRIPTIONS.bsr_major
-    });
-
-    let sub_bsr_pts = (item.bsr_minor>0 && item.bsr_minor<50) ? R.bsr_min_perfect : (item.bsr_minor<100 ? R.bsr_min_ok : 0);
-    logs.push({
-        dim:'竞争', item:'小类BSR',
-        formula:`${item.bsr_minor}`,
-        calc:`<50极好`,
-        res:sub_bsr_pts,
-        rule: RULE_DESCRIPTIONS.bsr_minor
-    });
-
-    let score_comp = sel_pts + bsr_pts + sub_bsr_pts;
-
-    // --- 4. 质量 (Quality) - 总分100分 ---
-    let r_pts = item.rating>=4.5 ? R.rating_perfect : (item.rating>=P.rating_min ? R.rating_ok : 0);
-    logs.push({
-        dim:'质量', item:'评分',
-        formula:`${item.rating}`,
-        calc:`>=${P.rating_min}及格`,
-        res:r_pts,
-        rule: RULE_DESCRIPTIONS.rating
-    });
-
-    let rv_pts = (item.reviews>=P.reviews_min && item.reviews<=P.reviews_max) ? R.reviews_perfect : (item.reviews<P.reviews_min ? R.reviews_ok : 0);
-    logs.push({
-        dim:'质量', item:'评价数',
-        formula:`${item.reviews}`,
-        calc:`${P.reviews_min}-${P.reviews_max}区间`,
-        res:rv_pts,
-        rule: RULE_DESCRIPTIONS.reviews
-    });
-
-    let rr_pts = (item.review_rate>=P.review_rate_min && item.review_rate<=P.review_rate_max) ? R.rate_perfect : R.rate_ok;
-    logs.push({
-        dim:'质量', item:'留评率',
-        formula:`${(item.review_rate*100).toFixed(2)}%`,
-        calc:`${P.review_rate_min*100}-${P.review_rate_max*100}%`,
-        res:rr_pts,
-        rule: RULE_DESCRIPTIONS.review_rate
-    });
-
-    let score_qual = r_pts + rv_pts + rr_pts;
-
-    // --- 5. 趋势 (Trend) - 总分100分 = 数据完整性30分 + 长期趋势40分 + 稳定性30分 ---
-    let score_trend = 0;
-    let trendSlope = 0;
-    let hotMonth = "无";
-
-    // 数据完整性得分 (30分)
-    if(history.length >= 3) {
-        score_trend += R.trend_data_complete;
-        logs.push({
-            dim:'趋势', item:'数据完整性',
-            formula:`${history.length}个月数据`,
-            calc:`≥3个月得满分`,
-            res:R.trend_data_complete,
-            rule: RULE_DESCRIPTIONS.trend_data
-        });
-
-        // 长期趋势得分 (40分)
-        const vals = history.map(h => h.val);
-        let usedMonthsInfo = ""; // 用于记录使用了多少个月的数据
-
-        // 根据新规则确定使用的数据范围
-        let filteredVals;
-        if (vals.length >= 6) {
-            // 如果有6个月或以上数据，取最近的6-12个月
-            const endIndex = vals.length - 1;
-            const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
-            filteredVals = vals.slice(startIndex, endIndex + 1);
-            usedMonthsInfo = `使用最近${filteredVals.length}个月数据`;
-        } else {
-            // 如果少于6个月，使用所有数据
-            filteredVals = [...vals];
-            usedMonthsInfo = `数据不足6个月，使用全部${filteredVals.length}个月数据`;
-        }
-
-        trendSlope = calculateLinearRegressionSlope(filteredVals);
-        hotMonth = findHotMonths(history);
-
-        let slope_pts = 0;
-        if (trendSlope > 0.1) {
-            slope_pts = R.trend_slope_perfect;
-            logs.push({
-                dim: '趋势', item: '长期趋势',
-                formula: `${trendSlope.toFixed(3)} > 0.1`,
-                calc: '强趋势',
-                res: slope_pts,
-                rule: RULE_DESCRIPTIONS.trend_slope
-            });
-        } else if (trendSlope > 0.05) {
-            slope_pts = R.trend_slope_good;
-            logs.push({
-                dim: '趋势', item: '长期趋势',
-                formula: `${trendSlope.toFixed(3)} > 0.05`,
-                calc: '温和趋势',
-                res: slope_pts,
-                rule: RULE_DESCRIPTIONS.trend_slope
-            });
-        } else if (trendSlope > 0) {
-            slope_pts = R.trend_slope_weak;
-            logs.push({
-                dim: '趋势', item: '长期趋势',
-                formula: `${trendSlope.toFixed(3)} > 0`,
-                calc: '弱趋势',
-                res: slope_pts,
-                rule: RULE_DESCRIPTIONS.trend_slope
-            });
-        } else {
-            slope_pts = R.trend_slope_neg;
-            logs.push({
-                dim: '趋势', item: '长期趋势',
-                formula: `${trendSlope.toFixed(3)} ≤ 0`,
-                calc: '下跌趋势',
-                res: slope_pts,
-                rule: RULE_DESCRIPTIONS.trend_slope
-            });
-        }
-        score_trend += slope_pts;
-
-        // 稳定性得分 (30分)
-        const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
-        const std = Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-mean,2),0)/vals.length);
-        const cv = mean ? std/mean : 1;
-
-        let stability_pts = 0;
-        if(cv < 0.2) {
-            stability_pts = R.trend_stability_perfect;
-            logs.push({
-                dim:'趋势', item:'稳定性(CV)',
-                formula: cv.toFixed(2) + ' < 0.2',
-                calc: '高度稳定',
-                res: stability_pts,
-                rule: RULE_DESCRIPTIONS.trend_stability
-            });
-        } else if(cv < 0.5) {
-            stability_pts = R.trend_stability_good;
-            logs.push({
-                dim:'趋势', item:'稳定性(CV)',
-                formula: cv.toFixed(2) + ' < 0.5',
-                calc: '中等稳定',
-                res: stability_pts,
-                rule: RULE_DESCRIPTIONS.trend_stability
-            });
-        } else {
-            stability_pts = R.trend_stability_poor;
-            logs.push({
-                dim:'趋势', item:'稳定性(CV)',
-                formula: cv.toFixed(2) + ' ≥ 0.5',
-                calc: '不稳定',
-                res: stability_pts,
-                rule: RULE_DESCRIPTIONS.trend_stability
-            });
-        }
-        score_trend += stability_pts;
-
-    } else if(history.length > 0) {
-        // 部分数据 - 数据完整性得中等分
-        score_trend += R.trend_data_partial;
-        logs.push({
-            dim:'趋势', item:'数据完整性',
-            formula:`${history.length}个月数据`,
-            calc:`1-2个月得中等分`,
-            res:R.trend_data_partial,
-            rule: RULE_DESCRIPTIONS.trend_data
-        });
-
-        // 数据不足，不给趋势和稳定性评分（已包含在惩罚中）
-        logs.push({
-            dim:'趋势', item:'长期趋势',
-            formula:`数据不足`,
-            calc:`不评分`,
-            res:0,
-            rule: "数据不足3个月，无法计算长期趋势"
-        });
-        logs.push({
-            dim:'趋势', item:'稳定性',
-            formula:`数据不足`,
-            calc:`不评分`,
-            res:0,
-            rule: "数据不足3个月，无法计算稳定性"
-        });
-
-    } else {
-        // 无数据 - 数据完整性得0分
-        score_trend += R.trend_data_none;
-        logs.push({
-            dim:'趋势', item:'数据完整性',
-            formula:`无历史数据`,
-            calc:`0分`,
-            res:R.trend_data_none,
-            rule: RULE_DESCRIPTIONS.trend_data
-        });
-        logs.push({
-            dim:'趋势', item:'长期趋势',
-            formula:`无数据`,
-            calc:`不评分`,
-            res:0,
-            rule: "无历史数据，无法计算长期趋势"
-        });
-        logs.push({
-            dim:'趋势', item:'稳定性',
-            formula:`无数据`,
-            calc:`不评分`,
-            res:0,
-            rule: "无历史数据，无法计算稳定性"
-        });
-    }
-
-    score_trend = Math.min(100, Math.max(0, score_trend));
-
-    // --- 6. 季节性分析 (Seasonality) - 总分100分 ---
-    let score_seasonality = 0;
-let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
-
-if (history.length >= 12) {
-    seasonalityData = analyzeSeasonality(history);
-
-    // 1. 季节性强度得分 (40分)
-    let seasonalityStrengthScore = 0;
-    if (seasonalityData.strength > 0.5) {
-        seasonalityStrengthScore = R.seasonality_strong;
-    } else if (seasonalityData.strength > 0.3) {
-        seasonalityStrengthScore = R.seasonality_moderate;
-    } else if (seasonalityData.strength > 0.1) {
-        seasonalityStrengthScore = R.seasonality_weak;
-    } else {
-        seasonalityStrengthScore = R.seasonality_consistent;
-    }
-
-    logs.push({
-        dim: '季节性',
-        item: '季节性强度',
-        formula: `强度: ${seasonalityData.strength.toFixed(3)}`,
-        calc: `${seasonalityData.pattern}`,
-        res: seasonalityStrengthScore,
-        rule: RULE_DESCRIPTIONS.seasonality_strong
-    });
-
-    // 2. 高峰月份稳定性得分 (20分)
-    let peakStabilityScore = 0;
-    if (seasonalityData.peakStability === "连续两年高峰") {
-        peakStabilityScore = 20; // 原规则中应该是20分，但描述写的是40分
-    } else if (seasonalityData.peakStability === "一年高峰") {
-        peakStabilityScore = 10;
-    } else {
-        peakStabilityScore = 0;
-    }
-
-    logs.push({
-        dim: '季节性',
-        item: '高峰月份稳定性',
-        formula: `${seasonalityData.peakStability}`,
-        calc: `${seasonalityData.peakStability}`,
-        res: peakStabilityScore,
-        rule: "连续两年高峰得20分；一年高峰得10分；无规律得0分"
-    });
-
-    // 3. 季节性增长趋势得分 (40分)
-    let seasonalGrowthScore = 0;
-    if (seasonalityData.growthTrend > 0) {
-        seasonalGrowthScore = 40;
-    } else if (seasonalityData.growthTrend === 0) {
-        seasonalGrowthScore = 20;
-    } else {
-        seasonalGrowthScore = 0;
-    }
-
-    logs.push({
-        dim: '季节性',
-        item: '季节性增长趋势',
-        formula: `斜率: ${seasonalityData.growthTrend.toFixed(3)}`,
-        calc: `${seasonalityData.growthTrend > 0 ? '增长' : (seasonalityData.growthTrend === 0 ? '稳定' : '下降')}`,
-        res: seasonalGrowthScore,
-        rule: "增长得40分；稳定得20分；下降得0分"
-    });
-
-    // 季节性总分 = 季节性强度(40%) + 高峰月份稳定性(20%) + 季节性增长趋势(40%)
-    score_seasonality = seasonalityStrengthScore * 0.4 + peakStabilityScore * 0.2 + seasonalGrowthScore * 0.4;
-
-} else {
-    logs.push({
-        dim: '季节性',
-        item: '数据完整性',
-        formula: `${history.length}个月历史数据`,
-        calc: '需要至少12个月数据',
-        res: 0,
-        rule: '需要至少12个月数据进行季节性分析'
-    });
-}
-
-    // --- 7. 历史 (History) - 总分100分 ---
-    let score_hist = Math.min(history.length * R.hist_month, 100);
-    logs.push({
-        dim:'历史', item:'存活',
-        formula:`${history.length}个月`,
-        calc:`× ${R.hist_month}分/月`,
-        res:score_hist,
-        rule: RULE_DESCRIPTIONS.history
-    });
-
-    // --- 8. 潜力 (Growth) - 总分100分 ---
-    let score_growth = 0;
-    // 上架天数
-    if(item.listing_days>0 && item.listing_days<P.listing_days_new) {
-        score_growth+=R.new_product;
-        logs.push({
-            dim:'潜力', item:'新品期',
-            formula:`${item.listing_days}天`,
-            calc:`<${P.listing_days_new}天`,
-            res:R.new_product,
-            rule: RULE_DESCRIPTIONS.new_product
-        });
-    } else {
-        logs.push({
-            dim:'潜力', item:'新品期',
-            formula:`${item.listing_days}天`,
-            calc:`非新品`,
-            res:0,
-            rule: RULE_DESCRIPTIONS.new_product
-        });
-    }
-
-    let badges_score = 0;
-    let badges_log = [];
-    if(item.is_bs) { badges_score += R.badge_bonus; badges_log.push("BS"); }
-    if(item.is_ac) { badges_score += R.badge_bonus; badges_log.push("AC"); }
-    if(item.is_new) { badges_score += R.badge_bonus; badges_log.push("New"); }
-
-    if(badges_score > 0) {
-        logs.push({
-            dim:'潜力', item:'标识',
-            formula:badges_log.join(','),
-            calc:`每个+${R.badge_bonus}`,
-            res:badges_score,
-            rule: RULE_DESCRIPTIONS.badges
-        });
-    }
-    score_growth += badges_score;
-    score_growth = Math.min(100, score_growth);
-
-    const total = (
-        score_sales*W.sales +
-        score_profit*W.profit +
-        score_comp*W.competition +
-        score_qual*W.quality +
-        score_trend*W.trend +
-        score_seasonality*W.seasonality +
-        score_hist*W.history +
-        score_growth*W.growth
-    )/100;
-
-    return {
-        totalScore: total.toFixed(1),
-        subScores: {
-            sales:score_sales,
-            profit:score_profit,
-            competition:score_comp,
-            quality:score_qual,
-            trend:score_trend,
-            seasonality:score_seasonality,
-            history:score_hist,
-            growth:score_growth
-        },
-        trendData:{slope:trendSlope, hotMonth:hotMonth, seasonality: seasonalityData},
-        logs:logs
-    };
-}
-function insertSeasonalityToDictTable() {
-    // 在指标体系表中添加季节性指标行
-    const dictTable = document.querySelector('.dict-table tbody');
-    if (dictTable) {
-        const seasonalityRows = `        <tr>
-            <td class="dict-dim" rowspan="3">季节性 (3%)</td>
-            <td>季节性强度</td>
-            <td>40分</td>
-            <td>强度&gt;0.5→40分；0.3-0.5→20分；0.1-0.3→10分；&lt;0.1→0分</td>
-            <td>季节性越明显得分越高</td>
-            <td>基于月度销量变异系数(标准差/均值)计算</td>
-        </tr>
-        <tr>
-            <td>高峰月份稳定性</td>
-            <td>20分</td>
-            <td>连续两年高峰→40分；一年高峰→20分；无规律→0分</td>
-            <td>高峰月份一致性</td>
-            <td>评估季节性可预测性,检查同一月份在不同年份是否都表现为销售高峰</td>
-        </tr>
-        <tr>
-            <td>季节性增长趋势</td>
-            <td>40分</td>
-            <td>增长→40分；稳定→20分；下降→0分</td>
-            <td>高峰期间销量趋势</td>
-            <td>评估季节性产品发展潜力。计算步骤：
-按高峰月份进行分组
-例如，12月是高峰月份，则提取所有12月的销量数据
-对12月销量数据应用线性回归分析，计算斜率</td>
-        </tr>`;
-
-        // 插入到表格的最后
-        dictTable.innerHTML += seasonalityRows;
-    }
-}
-// ================= 6. 渲染 =================
-function applyFilter() {
-    const f = {
-        search: document.getElementById('f-search').value.toLowerCase(),
-        score: parseFloat(document.getElementById('f-score').value)||0,
-        sales: parseFloat(document.getElementById('f-sales').value)||0,
-        margin: parseFloat(document.getElementById('f-margin').value)||0,
-        reviews: parseFloat(document.getElementById('f-reviews').value)||0,
-        rating: parseFloat(document.getElementById('f-rating').value)||0,
-        minP: parseFloat(document.getElementById('f-p-min').value)||0,
-        maxP: parseFloat(document.getElementById('f-p-max').value)||999999
-    };
-
-    filteredData = processedData.filter(i => {
-        const matchSearch = i.asin.toLowerCase().includes(f.search) || i.title.toLowerCase().includes(f.search) || (i.brand && i.brand.toLowerCase().includes(f.search));
-        return matchSearch &&
-               parseFloat(i.totalScore)>=f.score &&
-               i.sales>=f.sales &&
-               (i.margin*100)>=f.margin &&
-               i.reviews>=f.reviews &&
-               i.rating>=f.rating &&
-               i.price>=f.minP && i.price<=f.maxP;
-    });
-    renderTable();
-}
-
-function resetFilter() {
-    document.querySelectorAll('.filter-container input').forEach(i=>i.value='');
-    applyFilter();
-}
-
-function renderTable() {
-    const tbody = document.getElementById('table-body');
-    tbody.innerHTML = '';
-    document.getElementById('total-count').innerText = rawData.length;
-    document.getElementById('display-count').innerText = filteredData.length;
-
-    filteredData.slice(0, 200).forEach((item, idx) => {
-        let badges = '';
-        if(item.is_bs) badges+=`<span class="badge bg-bs">Best Seller</span>`;
-        if(item.is_ac) badges+=`<span class="badge bg-ac">Amazon Choice</span>`;
-        if(item.is_new) badges+=`<span class="badge bg-new">New Release</span>`;
-
-        let scoreClass = item.totalScore>=80 ? 'score-high' : (item.totalScore>=60 ? 'score-mid' : 'score-low');
-        let slopePct = (item.trendData.slope*100).toFixed(1)+'%';
-        let slopeClass = item.trendData.slope>0 ? 'trend-up' : 'trend-down';
-        let seasonalityInfo = item.trendData.seasonality?.pattern || '无数据';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${idx+1}</td>
-            <td class="col-info">
-                <div class="p-flex">
-                    <div class="p-img-wrap">
-                        ${item.image ? `<img src="${item.image}" class="p-img" onclick="window.open('${item.image}')">` : '<div class="p-img">无图</div>'}
-                    </div>
-                    <div class="p-details">
-                        <div>
-                            <a href="${item.url || 'https://www.amazon.com/dp/'+item.asin}" target="_blank" class="p-asin">${item.asin}</a>
-                            <span style="color:#666;font-size:11px;margin-left:5px">${item.brand||''}</span>
-                        </div>
-                        <div class="p-title" title="${item.title}">${item.title}</div>
-                        <div class="p-meta">类目: ${item.category||'-'} | 上架: ${item.lister_date||'-'} (${item.listing_days||0}天)</div>
-                        <div class="badge-row">${badges}</div>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <div class="score-val ${scoreClass}">${item.totalScore}</div>
-                <button class="btn-calc" onclick="showLog(${idx})">🔍 计算详情</button>
-            </td>
-            <td>
-                <div class="m-row"><span class="m-k">💲价格</span><span class="m-v">$${item.price}</span></div>
-                <div class="m-row"><span class="m-k">💰毛利</span><span class="m-v ${item.margin>=0.4?'trend-up':''}">${(item.margin*100).toFixed(0)}%</span></div>
-                <div class="m-row"><span class="m-k">📦月销</span><span class="m-v">${item.sales}</span></div>
-                <div class="m-row"><span class="m-k">📈增长</span><span class="m-v ${item.sales_growth>0?'trend-up':'trend-down'}">${(item.sales_growth*100).toFixed(1)}%</span></div>
-            </td>
-            <td>
-                <div class="m-row"><span class="m-k">🏅大类BSR</span><span class="m-v">${item.bsr_major||'-'}</span></div>
-                <div class="m-row"><span class="m-k">🥈小类BSR</span><span class="m-v">${item.bsr_minor||'-'}</span></div>
-                <div class="m-row"><span class="m-k">🏪卖家</span><span class="m-v">${item.sellers}</span></div>
-            </td>
-            <td>
-                <div class="m-row"><span class="m-k">⭐评分</span><span class="m-v">${item.rating}</span></div>
-                <div class="m-row"><span class="m-k">💬评论</span><span class="m-v">${item.reviews}</span></div>
-                <div class="m-row"><span class="m-k">📝留评</span><span class="m-v">${(item.review_rate*100).toFixed(2)}%</span></div>
-            </td>
-            <td>
-                <div class="chart-wrap" onclick="showBigChart(${idx})">
-                    <canvas id="chart-${idx}"></canvas>
-                </div>
-                <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">长期斜率: ${slopePct}</div>
-                <div style="font-size:10px;color:#666">季节性: ${seasonalityInfo}</div>
-            </td>
-            <td>
-                <div style="font-weight:bold; font-size:20px">${item.history.length}</div>
-                <div style="font-size:15px; color:#999">个月</div>
-            </td>
-        `;
-        tbody.appendChild(tr);
-        setTimeout(() => drawMiniChart(`chart-${idx}`, item.history), 0);
-    });
-}
-
-// ================= 7. 图表与弹窗 =================
-function drawMiniChart(id, history) {
-    const ctx = document.getElementById(id).getContext('2d');
-    if(!history || history.length < 2) {
-        ctx.font = "10px Arial"; ctx.fillText("无数据", 10, 25); return;
-    }
-    const vals = history.map(h=>h.val);
-    new Chart(ctx, {
-        type: 'line',
-        data: { labels: history.map(h=>h.date), datasets: [{ data: vals, borderColor: '#3498db', borderWidth: 1.5, pointRadius: 0, tension: 0.1 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: false, tooltip: false, datalabels: {display:false} }, scales: { x: {display:false}, y: {display:false} } }
-    });
-}
-
-function showBigChart(idx) {
-    const item = filteredData[idx];
-    const modal = document.getElementById('chart-modal');
-    modal.style.display = 'flex';
-
-    if (window.bigChart) window.bigChart.destroy();
-    const ctx = document.getElementById('large-chart').getContext('2d');
-
-    const stats = document.getElementById('chart-stats');
-    const vals = item.history.map(h => h.val);
-
-    // 计算统计指标
-    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-    const std = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
-    const cv = mean ? std / mean : 0;
-
-    // 获取高峰月份
-    const peakMonths = item.trendData.seasonality?.peakMonths?.join(', ') || '无数据';
-
-    // 计算实际用于长期斜率计算的数据范围
-    let usedMonthsInfo = "";
-    let actualDataLength = vals.length;
-    if (vals.length >= 6) {
-        // 如果有6个月或以上数据，取最近的6-12个月（与 calculateScores 中的逻辑一致）
-        const endIndex = vals.length - 1;
-        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
-        actualDataLength = endIndex - startIndex + 1;
-        usedMonthsInfo = `基于最近${actualDataLength}个月数据`;
-    } else if (vals.length > 0) {
-        usedMonthsInfo = `数据不足6个月，使用全部${actualDataLength}个月数据`;
-    } else {
-        usedMonthsInfo = "无历史数据";
-    }
-
-    // 修复布局的HTML结构
-    stats.innerHTML = `        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px;background:#f8f9fa;">
-            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
-                <div style="color:#888;font-size:12px">长期斜率</div>
-                <div style="font-size:16px;font-weight:bold">${(item.trendData.slope * 100).toFixed(1)}%</div>
-                <div style="font-size:10px;color:#999">${usedMonthsInfo}</div>
-            </div>
-            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
-                <div style="color:#888;font-size:12px">稳定性(CV)</div>
-                <div style="font-size:16px;font-weight:bold">${cv.toFixed(2)}</div>
-            </div>
-            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
-                <div style="color:#888;font-size:12px">季节性强度</div>
-                <div style="font-size:16px;font-weight:bold">${(item.trendData.seasonality?.strength*100 || 0).toFixed(1)}%</div>
-            </div>
-            <div style="flex:1;min-width:120px">
-                <div style="color:#888;font-size:12px">最新销量</div>
-                <div style="font-size:16px;font-weight:bold">${vals[vals.length - 1] || 0}</div>
-            </div>
-            <div style="flex-basis:100%;margin-top:10px;padding-top:10px;border-top:1px solid #eee;text-align:center;">
-                <div style="color:#888;font-size:12px">高峰月份</div>
-                <div style="font-size:14px;font-weight:bold;color:#c0392b">${peakMonths}</div>
-            </div>
-        </div>
-    `;
-
-    window.bigChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: item.history.map(h => h.date),
-            datasets: [{
-                label: '月销量',
-                data: vals,
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-                datalabels: { align: 'top', color: '#666', font: { size: 11 }, formatter: (v) => v }
-            }
-        },
-        plugins: [ChartDataLabels]
-    });
-}
-
-
-function showLog(idx) {
-    const item = filteredData[idx];
-    const modal = document.getElementById('score-modal');
-    modal.style.display = 'flex';
-
-    let html = `<div style="background:#f9f9f9; padding:10px; margin-bottom:15px; border-left:4px solid var(--accent)">
-        <div style="font-size:16px; font-weight:bold">${item.asin}</div>
-        <div>综合得分: <strong style="font-size:20px; color:var(--primary)">${item.totalScore}</strong></div>
-        <div style="font-size:11px; color:#666">公式: ∑(维度得分 × 维度权重) / 100</div>
-    </div>`;
-
-    html += `<table class="calc-table"><thead><tr><th class="dim-cell">维度</th><th>指标项</th><th>计算公式</th><th>加权计算</th><th>得分</th><th style="width:200px">赋分规则</th></tr></thead><tbody>`;
-
-    const groups = {};
-    item.logs.forEach(l => { if(!groups[l.dim]) groups[l.dim]=[]; groups[l.dim].push(l); });
-    const order = ['销售','利润','竞争','质量','趋势','历史','潜力','季节性'];
-
-    // 修复维度映射，添加季节性映射
-    const dimKeyMap = {
-        '销售':'sales',
-        '利润':'profit',
-        '竞争':'competition',
-        '质量':'quality',
-        '趋势':'trend',
-        '历史':'history',
-        '潜力':'growth',
-        '季节性':'seasonality'
-    };
-
-    order.forEach(dim => {
-        if(groups[dim]) {
-            // 使用修复后的映射对象
-            let w = CONFIG.weights[dimKeyMap[dim]];
-            let subScore = item.subScores[dimKeyMap[dim]];
-
-            groups[dim].forEach((l, i) => {
-                html += `<tr>
-                    ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}                    <td>${l.item}</td>
-                    <td class="calc-formula">${l.formula}</td>
-                    <td class="calc-step">${l.calc}</td>
-                    <td class="calc-score-cell">${l.res>0?'+':''}${l.res.toFixed(1)}</td>
-                    <td><div class="rule-desc">${l.rule}</div></td>
-                </tr>`;
-            });
-            html += `<tr style="background:#fcfcfc; font-weight:bold; color:#666"><td colspan="5" style="text-align:right">维度总得分 (${subScore.toFixed(1)}) × 权重 (${w}%) = </td><td style="color:var(--primary)">${(subScore*w/100).toFixed(2)}</td></tr>`;
-        }
-    });
-    html += `<tr style="background:#e8f5e9; font-weight:bold; font-size:14px"><td colspan="5" style="text-align:right">最终综合得分 = </td><td style="color:var(--primary); font-size:16px">${item.totalScore}</td></tr>`;
-    html += `</tbody></table>`;
-
-    document.getElementById('score-log-content').innerHTML = html;
-}
-
-// ================= 8. 导出 =================
-async function exportData() {
-    const overlay = document.getElementById('export-overlay');
-    const prog = document.getElementById('exp-prog');
-    const status = document.getElementById('exp-status');
-    overlay.style.display = 'flex';
-    status.innerText = '初始化工作簿...';
-
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('选品分析');
-
-    const cols = [
-        { header: '排名', key: 'rank', width: 8 },
-        { header: 'ASIN', key: 'asin', width: 15 },
-        { header: '图片', key: 'img', width: 15 },
-        { header: '综合评分', key: 'score', width: 10 },
-        { header: '标题', key: 'title', width: 40 },
-        { header: '中文标题', key: 'title_cn', width: 30 },
-        { header: '类目', key: 'category', width: 20 },
-        { header: '价格', key: 'price', width: 10 },
-        { header: '毛利率', key: 'margin', width: 10 },
-        { header: '月销量', key: 'sales', width: 10 },
-        { header: '月销售额', key: 'revenue', width: 15 },
-        { header: '近期增长', key: 'growth', width: 10 },
-        { header: '长期斜率', key: 'slope', width: 10 },
-        { header: '评分', key: 'rating', width: 8 },
-        { header: '评价数', key: 'reviews', width: 10 },
-        { header: '留评率', key: 'review_rate', width: 10 },
-        { header: '大类BSR', key: 'bsr_major', width: 10 },
-        { header: '小类BSR', key: 'bsr_minor', width: 10 },
-        { header: '卖家数', key: 'sellers', width: 8 },
-        { header: '上架天数', key: 'days', width: 10 },
-        { header: '链接', key: 'url', width: 30 }
-    ];
-
-    if(rawData.length > 0) {
-        Object.keys(rawData[0]._raw).forEach(k => {
-            if(!cols.find(c => c.key === `raw_${k}`)) cols.push({ header: `[原]${k}`, key: `raw_${k}`, width: 15 });
-        });
-    }
-    ws.columns = cols;
-
-    const rows = filteredData;
-    const imgTasks = [];
-
-    for(let i=0; i<rows.length; i++) {
-        const item = rows[i];
-        const rowData = {
-            rank: i+1, asin: item.asin, score: item.totalScore,
-            title: item.title, title_cn: item.title_cn, category: item.category,
-            price: item.price, margin: (item.margin*100).toFixed(1)+'%',
-            sales: item.sales, revenue: item.revenue,
-            growth: (item.sales_growth*100).toFixed(1)+'%',
-            slope: (item.trendData.slope*100).toFixed(1)+'%',
-            rating: item.rating, reviews: item.reviews,
-            review_rate: (item.review_rate*100).toFixed(2)+'%',
-            bsr_major: item.bsr_major, bsr_minor: item.bsr_minor,
-            sellers: item.sellers, days: item.listing_days,
-            url: item.url
-        };
-        for(let k in item._raw) rowData[`raw_${k}`] = item._raw[k];
-
-        const r = ws.addRow(rowData);
-        r.height = 80;
-        if(item.image) imgTasks.push({ url: item.image, rowIndex: i+1 });
-        if(i%50===0) { prog.style.width = `${(i/rows.length)*40}%`; await new Promise(r=>setTimeout(r,0)); }
-    }
-
-    status.innerText = "正在下载并嵌入图片...";
-    for(let i=0; i<imgTasks.length; i++) {
-        const t = imgTasks[i];
-        try {
-            const b64 = await getBase64(t.url);
-            if(b64) {
-                const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
-                ws.addImage(imgId, { tl: { col: 2, row: t.rowIndex }, br: { col: 3, row: t.rowIndex+1 }, editAs: 'oneCell' });
-            }
-        } catch(e) {}
-        prog.style.width = `${40 + (i/imgTasks.length)*60}%`;
-    }
-
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `选品报告_${new Date().getTime()}.xlsx`;
-    a.click();
-    overlay.style.display = 'none';
-}
-
-function getBase64(url) {
-    return new Promise(resolve => {
-        const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = url;
-        img.onload = () => {
-            const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
-            c.getContext('2d').drawImage(img,0,0);
-            resolve(c.toDataURL('image/jpeg'));
-        };
-        img.onerror = () => resolve(null);
-    });
-}
-
-// 辅助函数
-function k_to_cn(k) { return {sales:'销售表现',profit:'利润潜力',competition:'竞争环境',quality:'质量口碑',trend:'销量趋势',history:'历史深度',growth:'增长潜力',price_min:'最低价',price_max:'最高价',margin_ideal:'理想毛利',margin_min:'最低毛利',bsr_major_max:'大类BSR红线',sellers_max:'跟卖上限',rating_min:'评分及格线',reviews_min:'最少评价',reviews_max:'评价上限',review_rate_min:'留评率下限',review_rate_max:'留评率上限',trend_growth:'增长阈值',listing_days_new:'新品天数',sales_vol_weight:'销量权重',sales_rev_weight:'销售额权重',growth_high:'高增长加分',growth_mid:'中增长加分',growth_neg:'负增长扣分',price_perfect:'完美价格分',price_ok:'尚可价格分',margin_perfect:'完美毛利分',margin_ok:'尚可毛利分',ratio_base:'评销比分',seller_perfect:'独家分',seller_ok:'少跟卖分',bsr_maj_perfect:'大类极好',bsr_maj_ok:'大类达标',bsr_min_perfect:'小类极好',bsr_min_ok:'小类达标',rating_perfect:'高评分分',rating_ok:'及格评分分',reviews_perfect:'完美评价数',reviews_ok:'尚可评价数',rate_perfect:'完美留评',rate_ok:'尚可留评',trend_high:'强趋势',trend_mid:'温和趋势',trend_neg:'下跌趋势',hist_month:'每存活月分',new_product:'新品加分',badge_bonus:'徽章加分'}[k] || k; }
-function parseNum(v) { if(typeof v==='number')return v; if(!v)return 0; let s=v.toString().replace(/[$,%]/g,''); let n=parseFloat(s); if(v.toString().includes('%'))n/=100; return isNaN(n)?0:n; }
-function checkBool(v) { if(!v)return false; const s=v.toString().toLowerCase(); return s==='yes'||s==='y'||s==='是'||s==='1'||s==='true'; }
-function toggleSection(id) { const el=document.getElementById(id); el.style.display = el.style.display==='none'?'block':'none'; }
-function scrollToSection(id) {
-    setTimeout(() => {
-        const element = document.getElementById(id);
-        if (element && element.style.display !== 'none') {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, 100);
-}
-// 显示增强版可视化解释
-function showEnhancedVisualization(idx) {
-    const item = filteredData[idx];
-
-    // 添加可视化解释部分到弹窗顶部
-    const vizHtml = `    <div class="explanation-panel">
-        <div class="explanation-title">
-            📊 综合评分可视化分析
-        </div>
-        <div class="explanation-content">
-            <p>该产品的综合评分为 <strong>${item.totalScore}</strong> 分，以下是各维度的详细分析：</p>
-
-            <!-- 雷达图容器 -->
-            <div class="radar-chart-container">
-                <canvas id="radar-chart-${idx}"></canvas>
-            </div>
-            <div class="weight-info">
-                雷达图标签旁的百分比表示该维度在综合评分中的权重
-            </div>
-
-            <!-- 各维度详情 -->
-            <div class="dimension-details">
-                ${generateDimensionCards(item)}            </div>
-
-<!--            <div style="margin-top: 20px;">-->
-<!--                <p><strong>评分等级说明：</strong></p>-->
-<!--                <ul>-->
-<!--                    <li>≥ 80分：优秀 - 具有很强的市场竞争力</li>-->
-<!--                    <li>60-79分：良好 - 具备不错的市场潜力</li>-->
-<!--                    <li>40-59分：一般 - 需要进一步评估和优化</li>-->
-<!--                    <li>&lt; 40分：待改进 - 存在较大风险或不足</li>-->
-<!--                </ul>-->
-<!--            </div>-->
-        </div>
-    </div>
-    `;
-
-    // 将可视化解释插入到原有内容之前
-    const originalContent = document.getElementById('score-log-content').innerHTML;
-    document.getElementById('score-log-content').innerHTML = vizHtml + originalContent;
-
-    // 绘制雷达图
-    setTimeout(() => {
-        drawRadarChart(`radar-chart-${idx}`, item);
-    }, 100);
-}
-
-// 生成各维度详情卡片
-function generateDimensionCards(item) {
-    const dimensions = [
-        {
-            name: '销售表现',
-            key: 'sales',
-            score: item.subScores.sales,
-            weight: CONFIG.weights.sales,
-            metrics: [
-                `月销量: ${item.sales}`,
-                `月销售额: $${item.revenue ? item.revenue.toLocaleString() : 'N/A'}`,
-                `增长率: ${(item.sales_growth*100).toFixed(1)}%`
-            ]
-        },
-        {
-            name: '利润潜力',
-            key: 'profit',
-            score: item.subScores.profit,
-            weight: CONFIG.weights.profit,
-            metrics: [
-                `价格: $${item.price}`,
-                `毛利率: ${(item.margin*100).toFixed(0)}%`,
-                `评销比: ${(item.reviews && item.sales ? (item.reviews/item.sales*100).toFixed(2) : 'N/A')}%`
-            ]
-        },
-        {
-            name: '竞争环境',
-            key: 'competition',
-            score: item.subScores.competition,
-            weight: CONFIG.weights.competition,
-            metrics: [
-                `卖家数: ${item.sellers}`,
-                `大类BSR: ${item.bsr_major || 'N/A'}`,
-                `小类BSR: ${item.bsr_minor || 'N/A'}`
-            ]
-        },
-        {
-            name: '质量口碑',
-            key: 'quality',
-            score: item.subScores.quality,
-            weight: CONFIG.weights.quality,
-            metrics: [
-                `评分: ${item.rating}`,
-                `评论数: ${item.reviews}`,
-                `留评率: ${(item.review_rate*100).toFixed(2)}%`
-            ]
-        },
-        {
-            name: '销量趋势',
-            key: 'trend',
-            score: item.subScores.trend,
-            weight: CONFIG.weights.trend,
-            metrics: [
-                `历史月数: ${item.history.length}`,
-                `长期斜率: ${(item.trendData.slope*100).toFixed(2)}%`,
-                `热卖月份: ${item.trendData.hotMonth}`
-            ]
-        },
-        {
-            name: '季节性',
-            key: 'seasonality',
-            score: item.subScores.seasonality,
-            weight: CONFIG.weights.seasonality,
-            metrics: [
-                `季节性强度: ${(item.trendData.seasonality?.strength*100 || 0).toFixed(1)}%`,
-                `季节性模式: ${item.trendData.seasonality?.pattern || '无数据'}`,
-                `高峰月份: ${(item.trendData.seasonality?.peakMonths || []).join(', ') || 'N/A'}`
-            ]
-        },
-        {
-            name: '历史深度',
-            key: 'history',
-            score: item.subScores.history,
-            weight: CONFIG.weights.history,
-            metrics: [
-                `存活月数: ${item.history.length}`,
-                `数据完整性: ${item.history.length >= 3 ? '完整' : (item.history.length > 0 ? '部分' : '缺失')}`,
-                `上架天数: ${item.listing_days || 'N/A'}`
-            ]
-        },
-        {
-            name: '增长潜力',
-            key: 'growth',
-            score: item.subScores.growth,
-            weight: CONFIG.weights.growth,
-            metrics: [
-                `新品期: ${item.listing_days <= CONFIG.params.listing_days_new ? '是' : '否'}`,
-                `徽章数: ${[item.is_bs, item.is_ac, item.is_new].filter(Boolean).length}`,
-                `上架天数: ${item.listing_days || 'N/A'}`
-            ]
-        }
-    ];
-
-    return dimensions.map(dim => `        <div class="dimension-card">
-            <div class="dimension-card-header">
-                <span>${dim.name} <span class="weight-badge">${dim.weight}%</span></span>
-                <span class="dimension-score">${dim.score.toFixed(1)}</span>
-            </div>
-            <div class="dimension-progress">
-                <div class="dimension-progress-bar"
-                     style="width: ${dim.score}%; background: ${getScoreColor(dim.score)}"></div>
-            </div>
-            <div class="dimension-key-metrics">
-                ${dim.metrics.join('<br>')}            </div>
-        </div>
-    `).join('');
-}
-
-
-// 获取得分对应的颜色
-function getScoreColor(score) {
-    if (score >= 80) return '#27ae60'; // 绿色
-    if (score >= 60) return '#f39c12'; // 橙色
-    return '#c0392b'; // 红色
-}
-
-// 绘制雷达图
-function drawRadarChart(canvasId, item) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-
-    // 维度数据 - 添加季节性
-    const labels = ['销售表现', '利润潜力', '竞争环境', '质量口碑', '销量趋势', '季节性', '历史深度', '增长潜力'];
-    const data = [
-        item.subScores.sales,
-        item.subScores.profit,
-        item.subScores.competition,
-        item.subScores.quality,
-        item.subScores.trend,
-        item.subScores.seasonality, // 添加季节性得分
-        item.subScores.history,
-        item.subScores.growth
-    ];
-
-    // 权重信息 - 添加季节性权重
-    const weights = [
-        CONFIG.weights.sales,
-        CONFIG.weights.profit,
-        CONFIG.weights.competition,
-        CONFIG.weights.quality,
-        CONFIG.weights.trend,
-        CONFIG.weights.seasonality, // 添加季节性权重
-        CONFIG.weights.history,
-        CONFIG.weights.growth
-    ];
-
-    new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '维度得分',
-                data: data,
-                backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                borderColor: 'rgba(52, 152, 219, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: 'rgba(52, 152, 219, 1)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(52, 152, 219, 1)'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                r: {
-                    angleLines: {
-                        display: true
-                    },
-                    suggestedMin: 0,
-                    suggestedMax: 100,
-                    ticks: {
-                        stepSize: 20,
-                        backdropColor: 'rgba(0, 0, 0, 0)'
-                    },
-                    pointLabels: {
-                        font: {
-                            size: 11
-                        },
-                        callback: function(label, index) {
-                            // 在标签旁显示权重
-                            return label + ` (${weights[index]}%)`;
-                        }
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.dataset.label}: ${context.raw.toFixed(1)}分`;
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-
-// 修改 showLog 函数以包含增强版可视化解释
-const originalShowLog = showLog;
-showLog = function(idx) {
-    originalShowLog(idx);
-    showEnhancedVisualization(idx);
-};
-
-// 添加季节性分析函数
+// 季节性分析函数
 function analyzeSeasonality(history) {
     if (!history || history.length < 12) {
         return {
@@ -2202,12 +1080,12 @@ function analyzeSeasonality(history) {
     // 确定季节性模式
     let pattern = "无明显季节性";
     if (seasonalityStrength > 0.5) {
-        pattern = "强季节性";
-    } else if (seasonalityStrength > 0.3) {
-        pattern = "中等季节性";
-    } else if (seasonalityStrength > 0.1) {
-        pattern = "弱季节性";
-    }
+    pattern = "强季节性";
+} else if (seasonalityStrength > CONFIG.params.seasonality_threshold) {
+    pattern = "中等季节性";
+} else if (seasonalityStrength > 0.1) {
+    pattern = "弱季节性";
+}
 
     // 分析高峰月份稳定性 (检查同一月份在不同年份是否都表现为销售高峰)
     let peakStability = "无规律";
@@ -2278,6 +1156,1256 @@ function analyzeSeasonality(history) {
         peakStability: peakStability,
         growthTrend: growthTrend
     };
+}
+
+function calculateScores(item, history, bm) {
+    const W = CONFIG.weights, P = CONFIG.params, R = INTERNAL_RULES;
+    let logs = [];
+
+    // --- 1. 销售 (Sales) - 总分100分 ---
+    let s_sales_raw = Math.min(item.sales/bm.sales, 1.5);
+    let s_sales_pts = s_sales_raw * R.sales_vol_weight;
+    logs.push({
+        dim:'销售', item:'月销量',
+        formula:`${item.sales} ÷ ${bm.sales} = ${s_sales_raw.toFixed(2)}`,
+        calc:`${s_sales_raw.toFixed(2)} × ${R.sales_vol_weight}分`,
+        res:s_sales_pts,
+        rule: RULE_DESCRIPTIONS.sales_vol
+    });
+
+    let s_rev_raw = Math.min(item.revenue/bm.revenue, 1.5);
+    let s_rev_pts = s_rev_raw * R.sales_rev_weight;
+    logs.push({
+        dim:'销售', item:'销售额',
+        formula:`${Math.round(item.revenue)} ÷ ${Math.round(bm.revenue)} = ${s_rev_raw.toFixed(2)}`,
+        calc:`${s_rev_raw.toFixed(2)} × ${R.sales_rev_weight}分`,
+        res:s_rev_pts,
+        rule: RULE_DESCRIPTIONS.sales_rev
+    });
+
+    let growthRate = item.sales_growth;
+    let growthLogic = "原表增长率";
+    if(!growthRate && history.length >= 3) {
+        const recent = history.slice(-3);
+        if(recent[0].val > 0) {
+            growthRate = (recent[recent.length-1].val - recent[0].val) / recent[0].val;
+            growthLogic = `(末${recent[recent.length-1].val} - 初${recent[0].val}) ÷ ${recent[0].val}`;
+        }
+    }
+    let s_growth_pts = growthRate > P.trend_growth ? R.growth_high : (growthRate > 0 ? R.growth_mid : R.growth_neg);
+    logs.push({
+        dim:'销售', item:'近期增长',
+        formula:`${growthLogic} = ${(growthRate*100).toFixed(1)}%`,
+        calc:`对比阈值${P.trend_growth*100}%`,
+        res:s_growth_pts,
+        rule: RULE_DESCRIPTIONS.sales_growth
+    });
+
+    let score_sales = Math.min(100, s_sales_pts + s_rev_pts + s_growth_pts);
+
+    // --- 2. 定价与转化 (Price & Operations) - 总分100分 ---
+    let p_pts = 0;
+if (item.price >= CONFIG.params.price_min && item.price <= CONFIG.params.price_max) {
+    p_pts = INTERNAL_RULES.price_perfect; // 理想价格区间得60分
+} else if (item.price > CONFIG.params.price_max) {
+    p_pts = INTERNAL_RULES.price_ok; // 高于理想区间得30分
+} else {
+    p_pts = INTERNAL_RULES.price_low; // 低于理想区间得0分
+}
+logs.push({
+    dim:'定价与转化', item:'价格',
+    formula:`$${item.price}`,
+    calc:`区间 ${CONFIG.params.price_min}-${CONFIG.params.price_max}`,
+    res:p_pts,
+    rule: RULE_DESCRIPTIONS.price
+});
+
+let ratio = item.sales > 0 ? (item.reviews / item.sales) : 0;
+let ratio_pts = (ratio >= 0.005 && ratio <= 0.08) ? INTERNAL_RULES.ratio_base : INTERNAL_RULES.ratio_partial;
+logs.push({
+    dim:'定价与转化', item:'评销比',
+    formula:`${item.reviews} ÷ ${item.sales} = ${(ratio*100).toFixed(2)}%`,
+    calc:`0.5%-8%区间`,
+    res:ratio_pts,
+    rule: RULE_DESCRIPTIONS.review_ratio
+});
+
+let score_price_ops = p_pts + ratio_pts;
+
+    // --- 3. 竞争 (Competition) - 总分100分 ---
+    let bsr_pts = (item.bsr_major>0 && item.bsr_major<2000) ? R.bsr_maj_perfect : (item.bsr_major<P.bsr_major_max ? R.bsr_maj_ok : 0);
+    logs.push({
+        dim:'竞争', item:'大类BSR',
+        formula:`${item.bsr_major}`,
+        calc:`<${P.bsr_major_max}达标`,
+        res:bsr_pts,
+        rule: RULE_DESCRIPTIONS.bsr_major
+    });
+
+    let sub_bsr_pts = (item.bsr_minor>0 && item.bsr_minor<50) ? R.bsr_min_perfect : (item.bsr_minor<100 ? R.bsr_min_ok : 0);
+    logs.push({
+        dim:'竞争', item:'小类BSR',
+        formula:`${item.bsr_minor}`,
+        calc:`<50极好`,
+        res:sub_bsr_pts,
+        rule: RULE_DESCRIPTIONS.bsr_minor
+    });
+
+    let score_comp = bsr_pts + sub_bsr_pts;
+
+    // --- 4. 质量 (Quality) - 总分100分 ---
+    let r_pts = item.rating>=4.5 ? R.rating_perfect : (item.rating>=P.rating_min ? R.rating_ok : 0);
+    logs.push({
+        dim:'质量', item:'评分',
+        formula:`${item.rating}`,
+        calc:`>=${P.rating_min}及格`,
+        res:r_pts,
+        rule: RULE_DESCRIPTIONS.rating
+    });
+
+    let rv_pts = (item.reviews>=P.reviews_min && item.reviews<=P.reviews_max) ? R.reviews_perfect : (item.reviews<P.reviews_min ? R.reviews_ok : 0);
+    logs.push({
+        dim:'质量', item:'评价数',
+        formula:`${item.reviews}`,
+        calc:`${P.reviews_min}-${P.reviews_max}区间`,
+        res:rv_pts,
+        rule: RULE_DESCRIPTIONS.reviews
+    });
+
+    let rr_pts = (item.review_rate>=P.review_rate_min && item.review_rate<=P.review_rate_max) ? R.rate_perfect : R.rate_ok;
+    logs.push({
+        dim:'质量', item:'留评率',
+        formula:`${(item.review_rate*100).toFixed(2)}%`,
+        calc:`${P.review_rate_min*100}-${P.review_rate_max*100}%`,
+        res:rr_pts,
+        rule: RULE_DESCRIPTIONS.review_rate
+    });
+
+    let score_qual = r_pts + rv_pts + rr_pts;
+
+    // --- 5. 趋势 (Trend) - 总分100分 = 数据完整性40分 + 最近一年趋势60分 ---
+    let score_trend = 0;
+let trendSlope = 0;
+
+// 数据完整性得分 (40分)
+if(history.length >= 3) {
+    score_trend += INTERNAL_RULES.trend_data_complete;
+    logs.push({
+        dim:'趋势', item:'数据完整性',
+        formula:`${history.length}个月数据`,
+        calc:`≥3个月得满分`,
+        res:INTERNAL_RULES.trend_data_complete,
+        rule: RULE_DESCRIPTIONS.trend_data
+    });
+
+    // 最近一年趋势得分 (60分)
+    const vals = history.map(h => h.val);
+    let usedMonthsInfo = ""; // 用于记录使用了多少个月的数据
+
+    // 根据新规则确定使用的数据范围
+    let filteredVals;
+    if (vals.length >= 6) {
+        // 如果有6个月或以上数据，取最近的6-12个月
+        const endIndex = vals.length - 1;
+        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
+        filteredVals = vals.slice(startIndex, endIndex + 1);
+        usedMonthsInfo = `使用最近${filteredVals.length}个月数据`;
+    } else {
+        // 如果少于6个月，使用所有数据
+        filteredVals = [...vals];
+        usedMonthsInfo = `数据不足6个月，使用全部${filteredVals.length}个月数据`;
+    }
+
+    trendSlope = calculateLinearRegressionSlope(filteredVals);
+
+    let slope_pts = 0;
+    if (trendSlope > 0.1) {
+        slope_pts = INTERNAL_RULES.trend_slope_perfect;
+        logs.push({
+            dim: '趋势', item: '最近一年趋势',
+            formula: `${trendSlope.toFixed(3)} > 0.1`,
+            calc: '强趋势',
+            res: slope_pts,
+            rule: RULE_DESCRIPTIONS.trend_slope
+        });
+    } else if (trendSlope > 0.05) {
+        slope_pts = INTERNAL_RULES.trend_slope_good;
+        logs.push({
+            dim: '趋势', item: '最近一年趋势',
+            formula: `${trendSlope.toFixed(3)} > 0.05`,
+            calc: '温和趋势',
+            res: slope_pts,
+            rule: RULE_DESCRIPTIONS.trend_slope
+        });
+    } else if (trendSlope > 0) {
+        slope_pts = INTERNAL_RULES.trend_slope_weak;
+        logs.push({
+            dim: '趋势', item: '最近一年趋势',
+            formula: `${trendSlope.toFixed(3)} > 0`,
+            calc: '弱趋势',
+            res: slope_pts,
+            rule: RULE_DESCRIPTIONS.trend_slope
+        });
+    } else {
+        slope_pts = INTERNAL_RULES.trend_slope_neg;
+        logs.push({
+            dim: '趋势', item: '最近一年趋势',
+            formula: `${trendSlope.toFixed(3)} ≤ 0`,
+            calc: '下跌趋势',
+            res: slope_pts,
+            rule: RULE_DESCRIPTIONS.trend_slope
+        });
+    }
+    score_trend += slope_pts;
+
+} else if(history.length > 0) {
+    // 部分数据 - 数据完整性得中等分
+    score_trend += INTERNAL_RULES.trend_data_partial;
+    logs.push({
+        dim:'趋势', item:'数据完整性',
+        formula:`${history.length}个月数据`,
+        calc:`1-2个月得中等分`,
+        res:INTERNAL_RULES.trend_data_partial,
+        rule: RULE_DESCRIPTIONS.trend_data
+    });
+
+    // 数据不足，不给趋势评分（已包含在惩罚中）
+    logs.push({
+        dim:'趋势', item:'最近一年趋势',
+        formula:`数据不足`,
+        calc:`不评分`,
+        res:0,
+        rule: "数据不足3个月，无法计算最近一年趋势"
+    });
+
+} else {
+    // 无数据 - 数据完整性得0分
+    score_trend += INTERNAL_RULES.trend_data_none;
+    logs.push({
+        dim:'趋势', item:'数据完整性',
+        formula:`无历史数据`,
+        calc:`0分`,
+        res:INTERNAL_RULES.trend_data_none,
+        rule: RULE_DESCRIPTIONS.trend_data
+    });
+    logs.push({
+        dim:'趋势', item:'最近一年趋势',
+        formula:`无数据`,
+        calc:`不评分`,
+        res:0,
+        rule: "无历史数据，无法计算最近一年趋势"
+    });
+}
+
+score_trend = Math.min(100, Math.max(0, score_trend));
+
+    // --- 6. 季节性分析 (Seasonality) - 总分100分 ---
+    let score_seasonality = 0;
+    let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
+
+    if (history.length >= 12) {
+        seasonalityData = analyzeSeasonality(history);
+
+        // 1. 季节性强度得分 (40分)
+        let seasonalityStrengthScore = 0;
+        if (seasonalityData.strength > 0.5) {
+            seasonalityStrengthScore = R.seasonality_strong;
+        } else if (seasonalityData.strength > 0.3) {
+            seasonalityStrengthScore = R.seasonality_moderate;
+        } else if (seasonalityData.strength > 0.1) {
+            seasonalityStrengthScore = R.seasonality_weak;
+        } else {
+            seasonalityStrengthScore = R.seasonality_none;
+        }
+
+        logs.push({
+            dim: '季节性',
+            item: '季节性强度',
+            formula: `强度: ${seasonalityData.strength.toFixed(3)}`,
+            calc: `${seasonalityData.pattern}`,
+            res: seasonalityStrengthScore,
+            rule: RULE_DESCRIPTIONS.seasonality_strength
+        });
+
+        // 2. 高峰月份稳定性得分 (20分)
+        let peakStabilityScore = 0;
+        if (seasonalityData.peakStability === "连续两年高峰") {
+            peakStabilityScore = R.peak_stability_perfect;
+        } else if (seasonalityData.peakStability === "一年高峰") {
+            peakStabilityScore = R.peak_stability_good;
+        } else {
+            peakStabilityScore = R.peak_stability_poor;
+        }
+
+        logs.push({
+            dim: '季节性',
+            item: '高峰月份稳定性',
+            formula: `${seasonalityData.peakStability}`,
+            calc: `${seasonalityData.peakStability}`,
+            res: peakStabilityScore,
+            rule: RULE_DESCRIPTIONS.peak_stability
+        });
+
+        // 3. 季节性增长趋势得分 (40分)
+        let seasonalGrowthScore = 0;
+        if (seasonalityData.growthTrend > 0) {
+            seasonalGrowthScore = R.seasonal_growth_perfect;
+        } else if (seasonalityData.growthTrend === 0) {
+            seasonalGrowthScore = R.seasonal_growth_ok;
+        } else {
+            seasonalGrowthScore = R.seasonal_growth_poor;
+        }
+
+        logs.push({
+            dim: '季节性',
+            item: '季节性增长趋势',
+            formula: `斜率: ${seasonalityData.growthTrend.toFixed(3)}`,
+            calc: `${seasonalityData.growthTrend > 0 ? '增长' : (seasonalityData.growthTrend === 0 ? '稳定' : '下降')}`,
+            res: seasonalGrowthScore,
+            rule: RULE_DESCRIPTIONS.seasonal_growth
+        });
+
+        // 季节性总分
+        score_seasonality = seasonalityStrengthScore + peakStabilityScore + seasonalGrowthScore;
+
+    } else {
+        logs.push({
+            dim: '季节性',
+            item: '数据完整性',
+            formula: `${history.length}个月历史数据`,
+            calc: '需要至少12个月数据',
+            res: 0,
+            rule: '需要至少12个月数据进行季节性分析'
+        });
+    }
+
+    const total = (
+        score_sales*W.sales +
+        score_price_ops*W.price_ops +
+        score_comp*W.competition +
+        score_qual*W.quality +
+        score_trend*W.trend +
+        score_seasonality*W.seasonality
+    )/100;
+
+    return {
+        totalScore: total.toFixed(1),
+        subScores: {
+            sales:score_sales,
+            price_ops:score_price_ops,
+            competition:score_comp,
+            quality:score_qual,
+            trend:score_trend,
+            seasonality:score_seasonality
+        },
+        trendData:{slope:trendSlope, seasonality: seasonalityData},
+        logs:logs
+    };
+}
+
+// ================= 6. 渲染 =================
+function applyFilter() {
+    const f = {
+        search: document.getElementById('f-search').value.toLowerCase(),
+        score: parseFloat(document.getElementById('f-score').value)||0,
+        sales: parseFloat(document.getElementById('f-sales').value)||0,
+        minP: parseFloat(document.getElementById('f-p-min').value)||0,
+        maxP: parseFloat(document.getElementById('f-p-max').value)||999999
+    };
+
+    filteredData = processedData.filter(i => {
+        const matchSearch = i.asin.toLowerCase().includes(f.search) || i.title.toLowerCase().includes(f.search) || (i.brand && i.brand.toLowerCase().includes(f.search));
+        return matchSearch &&
+               parseFloat(i.totalScore)>=f.score &&
+               i.sales>=f.sales &&
+               i.price>=f.minP && i.price<=f.maxP;
+    });
+    renderTable();
+}
+
+function resetFilter() {
+    document.querySelectorAll('.filter-container input').forEach(i=>i.value='');
+    applyFilter();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+    document.getElementById('total-count').innerText = rawData.length;
+    document.getElementById('display-count').innerText = filteredData.length;
+
+    filteredData.slice(0, 200).forEach((item, idx) => {
+        let badges = '';
+        if(item.is_bs) badges+=`<span class="badge bg-bs">Best Seller</span>`;
+        if(item.is_ac) badges+=`<span class="badge bg-ac">Amazon Choice</span>`;
+        if(item.is_new) badges+=`<span class="badge bg-new">New Release</span>`;
+
+        let scoreClass = item.totalScore>=80 ? 'score-high' : (item.totalScore>=60 ? 'score-mid' : 'score-low');
+        let slopePct = (item.trendData.slope*100).toFixed(1)+'%';
+        let slopeClass = item.trendData.slope>0 ? 'trend-up' : 'trend-down';
+        let seasonalityInfo = item.trendData.seasonality?.pattern || '无数据';
+        let seasonalityStrength = (item.trendData.seasonality?.strength*100 || 0).toFixed(1)+'%';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${idx+1}</td>
+            <td class="col-info">
+                <div class="p-flex">
+                    <div class="p-img-wrap">
+                        ${item.image ? `<img src="${item.image}" class="p-img" onclick="window.open('${item.image}')">` : '<div class="p-img">无图</div>'}
+                    </div>
+                    <div class="p-details">
+                        <div>
+                            <a href="${item.url || 'https://www.amazon.com/dp/'+item.asin}" target="_blank" class="p-asin">${item.asin}</a>
+                            <span style="color:#666;font-size:11px;margin-left:5px">${item.brand||''}</span>
+                        </div>
+                        <div class="p-title" title="${item.title}">${item.title}</div>
+                        <div class="p-meta">类目: ${item.category||'-'} | 上架: ${item.lister_date||'-'} (${item.listing_days||0}天)</div>
+                        <div class="badge-row">${badges}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="score-val ${scoreClass}">${item.totalScore}</div>
+                <button class="btn-calc" onclick="showLog(${idx})">🔍 计算详情</button>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">📦月销</span><span class="m-v">${item.sales}</span></div>
+                <div class="m-row"><span class="m-k">💰销售额</span><span class="m-v">$${Math.round(item.revenue)}</span></div>
+                <div class="m-row"><span class="m-k">📈增长</span><span class="m-v ${item.sales_growth>0?'trend-up':'trend-down'}">${(item.sales_growth*100).toFixed(1)}%</span></div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">💲价格</span><span class="m-v">$${item.price}</span></div>
+                <div class="m-row"><span class="m-k">📝评销比</span><span class="m-v">${(item.reviews && item.sales ? (item.reviews/item.sales*100).toFixed(2) : '0')}%</span></div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">🏅大类BSR</span><span class="m-v">${item.bsr_major||'-'}</span></div>
+                <div class="m-row"><span class="m-k">🥈小类BSR</span><span class="m-v">${item.bsr_minor||'-'}</span></div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">⭐评分</span><span class="m-v">${item.rating}</span></div>
+                <div class="m-row"><span class="m-k">💬评论</span><span class="m-v">${item.reviews}</span></div>
+                <div class="m-row"><span class="m-k">📝留评</span><span class="m-v">${(item.review_rate*100).toFixed(2)}%</span></div>
+            </td>
+            <td>
+                <div class="chart-wrap" onclick="showBigChart(${idx})">
+                    <canvas id="chart-${idx}"></canvas>
+                </div>
+                <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">长期斜率: ${slopePct}</div>
+                <div style="font-size:10px;color:#666">历史月数: ${item.history.length}</div>
+            </td>
+            <td>
+                <div style="font-weight:bold; font-size:16px">${seasonalityStrength}</div>
+                <div style="font-size:10px;color:#666">${seasonalityInfo}</div>
+                <div style="font-size:9px;color:#999">${item.trendData.seasonality?.peakMonths?.join(', ') || ''}</div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        setTimeout(() => drawMiniChart(`chart-${idx}`, item.history), 0);
+    });
+}
+
+// ================= 7. 图表与弹窗 =================
+function drawMiniChart(id, history) {
+    const ctx = document.getElementById(id).getContext('2d');
+    if(!history || history.length < 2) {
+        ctx.font = "10px Arial"; ctx.fillText("无数据", 10, 25); return;
+    }
+    const vals = history.map(h=>h.val);
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: history.map(h=>h.date), datasets: [{ data: vals, borderColor: '#3498db', borderWidth: 1.5, pointRadius: 0, tension: 0.1 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: false, tooltip: false, datalabels: {display:false} }, scales: { x: {display:false}, y: {display:false} } }
+    });
+}
+
+function showBigChart(idx) {
+    const item = filteredData[idx];
+    const modal = document.getElementById('chart-modal');
+    modal.style.display = 'flex';
+
+    if (window.bigChart) window.bigChart.destroy();
+    const ctx = document.getElementById('large-chart').getContext('2d');
+
+    const stats = document.getElementById('chart-stats');
+    const vals = item.history.map(h => h.val);
+
+    // 计算统计指标
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
+    const cv = mean ? std / mean : 0;
+
+    // 获取高峰月份
+    const peakMonths = item.trendData.seasonality?.peakMonths?.join(', ') || '无数据';
+    const seasonalityStrength = (item.trendData.seasonality?.strength*100 || 0).toFixed(1)+'%';
+
+    // 计算实际用于长期斜率计算的数据范围
+    let usedMonthsInfo = "";
+    let actualDataLength = vals.length;
+    if (vals.length >= 6) {
+        // 如果有6个月或以上数据，取最近的6-12个月（与 calculateScores 中的逻辑一致）
+        const endIndex = vals.length - 1;
+        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
+        actualDataLength = endIndex - startIndex + 1;
+        usedMonthsInfo = `基于最近${actualDataLength}个月数据`;
+    } else if (vals.length > 0) {
+        usedMonthsInfo = `数据不足6个月，使用全部${actualDataLength}个月数据`;
+    } else {
+        usedMonthsInfo = "无历史数据";
+    }
+
+    stats.innerHTML = `        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px;background:#f8f9fa;">
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">长期斜率</div>
+                <div style="font-size:16px;font-weight:bold">${(item.trendData.slope * 100).toFixed(1)}%</div>
+                <div style="font-size:10px;color:#999">${usedMonthsInfo}</div>
+            </div>
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">季节性强度</div>
+                <div style="font-size:16px;font-weight:bold">${seasonalityStrength}</div>
+            </div>
+            <div style="flex:1;min-width:120px">
+                <div style="color:#888;font-size:12px">最新销量</div>
+                <div style="font-size:16px;font-weight:bold">${vals[vals.length - 1] || 0}</div>
+            </div>
+            <div style="flex-basis:100%;margin-top:10px;padding-top:10px;border-top:1px solid #eee;text-align:center;">
+                <div style="color:#888;font-size:12px">高峰月份</div>
+                <div style="font-size:14px;font-weight:bold;color:#c0392b">${peakMonths}</div>
+            </div>
+        </div>
+    `;
+
+    window.bigChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: item.history.map(h => h.date),
+            datasets: [{
+                label: '月销量',
+                data: vals,
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                datalabels: { align: 'top', color: '#666', font: { size: 11 }, formatter: (v) => v }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+
+function showLog(idx) {
+    const item = filteredData[idx];
+    const modal = document.getElementById('score-modal');
+    modal.style.display = 'flex';
+
+    let html = `<div style="background:#f9f9f9; padding:10px; margin-bottom:15px; border-left:4px solid var(--accent)">
+        <div style="font-size:16px; font-weight:bold">${item.asin}</div>
+        <div>综合得分: <strong style="font-size:20px; color:var(--primary)">${item.totalScore}</strong></div>
+        <div style="font-size:11px; color:#666">公式: ∑(维度得分 × 维度权重) / 100</div>
+    </div>`;
+
+    html += `<table class="calc-table"><thead><tr><th class="dim-cell">维度</th><th>指标项</th><th>计算公式</th><th>加权计算</th><th>得分</th><th style="width:200px">赋分规则</th></tr></thead><tbody>`;
+
+    const groups = {};
+    item.logs.forEach(l => { if(!groups[l.dim]) groups[l.dim]=[]; groups[l.dim].push(l); });
+    const order = ['销售','定价与转化','竞争','质量','趋势','季节性'];
+
+    // 维度映射
+    const dimKeyMap = {
+        '销售':'sales',
+        '定价与转化':'price_ops',
+        '竞争':'competition',
+        '质量':'quality',
+        '趋势':'trend',
+        '季节性':'seasonality'
+    };
+
+    order.forEach(dim => {
+        if(groups[dim]) {
+            // 使用修复后的映射对象
+            let w = CONFIG.weights[dimKeyMap[dim]];
+            let subScore = item.subScores[dimKeyMap[dim]];
+
+            groups[dim].forEach((l, i) => {
+                html += `<tr>
+                    ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}                    <td>${l.item}</td>
+                    <td class="calc-formula">${l.formula}</td>
+                    <td class="calc-step">${l.calc}</td>
+                    <td class="calc-score-cell">${l.res>0?'+':''}${l.res.toFixed(1)}</td>
+                    <td><div class="rule-desc">${l.rule}</div></td>
+                </tr>`;
+            });
+            html += `<tr style="background:#fcfcfc; font-weight:bold; color:#666"><td colspan="5" style="text-align:right">维度总得分 (${subScore.toFixed(1)}) × 权重 (${w}%) = </td><td style="color:var(--primary)">${(subScore*w/100).toFixed(2)}</td></tr>`;
+        }
+    });
+    html += `<tr style="background:#e8f5e9; font-weight:bold; font-size:14px"><td colspan="5" style="text-align:right">最终综合得分 = </td><td style="color:var(--primary); font-size:16px">${item.totalScore}</td></tr>`;
+    html += `</tbody></table>`;
+
+    document.getElementById('score-log-content').innerHTML = html;
+}
+
+// ================= 8. 导出 =================
+async function exportData() {
+    const overlay = document.getElementById('export-overlay');
+    const prog = document.getElementById('exp-prog');
+    const status = document.getElementById('exp-status');
+    overlay.style.display = 'flex';
+    status.innerText = '初始化工作簿...';
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('选品分析');
+
+    const cols = [
+        { header: '排名', key: 'rank', width: 8 },
+        { header: 'ASIN', key: 'asin', width: 15 },
+        { header: '图片', key: 'img', width: 15 },
+        { header: '综合评分', key: 'score', width: 10 },
+        { header: '标题', key: 'title', width: 40 },
+        { header: '中文标题', key: 'title_cn', width: 30 },
+        { header: '类目', key: 'category', width: 20 },
+        { header: '价格', key: 'price', width: 10 },
+        { header: '月销量', key: 'sales', width: 10 },
+        { header: '月销售额', key: 'revenue', width: 15 },
+        { header: '近期增长', key: 'growth', width: 10 },
+        { header: '长期斜率', key: 'slope', width: 10 },
+        { header: '评分', key: 'rating', width: 8 },
+        { header: '评价数', key: 'reviews', width: 10 },
+        { header: '留评率', key: 'review_rate', width: 10 },
+        { header: '大类BSR', key: 'bsr_major', width: 10 },
+        { header: '小类BSR', key: 'bsr_minor', width: 10 },
+        { header: '季节性强度', key: 'seasonality', width: 12 },
+        { header: '链接', key: 'url', width: 30 }
+    ];
+
+    if(rawData.length > 0) {
+        Object.keys(rawData[0]._raw).forEach(k => {
+            if(!cols.find(c => c.key === `raw_${k}`)) cols.push({ header: `[原]${k}`, key: `raw_${k}`, width: 15 });
+        });
+    }
+    ws.columns = cols;
+
+    const rows = filteredData;
+    const imgTasks = [];
+
+    for(let i=0; i<rows.length; i++) {
+        const item = rows[i];
+        const rowData = {
+            rank: i+1, asin: item.asin, score: item.totalScore,
+            title: item.title, title_cn: item.title_cn, category: item.category,
+            price: item.price,
+            sales: item.sales, revenue: item.revenue,
+            growth: (item.sales_growth*100).toFixed(1)+'%',
+            slope: (item.trendData.slope*100).toFixed(1)+'%',
+            rating: item.rating, reviews: item.reviews,
+            review_rate: (item.review_rate*100).toFixed(2)+'%',
+            bsr_major: item.bsr_major, bsr_minor: item.bsr_minor,
+            seasonality: (item.trendData.seasonality?.strength*100 || 0).toFixed(1)+'%',
+            url: item.url
+        };
+        for(let k in item._raw) rowData[`raw_${k}`] = item._raw[k];
+
+        const r = ws.addRow(rowData);
+        r.height = 80;
+        if(item.image) imgTasks.push({ url: item.image, rowIndex: i+1 });
+        if(i%50===0) { prog.style.width = `${(i/rows.length)*40}%`; await new Promise(r=>setTimeout(r,0)); }
+    }
+
+    status.innerText = "正在下载并嵌入图片...";
+    for(let i=0; i<imgTasks.length; i++) {
+        const t = imgTasks[i];
+        try {
+            const b64 = await getBase64(t.url);
+            if(b64) {
+                const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+                ws.addImage(imgId, { tl: { col: 2, row: t.rowIndex }, br: { col: 3, row: t.rowIndex+1 }, editAs: 'oneCell' });
+            }
+        } catch(e) {}
+        prog.style.width = `${40 + (i/imgTasks.length)*60}%`;
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `选品报告_${new Date().getTime()}.xlsx`;
+    a.click();
+    overlay.style.display = 'none';
+}
+
+function getBase64(url) {
+    return new Promise(resolve => {
+        const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = url;
+        img.onload = () => {
+            const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+            c.getContext('2d').drawImage(img,0,0);
+            resolve(c.toDataURL('image/jpeg'));
+        };
+        img.onerror = () => resolve(null);
+    });
+}
+// ================= 计算详情弹窗显示函数 (修复版，包含可视化) =================
+// function showLog(idx) {
+//     const item = filteredData[idx];
+//     const modal = document.getElementById('score-modal');
+//     modal.style.display = 'flex';
+//
+//     let html = `<div style="background:#f9f9f9; padding:10px; margin-bottom:15px; border-left:4px solid var(--accent)">
+//         <div style="font-size:16px; font-weight:bold">${item.asin}</div>
+//         <div>综合得分: <strong style="font-size:20px; color:var(--primary)">${item.totalScore}</strong></div>
+//         <div style="font-size:11px; color:#666">公式: ∑(维度得分 × 维度权重) / 100</div>
+//     </div>`;
+//
+//     // 添加可视化部分
+//     html += `<div class="visualization-container">
+//         <div class="visualization-left">
+//             <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
+//                 <h3 style="margin-top:0; color:var(--primary)">📊 维度得分雷达图</h3>
+//                 <div class="radar-chart-container">
+//                     <canvas id="radar-chart-${idx}"></canvas>
+//                 </div>
+//                 <div class="weight-info">
+//                     当前权重配置:
+//                     <span class="weight-badge">销售 ${CONFIG.weights.sales}%</span>
+//                     <span class="weight-badge">价格 ${CONFIG.weights.price_ops}%</span>
+//                     <span class="weight-badge">竞争 ${CONFIG.weights.competition}%</span>
+//                     <span class="weight-badge">质量 ${CONFIG.weights.quality}%</span>
+//                     <span class="weight-badge">趋势 ${CONFIG.weights.trend}%</span>
+//                     <span class="weight-badge">季节 ${CONFIG.weights.seasonality}%</span>
+//                 </div>
+//             </div>
+//         </div>
+//         <div class="visualization-right">
+//             <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
+//                 <h3 style="margin-top:0; color:var(--primary)">📈 维度得分详情</h3>
+//                 <div class="dimension-details" id="dimension-cards-${idx}"></div>
+//             </div>
+//         </div>
+//     </div>`;
+//
+//     html += `<table class="calc-table"><thead><tr><th class="dim-cell">维度</th><th>指标项</th><th>计算公式</th><th>加权计算</th><th>得分</th><th style="width:200px">赋分规则</th></tr></thead><tbody>`;
+//
+//     const groups = {};
+//     item.logs.forEach(l => { if(!groups[l.dim]) groups[l.dim]=[]; groups[l.dim].push(l); });
+//     const order = ['销售','定价与转化','竞争','质量','趋势','季节性'];
+//
+//     // 维度映射
+//     const dimKeyMap = {
+//         '销售':'sales',
+//         '定价与转化':'price_ops',
+//         '竞争':'competition',
+//         '质量':'quality',
+//         '趋势':'trend',
+//         '季节性':'seasonality'
+//     };
+//
+//     order.forEach(dim => {
+//         if(groups[dim]) {
+//             let w = CONFIG.weights[dimKeyMap[dim]];
+//             let subScore = item.subScores[dimKeyMap[dim]];
+//
+//             groups[dim].forEach((l, i) => {
+//                 html += `<tr>
+//                     ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}
+//                     <td>${l.item}</td>
+//                     <td class="calc-formula">${l.formula}</td>
+//                     <td class="calc-step">${l.calc}</td>
+//                     <td class="calc-score-cell">${l.res>0?'+':''}${l.res.toFixed(1)}</td>
+//                     <td><div class="rule-desc">${l.rule}</div></td>
+//                 </tr>`;
+//             });
+//             html += `<tr style="background:#fcfcfc; font-weight:bold; color:#666"><td colspan="5" style="text-align:right">维度总得分 (${subScore.toFixed(1)}) × 权重 (${w}%) = </td><td style="color:var(--primary)">${(subScore*w/100).toFixed(2)}</td></tr>`;
+//         }
+//     });
+//     html += `<tr style="background:#e8f5e9; font-weight:bold; font-size:14px"><td colspan="5" style="text-align:right">最终综合得分 = </td><td style="color:var(--primary); font-size:16px">${item.totalScore}</td></tr>`;
+//     html += `</tbody></table>`;
+//
+//     document.getElementById('score-log-content').innerHTML = html;
+//
+//     // 绘制雷达图
+//     setTimeout(() => {
+//         drawRadarChart(idx, item);
+//         renderDimensionCards(idx, item, groups);
+//     }, 100);
+// }
+//
+// // ================= 绘制雷达图 =================
+// function drawRadarChart(idx, item) {
+//     const ctx = document.getElementById(`radar-chart-${idx}`).getContext('2d');
+//
+//     // 维度标签和得分
+//     const labels = ['销售表现', '定价与转化', '竞争环境', '质量口碑', '销量趋势', '季节性'];
+//     const scores = [
+//         item.subScores.sales,
+//         item.subScores.price_ops,
+//         item.subScores.competition,
+//         item.subScores.quality,
+//         item.subScores.trend,
+//         item.subScores.seasonality
+//     ];
+//
+//     // 销毁之前的图表实例
+//     if (window[`radarChart${idx}`]) {
+//         window[`radarChart${idx}`].destroy();
+//     }
+//
+//     window[`radarChart${idx}`] = new Chart(ctx, {
+//         type: 'radar',
+//         data: {
+//             labels: labels,
+//             datasets: [
+//                 {
+//                     label: '维度得分',
+//                     data: scores,
+//                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
+//                     borderColor: 'rgba(54, 162, 235, 1)',
+//                     pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+//                     pointBorderColor: '#fff',
+//                     pointHoverBackgroundColor: '#fff',
+//                     pointHoverBorderColor: 'rgba(54, 162, 235, 1)',
+//                     borderWidth: 2,
+//                     pointRadius: 4
+//                 }
+//             ]
+//         },
+//         options: {
+//             responsive: true,
+//             maintainAspectRatio: false,
+//             scales: {
+//                 r: {
+//                     angleLines: {
+//                         display: true,
+//                         color: 'rgba(0, 0, 0, 0.1)'
+//                     },
+//                     suggestedMin: 0,
+//                     suggestedMax: 100,
+//                     ticks: {
+//                         stepSize: 20,
+//                         backdropColor: 'transparent'
+//                     },
+//                     grid: {
+//                         color: 'rgba(0, 0, 0, 0.1)'
+//                     },
+//                     pointLabels: {
+//                         font: {
+//                             size: 11,
+//                             weight: 'bold'
+//                         },
+//                         color: '#333'
+//                     }
+//                 }
+//             },
+//             plugins: {
+//                 legend: {
+//                     position: 'bottom',
+//                     labels: {
+//                         boxWidth: 12,
+//                         font: {
+//                             size: 11
+//                         }
+//                     }
+//                 },
+//                 tooltip: {
+//                     callbacks: {
+//                         label: function(context) {
+//                             let label = context.dataset.label || '';
+//                             if (label) {
+//                                 label += ': ';
+//                             }
+//                             label += context.raw.toFixed(1);
+//                             label += ' 分';
+//                             return label;
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     });
+// }
+//
+// // ================= 渲染维度得分卡片 =================
+// function renderDimensionCards(idx, item, groups) {
+//     const container = document.getElementById(`dimension-cards-${idx}`);
+//
+//     const dimensions = [
+//         { key: 'sales', name: '销售表现', color: '#3498db' },
+//         { key: 'price_ops', name: '定价与转化', color: '#2ecc71' },
+//         { key: 'competition', name: '竞争环境', color: '#e74c3c' },
+//         { key: 'quality', name: '质量口碑', color: '#f39c12' },
+//         { key: 'trend', name: '销量趋势', color: '#9b59b6' },
+//         { key: 'seasonality', name: '季节性', color: '#1abc9c' }
+//     ];
+//
+//     // 维度名称映射到中文
+//     const dimNameMap = {
+//         'sales': '销售',
+//         'price_ops': '定价与转化',
+//         'competition': '竞争',
+//         'quality': '质量',
+//         'trend': '趋势',
+//         'seasonality': '季节性'
+//     };
+//
+//     let cardsHtml = '';
+//
+//     dimensions.forEach(dim => {
+//         const score = item.subScores[dim.key];
+//         const weight = CONFIG.weights[dim.key];
+//         const progressWidth = Math.min(score, 100);
+//
+//         // 根据得分确定颜色强度
+//         let color = dim.color;
+//         if (score < 40) color = '#e74c3c'; // 红色表示低分
+//         else if (score < 70) color = '#f39c12'; // 橙色表示中等
+//         // 否则使用维度原本的颜色
+//
+//         // 获取该维度的子指标得分
+//         const dimLogs = groups[dimNameMap[dim.key]] || [];
+//         let subItemsHtml = '';
+//
+//         dimLogs.forEach(log => {
+//             subItemsHtml += `
+//                 <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px;">
+//                     <span>${log.item}:</span>
+//                     <span style="font-weight: bold;">${log.res.toFixed(1)}分</span>
+//                 </div>
+//             `;
+//         });
+//
+//         cardsHtml += `
+//             <div class="dimension-card">
+//                 <div class="dimension-card-header">
+//                     <span>${dim.name}</span>
+//                     <span class="dimension-score">${score.toFixed(1)}</span>
+//                 </div>
+//                 <div class="dimension-progress">
+//                     <div class="dimension-progress-bar" style="width: ${progressWidth}%; background: ${color};"></div>
+//                 </div>
+//                 <div class="dimension-key-metrics">
+//                     <div style="margin-bottom: 5px;">
+//                         <span>权重: ${weight}%</span>
+//                         <span style="margin-left: 10px;">贡献: ${(score * weight / 100).toFixed(1)} 分</span>
+//                     </div>
+//                     <div style="border-top: 1px dashed #eee; padding-top: 5px;">
+//                         ${subItemsHtml}
+//                     </div>
+//                 </div>
+//             </div>
+//         `;
+//     });
+//
+//     container.innerHTML = cardsHtml;
+// }
+
+// ================= 计算详情弹窗显示函数 (修复版，包含可视化) =================
+function showLog(idx) {
+    const item = filteredData[idx];
+    const modal = document.getElementById('score-modal');
+    modal.style.display = 'flex';
+
+    let html = `<div style="background:#f9f9f9; padding:10px; margin-bottom:15px; border-left:4px solid var(--accent)">
+        <div style="font-size:16px; font-weight:bold">${item.asin}</div>
+        <div>综合得分: <strong style="font-size:20px; color:var(--primary)">${item.totalScore}</strong></div>
+        <div style="font-size:11px; color:#666">公式: ∑(维度得分 × 维度权重) / 100</div>
+    </div>`;
+
+    // 添加可视化部分
+    html += `<div class="visualization-container">
+        <div class="visualization-left">
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
+                <h3 style="margin-top:0; color:var(--primary)">📊 维度得分雷达图</h3>
+                <div class="radar-chart-container">
+                    <canvas id="radar-chart-${idx}"></canvas>
+                </div>
+                <div class="weight-info">
+                    当前权重配置:
+                    <span class="weight-badge">销售 ${CONFIG.weights.sales}%</span>
+                    <span class="weight-badge">价格 ${CONFIG.weights.price_ops}%</span>
+                    <span class="weight-badge">竞争 ${CONFIG.weights.competition}%</span>
+                    <span class="weight-badge">质量 ${CONFIG.weights.quality}%</span>
+                    <span class="weight-badge">趋势 ${CONFIG.weights.trend}%</span>
+                    <span class="weight-badge">季节 ${CONFIG.weights.seasonality}%</span>
+                </div>
+            </div>
+        </div>
+        <div class="visualization-right">
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
+                <h3 style="margin-top:0; color:var(--primary)">📈 维度得分详情</h3>
+                <div class="dimension-details" id="dimension-cards-${idx}"></div>
+            </div>
+        </div>
+    </div>`;
+
+    html += `<table class="calc-table"><thead><tr><th class="dim-cell">维度</th><th>指标项</th><th>计算公式</th><th>加权计算</th><th>得分</th><th style="width:200px">赋分规则</th></tr></thead><tbody>`;
+
+    const groups = {};
+    item.logs.forEach(l => { if(!groups[l.dim]) groups[l.dim]=[]; groups[l.dim].push(l); });
+    const order = ['销售','定价与转化','竞争','质量','趋势','季节性'];
+
+    // 维度映射
+    const dimKeyMap = {
+        '销售':'sales',
+        '定价与转化':'price_ops',
+        '竞争':'competition',
+        '质量':'quality',
+        '趋势':'trend',
+        '季节性':'seasonality'
+    };
+
+    order.forEach(dim => {
+        if(groups[dim]) {
+            let w = CONFIG.weights[dimKeyMap[dim]];
+            let subScore = item.subScores[dimKeyMap[dim]];
+
+            groups[dim].forEach((l, i) => {
+                html += `<tr>
+                    ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}
+                    <td>${l.item}</td>
+                    <td class="calc-formula">${l.formula}</td>
+                    <td class="calc-step">${l.calc}</td>
+                    <td class="calc-score-cell">${l.res>0?'+':''}${l.res.toFixed(1)}</td>
+                    <td><div class="rule-desc">${l.rule}</div></td>
+                </tr>`;
+            });
+            html += `<tr style="background:#fcfcfc; font-weight:bold; color:#666"><td colspan="5" style="text-align:right">维度总得分 (${subScore.toFixed(1)}) × 权重 (${w}%) = </td><td style="color:var(--primary)">${(subScore*w/100).toFixed(2)}</td></tr>`;
+        }
+    });
+    html += `<tr style="background:#e8f5e9; font-weight:bold; font-size:14px"><td colspan="5" style="text-align:right">最终综合得分 = </td><td style="color:var(--primary); font-size:16px">${item.totalScore}</td></tr>`;
+    html += `</tbody></table>`;
+
+    document.getElementById('score-log-content').innerHTML = html;
+
+    // 绘制雷达图
+    setTimeout(() => {
+        drawRadarChart(idx, item);
+        renderDimensionCards(idx, item, groups);
+    }, 100);
+}
+
+// ================= 绘制雷达图 =================
+function drawRadarChart(idx, item) {
+    const ctx = document.getElementById(`radar-chart-${idx}`).getContext('2d');
+
+    // 维度标签和得分
+    const labels = ['销售表现', '定价与转化', '竞争环境', '质量口碑', '销量趋势', '季节性'];
+    const scores = [
+        item.subScores.sales,
+        item.subScores.price_ops,
+        item.subScores.competition,
+        item.subScores.quality,
+        item.subScores.trend,
+        item.subScores.seasonality
+    ];
+
+    // 销毁之前的图表实例
+    if (window[`radarChart${idx}`]) {
+        window[`radarChart${idx}`].destroy();
+    }
+
+    window[`radarChart${idx}`] = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '维度得分',
+                    data: scores,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20,
+                        backdropColor: 'transparent'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 11,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.raw.toFixed(1);
+                            label += ' 分';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ================= 渲染维度得分卡片 =================
+function renderDimensionCards(idx, item, groups) {
+    const container = document.getElementById(`dimension-cards-${idx}`);
+
+    const dimensions = [
+        { key: 'sales', name: '销售表现', color: '#3498db' },
+        { key: 'price_ops', name: '定价与转化', color: '#2ecc71' },
+        { key: 'competition', name: '竞争环境', color: '#e74c3c' },
+        { key: 'quality', name: '质量口碑', color: '#f39c12' },
+        { key: 'trend', name: '销量趋势', color: '#9b59b6' },
+        { key: 'seasonality', name: '季节性', color: '#1abc9c' }
+    ];
+
+    // 维度名称映射到中文
+    const dimNameMap = {
+        'sales': '销售',
+        'price_ops': '定价与转化',
+        'competition': '竞争',
+        'quality': '质量',
+        'trend': '趋势',
+        'seasonality': '季节性'
+    };
+
+    // 原始数据映射
+    const rawDataMap = {
+        '销售': {
+            '月销量': () => item.sales,
+            '销售额': () => `$${Math.round(item.revenue).toLocaleString()}`,
+            '近期增长': () => `${(item.sales_growth * 100).toFixed(1)}%`
+        },
+        '定价与转化': {
+            '价格': () => `$${item.price}`,
+            '评销比': () => {
+                const ratio = item.sales > 0 ? (item.reviews / item.sales) : 0;
+                return `${(ratio * 100).toFixed(2)}%`;
+            }
+        },
+        '竞争': {
+            '大类BSR': () => item.bsr_major || '-',
+            '小类BSR': () => item.bsr_minor || '-'
+        },
+        '质量': {
+            '评分': () => item.rating,
+            '评价数': () => item.reviews,
+            '留评率': () => `${(item.review_rate * 100).toFixed(2)}%`
+        },
+        '趋势': {
+            '数据完整性': () => `${item.history.length}个月`,
+            '最近一年趋势': () => `${(item.trendData.slope * 100).toFixed(1)}%`
+        },
+        '季节性': {
+            '季节性强度': () => item.trendData.seasonality?.strength?.toFixed(3) || '无数据',
+            '高峰月份稳定性': () => item.trendData.seasonality?.peakStability || '无数据',
+            '季节性增长趋势': () => {
+                const trend = item.trendData.seasonality?.growthTrend || 0;
+                return `${(trend * 100).toFixed(1)}%`;
+            }
+        }
+    };
+
+    let cardsHtml = '';
+
+    dimensions.forEach(dim => {
+        const score = item.subScores[dim.key];
+        const weight = CONFIG.weights[dim.key];
+        const progressWidth = Math.min(score, 100);
+
+        // 根据得分确定颜色强度
+        let color = dim.color;
+        if (score < 40) color = '#e74c3c'; // 红色表示低分
+        else if (score < 70) color = '#f39c12'; // 橙色表示中等
+        // 否则使用维度原本的颜色
+
+        // 获取该维度的子指标得分
+        const dimLogs = groups[dimNameMap[dim.key]] || [];
+        let subItemsHtml = '';
+
+        dimLogs.forEach(log => {
+            // 获取原始数据
+            const rawData = rawDataMap[dimNameMap[dim.key]]?.[log.item]?.() || 'N/A';
+
+            subItemsHtml += `
+                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                    <span>${log.item}: ${rawData}</span>
+                    <span style="font-weight: bold;"> --> ${log.res.toFixed(1)}分</span>
+                </div>
+            `;
+        });
+
+        cardsHtml += `
+            <div class="dimension-card">
+                <div class="dimension-card-header">
+                    <span>${dim.name}</span>
+                    <span class="dimension-score">${score.toFixed(1)}</span>
+                </div>
+                <div class="dimension-progress">
+                    <div class="dimension-progress-bar" style="width: ${progressWidth}%; background: ${color};"></div>
+                </div>
+                <div class="dimension-key-metrics">
+                    <div style="margin-bottom: 5px;">
+                        <span>权重: ${weight}%</span>
+                        <span style="margin-left: 10px;">贡献: ${(score * weight / 100).toFixed(1)} 分</span>
+                    </div>
+                    <div style="border-top: 1px dashed #eee; padding-top: 5px;">
+                        ${subItemsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = cardsHtml;
+}
+// 辅助函数
+function parseNum(v) { if(typeof v==='number')return v; if(!v)return 0; let s=v.toString().replace(/[$,%]/g,''); let n=parseFloat(s); if(v.toString().includes('%'))n/=100; return isNaN(n)?0:n; }
+function checkBool(v) { if(!v)return false; const s=v.toString().toLowerCase(); return s==='yes'||s==='y'||s==='是'||s==='1'||s==='true'; }
+function toggleSection(id) { const el=document.getElementById(id); el.style.display = el.style.display==='none'?'block':'none'; }
+function scrollToSection(id) {
+    setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element && element.style.display !== 'none') {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 100);
 }
 
 init();
