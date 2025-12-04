@@ -10,6 +10,31 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <style>
+        .duplicate-product {
+    background-color: rgba(243, 156, 18, 0.1) !important;
+}
+
+.duplicate-product:hover {
+    background-color: rgba(243, 156, 18, 0.2) !important;
+}
+
+/* 高亮产品样式 */
+.highlighted {
+    background-color: rgba(52, 152, 219, 0.3) !important;
+    animation: highlight-pulse 1s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+    0% { background-color: rgba(52, 152, 219, 0.3); }
+    50% { background-color: rgba(52, 152, 219, 0.6); }
+    100% { background-color: rgba(52, 152, 219, 0.3); }
+}
+
+/* 重复产品指示器 */
+.duplicate-indicator {
+    color: #f39c12;
+    margin-left: 5px;
+}
         /* 样式保持不变，与之前相同 */
         :root {
             --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --warning: #f39c12; --danger: #c0392b;
@@ -45,9 +70,9 @@
         .weight-err { color: var(--danger); background: #fdeaea; }
 
         .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .input-group { display: flex; flex-direction: column; background: #f9f9f9; padding: 8px; border: 1px solid #eee; border-radius: 4px; }
-        .input-group label { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
-        .input-group input { border: 1px solid #ccc; padding: 4px; border-radius: 3px; font-weight: bold; color: var(--accent); }
+.input-group { display: flex; flex-direction: column; background: #f9f9f9; padding: 8px; border: 1px solid #eee; border-radius: 4px; }
+.input-group label { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+.input-group input { border: 1px solid #ccc; padding: 4px; border-radius: 3px; font-weight: bold; color: var(--accent); max-width: 100%; box-sizing: border-box; }
 
         /* === 筛选栏 === */
         .filter-container { background: #e9ecef; padding: 10px; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -55,7 +80,7 @@
         .filter-item input { width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; }
         .filter-item select { padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
         .search-box { flex: 1; min-width: 10px; }
-        .search-box input { width: 60%; padding: 6px; border: 1px solid #999; border-radius: 4px; font-weight: bold; }
+        .search-box input { width: 90%; padding: 6px; border: 1px solid #999; border-radius: 4px; font-weight: bold; }
 
         /* === 表格 === */
         .table-wrapper { overflow-x: auto; border: 1px solid #ccc; max-height: 75vh; border-radius: 4px; }
@@ -301,10 +326,137 @@
             flex: 1;
             min-width: 400px;
         }
+        .keyword-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 10px;
+}
+
+.keyword-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.kw-controls { display:flex; align-items:center; gap:8px; font-size:12px; color:#555; }
+.kw-count { font-weight:bold; color:#2c3e50; }
+.kw-page { margin-left:4px; color:#888; }
+
+/* 增大关键词表格字体 */
+table.mini {
+    min-width: 550px;
+    font-size: 12px;
+}
+
+th.mini-col-info {
+    width: 240px;
+    text-align: left;
+}
+
+/* 调整产品信息列的布局 */
+.p-flex.mini {
+    gap: 8px;
+}
+
+.p-img.mini {
+    width: 70px;
+    height: 84px;
+}
+
+.p-details.mini {
+    font-size: 12px;
+}
+
+.p-asin.mini {
+    font-size: 13px;
+}
+
+.p-meta.mini {
+    font-size: 11px;
+    padding: 2px 3px;
+}
+
+.badge-row.mini {
+    gap: 3px;
+    margin-top: 3px;
+}
+
+.badge.mini {
+    font-size: 10px;
+    padding: 2px 4px;
+}
+
+/* 调整综合评分列 */
+.score-val.mini {
+    font-size: 20px;
+}
+
+/* 调整图表容器 */
+.chart-wrap.mini {
+    width: 110px;
+    height: 40px;
+}
+
+/* 调整表格头部序号列 */
+#keyword-tables-panel th:first-child {
+    width: 40px;
+}
+/* 信息提示弹窗样式 */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #2c3e50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateX(120%);
+    transition: transform 0.3s ease-out;
+    font-weight: 500;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success {
+    background: #27ae60;
+}
+
+.toast.info {
+    background: #2980b9;
+}
+
+.toast.warning {
+    background: #f39c12;
+}
+
+.toast.error {
+    background: #c0392b;
+}
+
+.toast-icon {
+    font-size: 20px;
+}
     </style>
 </head>
 <body>
-
+<!-- 信息提示弹窗 -->
+<div id="toast" class="toast">
+    <span class="toast-icon">ℹ️</span>
+    <span id="toast-message">参数已更新并重新计算完成</span>
+</div>
 <div id="hover-preview"><img id="hover-img" src=""></div>
 
 <div class="app-container">
@@ -314,9 +466,10 @@
         <div class="panel-header" style="border:none; margin:0; padding:0">
             <div class="panel-title">📊 亚马逊选品决策系统</div>
             <div style="display:flex; gap:10px">
-                <button class="btn btn-outline" onclick="toggleSection('metrics-dict'); scrollToSection('metrics-dict')">📘 查看指标体系</button>
-                <button class="btn btn-success" onclick="exportData()">📥 导出分析报告</button>
-            </div>
+    <button class="btn btn-outline" onclick="toggleSection('metrics-dict'); scrollToSection('metrics-dict')">📘 查看指标体系</button>
+    <button class="btn btn-outline" onclick="showAsinList()">📋 管理ASIN列表</button>
+    <button class="btn btn-success" onclick="exportData()">📥 导出分析报告</button>
+</div>
         </div>
     </div>
 
@@ -325,13 +478,13 @@
         <div class="upload-grid">
             <div class="drop-zone" onclick="document.getElementById('file-main').click()">
                 <strong style="color:var(--primary); font-size:14px;">1. 上传主数据</strong>
-                <div style="font-size:11px; color:#999; margin-top:5px;">卖家精灵插件导出</div>
-                <input type="file" id="file-main" hidden accept=".xlsx,.xls,.csv">
+                <div style="font-size:11px; color:#999; margin-top:5px;">卖家精灵插件导出（一次最多三个关键词的数据）</div>
+                <input type="file" id="file-main" hidden multiple accept=".xlsx,.xls,.csv">
                 <div id="status-main" class="file-status"></div>
             </div>
             <div class="drop-zone" onclick="document.getElementById('file-history').click()">
                 <strong style="color:var(--primary); font-size:14px;">2. 上传历史销量 (可选)</strong>
-                <div style="font-size:11px; color:#999; margin-top:5px;">自动合并多文件 & 线性回归分析(使用ASIN去查竞品模块导出明细，一次可以导出100个ASIN)</div>
+                <div style="font-size:11px; color:#999; margin-top:5px;">自动合并多文件 & 线性回归分析（使用ASIN去查竞品模块导出明细，一次可以导出100个ASIN）</div>
                 <input type="file" id="file-history" hidden multiple accept=".xlsx,.xls,.csv">
                 <div id="status-history" class="file-status"></div>
             </div>
@@ -351,7 +504,7 @@
 
             <hr style="margin: 15px 0; border:0; border-top:1px dashed #eee;">
 
-            <div class="config-header"><strong>🎯 核心阈值配置</strong></div>
+            <div class="config-header"><strong>🎯 核心阈值配置 (在阈值内得分越高)</strong></div>
             <div id="config-params" class="config-grid"></div>
 
             <div style="text-align:center; margin-top:15px;">
@@ -361,10 +514,10 @@
     </div>
 
     <!-- 3. 筛选与搜索 -->
-<div class="panel" style="background:#eef2f5; border:none;">
+<div class="panel" id="filter-panel" style="background:#eef2f5; border:none; position:sticky; top:0; z-index:999; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
     <div class="filter-container">
         <div class="search-box">
-            <input type="text" id="f-search" placeholder="🔍 全局搜索 ASIN / 标题 / 品牌...">
+            <input type="text" id="f-search" placeholder="🔍 全局搜索">
         </div>
         <div class="filter-item">
             <label>数据展示:</label>
@@ -378,11 +531,11 @@
         <div class="filter-item"><label>价格:</label><input type="number" id="f-p-min" placeholder="Min"> - <input type="number" id="f-p-max" placeholder="Max"></div>
         <div class="filter-item">
     <label>大类BSR≤</label>
-    <input type="number" id="f-bsr-major" placeholder="例如: 5000">
+    <input type="number" id="f-bsr-major" placeholder="10000">
 </div>
 <div class="filter-item">
     <label>小类BSR≤</label>
-    <input type="number" id="f-bsr-minor" placeholder="例如: 100">
+    <input type="number" id="f-bsr-minor" placeholder="1000">
 </div>
 <div class="filter-item">
     <label>评论数:</label>
@@ -396,7 +549,7 @@
 </div>
 <div class="filter-item">
     <label>上架天数≤</label>
-    <input type="number" id="f-listing-days" placeholder="例如: 365">
+    <input type="number" id="f-listing-days" placeholder="180">
 </div>
         <div class="filter-item">
     <label>产品标签:</label>
@@ -426,6 +579,20 @@
 </div>
 
     <!-- 4. 统计与表格 -->
+    <div class="panel" id="keyword-tables-panel" style="padding:0; overflow:hidden; display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eee; background:#fafafa;">
+            <div class="panel-title" style="border:none; padding:0; font-size:16px;">关键词结果联动</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <label style="font-size:12px; color:#555; display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" id="kw-sync-scroll"> 联动滚动
+                </label>
+                <label style="font-size:12px; color:#555; display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" id="kw-sync-page"> 联动分页
+                </label>
+            </div>
+        </div>
+        <div class="keyword-grid" id="keyword-grid"></div>
+    </div>
     <div class="panel" style="padding:0; overflow:hidden">
         <div id="benchmark-bar" class="benchmark-bar" style="display:none; margin:10px 15px 0 15px;">
             <!-- JS填充基准值 -->
@@ -646,6 +813,37 @@
     </div>
 </div>
 
+<div class="modal" id="asin-list-modal">
+    <div class="modal-content" style="width:800px; max-height: 80vh;">
+        <span class="close-btn" onclick="document.getElementById('asin-list-modal').style.display='none'">&times;</span>
+        <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; color:var(--primary)">📋 ASIN列表管理</h2>
+        <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="copyAndJump()">📤 复制选中ASIN并跳转到“查竞品”</button>
+            <button class="btn btn-outline" onclick="selectAllAsins()">✅ 全选</button>
+            <button class="btn btn-outline" onclick="deselectAllAsins()">❌ 取消全选</button>
+            <div style="margin-left: auto; font-size: 12px; color: #666; display: flex; align-items: center; gap: 5px;">
+                <span id="selected-count">已选择: 0</span>
+                <span>总共: <span id="total-asins">0</span> 个ASIN</span>
+            </div>
+        </div>
+        <div class="table-wrapper" style="max-height: 500px;">
+            <table class="calc-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll()"></th>
+                        <th style="width: 60px;">序号</th>
+                        <th>ASIN组 (每组100个)</th>
+                        <th style="width: 100px;">数量</th>
+                        <th style="width: 120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="asin-list-body">
+                    <!-- ASIN列表将通过JavaScript动态生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 <!-- 弹窗：大图 -->
 <div class="modal" id="chart-modal">
     <div class="modal-content" style="width:900px">
@@ -665,7 +863,10 @@
 
 <script>
     let currentPage = 1;
-const itemsPerPage = 200; // 每页显示200条数据
+    const itemsPerPage = 200; // 汇总表每页显示200条数据
+    const itemsPerKeyword = 100; // 关键词表每页显示100条
+    let keywordPage = new Map(); // 每个关键词的当前页
+    let duplicateMap = new Map(); // 存储重复产品的信息
 // ================= 1. 全局配置 =================
 const CONFIG = {
     // 用户可调权重 (总和100)
@@ -678,6 +879,17 @@ const CONFIG = {
         seasonality: 7,  //季节性 (原8%，调整为7%)
         operation: 10  // 新增：运营因素 (10%)
     },
+    // 行业经验基准权重
+    weightsBase: {
+        sales: 23,
+        price_ops: 18,
+        competition: 18,
+        quality: 13,
+        trend: 11,
+        seasonality: 7,
+        operation: 10
+    },
+    weightMode: 'auto', // 权重模式：auto(自动分配) / manual(手动)
     // 用户可调阈值
     params: {
         price_min: 15, price_max: 60,
@@ -759,12 +971,12 @@ const LABEL_MAP = {
     quality: "产品质量", trend: "销量趋势", seasonality: "季节性",
     operation: "运营因素", // 新增
     price_min: "最低价格($)", price_max: "最高价格($)",
-    bsr_major_max: "大类排名红线", bsr_minor_max: "小类排名红线",
+    bsr_major_max: "大类BSR红线<", bsr_minor_max: "小类BSR红线<",
     rating_min: "评分及格线", reviews_min: "最少评价数", reviews_max: "红海评价数",
     review_rate_min: "留评率下限", review_rate_max: "留评率上限",
-    trend_growth: "高增长阈值(0.1)",
-    seasonality_threshold: "季节性强度阈值(0.3)",
-    listing_days_threshold: "上架天数阈值(180)" // 新增
+    trend_growth: "最近一年趋势阈值(%)",
+    seasonality_threshold: "季节性强度阈值(%)",
+    listing_days_threshold: "上架天数阈值" // 新增
 };
 
 // 详细的规则说明
@@ -791,6 +1003,7 @@ const RULE_DESCRIPTIONS = {
 };
 
 let rawData = [], processedData = [], filteredData = [], historyMap = new Map();
+let keywordDataMap = new Map();
 let currentBenchmarks = {};
 
 // ================= 2. 初始化 =================
@@ -807,19 +1020,110 @@ function renderConfig() {
     for(let k in CONFIG.weights) {
         wHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${CONFIG.weights[k]}" oninput="updateCfg('weights','${k}',this.value)"></div>`;
     }
-    document.getElementById('config-weights').innerHTML = wHtml;
+    const modeSwitch = `<div style="grid-column: 1 / -1; display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:12px;">
+        <span>权重模式:</span>
+        <button class="btn btn-outline" onclick="toggleWeightMode()">${CONFIG.weightMode==='auto'?'自动分配':'手动分配'}</button>
+    </div>`;
+    document.getElementById('config-weights').innerHTML = modeSwitch + wHtml;
 
     // 阈值
     let pHtml = '';
-    for(let k in CONFIG.params) {
-        pHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${CONFIG.params[k]}" step="0.01" onchange="updateCfg('params','${k}',this.value)"></div>`;
+    // 理想价格区间特制输入
+    pHtml += `
+        <div class="input-group">
+            <label>理想价格($)</label>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <input type="number" value="${CONFIG.params.price_min}" step="0.01" style="width:60px" onchange="updateCfg('params','price_min',this.value)">
+                <span style="color:#666">~</span>
+                <input type="number" value="${CONFIG.params.price_max}" step="0.01" style="width:60px" onchange="updateCfg('params','price_max',this.value)">
+            </div>
+        </div>
+    `;
+    // 评价数区间
+    pHtml += `
+        <div class="input-group">
+            <label>评论数</label>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <input type="number" value="${CONFIG.params.reviews_min}" step="1" style="width:60px" onchange="updateCfg('params','reviews_min',this.value)">
+                <span style="color:#666">~</span>
+                <input type="number" value="${CONFIG.params.reviews_max}" step="1" style="width:60px" onchange="updateCfg('params','reviews_max',this.value)">
+            </div>
+        </div>
+    `;
+    // 留评率区间（%）
+    pHtml += `
+        <div class="input-group">
+            <label>留评率(%)</label>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <input type="number" value="${(CONFIG.params.review_rate_min*100)}" step="0.01" style="width:60px" onchange="updateCfg('params','review_rate_min',this.value/100)">
+                <span style="color:#666">~</span>
+                <input type="number" value="${(CONFIG.params.review_rate_max*100)}" step="0.01" style="width:60px" onchange="updateCfg('params','review_rate_max',this.value/100)">
+            </div>
+        </div>
+    `;
+    // 其他参数
+    const otherParams = Object.keys(CONFIG.params).filter(k=>!['price_min','price_max','reviews_min','reviews_max','review_rate_min','review_rate_max'].includes(k));
+for(let k of otherParams) {
+    let displayValue = CONFIG.params[k];
+    let step = "0.01";
+    let inputValue = displayValue;
+
+    // 对于百分比相关的参数，在显示时转换为百分比形式
+    if (k === 'trend_growth' || k === 'seasonality_threshold') {
+        displayValue = (CONFIG.params[k] * 100);
+        inputValue = displayValue;
+        step = "0.1";
     }
-    document.getElementById('config-params').innerHTML = pHtml;
+
+    pHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${inputValue}" step="${step}" onchange="updateCfg('params','${k}',this.value)"></div>`;
+}
+document.getElementById('config-params').innerHTML = pHtml;
 }
 
 function updateCfg(type, k, v) {
-    CONFIG[type][k] = parseFloat(v);
-    if(type === 'weights') validateWeights();
+    let numV = parseFloat(v);
+
+    if(type === 'weights') {
+        if(CONFIG.weightMode==='auto') {
+            adjustWeights(k, isNaN(numV)?0:numV);
+        } else {
+            CONFIG.weights[k] = isNaN(numV)?0:numV;
+        }
+        validateWeights();
+        return;
+    }
+
+    // 对于百分比相关的参数，需要转换回小数形式存储
+    if (k === 'trend_growth' || k === 'seasonality_threshold') {
+        numV = numV / 100;
+    }
+
+    CONFIG[type][k] = numV;
+}
+
+
+function adjustWeights(changedKey, newValue){
+    if(newValue < 0) newValue = 0;
+    if(newValue > 100) newValue = 100;
+    const keys = Object.keys(CONFIG.weights);
+    const others = keys.filter(k=>k!==changedKey);
+    const totalOthersBase = others.reduce((s,k)=>s+CONFIG.weightsBase[k],0);
+    const remain = Math.max(0, 100 - newValue);
+    const temp = {};
+    let acc = 0;
+    others.forEach((k, idx)=>{
+        const raw = remain * (CONFIG.weightsBase[k] / totalOthersBase);
+        const val = idx < others.length-1 ? Math.round(raw) : (remain - acc);
+        temp[k] = val;
+        acc += val;
+    });
+    CONFIG.weights[changedKey] = newValue;
+    others.forEach(k=>{ CONFIG.weights[k] = temp[k]; });
+}
+
+function toggleWeightMode(){
+    CONFIG.weightMode = CONFIG.weightMode==='auto' ? 'manual' : 'auto';
+    renderConfig();
 }
 
 function validateWeights() {
@@ -881,49 +1185,77 @@ function readExcel(file) {
 }
 
 document.getElementById('file-main').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const data = await readExcel(file);
-    rawData = data.map(row => {
-        const getVal = (keys) => { for(let k of keys) if(row[k]!==undefined) return row[k]; return ''; };
-        const getNum = (keys) => parseNum(getVal(keys));
+    const files = Array.from(e.target.files || []);
+    if(files.length===0) return;
+    keywordDataMap.clear();
+    let combined = [];
+    for(const file of files){
+        const data = await readExcel(file);
+        const arr = data.map(row => {
+            const getVal = (keys) => { for(let k of keys) if(row[k]!==undefined) return row[k]; return ''; };
+            const getNum = (keys) => parseNum(getVal(keys));
+            const sellerInfo = getVal(['卖家所属地', 'Seller Location', 'seller_location']) || '';
+            const buyboxInfo = getVal(['BuyBox类型', 'BuyBox Type', 'buybox_type']) || '';
+            return {
+                asin: getVal(['ASIN','asin']),
+                parent_asin: getVal(['父ASIN','Parent ASIN','parent_asin']),
+                title: getVal(['商品标题','Title','title']),
+                title_cn: getVal(['标题(翻译)','Translated Title']),
+                image: getHighQualityImageUrl(getVal(['商品主图','Image','image_url'])),
+                brand: getVal(['品牌','Brand']),
+                price: getNum(['价格($)','Price']),
+                sales: getNum(['月销量','Sales']),
+                revenue: getNum(['月销售额($)','Revenue']),
+                sales_growth: getNum(['月销量增长率','Sales Growth']),
+                rating: getNum(['评分','Rating']),
+                reviews: getNum(['评分数','Reviews']),
+                review_rate: getNum(['留评率','Review Rate']),
+                bsr_major: getNum(['大类BSR','BSR']),
+                bsr_minor: getNum(['小类BSR','Sub BSR']),
+                category: getVal(['小类目','Category']),
+                sellers: getNum(['卖家数','Sellers']),
+                lister_date: getVal(['上架时间','Date First Available']),
+                listing_days: getNum(['上架天数','Days']),
+                margin: getNum(['毛利率','Margin']),
+                url: getVal(['商品详情页链接','Url']),
+                is_bs: checkBool(getVal(['Best Seller标识','Best Seller'])),
+                is_ac: checkBool(getVal(['Amazon\'s Choice','Amazon Choice'])),
+                is_new: checkBool(getVal(['New Release标识','New Release'])),
+                delivery: getVal(['配送方式','Delivery']),
+                seller_location: sellerInfo,
+                buybox_type: buyboxInfo,
+                _raw: row
+            };
+        });
+        const keyword = extractKeyword(file.name);
+        const bm = getBenchmarksForArray(arr);
+        const processed = arr.map(item => {
+            const history = historyMap.get(item.asin) || [];
+            const res = calculateScores(item, history, bm);
+            return { ...item, ...res, history };
+        }).sort((a,b)=>b.totalScore - a.totalScore);
+        keywordDataMap.set(keyword, { raw: arr, bm, processed });
+        combined = combined.concat(arr);
+    }
+    rawData = combined;
+    document.getElementById('status-main').innerText = `✅ 加载 ${files.length} 个文件，共 ${rawData.length} 条`;
 
-        // 解析卖家归属地和BuyBox类型
-        const sellerInfo = getVal(['卖家所属地', 'Seller Location', 'seller_location']) || '';
-        const buyboxInfo = getVal(['BuyBox类型', 'BuyBox Type', 'buybox_type']) || '';
+    // 根据关键词数量决定是否显示关键词表面板
+    if (keywordDataMap.size > 0) {
+        document.getElementById('keyword-tables-panel').style.display = 'block';
+    } else {
+        document.getElementById('keyword-tables-panel').style.display = 'none';
+    }
 
-        return {
-            asin: getVal(['ASIN','asin']),
-            title: getVal(['商品标题','Title','title']),
-            title_cn: getVal(['标题(翻译)','Translated Title']),
-            image: getHighQualityImageUrl(getVal(['商品主图','Image','image_url'])),
-            brand: getVal(['品牌','Brand']),
-            price: getNum(['价格($)','Price']),
-            sales: getNum(['月销量','Sales']),
-            revenue: getNum(['月销售额($)','Revenue']),
-            sales_growth: getNum(['月销量增长率','Sales Growth']),
-            rating: getNum(['评分','Rating']),
-            reviews: getNum(['评分数','Reviews']),
-            review_rate: getNum(['留评率','Review Rate']),
-            bsr_major: getNum(['大类BSR','BSR']),
-            bsr_minor: getNum(['小类BSR','Sub BSR']),
-            category: getVal(['小类目','Category']),
-            sellers: getNum(['卖家数','Sellers']),
-            lister_date: getVal(['上架时间','Date First Available']),
-            listing_days: getNum(['上架天数','Days']),
-            margin: getNum(['毛利率','Margin']),
-            url: getVal(['商品详情页链接','Url']),
-            is_bs: checkBool(getVal(['Best Seller标识','Best Seller'])),
-            is_ac: checkBool(getVal(['Amazon\'s Choice','Amazon Choice'])),
-            is_new: checkBool(getVal(['New Release标识','New Release'])),
-            delivery: getVal(['配送方式','Delivery']),
-            seller_location: sellerInfo, // 新增：卖家归属地
-            buybox_type: buyboxInfo,     // 新增：BuyBox类型
-            _raw: row
-        };
-    });
-    document.getElementById('status-main').innerText = `✅ 加载 ${rawData.length} 条`;
+    // 构建重复产品映射
+    buildDuplicateMap();
+
+    renderKeywordTables();
     recalculate();
+     // 如果ASIN列表弹窗是打开的，刷新列表
+    if (document.getElementById('asin-list-modal').style.display === 'flex') {
+        generateAsinList();
+    }
 });
 
 document.getElementById('file-history').addEventListener('change', async (e) => {
@@ -968,12 +1300,86 @@ function recalculate() {
         return { ...item, ...res, history };
     });
     processedData.sort((a,b) => b.totalScore - a.totalScore);
+    processedData = dedupeByAsin(processedData);
+    if(keywordDataMap && keywordDataMap.size>0){
+        const updated = new Map();
+        keywordDataMap.forEach((val, kw)=>{
+            const bm = getBenchmarksForArray(val.raw);
+            const procAll = val.raw.map(item=>{
+                const history = historyMap.get(item.asin) || [];
+                const res = calculateScores(item, history, bm);
+                return { ...item, ...res, history };
+            }).sort((a,b)=>b.totalScore - a.totalScore);
+            const proc = dedupeProcessed(procAll);
+            updated.set(kw, { raw: val.raw, bm, processed: proc });
+        });
+        keywordDataMap = updated;
+        renderKeywordTables();
+    }
     applyFilter();
+    // 显示提示框
+    showToast("参数已更新并重新计算完成", "success");
+}
+
+// 显示提示框函数
+function showToast(message, type = "info") {
+    const toast = document.getElementById('toast');
+    const messageEl = document.getElementById('toast-message');
+
+    // 设置消息和类型
+    messageEl.textContent = message;
+    toast.className = 'toast ' + type;
+
+    // 显示提示框
+    toast.classList.add('show');
+
+    // 3秒后自动隐藏
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
 }
 
 function getBenchmarks() {
     const getQ3 = (arr) => { const s=arr.filter(n=>n>0).sort((a,b)=>a-b); return s[Math.floor(s.length*0.75)]||1; };
     return { sales: getQ3(rawData.map(i=>i.sales)), revenue: getQ3(rawData.map(i=>i.revenue)), reviews: getQ3(rawData.map(i=>i.reviews)) };
+}
+
+function getBenchmarksForArray(arr) {
+    const f = (vals) => { const s=vals.filter(n=>n>0).sort((a,b)=>a-b); return s[Math.floor(s.length*0.75)]||1; };
+    return { sales: f(arr.map(i=>i.sales)), revenue: f(arr.map(i=>i.revenue)), reviews: f(arr.map(i=>i.reviews)) };
+}
+
+// 依据 ASIN 与 父ASIN 去重（优先保留高分项）
+function dedupeProcessed(arr){
+    const sorted = [...arr].sort((a,b)=> (b.totalScore||0) - (a.totalScore||0));
+    const seenAsin = new Set();
+    const seenParent = new Set();
+    const out = [];
+    for(const item of sorted){
+        const asin = String(item.asin||'').trim();
+        const parent = String(item.parent_asin||'').trim();
+        if(asin && seenAsin.has(asin)) continue;
+        if(parent){
+            if(seenParent.has(parent)) continue;
+            seenParent.add(parent);
+        }
+        if(asin) seenAsin.add(asin);
+        out.push(item);
+    }
+    return out;
+}
+
+function dedupeByAsin(arr){
+    const seen = new Set();
+    const out = [];
+    for(const item of arr){
+        const asin = String(item.asin||'').trim();
+        if(!asin) continue;
+        if(seen.has(asin)) continue;
+        seen.add(asin);
+        out.push(item);
+    }
+    return out;
 }
 
 function calculateLinearRegressionSlope(values) {
@@ -1599,169 +2005,144 @@ let score_price_ops = p_pts + ratio_pts;
 }
 
 // ================= 6. 渲染 =================
+function getCurrentFilters(){
+    return {
+        search: (document.getElementById('f-search')?.value || '').toLowerCase().trim(),
+        historyFilter: document.getElementById('f-history-filter')?.value || 'all',
+        score: document.getElementById('f-score')?.value.trim() !== '' ? parseFloat(document.getElementById('f-score')?.value) : null,
+        sales: document.getElementById('f-sales')?.value.trim() !== '' ? parseFloat(document.getElementById('f-sales')?.value) : null,
+        minP: document.getElementById('f-p-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-p-min')?.value) : null,
+        maxP: document.getElementById('f-p-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-p-max')?.value) : null,
+        bsrMajor: document.getElementById('f-bsr-major')?.value.trim() !== '' ? parseFloat(document.getElementById('f-bsr-major')?.value) : null,
+        bsrMinor: document.getElementById('f-bsr-minor')?.value.trim() !== '' ? parseFloat(document.getElementById('f-bsr-minor')?.value) : null,
+        minRating: document.getElementById('f-rating-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-rating-min')?.value) : null,
+        maxRating: document.getElementById('f-rating-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-rating-max')?.value) : null,
+        minReviews: document.getElementById('f-reviews-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-reviews-min')?.value) : null,
+        maxReviews: document.getElementById('f-reviews-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-reviews-max')?.value) : null,
+        listingDays: document.getElementById('f-listing-days')?.value.trim() !== '' ? parseFloat(document.getElementById('f-listing-days')?.value) : null,
+        badge: document.getElementById('f-badge')?.value || 'all',
+        sellerLocation: document.getElementById('f-seller-location')?.value || 'all',
+        buyboxType: document.getElementById('f-buybox-type')?.value || 'all'
+    };
+}
+
+function filterItems(items, f){
+    return items.filter(i => {
+        let matchSearch = true;
+        if (f.search) {
+            matchSearch = i.asin.toLowerCase().includes(f.search) ||
+                         i.title.toLowerCase().includes(f.search) ||
+                         (i.brand && i.brand.toLowerCase().includes(f.search));
+        }
+        let matchHistory = true;
+        if (f.historyFilter === 'has-history') {
+            matchHistory = i.history && i.history.length > 0;
+        }
+        let matchScore = true;
+        if (f.score !== null) {
+            matchScore = parseFloat(i.totalScore) >= f.score;
+        }
+        let matchSales = true;
+        if (f.sales !== null) {
+            matchSales = i.sales >= f.sales;
+        }
+        let matchPrice = true;
+        if (f.minP !== null) {
+            matchPrice = matchPrice && i.price >= f.minP;
+        }
+        if (f.maxP !== null) {
+            matchPrice = matchPrice && i.price <= f.maxP;
+        }
+        let matchBsrMajor = true;
+        if (f.bsrMajor !== null && i.bsr_major) {
+            matchBsrMajor = i.bsr_major <= f.bsrMajor;
+        }
+        let matchBsrMinor = true;
+        if (f.bsrMinor !== null && i.bsr_minor) {
+            matchBsrMinor = i.bsr_minor <= f.bsrMinor;
+        }
+        let matchRating = true;
+        if (f.minRating !== null) {
+            matchRating = matchRating && i.rating >= f.minRating;
+        }
+        if (f.maxRating !== null) {
+            matchRating = matchRating && i.rating <= f.maxRating;
+        }
+        let matchReviews = true;
+        if (f.minReviews !== null) {
+            matchReviews = matchReviews && i.reviews >= f.minReviews;
+        }
+        if (f.maxReviews !== null) {
+            matchReviews = matchReviews && i.reviews <= f.maxReviews;
+        }
+        let matchListingDays = true;
+        if (f.listingDays !== null && i.listing_days) {
+            matchListingDays = i.listing_days <= f.listingDays;
+        }
+        let matchBadge = true;
+        if (f.badge !== 'all') {
+            switch(f.badge) {
+                case 'bs': matchBadge = i.is_bs; break;
+                case 'ac': matchBadge = i.is_ac; break;
+                case 'new': matchBadge = i.is_new; break;
+            }
+        }
+        let matchSellerLocation = true;
+        if (f.sellerLocation !== 'all') {
+            const sellerLoc = (i.seller_location || '').toUpperCase();
+            switch(f.sellerLocation) {
+                case 'CN':
+                    matchSellerLocation = sellerLoc.includes('CN') ||
+                                        sellerLoc.includes('CHINA') ||
+                                        sellerLoc.includes('中国');
+                    break;
+                case 'other':
+                    matchSellerLocation = sellerLoc &&
+                                        !sellerLoc.includes('CN') &&
+                                        !sellerLoc.includes('CHINA') &&
+                                        !sellerLoc.includes('中国') &&
+                                        !sellerLoc.includes('US') &&
+                                        !sellerLoc.includes('AMZ');
+                    break;
+                case 'US':
+                    matchSellerLocation = sellerLoc.includes('US') ||
+                                        sellerLoc.includes('AMZ');
+                    break;
+            }
+        }
+        let matchBuyboxType = true;
+        if (f.buyboxType !== 'all') {
+            const buyboxType = (i.buybox_type || i.delivery || '').toUpperCase();
+            switch(f.buyboxType) {
+                case 'FBM':
+                    matchBuyboxType = buyboxType.includes('FBM');
+                    break;
+                case 'FBA':
+                    matchBuyboxType = buyboxType.includes('FBA');
+                    break;
+                case 'AMZ':
+                    matchBuyboxType = buyboxType.includes('AMZ') || buyboxType.includes('AMAZON');
+                    break;
+            }
+        }
+        return matchSearch && matchHistory && matchScore && matchSales && matchPrice &&
+               matchBsrMajor && matchBsrMinor && matchRating && matchReviews &&
+               matchListingDays && matchBadge && matchSellerLocation && matchBuyboxType;
+    });
+}
+
 function applyFilter() {
     try {
-        // Get filter values - only apply filters when values are actually set
-        const f = {
-            search: (document.getElementById('f-search')?.value || '').toLowerCase().trim(),
-            historyFilter: document.getElementById('f-history-filter')?.value || 'all',
-            score: document.getElementById('f-score')?.value.trim() !== '' ? parseFloat(document.getElementById('f-score')?.value) : null,
-            sales: document.getElementById('f-sales')?.value.trim() !== '' ? parseFloat(document.getElementById('f-sales')?.value) : null,
-            minP: document.getElementById('f-p-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-p-min')?.value) : null,
-            maxP: document.getElementById('f-p-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-p-max')?.value) : null,
-            bsrMajor: document.getElementById('f-bsr-major')?.value.trim() !== '' ? parseFloat(document.getElementById('f-bsr-major')?.value) : null,
-            bsrMinor: document.getElementById('f-bsr-minor')?.value.trim() !== '' ? parseFloat(document.getElementById('f-bsr-minor')?.value) : null,
-            minRating: document.getElementById('f-rating-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-rating-min')?.value) : null,
-            maxRating: document.getElementById('f-rating-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-rating-max')?.value) : null,
-            minReviews: document.getElementById('f-reviews-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-reviews-min')?.value) : null,
-            maxReviews: document.getElementById('f-reviews-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-reviews-max')?.value) : null,
-            listingDays: document.getElementById('f-listing-days')?.value.trim() !== '' ? parseFloat(document.getElementById('f-listing-days')?.value) : null,
-            badge: document.getElementById('f-badge')?.value || 'all',
-            sellerLocation: document.getElementById('f-seller-location')?.value || 'all',
-            buyboxType: document.getElementById('f-buybox-type')?.value || 'all'
-        };
-
-        filteredData = processedData.filter(i => {
-            // Search filter - only apply if search term is provided
-            let matchSearch = true;
-            if (f.search) {
-                matchSearch = i.asin.toLowerCase().includes(f.search) ||
-                             i.title.toLowerCase().includes(f.search) ||
-                             (i.brand && i.brand.toLowerCase().includes(f.search));
-            }
-
-            // History filter
-            let matchHistory = true;
-            if (f.historyFilter === 'has-history') {
-                matchHistory = i.history && i.history.length > 0;
-            }
-
-            // Score filter - only apply if value is set
-            let matchScore = true;
-            if (f.score !== null) {
-                matchScore = parseFloat(i.totalScore) >= f.score;
-            }
-
-            // Sales filter - only apply if value is set
-            let matchSales = true;
-            if (f.sales !== null) {
-                matchSales = i.sales >= f.sales;
-            }
-
-            // Price filter - only apply if values are set
-            let matchPrice = true;
-            if (f.minP !== null) {
-                matchPrice = matchPrice && i.price >= f.minP;
-            }
-            if (f.maxP !== null) {
-                matchPrice = matchPrice && i.price <= f.maxP;
-            }
-
-            // BSR filters - only apply if values are set
-            let matchBsrMajor = true;
-            if (f.bsrMajor !== null && i.bsr_major) {
-                matchBsrMajor = i.bsr_major <= f.bsrMajor;
-            }
-
-            // BSR minor filter - only apply if value is set
-            let matchBsrMinor = true;
-            if (f.bsrMinor !== null && i.bsr_minor) {
-                matchBsrMinor = i.bsr_minor <= f.bsrMinor;
-            }
-
-            // Rating filters - only apply if values are set
-            let matchRating = true;
-            if (f.minRating !== null) {
-                matchRating = matchRating && i.rating >= f.minRating;
-            }
-            if (f.maxRating !== null) {
-                matchRating = matchRating && i.rating <= f.maxRating;
-            }
-
-            // Reviews filter - only apply if values are set
-            let matchReviews = true;
-            if (f.minReviews !== null) {
-                matchReviews = matchReviews && i.reviews >= f.minReviews;
-            }
-            if (f.maxReviews !== null) {
-                matchReviews = matchReviews && i.reviews <= f.maxReviews;
-            }
-
-            // Listing days filter - only apply if value is set
-            let matchListingDays = true;
-            if (f.listingDays !== null && i.listing_days) {
-                matchListingDays = i.listing_days <= f.listingDays;
-            }
-
-            // Badge filter
-            let matchBadge = true;
-            if (f.badge !== 'all') {
-                switch(f.badge) {
-                    case 'bs': matchBadge = i.is_bs; break;
-                    case 'ac': matchBadge = i.is_ac; break;
-                    case 'new': matchBadge = i.is_new; break;
-                }
-            }
-
-            // Seller location filter
-            let matchSellerLocation = true;
-            if (f.sellerLocation !== 'all') {
-                const sellerLoc = (i.seller_location || '').toUpperCase();
-                switch(f.sellerLocation) {
-                    case 'CN':
-                        matchSellerLocation = sellerLoc.includes('CN') ||
-                                            sellerLoc.includes('CHINA') ||
-                                            sellerLoc.includes('中国');
-                        break;
-                    case 'other':
-                        matchSellerLocation = sellerLoc &&
-                                            !sellerLoc.includes('CN') &&
-                                            !sellerLoc.includes('CHINA') &&
-                                            !sellerLoc.includes('中国') &&
-                                            !sellerLoc.includes('US') &&
-                                            !sellerLoc.includes('AMZ');
-                        break;
-                    case 'US':
-                        matchSellerLocation = sellerLoc.includes('US') ||
-                                            sellerLoc.includes('AMZ');
-                        break;
-                }
-            }
-
-            // BuyBox type filter
-            let matchBuyboxType = true;
-            if (f.buyboxType !== 'all') {
-                const buyboxType = (i.buybox_type || i.delivery || '').toUpperCase();
-                switch(f.buyboxType) {
-                    case 'FBM':
-                        matchBuyboxType = buyboxType.includes('FBM');
-                        break;
-                    case 'FBA':
-                        matchBuyboxType = buyboxType.includes('FBA');
-                        break;
-                    case 'AMZ':
-                        matchBuyboxType = buyboxType.includes('AMZ') || buyboxType.includes('AMAZON');
-                        break;
-                }
-            }
-
-            return matchSearch && matchHistory && matchScore && matchSales && matchPrice &&
-                   matchBsrMajor && matchBsrMinor && matchRating && matchReviews &&
-                   matchListingDays && matchBadge && matchSellerLocation && matchBuyboxType;
-        });
-
-        // Update filter result count
+        const f = getCurrentFilters();
+        filteredData = dedupeByAsin(filterItems(processedData, f));
         const filterResultCountElement = document.getElementById('filter-result-count');
         if (filterResultCountElement) {
             filterResultCountElement.innerText = `共${filteredData.length}条结果`;
         }
-
-        // Reset to first page
         currentPage = 1;
         renderTable();
+        if(keywordDataMap && keywordDataMap.size>0){ renderKeywordTables(); }
     } catch (error) {
-        console.error('Error in applyFilter:', error);
-        // Fallback to show all data if filtering fails
         filteredData = [...processedData];
         renderTable();
     }
@@ -1834,11 +2215,22 @@ function renderTable() {
     document.getElementById('total-count').innerText = rawData.length;
     document.getElementById('display-count').innerText = filteredData.length;
 
+    // 对过滤后的数据进行去重处理
+    const uniqueFilteredData = [];
+    const seenAsins = new Set();
+
+    filteredData.forEach(item => {
+        if (!seenAsins.has(item.asin)) {
+            seenAsins.add(item.asin);
+            uniqueFilteredData.push(item);
+        }
+    });
+
     // 计算分页信息
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const totalPages = Math.ceil(uniqueFilteredData.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-    const pageData = filteredData.slice(startIndex, endIndex);
+    const endIndex = Math.min(startIndex + itemsPerPage, uniqueFilteredData.length);
+    const pageData = uniqueFilteredData.slice(startIndex, endIndex);
 
     // 只渲染当前页数据
     pageData.forEach((item, idx) => {
@@ -1860,6 +2252,7 @@ function renderTable() {
         const buyboxType = item.buybox_type || item.delivery || '未知';
 
         const tr = document.createElement('tr');
+        tr.setAttribute('data-asin', item.asin);
         tr.innerHTML = `
             <td>${startIndex + idx + 1}</td>
             <td class="col-info">
@@ -1928,11 +2321,8 @@ function renderTable() {
     // 更新分页控件
     updatePaginationControls(totalPages);
 
-    // 移除性能提示（因为我们现在有了分页功能）
-    const existingNote = document.querySelector('.performance-note');
-    if (existingNote) {
-        existingNote.remove();
-    }
+    // 更新显示计数（使用去重后的数据）
+    document.getElementById('display-count').innerText = uniqueFilteredData.length;
 }
 
 // ================= 7. 图表与弹窗 =================
@@ -1948,6 +2338,302 @@ function drawMiniChart(id, history) {
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: false, tooltip: false, datalabels: {display:false} }, scales: { x: {display:false}, y: {display:false} } }
     });
 }
+
+function extractKeyword(name){
+    const m = String(name).match(/\(([^)]+)\)/);
+    return m ? m[1] : String(name).replace(/\.[^.]+$/, '');
+}
+
+
+function renderKeywordTables(){
+    const grid = document.getElementById('keyword-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    // 构建重复产品映射
+    buildDuplicateMap();
+
+    const entries = Array.from(keywordDataMap.entries()).slice(0,3);
+
+    // 根据关键词数量决定是否显示关键词表面板
+    if (entries.length === 1) {
+        // 只有一个关键词时，不显示关键词表，直接看汇总表
+        document.getElementById('keyword-tables-panel').style.display = 'none';
+        return;
+    } else if (entries.length === 2) {
+        // 只有两个关键词时，各占一半宽度
+        grid.style.gridTemplateColumns = '1fr 1fr';
+        document.getElementById('keyword-tables-panel').style.display = 'block';
+    } else if (entries.length >= 3) {
+        // 三个或以上关键词时，保持原来三列布局
+        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        document.getElementById('keyword-tables-panel').style.display = 'block';
+    } else {
+        // 没有关键词时不显示
+        document.getElementById('keyword-tables-panel').style.display = 'none';
+        return;
+    }
+
+    entries.forEach(([kw, data], kidx)=>{
+        const wrap = document.createElement('div');
+        const bench = `<div class="benchmark-bar"><span>🏆 75%分位数基准:</span> <span>月销量:${data.bm.sales}</span> <span>月销售额:$${data.bm.revenue.toLocaleString()}</span> <span>评价数:${data.bm.reviews}</span></div>`;
+        // 调整表头列宽
+        const thead = `<thead><tr><th style="width:40px">#</th><th class="mini-col-info">产品信息</th><th style="width:80px">综合评分</th><th style="width:130px">销量趋势</th></tr></thead>`;
+        const tbodyId = `kw-tbody-${kidx}`;
+        const table = `<div class="table-wrapper"><table class="mini">${thead}<tbody id="${tbodyId}"></tbody></table></div>`;
+        const f = getCurrentFilters();
+        const list = filterItems(data.processed, f);
+        const totalPages = Math.max(1, Math.ceil(list.length / itemsPerKeyword));
+        const cur = Math.min(totalPages, Math.max(1, keywordPage.get(kw) || 1));
+        keywordPage.set(kw, cur);
+        const start = (cur - 1) * itemsPerKeyword;
+        const pageSlice = list.slice(start, start + itemsPerKeyword);
+
+        wrap.innerHTML = `<div class="keyword-title">${kw}
+            <div class="kw-controls">
+                <span class="kw-count">共${list.length}条</span>
+                <span class="kw-page">第 ${cur} / ${totalPages} 页</span>
+                <button class="btn btn-outline" onclick="kwChangePage('${kw}', ${cur-1})" ${cur<=1?'disabled':''}>上一页</button>
+                <button class="btn btn-outline" onclick="kwChangePage('${kw}', ${cur+1})" ${cur>=totalPages?'disabled':''}>下一页</button>
+            </div>
+        </div>${bench}${table}`;
+        grid.appendChild(wrap);
+        const tbody = document.getElementById(tbodyId);
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        pageSlice.forEach((item, idx)=>{
+            let badges = '';
+            if(item.is_bs) badges+=`<span class="badge badge.mini bg-bs">Best Seller</span>`;
+            if(item.is_ac) badges+=`<span class="badge badge.mini bg-ac">Amazon Choice</span>`;
+            if(item.is_new) badges+=`<span class="badge badge.mini bg-new">New Release</span>`;
+
+            // 检查是否为重复产品
+            const parentKey = (item.parent_asin||'').trim();
+            const isDuplicate = (duplicateMap.has(item.asin) && duplicateMap.get(item.asin).count > 1)
+                || (parentKey && duplicateMap.has('P:'+parentKey) && duplicateMap.get('P:'+parentKey).count > 1);
+            const duplicateClass = isDuplicate ? 'duplicate-product' : '';
+            const duplicateIndicator = isDuplicate ? `<span class="duplicate-indicator" title="在其他关键词中也出现">◆</span>` : '';
+
+            const scoreClass = item.totalScore>=80 ? 'score-high' : (item.totalScore>=60 ? 'score-mid' : 'score-low');
+            const slopePct = (item.trendData.slope*100).toFixed(1)+'%';
+            const slopeClass = item.trendData.slope>0 ? 'trend-up' : 'trend-down';
+            const listingDays = item.listing_days || 0;
+            const chartId = `kw-chart-${kidx}-${start+idx}`;
+            const tr = document.createElement('tr');
+            tr.className = duplicateClass;
+            tr.setAttribute('data-asin', item.asin);
+            tr.setAttribute('data-parent', parentKey);
+            tr.setAttribute('data-keyword-idx', kidx);
+            tr.innerHTML = `
+                <td style="font-size:12px; display:flex; align-items:center; gap:6px;">
+                    ${start+idx+1}
+                    <button class="btn btn-outline" style="padding:2px 6px;font-size:11px" onclick="jumpToSummaryByAsin('${item.asin}')">跳转</button>
+                </td>
+                <td class="col-info">
+                    <div class="p-flex mini">
+                        <div class="p-img-wrap">
+                            ${item.image ? `<img src="${item.image}" class="p-img mini" onclick="window.open('${item.image}')">` : '<div class="p-img mini">无图</div>'}
+                        </div>
+                        <div class="p-details mini">
+                            <div>
+                                <a href="${item.url || 'https://www.amazon.com/dp/'+item.asin}" target="_blank" class="p-asin mini">${item.asin}</a>
+                                ${duplicateIndicator}
+                                <span style="color:#666;font-size:11px;margin-left:4px">${item.brand||''}</span>
+                            </div>
+                            <div class="badge-row mini">${badges}</div>
+                            <div class="p-meta mini">上架: ${item.lister_date||'-'} (${listingDays}天)</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="score-val mini ${scoreClass}">${item.totalScore}</div>
+                </td>
+                <td>
+                    <div class="chart-wrap mini">
+                        <canvas id="${chartId}"></canvas>
+                    </div>
+                    <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">斜率: ${slopePct}</div>
+                    <div style="font-size:10px;color:#666">历史: ${item.history.length}月</div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            setTimeout(()=>drawMiniChart(chartId, item.history),0);
+        });
+    });
+    attachKeywordScrollSync();
+    attachKeywordProductClick(); // 添加点击事件监听
+}
+
+
+// 构建重复产品映射
+function buildDuplicateMap() {
+    duplicateMap.clear();
+
+    // 收集所有ASIN及其出现的关键词
+    const entries = Array.from(keywordDataMap.entries());
+    entries.forEach(([kw, data]) => {
+        const f = getCurrentFilters();
+        const list = filterItems(data.processed, f);
+        list.forEach(item => {
+            const asinKey = String(item.asin||'').trim();
+            const parentKey = String(item.parent_asin||'').trim();
+            if(asinKey){
+                if (!duplicateMap.has(asinKey)) {
+                    duplicateMap.set(asinKey, { count: 0, keywords: [] });
+                }
+                const e1 = duplicateMap.get(asinKey);
+                e1.count++;
+                if (!e1.keywords.includes(kw)) e1.keywords.push(kw);
+            }
+            if(parentKey){
+                const k = 'P:'+parentKey;
+                if (!duplicateMap.has(k)) {
+                    duplicateMap.set(k, { count: 0, keywords: [] });
+                }
+                const e2 = duplicateMap.get(k);
+                e2.count++;
+                if (!e2.keywords.includes(kw)) e2.keywords.push(kw);
+            }
+        });
+    });
+}
+
+// 添加关键词产品点击事件监听
+function attachKeywordProductClick() {
+    const products = document.querySelectorAll('#keyword-grid .table-wrapper tbody tr');
+    products.forEach(product => {
+        product.addEventListener('click', function() {
+            const asin = this.getAttribute('data-asin');
+            const parent = this.getAttribute('data-parent');
+            const currentKwIdx = parseInt(this.getAttribute('data-keyword-idx'));
+
+            // 高亮显示所有包含此ASIN的产品行
+            highlightDuplicateProducts(asin, currentKwIdx, parent);
+        });
+    });
+}
+
+// 高亮显示重复产品
+function highlightDuplicateProducts(asin, currentKwIdx, parent) {
+    // 移除之前的高亮，并恢复重复产品样式
+    document.querySelectorAll('#keyword-grid .table-wrapper tbody tr.highlighted').forEach(row => {
+        row.classList.remove('highlighted');
+        // 检查是否应该是重复产品，如果是则恢复黄色背景
+        const rowAsin = row.getAttribute('data-asin');
+        const rowParent = row.getAttribute('data-parent');
+        const isDuplicate = checkIfDuplicate(rowAsin, rowParent);
+        if (isDuplicate) {
+            row.classList.add('duplicate-product');
+        }
+    });
+
+    // 高亮当前点击的产品（移除重复产品样式，添加高亮样式）
+    const clickedRow = document.querySelector(`#keyword-grid .table-wrapper tbody tr[data-asin="${asin}"][data-keyword-idx="${currentKwIdx}"]`);
+    if (clickedRow) {
+        clickedRow.classList.remove('duplicate-product'); // 移除黄色重复产品背景
+        clickedRow.classList.add('highlighted'); // 添加蓝色高亮背景
+    }
+
+    // 高亮其他表格中的重复产品并将其移动到可视区域
+    const rowsByAsin = document.querySelectorAll(`#keyword-grid .table-wrapper tbody tr[data-asin="${asin}"]:not([data-keyword-idx="${currentKwIdx}"])`);
+    const rowsByParent = parent ? document.querySelectorAll(`#keyword-grid .table-wrapper tbody tr[data-parent="${parent}"]:not([data-keyword-idx="${currentKwIdx}"])`) : [];
+    const uniqueSet = new Set();
+    [...rowsByAsin, ...rowsByParent].forEach(el=>uniqueSet.add(el));
+    const otherRows = Array.from(uniqueSet);
+    const wrappers = new Set();
+    otherRows.forEach(row => {
+        row.classList.remove('duplicate-product'); // 移除黄色重复产品背景
+        row.classList.add('highlighted'); // 添加蓝色高亮背景
+
+        // 将重复产品移动到表格顶部
+        const tbody = row.parentNode;
+        tbody.insertBefore(row, tbody.firstChild);
+        const wrap = tbody.closest('.table-wrapper');
+        if(wrap) wrappers.add(wrap);
+    });
+
+    wrappers.forEach(w=>{
+        try { w.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) { w.scrollTop = 0; }
+    });
+
+    showToast(`高亮显示了 ${otherRows.length + 1} 个重复产品`, "info");
+}
+
+// 添加辅助函数：检查是否为重复产品
+function checkIfDuplicate(asin, parent) {
+    // 检查ASIN是否在重复映射中
+    if (duplicateMap.has(asin) && duplicateMap.get(asin).count > 1) {
+        return true;
+    }
+
+    // 检查父ASIN是否在重复映射中
+    if (parent && duplicateMap.has('P:'+parent) && duplicateMap.get('P:'+parent).count > 1) {
+        return true;
+    }
+
+    return false;
+}
+
+function kwChangePage(kw, newPage){
+    const f = getCurrentFilters();
+    const data = keywordDataMap.get(kw);
+    if(!data) return;
+    const cur = Math.max(1, keywordPage.get(kw) || 1);
+    const delta = newPage - cur;
+    const sync = document.getElementById('kw-sync-page');
+    if(sync && sync.checked){
+        keywordDataMap.forEach((val, key)=>{
+            const tp = Math.max(1, Math.ceil(filterItems(val.processed, f).length / itemsPerKeyword));
+            const now = Math.max(1, keywordPage.get(key) || 1);
+            const target = Math.min(tp, Math.max(1, now + delta));
+            keywordPage.set(key, target);
+        });
+        renderKeywordTables();
+        return;
+    }
+    const totalPages = Math.max(1, Math.ceil(filterItems(data.processed, f).length / itemsPerKeyword));
+    if(newPage>=1 && newPage<=totalPages){
+        keywordPage.set(kw, newPage);
+        renderKeywordTables();
+    }
+}
+
+function jumpToSummaryByAsin(asin){
+    try{
+        const seen = new Set();
+        const unique = [];
+        filteredData.forEach(i=>{ if(!seen.has(i.asin)){ seen.add(i.asin); unique.push(i); } });
+        const idx = unique.findIndex(i=>String(i.asin).trim()===String(asin).trim());
+        if(idx<0){ showToast('该ASIN不在当前筛选结果', 'warning'); return; }
+        currentPage = Math.floor(idx / itemsPerPage) + 1;
+        renderTable();
+        const row = document.querySelector(`#result-table tbody tr[data-asin="${asin}"]`);
+        if(row){
+            row.classList.add('highlighted');
+            try{ row.scrollIntoView({ behavior:'smooth', block:'center' }); }catch(e){ row.scrollIntoView(); }
+        }
+    }catch(e){}
+}
+
+function attachKeywordScrollSync(){
+    const checkbox = document.getElementById('kw-sync-scroll');
+    const wrappers = Array.from(document.querySelectorAll('#keyword-grid .table-wrapper'));
+    let syncing = false;
+    wrappers.forEach(w=>{
+        w.onscroll = (e)=>{
+            if(!checkbox || !checkbox.checked) return;
+            if(syncing) return;
+            syncing = true;
+            const st = w.scrollTop;
+            const sl = w.scrollLeft;
+            wrappers.forEach(other=>{
+                if(other!==w){ other.scrollTop = st; other.scrollLeft = sl; }
+            });
+            syncing = false;
+        };
+    });
+}
+
 
 function showBigChart(idx) {
     const item = filteredData[idx];
@@ -2481,7 +3167,135 @@ function goToPage() {
         alert(`请输入有效的页码 (1-${totalPages})`);
     }
 }
+// 显示ASIN列表弹窗
+function showAsinList() {
+    if (rawData.length === 0) {
+        alert('请先上传主数据文件');
+        return;
+    }
 
+    generateAsinList();
+    document.getElementById('asin-list-modal').style.display = 'flex';
+}
+
+// 生成ASIN列表
+function generateAsinList() {
+    // 去重ASIN
+    const uniqueAsins = [...new Set(rawData.map(item => item.asin))];
+
+    // 更新总数显示
+    document.getElementById('total-asins').textContent = uniqueAsins.length;
+    document.getElementById('selected-count').textContent = '已选择: 0';
+
+    // 按每组100个ASIN分组
+    const groupedAsins = [];
+    for (let i = 0; i < uniqueAsins.length; i += 100) {
+        groupedAsins.push(uniqueAsins.slice(i, i + 100));
+    }
+
+    // 生成表格内容
+    const tbody = document.getElementById('asin-list-body');
+    tbody.innerHTML = '';
+
+    groupedAsins.forEach((group, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `            <td><input type="checkbox" class="asin-checkbox" data-asins="${group.join(',')}" onchange="updateSelectedCount()"></td>
+            <td>${index + 1}</td>
+            <td style="text-align: left; font-family: monospace; font-size: 11px; cursor: pointer;"
+                onclick="copyAsinGroup('${group.join(',')}')"
+                title="点击复制这组ASIN">${group.join(',')}</td>
+            <td>${group.length}</td>
+            <td>
+                <button class="btn btn-outline" style="padding: 2px 6px; font-size: 11px;"
+                        onclick="copyAsinGroup('${group.join(',')}')">复制</button>
+                <button class="btn btn-primary" style="padding: 2px 6px; font-size: 11px;"
+                        onclick="jumpWithAsins('${group.join(',')}')">跳转</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // 重置全选复选框
+    document.getElementById('select-all-checkbox').checked = false;
+}
+
+// 更新选中计数
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    const selected = Array.from(checkboxes).filter(cb => cb.checked);
+    document.getElementById('selected-count').textContent = `已选择: ${selected.length}`;
+}
+
+// 全选/取消全选
+function toggleSelectAll() {
+    const isChecked = document.getElementById('select-all-checkbox').checked;
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    checkboxes.forEach(cb => cb.checked = isChecked);
+    updateSelectedCount();
+}
+
+// 全选所有ASIN组
+function selectAllAsins() {
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    checkboxes.forEach(cb => cb.checked = true);
+    document.getElementById('select-all-checkbox').checked = true;
+    updateSelectedCount();
+}
+
+// 取消全选所有ASIN组
+function deselectAllAsins() {
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('select-all-checkbox').checked = false;
+    updateSelectedCount();
+}
+
+// 复制单组ASIN
+function copyAsinGroup(asins) {
+    navigator.clipboard.writeText(asins).then(() => {
+        showToast("ASIN已复制到剪贴板", "success");
+    }).catch(err => {
+        showToast("复制失败: " + err, "error");
+    });
+}
+
+// 跳转到SellerSprite并携带ASIN参数
+function jumpWithAsins(asins) {
+    copyAsinGroup(asins);
+    // 直接跳转到带参数的URL
+    const asinArray = asins.split(',').map(asin => `"${asin}"`).join(',');
+    const url = `https://www.sellersprite.com/v3/competitor-lookup?market=US&monthName=bsr_sales_nearly&asins=[${asinArray}]&page=1&nodeIdPaths=[]&symbolFlag=false&size=60&order[field]=amz_unit&order[desc]=true&lowPrice=N`;
+    window.open(url, '_blank');
+}
+
+// 替换原有的 copyAndJump 函数
+function copyAndJump() {
+    const selectedCheckboxes = document.querySelectorAll('.asin-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        showToast("请至少选择一组ASIN", "warning");
+        return;
+    }
+
+    const allAsins = [];
+    selectedCheckboxes.forEach(cb => {
+        const asins = cb.getAttribute('data-asins').split(',');
+        allAsins.push(...asins);
+    });
+
+    const uniqueAsins = [...new Set(allAsins)];
+
+    // 复制ASIN到剪贴板
+    navigator.clipboard.writeText(uniqueAsins.join(',')).then(() => {
+        showToast(`已复制${uniqueAsins.length}个ASIN到剪贴板`, "success");
+
+        // 直接跳转到带参数的URL
+        const asinArray = uniqueAsins.map(asin => `"${asin}"`).join(',');
+        const url = `https://www.sellersprite.com/v3/competitor-lookup?market=US&monthName=bsr_sales_nearly&asins=[${asinArray}]&page=1&nodeIdPaths=[]&symbolFlag=false&size=60&order[field]=amz_unit&order[desc]=true&lowPrice=N`;
+        window.open(url, '_blank');
+    }).catch(err => {
+        showToast("复制失败: " + err, "error");
+    });
+}
 
 // 辅助函数
 function parseNum(v) { if(typeof v==='number')return v; if(!v)return 0; let s=v.toString().replace(/[$,%]/g,''); let n=parseFloat(s); if(v.toString().includes('%'))n/=100; return isNaN(n)?0:n; }
@@ -2498,5 +3312,6 @@ function scrollToSection(id) {
 
 init();
 </script>
+
 </body>
 </html>
