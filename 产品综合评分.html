@@ -1013,17 +1013,70 @@ function init() {
     // 为页码输入框设置默认值
     document.getElementById('page-input').value = '';
 }
+// 添加新的权重输入处理函数
+function handleWeightInput(key, value) {
+    // 在自动模式下，实时调整其他权重
+    if(CONFIG.weightMode === 'auto') {
+        const numValue = parseFloat(value) || 0;
+        adjustWeights(key, numValue);
+        // 更新界面显示
+        updateWeightInputs();
+    }
+    // 手动模式下只更新当前值
+    else {
+        CONFIG.weights[key] = parseFloat(value) || 0;
+    }
+}
 
+function handleWeightChange(key, value) {
+    // 输入完成后验证权重总和
+    validateWeights();
+}
+
+// 添加更新界面显示的函数
+function updateWeightInputs() {
+    // 更新所有权重输入框的显示值
+    Object.keys(CONFIG.weights).forEach(k => {
+        const input = document.querySelector(`input[data-key="${k}"]`);
+        if(input) {
+            input.value = CONFIG.weights[k];
+        }
+    });
+}
 function renderConfig() {
     // 权重
     let wHtml = '';
     for(let k in CONFIG.weights) {
-        wHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${CONFIG.weights[k]}" oninput="updateCfg('weights','${k}',this.value)"></div>`;
+        // 为权重输入框添加更完善的事件处理
+        wHtml += `<div class="input-group">
+            <label>${LABEL_MAP[k]}</label>
+            <input type="number"
+                   value="${CONFIG.weights[k]}"
+                   data-key="${k}"
+                   oninput="handleWeightInput('${k}', this.value)"
+                   onchange="handleWeightChange('${k}', this.value)">
+        </div>`;
     }
+
+    // 修改模式切换显示，增加状态指示
     const modeSwitch = `<div style="grid-column: 1 / -1; display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:12px;">
         <span>权重模式:</span>
-        <button class="btn btn-outline" onclick="toggleWeightMode()">${CONFIG.weightMode==='auto'?'自动分配':'手动分配'}</button>
+        <span id="weight-mode-indicator" style="font-weight:bold;padding:2px 8px;border-radius:4px;${
+            CONFIG.weightMode === 'auto'
+                ? 'background-color:#e8f5e9;color:#27ae60'
+                : 'background-color:#fef9e7;color:#f39c12'
+        }">
+            ${CONFIG.weightMode === 'auto' ? '自动模式' : '手动模式'}        </span>
+        <button class="btn btn-outline" onclick="toggleWeightMode()" style="font-size:12px;padding:4px 8px">
+            ${CONFIG.weightMode === 'auto' ? '切换到手动' : '切换到自动'}        </button>
+        <span class="rule-desc" style="margin-left:10px">
+            ${
+                CONFIG.weightMode === 'auto'
+                    ? '自动：修改任一项时，其他项按基准比例自动调整'
+                    : '手动：可自由调整各项权重，总和需为100%'
+            }        </span>
     </div>`;
+
     document.getElementById('config-weights').innerHTML = modeSwitch + wHtml;
 
     // 阈值
@@ -1084,12 +1137,13 @@ function updateCfg(type, k, v) {
     let numV = parseFloat(v);
 
     if(type === 'weights') {
-        if(CONFIG.weightMode==='auto') {
-            adjustWeights(k, isNaN(numV)?0:numV);
+        if(CONFIG.weightMode === 'auto') {
+            adjustWeights(k, isNaN(numV) ? 0 : numV);
         } else {
-            CONFIG.weights[k] = isNaN(numV)?0:numV;
+            CONFIG.weights[k] = isNaN(numV) ? 0 : numV;
+            // 在手动模式下，需要验证总和并给出提示
+            validateWeights();
         }
-        validateWeights();
         return;
     }
 
@@ -1102,28 +1156,62 @@ function updateCfg(type, k, v) {
 }
 
 
-function adjustWeights(changedKey, newValue){
+function adjustWeights(changedKey, newValue) {
     if(newValue < 0) newValue = 0;
     if(newValue > 100) newValue = 100;
+
     const keys = Object.keys(CONFIG.weights);
-    const others = keys.filter(k=>k!==changedKey);
-    const totalOthersBase = others.reduce((s,k)=>s+CONFIG.weightsBase[k],0);
+    const others = keys.filter(k => k !== changedKey);
+    const totalOthersBase = others.reduce((s, k) => s + CONFIG.weightsBase[k], 0);
     const remain = Math.max(0, 100 - newValue);
     const temp = {};
     let acc = 0;
-    others.forEach((k, idx)=>{
+
+    others.forEach((k, idx) => {
         const raw = remain * (CONFIG.weightsBase[k] / totalOthersBase);
-        const val = idx < others.length-1 ? Math.round(raw) : (remain - acc);
+        const val = idx < others.length - 1 ? Math.round(raw) : (remain - acc);
         temp[k] = val;
         acc += val;
     });
+
     CONFIG.weights[changedKey] = newValue;
-    others.forEach(k=>{ CONFIG.weights[k] = temp[k]; });
+    others.forEach(k => { CONFIG.weights[k] = temp[k]; });
 }
 
+
 function toggleWeightMode(){
-    CONFIG.weightMode = CONFIG.weightMode==='auto' ? 'manual' : 'auto';
+    CONFIG.weightMode = CONFIG.weightMode === 'auto' ? 'manual' : 'auto';
+
+    // 更新模式指示器样式
+    const indicator = document.getElementById('weight-mode-indicator');
+    if (indicator) {
+        if (CONFIG.weightMode === 'auto') {
+            indicator.textContent = '自动模式';
+            indicator.style.backgroundColor = '#e8f5e9';
+            indicator.style.color = '#27ae60';
+        } else {
+            indicator.textContent = '手动模式';
+            indicator.style.backgroundColor = '#fef9e7';
+            indicator.style.color = '#f39c12';
+        }
+    }
+    // 更新按钮文本
+    const buttons = document.querySelectorAll('button[onclick="toggleWeightMode()"]');
+    buttons.forEach(btn => {
+        btn.textContent = CONFIG.weightMode === 'auto' ? '切换到手动' : '切换到自动';
+    });
+
+    // 更新提示信息
+    const descElements = document.querySelectorAll('.rule-desc');
+    if (descElements.length > 0) {
+        const lastDesc = descElements[descElements.length - 1];
+        lastDesc.textContent = CONFIG.weightMode === 'auto'
+            ? '自动：修改任一项时，其他项按基准比例自动调整'
+            : '手动：可自由调整各项权重，总和需为100%';
+    }
+
     renderConfig();
+    validateWeights();
 }
 
 function validateWeights() {
