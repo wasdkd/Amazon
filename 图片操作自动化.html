@@ -2,7 +2,6 @@
 <html lang="zh-CN">
  <head>
   <meta charset="utf-8"/>
-    <script src="https://wasdkd.github.io/Amazon/auth.js"></script>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
    图片操作自动化
@@ -205,6 +204,9 @@
     </button>
     <button class="nav-btn" onclick="navigateToReport(6)">
      7. G 创建 修改excel表
+    </button>
+    <button class="nav-btn" onclick="navigateToReport(7)">
+     8. H 可视化
     </button>
    </div>
    <div id="visualizationsContainer">
@@ -8107,6 +8109,2606 @@
 
         // 初始化预览
         updateCreatePreview();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+">
+      </iframe>
+     </div>
+    </div>
+    <div class="visualization-section">
+     <div class="iframe-container">
+      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;智能数据可视化平台&lt;/title&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js&quot;&gt;&lt;/script&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css&quot;&gt;
+    &lt;style&gt;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #1677ff;
+            --primary-light: #e8f3ff;
+            --primary-gradient: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+            --secondary-color: #52c41a;
+            --secondary-light: #f6ffed;
+            --danger-color: #ff4d4f;
+            --warning-color: #faad14;
+            --warning-light: #fffbe6;
+            --info-color: #1890ff;
+            --text-color: #1f2937;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --border-color: #e5e7eb;
+            --background: #f9fafb;
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text-color);
+            background: var(--background);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        .top-bar {
+            background: var(--card-bg);
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary-color);
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .logo i {
+            font-size: 24px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .chart-type-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chart-type-btn {
+            padding: 6px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--card-bg);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .chart-type-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .chart-type-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(22, 119, 255, 0.3);
+        }
+
+        .chart-type-btn .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-color);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            margin-bottom: 8px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .chart-type-btn .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--text-color);
+        }
+
+        .chart-type-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 顶部配置面板 */
+        .config-panel {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .config-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 992px) {
+            .config-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 上传区域 */
+        .upload-section {
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+
+        .upload-section:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--primary-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .upload-area:hover::before {
+            left: 100%;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(22, 119, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-area i {
+            font-size: 40px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-area h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+
+        .upload-area p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .file-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            font-size: 14px;
+            word-break: break-all;
+            border: 1px solid var(--border-color);
+        }
+
+        /* 配置区域 */
+        .config-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+
+        .config-section:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .config-item label i {
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+
+        .config-item select, .config-item input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--card-bg);
+            transition: var(--transition);
+        }
+
+        .config-item select:focus, .config-item input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1);
+        }
+
+        /* 排序选项 */
+        .sort-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .sort-options label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sort-select {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg);
+        }
+
+        /* 拖拽区域 */
+        .drop-zones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            grid-column: 1 / -1;
+            margin-top: 16px;
+        }
+
+        .drop-zone {
+            min-height: 100px;
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            transition: var(--transition);
+            background: var(--background);
+        }
+
+        .drop-zone.active {
+            border-color: var(--primary-color);
+            background: rgba(22, 119, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1);
+        }
+
+        .drop-zone-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .drop-zone-title i {
+            color: var(--primary-color);
+        }
+
+        .drop-zone-content {
+            min-height: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* 数据字段区域 */
+        .data-fields-container {
+            grid-column: 1 / -1;
+            margin-top: 16px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title span i {
+            color: var(--primary-color);
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .data-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            max-height: 140px;
+            overflow-y: auto;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 数据字段样式 */
+        .data-field {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: grab;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            white-space: nowrap;
+            box-shadow: var(--card-shadow);
+        }
+
+        .data-field:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .data-field.dragging {
+            opacity: 0.6;
+            transform: scale(0.95);
+        }
+
+        .data-field.numeric {
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .data-field.category {
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .data-field.time {
+            border-left: 3px solid var(--warning-color);
+        }
+
+        .data-field small {
+            color: var(--text-tertiary);
+            font-size: 12px;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 2px 8px rgba(22, 119, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            grid-column: 1 / -1;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow: auto;
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+            transition: var(--transition);
+        }
+
+        .chart-container:hover {
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .chart-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, var(--background) 0%, var(--card-bg) 100%);
+        }
+
+        .chart-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-header h3 i {
+            color: var(--primary-color);
+        }
+
+        .chart-content {
+            padding: 24px;
+            min-height: 450px;
+        }
+
+        /* 无数据提示 */
+        .no-data {
+            text-align: center;
+            padding: 80px 24px;
+            color: var(--text-secondary);
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .no-data i {
+            font-size: 64px;
+            margin-bottom: 24px;
+            color: var(--text-tertiary);
+            background: linear-gradient(135deg, var(--text-tertiary) 0%, var(--border-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .no-data h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
+
+        .no-data p {
+            font-size: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* 数据表格 */
+        .data-table-container {
+            margin-top: 24px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .data-table th {
+            background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 100%);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            color: var(--text-color);
+        }
+
+        .data-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .data-table tr:hover td {
+            background: var(--primary-light);
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transform: translateY(20px);
+            animation: slideUp 0.3s ease forwards;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, var(--background) 0%, var(--card-bg) 100%);
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close-modal:hover {
+            background: var(--primary-light);
+            color: var(--primary-color);
+        }
+
+        /* 图表说明区域 */
+        .chart-guide {
+            grid-column: 1 / -1;
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .chart-guide h4 {
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-guide ul {
+            margin-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        .chart-guide li {
+            margin-bottom: 6px;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--primary-light);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* 通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-success {
+            background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%);
+        }
+
+        .notification-error {
+            background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+        }
+
+        .notification-warning {
+            background: linear-gradient(135deg, #faad14 0%, #ffc53d 100%);
+        }
+
+        .notification-info {
+            background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;app-container&quot;&gt;
+        &lt;!-- 顶部导航栏 --&gt;
+        &lt;div class=&quot;top-bar&quot;&gt;
+            &lt;div class=&quot;logo&quot;&gt;
+                &lt;i class=&quot;fas fa-chart-line&quot;&gt;&lt;/i&gt;
+                &lt;span&gt;智能数据可视化平台&lt;/span&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;chart-type-selector&quot; id=&quot;chartTypeSelector&quot;&gt;
+                &lt;!-- 图表类型按钮会动态生成 --&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;chart-actions&quot;&gt;
+                &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;exportChart()&quot;&gt;
+                    &lt;i class=&quot;fas fa-download&quot;&gt;&lt;/i&gt; 导出图表
+                &lt;/button&gt;
+                &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;showData()&quot;&gt;
+                    &lt;i class=&quot;fas fa-table&quot;&gt;&lt;/i&gt; 查看数据
+                &lt;/button&gt;
+                &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;loadSampleData()&quot;&gt;
+                    &lt;i class=&quot;fas fa-vial&quot;&gt;&lt;/i&gt; 示例数据
+                &lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 顶部配置面板 --&gt;
+        &lt;div class=&quot;config-panel&quot;&gt;
+            &lt;div class=&quot;config-layout&quot;&gt;
+                &lt;!-- 上传区域 --&gt;
+                &lt;div class=&quot;upload-section&quot;&gt;
+                    &lt;div class=&quot;upload-area&quot; id=&quot;uploadArea&quot;&gt;
+                        &lt;i class=&quot;fas fa-file-excel&quot;&gt;&lt;/i&gt;
+                        &lt;h3&gt;上传Excel数据文件&lt;/h3&gt;
+                        &lt;p&gt;拖拽文件到此处或点击上传&lt;/p&gt;
+                        &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; accept=&quot;.xlsx,.xls,.csv&quot; style=&quot;display: none;&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;file-info&quot; id=&quot;fileInfo&quot; style=&quot;display: none;&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;!-- 配置区域 --&gt;
+                &lt;div class=&quot;config-section&quot;&gt;
+                    &lt;div class=&quot;config-item&quot;&gt;
+                        &lt;label&gt;&lt;i class=&quot;fas fa-chart-bar&quot;&gt;&lt;/i&gt; 图表类型&lt;/label&gt;
+                        &lt;select id=&quot;chartTypeSelect&quot;&gt;
+                            &lt;option value=&quot;auto&quot;&gt;智能推荐&lt;/option&gt;
+                            &lt;option value=&quot;line&quot;&gt;折线图&lt;/option&gt;
+                            &lt;option value=&quot;bar&quot;&gt;柱状图&lt;/option&gt;
+                            &lt;option value=&quot;horizontalBar&quot;&gt;条形图&lt;/option&gt;
+                            &lt;option value=&quot;pie&quot;&gt;饼图&lt;/option&gt;
+                            &lt;option value=&quot;scatter&quot;&gt;散点图&lt;/option&gt;
+                            &lt;option value=&quot;radar&quot;&gt;雷达图&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;config-item&quot;&gt;
+                        &lt;label&gt;&lt;i class=&quot;fas fa-calculator&quot;&gt;&lt;/i&gt; 聚合方式&lt;/label&gt;
+                        &lt;select id=&quot;aggregationSelect&quot;&gt;
+                            &lt;option value=&quot;none&quot;&gt;无聚合(原始值)&lt;/option&gt;
+                            &lt;option value=&quot;sum&quot;&gt;求和&lt;/option&gt;
+                            &lt;option value=&quot;count&quot;&gt;计数&lt;/option&gt;
+                            &lt;option value=&quot;avg&quot;&gt;平均值&lt;/option&gt;
+                            &lt;option value=&quot;max&quot;&gt;最大值&lt;/option&gt;
+                            &lt;option value=&quot;min&quot;&gt;最小值&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;config-item&quot;&gt;
+                        &lt;label&gt;&lt;i class=&quot;fas fa-sort-amount-down&quot;&gt;&lt;/i&gt; 排序方式&lt;/label&gt;
+                        &lt;div class=&quot;sort-options&quot;&gt;
+                            &lt;select id=&quot;sortSelect&quot; class=&quot;sort-select&quot;&gt;
+                                &lt;option value=&quot;none&quot;&gt;无排序&lt;/option&gt;
+                                &lt;option value=&quot;asc&quot;&gt;升序&lt;/option&gt;
+                                &lt;option value=&quot;desc&quot;&gt;降序&lt;/option&gt;
+                            &lt;/select&gt;
+                            &lt;select id=&quot;sortBySelect&quot; class=&quot;sort-select&quot;&gt;
+                                &lt;option value=&quot;value&quot;&gt;按数值排序&lt;/option&gt;
+                                &lt;option value=&quot;name&quot;&gt;按名称排序&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;config-item&quot;&gt;
+                        &lt;label&gt;&lt;i class=&quot;fas fa-filter&quot;&gt;&lt;/i&gt; 筛选字段&lt;/label&gt;
+                        &lt;select id=&quot;filterFieldSelect&quot; onchange=&quot;loadFilterValues()&quot;&gt;
+                            &lt;option value=&quot;&quot;&gt;无筛选&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;config-item&quot;&gt;
+                        &lt;label&gt;&lt;i class=&quot;fas fa-filter-circle-xmark&quot;&gt;&lt;/i&gt; 筛选值&lt;/label&gt;
+                        &lt;select id=&quot;filterValueSelect&quot;&gt;
+                            &lt;option value=&quot;&quot;&gt;请先选择筛选字段&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;config-item&quot;&gt;
+                        &lt;label&gt;&lt;i class=&quot;fas fa-layer-group&quot;&gt;&lt;/i&gt; 分组字段&lt;/label&gt;
+                        &lt;select id=&quot;groupSelect&quot;&gt;
+                            &lt;option value=&quot;&quot;&gt;无分组&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- 图表使用说明区域 --&gt;
+                    &lt;div class=&quot;chart-guide&quot; id=&quot;chartGuide&quot;&gt;
+                        &lt;h4&gt;&lt;i class=&quot;fas fa-lightbulb&quot;&gt;&lt;/i&gt; 图表使用说明&lt;/h4&gt;
+                        &lt;div id=&quot;guideContent&quot;&gt;
+                            请选择图表类型查看使用说明...
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- 拖拽区域 --&gt;
+                    &lt;div class=&quot;drop-zones&quot;&gt;
+                        &lt;div class=&quot;drop-zone&quot; id=&quot;xAxisZone&quot;&gt;
+                            &lt;div class=&quot;drop-zone-title&quot;&gt;
+                                &lt;i class=&quot;fas fa-horizontal-rule&quot;&gt;&lt;/i&gt; X轴（类别/时间）
+                            &lt;/div&gt;
+                            &lt;div class=&quot;drop-zone-content&quot; data-field-type=&quot;category&quot;&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;drop-zone&quot; id=&quot;yAxisZone&quot;&gt;
+                            &lt;div class=&quot;drop-zone-title&quot;&gt;
+                                &lt;i class=&quot;fas fa-vertical-rule&quot;&gt;&lt;/i&gt; Y轴（数值 - 支持多个）
+                            &lt;/div&gt;
+                            &lt;div class=&quot;drop-zone-content&quot; data-field-type=&quot;numeric&quot;&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- 数据字段区域 --&gt;
+                    &lt;div class=&quot;data-fields-container&quot;&gt;
+                        &lt;div class=&quot;section-title&quot;&gt;
+                            &lt;span&gt;&lt;i class=&quot;fas fa-database&quot;&gt;&lt;/i&gt; 数据字段（可拖拽）&lt;/span&gt;
+                            &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;analyzeData()&quot;&gt;
+                                &lt;i class=&quot;fas fa-magic&quot;&gt;&lt;/i&gt; 智能分析
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;data-fields&quot; id=&quot;dataFields&quot;&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;!-- 控制按钮 --&gt;
+                    &lt;div class=&quot;chart-controls&quot;&gt;
+                        &lt;button class=&quot;btn btn-primary&quot; onclick=&quot;generateChart()&quot;&gt;
+                            &lt;i class=&quot;fas fa-play&quot;&gt;&lt;/i&gt; 生成可视化图表
+                        &lt;/button&gt;
+                        &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;resetConfig()&quot;&gt;
+                            &lt;i class=&quot;fas fa-redo&quot;&gt;&lt;/i&gt; 重置配置
+                        &lt;/button&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 主内容区 --&gt;
+        &lt;div class=&quot;main-content&quot;&gt;
+            &lt;div class=&quot;no-data&quot; id=&quot;noData&quot;&gt;
+                &lt;i class=&quot;fas fa-chart-bar&quot;&gt;&lt;/i&gt;
+                &lt;h3&gt;暂无可视化数据&lt;/h3&gt;
+                &lt;p&gt;请上传Excel文件并配置图表参数，或点击&quot;示例数据&quot;加载测试数据&lt;/p&gt;
+                &lt;div style=&quot;display: flex; gap: 12px; justify-content: center; margin-top: 20px;&quot;&gt;
+                    &lt;button class=&quot;btn btn-primary&quot; onclick=&quot;document.getElementById('uploadArea').click()&quot;&gt;
+                        &lt;i class=&quot;fas fa-file-upload&quot;&gt;&lt;/i&gt; 上传数据文件
+                    &lt;/button&gt;
+                    &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;loadSampleData()&quot;&gt;
+                        &lt;i class=&quot;fas fa-vial&quot;&gt;&lt;/i&gt; 加载示例数据
+                    &lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div id=&quot;chartArea&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;chart-container fade-in&quot;&gt;
+                    &lt;div class=&quot;chart-header&quot;&gt;
+                        &lt;h3&gt;
+                            &lt;i class=&quot;fas fa-chart-pie&quot;&gt;&lt;/i&gt;
+                            &lt;span id=&quot;chartTitle&quot;&gt;数据可视化分析图表&lt;/span&gt;
+                        &lt;/h3&gt;
+                        &lt;div class=&quot;chart-actions&quot;&gt;
+                            &lt;button class=&quot;btn btn-secondary&quot; onclick=&quot;saveChart()&quot;&gt;
+                                &lt;i class=&quot;fas fa-save&quot;&gt;&lt;/i&gt; 保存配置
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;chart-content&quot;&gt;
+                        &lt;div id=&quot;chartCanvas&quot; style=&quot;width: 100%; height: 450px;&quot;&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 数据预览模态框 --&gt;
+    &lt;div class=&quot;modal&quot; id=&quot;dataModal&quot;&gt;
+        &lt;div class=&quot;modal-content&quot;&gt;
+            &lt;div class=&quot;modal-header&quot;&gt;
+                &lt;h3&gt;数据预览&lt;/h3&gt;
+                &lt;button class=&quot;close-modal&quot; onclick=&quot;closeModal()&quot;&gt;×&lt;/button&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;modal-body&quot;&gt;
+                &lt;div id=&quot;modalDataContent&quot;&gt;&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // 全局变量
+        let uploadedData = {
+            sheets: {},
+            fields: [],
+            data: [],
+            sheetName: '',
+            fieldTypes: {}
+        };
+        let currentChart = null;
+        window.chartColors = window.chartColors || ['#5470C6', '#91CC75', '#EE6666', '#73C0DE', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC'];
+        let dragSource = null;
+
+        window.chartColors = window.chartColors;
+
+        // 图表类型配置 - 包含详细说明
+        const chartTypes = [
+            {
+                id: 'auto',
+                name: '智能推荐',
+                icon: 'fas fa-magic',
+                description: '系统根据数据特征自动选择最佳图表类型',
+                guide: '系统将分析您的数据特征，自动选择最适合的可视化方式。'
+            },
+            {
+                id: 'line',
+                name: '折线图',
+                icon: 'fas fa-chart-line',
+                description: '展示数据随时间或有序类别的趋势变化',
+                guide: '&lt;strong&gt;使用场景：&lt;/strong&gt;适合展示数据随时间、顺序或连续变量的变化趋势&lt;br&gt;&lt;strong&gt;数据配置：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;X轴：时间或有序类别字段（如月份、季度）&lt;/li&gt;&lt;li&gt;Y轴：一个或多个数值字段（如销售额、用户数）&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;示例：&lt;/strong&gt;月度销售额趋势、网站访问量变化'
+            },
+            {
+                id: 'bar',
+                name: '柱状图',
+                icon: 'fas fa-chart-bar',
+                description: '比较不同类别之间的数值差异',
+                guide: '&lt;strong&gt;使用场景：&lt;/strong&gt;适合比较不同类别之间的数值大小&lt;br&gt;&lt;strong&gt;数据配置：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;X轴：类别字段（如产品名称、地区）&lt;/li&gt;&lt;li&gt;Y轴：一个或多个数值字段（如销售额、数量）&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;多系列处理：&lt;/strong&gt;当Y轴有多个数值字段时，柱状图会自动并排显示&lt;br&gt;&lt;strong&gt;示例：&lt;/strong&gt;不同产品销售额对比、各地区用户数量'
+            },
+            {
+                id: 'horizontalBar',
+                name: '条形图',
+                icon: 'fas fa-chart-bar',
+                description: '横向比较不同类别的数值，适合类别名称较长的情况',
+                guide: '&lt;strong&gt;使用场景：&lt;/strong&gt;适合类别名称较长或需要横向对比的情况&lt;br&gt;&lt;strong&gt;数据配置：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;Y轴：类别字段（如产品名称、地区）&lt;/li&gt;&lt;li&gt;X轴：一个或多个数值字段（如销售额、数量）&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;多系列处理：&lt;/strong&gt;当X轴有多个数值字段时，条形图会自动并排显示&lt;br&gt;&lt;strong&gt;示例：&lt;/strong&gt;不同部门预算对比、各城市GDP排名'
+            },
+            {
+                id: 'pie',
+                name: '饼图',
+                icon: 'fas fa-chart-pie',
+                description: '展示各部分占总体的比例关系',
+                guide: '&lt;strong&gt;使用场景：&lt;/strong&gt;适合展示整体中各部分的占比关系&lt;br&gt;&lt;strong&gt;数据配置：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;类别字段：作为饼图的各个扇区&lt;/li&gt;&lt;li&gt;数值字段：一个数值字段，决定每个扇区的大小&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;注意：&lt;/strong&gt;饼图只能展示一个数值字段，如果有多个数值字段，系统将使用第一个&lt;br&gt;&lt;strong&gt;示例：&lt;/strong&gt;市场份额分布、用户年龄比例、产品类别占比'
+            },
+            {
+                id: 'scatter',
+                name: '散点图',
+                icon: 'fas fa-chart-scatter',
+                description: '展示两个数值变量之间的关系和分布',
+                guide: '&lt;strong&gt;使用场景：&lt;/strong&gt;适合研究两个数值变量之间的关系、相关性或分布模式&lt;br&gt;&lt;strong&gt;数据配置：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;X轴：第一个数值字段&lt;/li&gt;&lt;li&gt;Y轴：第二个数值字段&lt;/li&gt;&lt;li&gt;可选：颜色/大小字段（用于表示第三个维度）&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;示例：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;身高与体重的关系&lt;/li&gt;&lt;li&gt;广告投入与销售额的相关性&lt;/li&gt;&lt;li&gt;用户年龄与消费金额的分布&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;适用数据：&lt;/strong&gt;两个数值字段，每个数据点有对应的X和Y值'
+            },
+            {
+                id: 'radar',
+                name: '雷达图',
+                icon: 'fas fa-bullseye',
+                description: '多维度对比，展示各项指标的表现',
+                guide: '&lt;strong&gt;使用场景：&lt;/strong&gt;适合对比多个实体在多个维度上的表现&lt;br&gt;&lt;strong&gt;数据配置：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;维度字段：作为雷达图的各个轴线（通常是类别字段）&lt;/li&gt;&lt;li&gt;数值字段：一个或多个数值字段，每个字段对应一条雷达线&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;示例：&lt;/strong&gt;&lt;ul&gt;&lt;li&gt;员工能力评估（技术、沟通、创新等维度）&lt;/li&gt;&lt;li&gt;产品特性对比（性能、价格、设计等维度）&lt;/li&gt;&lt;li&gt;游戏角色属性对比（力量、敏捷、智力等）&lt;/li&gt;&lt;/ul&gt;&lt;strong&gt;适用数据：&lt;/strong&gt;多个维度（3个以上）和至少一个对比实体'
+            }
+        ];
+
+        // 示例数据
+        const sampleData = {
+            '销售数据': [
+                ['月份', '产品A', '产品B', '产品C', '产品D', '地区', '销售员'],
+                ['1月', 120, 85, 90, 110, '华东', '张三'],
+                ['2月', 135, 92, 88, 115, '华东', '李四'],
+                ['3月', 145, 98, 95, 120, '华北', '王五'],
+                ['4月', 130, 87, 92, 118, '华北', '赵六'],
+                ['5月', 155, 105, 100, 130, '华南', '张三'],
+                ['6月', 160, 110, 105, 135, '华南', '李四'],
+                ['7月', 150, 100, 98, 128, '华东', '王五'],
+                ['8月', 165, 115, 110, 140, '华东', '赵六'],
+                ['9月', 170, 120, 115, 145, '华北', '张三'],
+                ['10月', 175, 125, 118, 150, '华北', '李四'],
+                ['11月', 180, 130, 120, 155, '华南', '王五'],
+                ['12月', 185, 135, 125, 160, '华南', '赵六']
+            ],
+            '多维数据': [
+                ['维度', '团队A', '团队B', '团队C', '团队D'],
+                ['技术能力', 85, 90, 75, 80],
+                ['沟通能力', 80, 85, 90, 70],
+                ['创新能力', 75, 80, 85, 90],
+                ['执行力', 90, 85, 80, 75],
+                ['学习能力', 85, 90, 70, 80],
+                ['团队协作', 80, 85, 90, 75]
+            ],
+
+            '散点图数据': [
+                ['身高(cm)', '体重(kg)', '年龄', '性别', '运动频率'],
+                [175, 70, 25, '男', '高'],
+                [160, 55, 22, '女', '中'],
+                [180, 80, 30, '男', '高'],
+                [165, 60, 28, '女', '低'],
+                [170, 65, 26, '男', '中'],
+                [155, 50, 20, '女', '高'],
+                [185, 85, 32, '男', '低'],
+                [168, 62, 24, '女', '中'],
+                [172, 68, 27, '男', '高'],
+                [158, 52, 21, '女', '中'],
+                [178, 75, 29, '男', '中'],
+                [162, 58, 23, '女', '低']
+            ]
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initUpload();
+            initDragDrop();
+            initChartTypeSelector();
+            updateChartGuide('auto');
+
+            // 监听图表类型变化
+            document.getElementById('chartTypeSelect').addEventListener('change', function() {
+                updateChartGuide(this.value);
+            });
+        });
+
+        // 初始化文件上传
+        function initUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('click', () =&gt; fileInput.click());
+
+            uploadArea.addEventListener('dragover', (e) =&gt; {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'var(--primary-color)';
+                uploadArea.style.background = 'rgba(22, 119, 255, 0.08)';
+            });
+
+            uploadArea.addEventListener('dragleave', () =&gt; {
+                uploadArea.style.borderColor = 'var(--border-color)';
+                uploadArea.style.background = 'var(--primary-light)';
+            });
+
+            uploadArea.addEventListener('drop', (e) =&gt; {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'var(--border-color)';
+                uploadArea.style.background = 'var(--primary-light)';
+
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+
+        // 更新图表使用指南
+        function updateChartGuide(chartType) {
+            const chart = chartTypes.find(c =&gt; c.id === chartType) || chartTypes[0];
+            document.getElementById('guideContent').innerHTML = chart.guide;
+        }
+
+        // 处理文件选择
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                &lt;div&gt;&lt;strong&gt;文件名:&lt;/strong&gt; ${file.name}&lt;/div&gt;
+                &lt;div&gt;&lt;strong&gt;文件大小:&lt;/strong&gt; ${(file.size / 1024).toFixed(2)} KB&lt;/div&gt;
+                &lt;div&gt;&lt;strong&gt;上传时间:&lt;/strong&gt; ${new Date().toLocaleString()}&lt;/div&gt;
+            `;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                uploadedData.sheets = {};
+                workbook.SheetNames.forEach(sheetName =&gt; {
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    uploadedData.sheets[sheetName] = jsonData;
+                });
+
+                // 默认使用第一个工作表
+                const firstSheet = workbook.SheetNames[0];
+                loadSheet(firstSheet);
+
+                showNotification('文件上传成功', 'success');
+            };
+
+            reader.onerror = function() {
+                showNotification('文件读取失败', 'error');
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 加载示例数据
+        function loadSampleData() {
+            uploadedData.sheets = sampleData;
+            const firstSheet = Object.keys(sampleData)[0];
+
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.style.display = 'block';
+            fileInfo.innerHTML = `
+                &lt;div&gt;&lt;strong&gt;示例数据:&lt;/strong&gt; ${firstSheet}&lt;/div&gt;
+                &lt;div&gt;&lt;strong&gt;加载时间:&lt;/strong&gt; ${new Date().toLocaleString()}&lt;/div&gt;
+                &lt;div&gt;&lt;strong&gt;数据说明:&lt;/strong&gt; 包含${Object.keys(sampleData).length}个工作表，可用于测试各种图表类型&lt;/div&gt;
+            `;
+
+            loadSheet(firstSheet);
+            showNotification('示例数据加载成功', 'success');
+
+            // 加载工作表选择器
+            const sheetSelector = document.createElement('select');
+            sheetSelector.style.cssText = 'width: 100%; padding: 8px; margin-top: 8px; border-radius: 6px; border: 1px solid var(--border-color);';
+            sheetSelector.innerHTML = '&lt;option value=&quot;&quot;&gt;选择工作表...&lt;/option&gt;';
+
+            Object.keys(sampleData).forEach(sheet =&gt; {
+                sheetSelector.innerHTML += `&lt;option value=&quot;${sheet}&quot;&gt;${sheet}&lt;/option&gt;`;
+            });
+
+            sheetSelector.addEventListener('change', (e) =&gt; {
+                if (e.target.value) {
+                    loadSheet(e.target.value);
+                    // 根据工作表智能推荐图表类型
+                    setTimeout(() =&gt; {
+                        const chartType = recommendChartType();
+                        document.getElementById('chartTypeSelect').value = chartType;
+                        updateChartGuide(chartType);
+
+                        // 更新图表类型选择器按钮状态
+                        document.querySelectorAll('.chart-type-btn').forEach(btn =&gt; {
+                            btn.classList.remove('active');
+                            if (btn.dataset.type === chartType) {
+                                btn.classList.add('active');
+                            }
+                        });
+                    }, 100);
+                }
+            });
+
+            if (!fileInfo.querySelector('select')) {
+                fileInfo.appendChild(sheetSelector);
+            }
+        }
+
+        // 加载工作表数据
+        function loadSheet(sheetName) {
+            uploadedData.sheetName = sheetName;
+            const sheetData = uploadedData.sheets[sheetName];
+
+            if (!sheetData || sheetData.length === 0) return;
+
+            // 提取表头和数据
+            const headers = sheetData[0];
+            const data = [];
+
+            for (let i = 1; i &lt; sheetData.length; i++) {
+                const row = sheetData[i];
+                if (row.length === 0) continue;
+
+                const rowData = {};
+                headers.forEach((header, index) =&gt; {
+                    if (header &amp;&amp; header.trim()) {
+                        rowData[header] = row[index] || '';
+                    }
+                });
+                data.push(rowData);
+            }
+
+            uploadedData.data = data;
+            uploadedData.fields = headers.filter(h =&gt; h &amp;&amp; h.trim());
+
+            // 分析字段类型
+            analyzeFieldTypes();
+
+            // 渲染数据字段
+            renderDataFields();
+
+            // 更新筛选和分组选项
+            updateFilterAndGroupOptions();
+
+            // 智能分析推荐
+            analyzeData();
+
+            // 隐藏无数据提示
+            document.getElementById('noData').style.display = 'none';
+        }
+
+        // 分析字段类型
+        function analyzeFieldTypes() {
+            const sampleSize = Math.min(10, uploadedData.data.length);
+            uploadedData.fieldTypes = {};
+
+            uploadedData.fields.forEach(field =&gt; {
+                const samples = uploadedData.data.slice(0, sampleSize).map(row =&gt; row[field]);
+                let type = 'category';
+
+                // 检查是否为数值类型
+                const numericCount = samples.filter(val =&gt; {
+                    if (val === null || val === undefined || val === '') return false;
+                    const num = Number(val);
+                    return !isNaN(num) &amp;&amp; val !== '';
+                }).length;
+
+                // 检查是否为日期类型
+                const dateCount = samples.filter(val =&gt; {
+                    if (!val) return false;
+                    const date = new Date(val);
+                    return date instanceof Date &amp;&amp; !isNaN(date);
+                }).length;
+
+                if (numericCount / sampleSize &gt; 0.7) {
+                    type = 'numeric';
+                } else if (dateCount / sampleSize &gt; 0.5) {
+                    type = 'time';
+                }
+
+                uploadedData.fieldTypes[field] = type;
+            });
+        }
+
+        // 渲染数据字段
+        function renderDataFields() {
+            const container = document.getElementById('dataFields');
+            container.innerHTML = '';
+
+            uploadedData.fields.forEach(field =&gt; {
+                const type = uploadedData.fieldTypes[field];
+                const typeIcon = {
+                    numeric: 'fas fa-hashtag',
+                    category: 'fas fa-tag',
+                    time: 'fas fa-calendar-alt'
+                }[type] || 'fas fa-question';
+
+                const typeColor = {
+                    numeric: 'numeric',
+                    category: 'category',
+                    time: 'time'
+                }[type] || '';
+
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = `data-field ${typeColor} draggable`;
+                fieldDiv.dataset.field = field;
+                fieldDiv.dataset.type = type;
+                fieldDiv.setAttribute('draggable', 'true');
+
+                fieldDiv.innerHTML = `
+                    &lt;i class=&quot;${typeIcon}&quot;&gt;&lt;/i&gt;
+                    &lt;span&gt;${field}&lt;/span&gt;
+                    &lt;small&gt;(${type})&lt;/small&gt;
+                `;
+
+                fieldDiv.addEventListener('dragstart', handleDragStart);
+                fieldDiv.addEventListener('dragend', handleDragEnd);
+
+                container.appendChild(fieldDiv);
+            });
+        }
+
+        // 初始化拖拽功能
+        function initDragDrop() {
+            const dropZones = document.querySelectorAll('.drop-zone');
+
+            dropZones.forEach(zone =&gt; {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            });
+        }
+
+        // 拖拽事件处理
+        function handleDragStart(e) {
+            dragSource = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.field);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            dragSource = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.target.closest('.drop-zone').classList.add('active');
+        }
+
+        function handleDragLeave(e) {
+            e.target.closest('.drop-zone').classList.remove('active');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.drop-zone');
+            dropZone.classList.remove('active');
+
+            const field = e.dataTransfer.getData('text/plain');
+            const fieldType = dragSource?.dataset.type;
+            const zoneId = dropZone.id;
+
+            // Y轴区域允许多个数值字段，X轴区域只允许一个字段
+            const contentDiv = dropZone.querySelector('.drop-zone-content');
+
+            // X轴只能有一个字段
+            if (zoneId === 'xAxisZone') {
+                if (fieldType === 'numeric') {
+                    showNotification('X轴仅支持类别/时间类型字段', 'warning');
+                    return;
+                }
+                contentDiv.innerHTML = ''; // 清空原有内容
+            }
+
+            // Y轴只能是数值字段
+            if (zoneId === 'yAxisZone' &amp;&amp; fieldType !== 'numeric') {
+                showNotification('Y轴仅支持数值类型字段', 'warning');
+                return;
+            }
+
+            // 检查是否已存在该字段
+            const existingFields = Array.from(contentDiv.querySelectorAll('.data-field span'))
+                .map(el =&gt; el.textContent);
+            if (existingFields.includes(field)) {
+                showNotification('该字段已添加', 'warning');
+                return;
+            }
+
+            // 添加字段到拖拽区域
+            const typeIcon = fieldType === 'numeric' ? 'fas fa-hashtag' : 'fas fa-tag';
+            const fieldHtml = `
+                &lt;div class=&quot;data-field ${fieldType}&quot; style=&quot;margin: 0;&quot;&gt;
+                    &lt;i class=&quot;${typeIcon}&quot;&gt;&lt;/i&gt;
+                    &lt;span&gt;${field}&lt;/span&gt;
+                    &lt;i class=&quot;fas fa-times&quot; onclick=&quot;removeFromDropZone(this)&quot;&gt;&lt;/i&gt;
+                &lt;/div&gt;
+            `;
+
+            if (zoneId === 'xAxisZone') {
+                contentDiv.innerHTML = fieldHtml;
+            } else {
+                contentDiv.innerHTML += fieldHtml;
+            }
+
+            // 更新图表使用指南提示
+            updateChartGuideBasedOnFields();
+        }
+
+        // 根据已选择的字段更新图表指南
+        function updateChartGuideBasedOnFields() {
+            const chartType = document.getElementById('chartTypeSelect').value;
+            const xAxisField = document.querySelector('#xAxisZone .drop-zone-content .data-field span')?.textContent;
+            const yAxisFields = Array.from(document.querySelectorAll('#yAxisZone .drop-zone-content .data-field span'))
+                .map(el =&gt; el.textContent);
+
+            let additionalTips = '';
+
+            if (chartType === 'pie' &amp;&amp; yAxisFields.length &gt; 1) {
+                additionalTips = '&lt;br&gt;&lt;strong&gt;注意：&lt;/strong&gt;饼图只能展示一个数值字段，系统将使用第一个数值字段。';
+            }
+
+            if (chartType === 'scatter' &amp;&amp; yAxisFields.length &lt; 2) {
+                additionalTips = '&lt;br&gt;&lt;strong&gt;注意：&lt;/strong&gt;散点图需要至少两个数值字段，请再拖拽一个数值字段到Y轴。';
+            }
+
+
+
+            if (additionalTips) {
+                const guideContent = document.getElementById('guideContent');
+                guideContent.innerHTML += additionalTips;
+            }
+        }
+
+        // 从拖拽区域移除字段
+        function removeFromDropZone(element) {
+            element.closest('.data-field').remove();
+            updateChartGuideBasedOnFields();
+        }
+
+        // 初始化图表类型选择器
+        function initChartTypeSelector() {
+            const container = document.getElementById('chartTypeSelector');
+            container.innerHTML = '';
+
+            chartTypes.forEach(chartType =&gt; {
+                const button = document.createElement('button');
+                button.className = 'chart-type-btn';
+                button.dataset.type = chartType.id;
+                button.innerHTML = `
+                    &lt;i class=&quot;${chartType.icon}&quot;&gt;&lt;/i&gt;
+                    ${chartType.name}
+                    &lt;div class=&quot;tooltip&quot;&gt;${chartType.description}&lt;/div&gt;
+                `;
+
+                button.addEventListener('click', () =&gt; {
+                    document.querySelectorAll('.chart-type-btn').forEach(btn =&gt; {
+                        btn.classList.remove('active');
+                    });
+                    button.classList.add('active');
+                    document.getElementById('chartTypeSelect').value = chartType.id;
+                    updateChartGuide(chartType.id);
+                });
+
+                container.appendChild(button);
+            });
+
+            // 默认选中智能推荐
+            container.querySelector('.chart-type-btn').classList.add('active');
+        }
+
+        // 加载筛选值选项
+        function loadFilterValues() {
+            const filterFieldSelect = document.getElementById('filterFieldSelect');
+            const filterValueSelect = document.getElementById('filterValueSelect');
+            const selectedField = filterFieldSelect.value;
+
+            filterValueSelect.innerHTML = '';
+
+            if (!selectedField) {
+                filterValueSelect.innerHTML = '&lt;option value=&quot;&quot;&gt;请先选择筛选字段&lt;/option&gt;';
+                return;
+            }
+
+            // 获取该字段的唯一值
+            const uniqueValues = [...new Set(uploadedData.data.map(row =&gt; row[selectedField]))].filter(val =&gt; val);
+
+            if (uniqueValues.length === 0) {
+                filterValueSelect.innerHTML = '&lt;option value=&quot;&quot;&gt;该字段无可用值&lt;/option&gt;';
+                return;
+            }
+
+            filterValueSelect.innerHTML = '&lt;option value=&quot;&quot;&gt;全部&lt;/option&gt;';
+            uniqueValues.forEach(value =&gt; {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                filterValueSelect.appendChild(option);
+            });
+        }
+
+        // 更新筛选和分组选项
+        function updateFilterAndGroupOptions() {
+            const filterFieldSelect = document.getElementById('filterFieldSelect');
+            const groupSelect = document.getElementById('groupSelect');
+
+            filterFieldSelect.innerHTML = '&lt;option value=&quot;&quot;&gt;无筛选&lt;/option&gt;';
+            groupSelect.innerHTML = '&lt;option value=&quot;&quot;&gt;无分组&lt;/option&gt;';
+
+            uploadedData.fields.forEach(field =&gt; {
+                if (uploadedData.fieldTypes[field] === 'category' || uploadedData.fieldTypes[field] === 'time') {
+                    const filterOption = document.createElement('option');
+                    filterOption.value = field;
+                    filterOption.textContent = field;
+
+                    const groupOption = document.createElement('option');
+                    groupOption.value = field;
+                    groupOption.textContent = field;
+
+                    filterFieldSelect.appendChild(filterOption);
+                    groupSelect.appendChild(groupOption);
+                }
+            });
+        }
+
+        // 智能分析数据
+        function analyzeData() {
+            if (uploadedData.data.length === 0) {
+                showNotification('请先上传数据', 'warning');
+                return;
+            }
+
+            // 智能推荐图表
+            const numericFields = uploadedData.fields.filter(f =&gt; uploadedData.fieldTypes[f] === 'numeric');
+            const categoryFields = uploadedData.fields.filter(f =&gt; uploadedData.fieldTypes[f] === 'category');
+
+            if (numericFields.length === 0) {
+                showNotification('未检测到数值字段', 'warning');
+                return;
+            }
+
+            // 自动设置配置
+            const xAxisZone = document.querySelector('#xAxisZone .drop-zone-content');
+            const yAxisZone = document.querySelector('#yAxisZone .drop-zone-content');
+
+            // 清除现有配置
+            xAxisZone.innerHTML = '';
+            yAxisZone.innerHTML = '';
+
+            // 自动选择字段
+            if (categoryFields.length &gt; 0) {
+                const bestCategoryField = findBestField(categoryFields);
+                xAxisZone.innerHTML = createFieldDiv(bestCategoryField, 'category');
+            }
+
+            // 自动添加前两个数值字段到Y轴
+            if (numericFields.length &gt; 0) {
+                const topNumericFields = numericFields.slice(0, 2);
+                topNumericFields.forEach(field =&gt; {
+                    yAxisZone.innerHTML += createFieldDiv(field, 'numeric');
+                });
+            }
+
+            // 智能选择图表类型
+            const chartType = recommendChartType();
+            document.getElementById('chartTypeSelect').value = chartType;
+            updateChartGuide(chartType);
+
+            // 更新图表类型选择器
+            document.querySelectorAll('.chart-type-btn').forEach(btn =&gt; {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.chart-type-btn[data-type=&quot;${chartType}&quot;]`).classList.add('active');
+
+            showNotification('智能分析完成', 'success');
+        }
+
+        // 找到最优字段
+        function findBestField(fields) {
+            return fields[0];
+        }
+
+        // 创建字段DOM元素
+        function createFieldDiv(field, type) {
+            const typeIcon = type === 'numeric' ? 'fas fa-hashtag' : 'fas fa-tag';
+            return `
+                &lt;div class=&quot;data-field ${type}&quot; style=&quot;margin: 0;&quot;&gt;
+                    &lt;i class=&quot;${typeIcon}&quot;&gt;&lt;/i&gt;
+                    &lt;span&gt;${field}&lt;/span&gt;
+                    &lt;i class=&quot;fas fa-times&quot; onclick=&quot;removeFromDropZone(this)&quot;&gt;&lt;/i&gt;
+                &lt;/div&gt;
+            `;
+        }
+
+        // 推荐图表类型
+        function recommendChartType() {
+            const numericFields = uploadedData.fields.filter(f =&gt; uploadedData.fieldTypes[f] === 'numeric');
+            const categoryFields = uploadedData.fields.filter(f =&gt; uploadedData.fieldTypes[f] === 'category');
+            const timeFields = uploadedData.fields.filter(f =&gt; uploadedData.fieldTypes[f] === 'time');
+
+            if (timeFields.length &gt; 0 &amp;&amp; numericFields.length &gt; 0) {
+                return 'line';
+            } else if (categoryFields.length &gt; 0 &amp;&amp; numericFields.length === 1) {
+                return 'bar';
+            } else if (categoryFields.length &gt; 0 &amp;&amp; numericFields.length &gt; 1) {
+                return 'bar';
+            } else if (numericFields.length &gt;= 2) {
+                return 'scatter';
+            } else {
+                return 'bar';
+            }
+        }
+
+        // 数据聚合计算
+        function aggregateData(data, groupField, valueField, aggregationType) {
+            if (aggregationType === 'none') {
+                // 无聚合时，直接返回原始数据
+                return data.map(row =&gt; ({
+                    name: row[groupField] || '未知',
+                    value: Number(row[valueField]) || 0,
+                    rawRow: row // 保存原始行数据用于后续处理
+                }));
+            }
+
+            // 分组数据
+            const groups = _.groupBy(data, groupField);
+
+            // 根据聚合类型计算
+            const aggregated = Object.entries(groups).map(([groupName, groupData]) =&gt; {
+                const values = groupData.map(row =&gt; {
+                    const val = row[valueField];
+                    return val === '' ? 0 : Number(val) || 0;
+                });
+
+                let result;
+                switch(aggregationType) {
+                    case 'sum':
+                        result = values.reduce((a, b) =&gt; a + b, 0);
+                        break;
+                    case 'count':
+                        result = values.length;
+                        break;
+                    case 'avg':
+                        result = values.length &gt; 0 ? values.reduce((a, b) =&gt; a + b, 0) / values.length : 0;
+                        break;
+                    case 'max':
+                        result = Math.max(...values);
+                        break;
+                    case 'min':
+                        result = Math.min(...values);
+                        break;
+                    default:
+                        result = values.reduce((a, b) =&gt; a + b, 0);
+                }
+
+                return {
+                    name: groupName,
+                    value: Number(result.toFixed(2))
+                };
+            });
+
+            return aggregated;
+        }
+
+        // 应用排序
+        function applySort(data, sortType, sortBy) {
+            if (sortType === 'none') return data;
+
+            return data.sort((a, b) =&gt; {
+                let valueA, valueB;
+
+                if (sortBy === 'value') {
+                    valueA = a.value;
+                    valueB = b.value;
+                } else {
+                    valueA = a.name;
+                    valueB = b.name;
+                }
+
+                if (sortType === 'asc') {
+                    return valueA &gt; valueB ? 1 : -1;
+                } else {
+                    return valueA &lt; valueB ? 1 : -1;
+                }
+            });
+        }
+
+        // 生成图表
+        function generateChart() {
+    if (uploadedData.data.length === 0) {
+        showNotification('请先上传数据', 'warning');
+        return;
+    }
+
+    // 获取X轴字段（只能有一个）
+    const xAxisField = document.querySelector('#xAxisZone .drop-zone-content .data-field span')?.textContent;
+    // 获取所有Y轴字段（支持多个）
+    const yAxisFields = Array.from(document.querySelectorAll('#yAxisZone .drop-zone-content .data-field span'))
+        .map(el =&gt; el.textContent);
+
+    if (!xAxisField || yAxisFields.length === 0) {
+        showNotification('请配置X轴和至少一个Y轴字段', 'warning');
+        return;
+    }
+
+    const chartType = document.getElementById('chartTypeSelect').value;
+    const filterField = document.getElementById('filterFieldSelect').value;
+    const filterValue = document.getElementById('filterValueSelect').value;
+    const groupField = document.getElementById('groupSelect').value;
+    const aggregationType = document.getElementById('aggregationSelect').value;
+    const sortType = document.getElementById('sortSelect').value;
+    const sortBy = document.getElementById('sortBySelect').value;
+
+    // 特殊图表类型校验
+    if (chartType === 'pie' &amp;&amp; yAxisFields.length &gt; 1) {
+        showNotification('饼图只能使用一个数值字段，已使用第一个字段', 'warning');
+        // 饼图只使用第一个数值字段
+        yAxisFields.splice(1);
+    }
+
+    if (chartType === 'scatter' &amp;&amp; yAxisFields.length &lt; 2) {
+        showNotification('散点图需要至少两个数值字段', 'error');
+        return;
+    }
+
+    // 过滤数据
+    let filteredData = [...uploadedData.data];
+    if (filterField &amp;&amp; filterValue &amp;&amp; filterValue !== '') {
+        filteredData = uploadedData.data.filter(row =&gt; row[filterField] === filterValue);
+    }
+
+    if (filteredData.length === 0) {
+        showNotification('筛选后无数据', 'warning');
+        return;
+    }
+
+    // 准备图表数据
+    let chartOptions;
+    const aggregationName = {
+        none: '原始值',
+        sum: '求和',
+        count: '计数',
+        avg: '平均值',
+        max: '最大值',
+        min: '最小值'
+    }[aggregationType];
+
+    const yFieldsText = yAxisFields.join('、');
+    const chartTitleEl = document.getElementById('chartTitle');
+    if (chartTitleEl) {
+        chartTitleEl.textContent = `${yFieldsText}(${aggregationName}) - ${xAxisField}${groupField ? '_按' + groupField + '分组' : ''}`;
+    }
+
+    // 处理多Y轴数据
+    if (groupField) {
+        // 分组聚合数据
+        chartOptions = getMultiYGroupedChartOptions(
+            chartType, xAxisField, yAxisFields, filteredData,
+            groupField, aggregationType, aggregationName, sortType, sortBy
+        );
+    } else {
+        // 未分组数据（按X轴字段聚合）
+        chartOptions = getMultiYChartOptions(
+            chartType, xAxisField, yAxisFields, filteredData,
+            aggregationType, aggregationName, sortType, sortBy
+        );
+    }
+
+    // 渲染图表
+    renderChart(chartOptions);
+
+    // 显示图表区域
+    document.getElementById('noData').style.display = 'none';
+    document.getElementById('chartArea').style.display = 'block';
+
+    showNotification('图表生成成功', 'success');
+}
+
+        // 获取多Y轴基础图表配置
+        function getMultiYChartOptions(chartType, xField, yFields, data, aggregationType, aggregationName, sortType, sortBy) {
+            const baseOptions = getBaseOptions(chartType, xField, yFields, aggregationName);
+
+            // 特殊图表类型处理
+            switch(chartType) {
+                case 'scatter':
+                    return getScatterChartOptions(xField, yFields, data, baseOptions);
+
+                case 'radar':
+                    return getRadarChartOptions(xField, yFields, data, baseOptions);
+                case 'pie':
+                    return getPieChartOptions(xField, yFields[0], data, aggregationType, aggregationName, sortType, sortBy, baseOptions);
+                default:
+                    return getBarOrLineChartOptions(chartType, xField, yFields, data, aggregationType, aggregationName, sortType, sortBy, baseOptions);
+            }
+        }
+
+        // 获取基础配置
+        function getBaseOptions(chartType, xField, yFields, aggregationName) {
+            return {
+                title: {
+                    text: `${yFields.join('、')}对比${xField}`,
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 18,
+                        fontWeight: '600',
+                        color: '#1f2937'
+                    }
+                },
+                tooltip: {
+                    trigger: chartType === 'pie' || chartType === 'scatter' || chartType === 'radar' ? 'item' : 'axis',
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    borderColor: '#e5e7eb',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#1f2937'
+                    },
+                    padding: 12,
+                    borderRadius: 8,
+                    order: 'seriesAsc',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                    formatter: function(params) {
+                        if (chartType === 'pie') {
+                            return `${params.name}&lt;br/&gt;${params.seriesName}: ${params.value} (${params.percent}%)`;
+                        } else if (chartType === 'scatter') {
+                            return `X: ${params.value[0]}&lt;br/&gt;Y: ${params.value[1]}`;
+                        } else if (chartType === 'line' || chartType === 'bar' || chartType === 'horizontalBar') {
+                            const axisLabel = Array.isArray(params) &amp;&amp; params.length ? params[0].axisValueLabel : '';
+                            let html = `${xField}: ${axisLabel}`;
+                            if (Array.isArray(params)) {
+                                html += '&lt;br/&gt;' + params.map(p =&gt; `${p.marker}${p.seriesName}: ${p.value}`).join('&lt;br/&gt;');
+                            }
+                            return html;
+                        }
+                        return null;
+                    }
+                },
+                axisPointer: chartType === 'bar' || chartType === 'horizontalBar' ? { type: 'shadow' } : (chartType === 'line' ? { type: 'cross' } : {}),
+                grid: chartType === 'pie' || chartType === 'radar' ? null : {
+                    left: '5%',
+                    right: '5%',
+                    bottom: '8%',
+                    top: chartType === 'heatmap' ? '20%' : '15%',
+                    containLabel: true
+                },
+                legend: {
+                    top: '5%',
+                    textStyle: {
+                        color: '#4b5563'
+                    }
+                },
+                color: window.chartColors
+            };
+        }
+
+        // 获取柱状图或折线图配置
+        function getBarOrLineChartOptions(chartType, xField, yFields, data, aggregationType, aggregationName, sortType, sortBy, baseOptions) {
+    // 先获取第一个Y字段的聚合数据，用于X轴取值
+    const firstAggregatedData = aggregateData(data, xField, yFields[0], aggregationType);
+    let sortedData = applySort(firstAggregatedData, sortType, sortBy);
+    const xValues = sortedData.map(item =&gt; item.name);
+
+    // 为每个Y轴字段生成系列数据
+    const series = yFields.map((yField, index) =&gt; {
+        const aggregatedData = aggregateData(data, xField, yField, aggregationType);
+        const aggregatedMap = {};
+        aggregatedData.forEach(item =&gt; {
+            aggregatedMap[item.name] = item.value;
+        });
+
+        // 按照排序后的xValues顺序获取数据
+        const yValues = xValues.map(x =&gt; aggregatedMap[x] || 0);
+
+        // 通用系列配置
+        const seriesConfig = {
+            name: `${yField}(${aggregationName})`,
+            data: yValues,
+            itemStyle: {
+                color: window.chartColors[index % window.chartColors.length]
+            },
+            // 显示数值标签（默认显示）
+            label: {
+                show: true,
+                position: chartType === 'bar' ? 'top' : (chartType === 'horizontalBar' ? 'right' : 'top'),
+                fontSize: 12,
+                color: '#1f2937',
+                fontWeight: '500',
+                formatter: function(params) {
+                    // 格式化数值显示
+                    return parseFloat(params.value).toFixed(1);
+                }
+            },
+            // 悬停时的强调效果
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0,0,0,0.2)'
+                },
+                label: {
+                    show: true,
+                    fontSize: 13,
+                    fontWeight: 'bold'
+                }
+            }
+        };
+
+        // 根据图表类型设置类型和特殊配置
+        if (chartType === 'line') {
+            return {
+                ...seriesConfig,
+                type: 'line',
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 8, // 增大点的大小以便悬停
+                lineStyle: {
+                    width: 3
+                }
+            };
+        } else if (chartType === 'horizontalBar') {
+            return {
+                ...seriesConfig,
+                type: 'bar',
+                barWidth: yFields.length &gt; 1 ? '30%' : '60%',
+                borderRadius: [0, 4, 4, 0]
+            };
+        } else { // bar
+            return {
+                ...seriesConfig,
+                type: 'bar',
+                barWidth: yFields.length &gt; 1 ? '30%' : '60%',
+                barGap: yFields.length &gt; 1 ? '10%' : '0%',
+                borderRadius: [4, 4, 0, 0]
+            };
+        }
+    });
+
+    const axisConfig = chartType === 'horizontalBar' ? {
+        xAxis: {
+            type: 'value',
+            name: aggregationName,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            },
+            axisLabel: {
+                color: '#4b5563',
+                fontSize: 12,
+                formatter: '{value}'
+            }
+        },
+        yAxis: {
+            type: 'category',
+            data: xValues,
+            name: xField,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            },
+            axisLabel: {
+                color: '#4b5563',
+                fontSize: 12
+            }
+        }
+    } : {
+        xAxis: {
+            type: 'category',
+            data: xValues,
+            name: xField,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            },
+            axisLabel: {
+                rotate: 45,
+                color: '#4b5563',
+                fontSize: 12
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: aggregationName,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            },
+            axisLabel: {
+                color: '#4b5563',
+                fontSize: 12,
+                formatter: '{value}'
+            }
+        }
+    };
+
+    const option = {
+        ...baseOptions,
+        ...axisConfig,
+        series: series
+    };
+
+    if (xValues.length &gt; 12 &amp;&amp; (chartType === 'line' || chartType === 'bar')) {
+        option.dataZoom = [
+            { type: 'slider', start: 0, end: 100 },
+            { type: 'inside', start: 0, end: 100 }
+        ];
+    }
+
+    return option;
+}
+
+
+
+        // 获取饼图配置
+        function getPieChartOptions(xField, yField, data, aggregationType, aggregationName, sortType, sortBy, baseOptions) {
+    const aggregatedData = aggregateData(data, xField, yField, aggregationType);
+    const sortedData = applySort(aggregatedData, sortType, sortBy);
+
+    return {
+        ...baseOptions,
+        series: [{
+            name: `${yField}(${aggregationName})`,
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '50%'],
+            data: sortedData,
+            label: {
+                show: true,
+                formatter: '{b}: {c} ({d}%)',
+                fontSize: 12
+            },
+            labelLine: {
+                show: true,
+                length: 20,
+                length2: 10
+            },
+            itemStyle: {
+                borderRadius: 4,
+                borderColor: '#fff',
+                borderWidth: 2
+            },
+            // 增强悬停效果
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                },
+                label: {
+                    show: true,
+                    fontSize: 14,
+                    fontWeight: 'bold'
+                }
+            },
+            // 增强tooltip显示
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    return `${params.seriesName}&lt;br/&gt;${params.name}: ${params.value} (${params.percent}%)`;
+                }
+            }
+        }]
+    };
+}
+
+        // 获取散点图配置
+        function getScatterChartOptions(xField, yFields, data, baseOptions) {
+    // 散点图需要两个数值字段
+    if (yFields.length &lt; 2) {
+        return null;
+    }
+
+    const scatterData = data.map(row =&gt; [
+        Number(row[yFields[0]]) || 0,
+        Number(row[yFields[1]]) || 0,
+        row[xField] || '未知' // 第三个参数用于tooltip显示
+    ]);
+
+    return {
+        ...baseOptions,
+        xAxis: {
+            type: 'value',
+            name: yFields[0],
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            },
+            axisLabel: {
+                color: '#4b5563',
+                fontSize: 12
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: yFields[1],
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            },
+            axisLabel: {
+                color: '#4b5563',
+                fontSize: 12
+            }
+        },
+        series: [{
+            name: `${yFields[0]} vs ${yFields[1]}`,
+            type: 'scatter',
+            data: scatterData,
+            symbolSize: 12, // 增大点的大小
+            itemStyle: {
+                color: window.chartColors[0]
+            },
+            // 增强悬停效果
+            emphasis: {
+                itemStyle: {
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0,0,0,0.3)'
+                }
+            },
+            // 增强tooltip显示
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    return `${params.seriesName}&lt;br/&gt;X: ${params.value[0]}&lt;br/&gt;Y: ${params.value[1]}`;
+                }
+            }
+        }]
+    };
+}
+
+
+
+
+        // 获取雷达图配置
+        function getRadarChartOptions(xField, yFields, data, baseOptions) {
+    // 获取X轴的所有唯一值作为雷达图的维度
+    const xValues = [...new Set(data.map(row =&gt; row[xField]))];
+
+    // 计算每个维度的最大值
+    const indicator = xValues.map(x =&gt; {
+        let maxValue = 0;
+        data.forEach(row =&gt; {
+            if (row[xField] === x) {
+                yFields.forEach(yField =&gt; {
+                    const value = Number(row[yField]) || 0;
+                    maxValue = Math.max(maxValue, value);
+                });
+            }
+        });
+        return { name: x, max: maxValue * 1.2 }; // 增加20%的余量
+    });
+
+    // 为每个Y字段创建数据
+    const seriesData = yFields.map((yField, index) =&gt; {
+        const values = xValues.map(x =&gt; {
+            const filtered = data.filter(row =&gt; row[xField] === x);
+            if (filtered.length === 0) return 0;
+
+            // 计算平均值
+            const sum = filtered.reduce((total, row) =&gt; {
+                return total + (Number(row[yField]) || 0);
+            }, 0);
+            return sum / filtered.length;
+        });
+
+        return {
+            name: yField,
+            value: values,
+            itemStyle: {
+                color: window.chartColors[index % window.chartColors.length]
+            }
+        };
+    });
+
+    return {
+        ...baseOptions,
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            borderColor: '#e5e7eb',
+            borderWidth: 1,
+            textStyle: { color: '#1f2937' },
+            padding: 12,
+            borderRadius: 8,
+            formatter: function(params) {
+                const name = params.name;
+                const vals = params.value;
+                let html = `${name}`;
+                html += '&lt;br/&gt;' + indicator.map((ind, i) =&gt; `${ind.name}: ${vals[i]}`).join('&lt;br/&gt;');
+                return html;
+            }
+        },
+        radar: {
+            indicator: indicator,
+            axisName: { color: '#4b5563' }
+        },
+        series: [{
+            type: 'radar',
+            data: seriesData,
+            areaStyle: { opacity: 0.15 },
+            lineStyle: { width: 2 },
+            symbol: 'circle',
+            symbolSize: 6,
+            label: { show: false },
+            emphasis: {
+                lineStyle: { width: 3 },
+                areaStyle: { opacity: 0.25 }
+            }
+        }]
+    };
+}
+
+        // 获取分组图表配置
+        function getMultiYGroupedChartOptions(chartType, xField, yFields, data, groupField, aggregationType, aggregationName, sortType, sortBy) {
+    const baseOptions = getBaseOptions(chartType, xField, yFields, aggregationName);
+
+    // 雷达图不适合按分组聚合展示，直接按未分组逻辑生成
+    if (chartType === 'radar') {
+        return getRadarChartOptions(xField, yFields, data, baseOptions);
+    }
+
+    // 获取分组名称
+    const groupNames = [...new Set(data.map(row =&gt; row[groupField]))];
+    let sortedGroupNames = [...groupNames];
+
+    // 应用排序
+    if (sortType !== 'none') {
+        if (sortBy === 'value') {
+            // 按数值排序需要计算每个分组的平均值
+            const groupValues = groupNames.map(group =&gt; {
+                const groupData = data.filter(row =&gt; row[groupField] === group);
+                const avg = groupData.reduce((sum, row) =&gt; {
+                    return sum + (Number(row[yFields[0]]) || 0);
+                }, 0) / groupData.length;
+                return { name: group, value: avg };
+            });
+
+            const sorted = applySort(groupValues, sortType, 'value');
+            sortedGroupNames = sorted.map(item =&gt; item.name);
+        } else {
+            // 按名称排序
+            sortedGroupNames.sort();
+            if (sortType === 'desc') {
+                sortedGroupNames.reverse();
+            }
+        }
+    }
+
+    // 为每个Y轴字段生成系列数据
+    const series = yFields.map((yField, index) =&gt; {
+        const seriesData = [];
+
+        // 为每个分组计算聚合值
+        sortedGroupNames.forEach(groupName =&gt; {
+            const groupData = data.filter(row =&gt; row[groupField] === groupName);
+            const aggregated = aggregateData(groupData, xField, yField, aggregationType);
+
+            // 找到对应X轴字段的值
+            let value = 0;
+            if (aggregated.length &gt; 0) {
+                // 取平均值
+                value = aggregated.reduce((sum, item) =&gt; sum + item.value, 0) / aggregated.length;
+            }
+            seriesData.push(value);
+        });
+
+        // 系列配置
+        const seriesConfig = {
+            name: `${yField}(${aggregationName})`,
+            type: getSeriesType(chartType),
+            data: seriesData,
+            itemStyle: {
+                color: window.chartColors[index % window.chartColors.length]
+            },
+            label: {
+                show: true,
+                position: chartType === 'horizontalBar' ? 'right' : 'top',
+                fontSize: 12,
+                color: '#1f2937',
+                fontWeight: '500',
+                formatter: '{c}'
+            },
+
+        };
+
+        // 特殊配置
+        if (chartType === 'line') {
+            seriesConfig.smooth = true;
+            seriesConfig.symbol = 'circle';
+            seriesConfig.symbolSize = 6;
+            seriesConfig.lineStyle = { width: 3 };
+        } else if (chartType === 'bar' || chartType === 'horizontalBar') {
+            seriesConfig.barWidth = yFields.length &gt; 1 ? '30%' : '60%';
+            seriesConfig.barGap = yFields.length &gt; 1 ? '10%' : '0%';
+            seriesConfig.borderRadius = chartType === 'horizontalBar' ? [0, 4, 4, 0] : [4, 4, 0, 0];
+        }
+
+        return seriesConfig;
+    });
+
+    return {
+        ...baseOptions,
+        xAxis: chartType === 'horizontalBar' ? {
+            type: 'value',
+            name: aggregationName,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            }
+        } : {
+            type: 'category',
+            data: sortedGroupNames,
+            name: groupField,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            }
+        },
+        yAxis: chartType === 'horizontalBar' ? {
+            type: 'category',
+            data: sortedGroupNames,
+            name: groupField,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            }
+        } : {
+            type: 'value',
+            name: aggregationName,
+            nameTextStyle: {
+                color: '#6b7280',
+                fontSize: 14
+            }
+        },
+        series: series
+    };
+}
+
+        // 获取系列类型
+        function getSeriesType(chartType) {
+            switch(chartType) {
+                case 'line': return 'line';
+                case 'horizontalBar': return 'bar';
+                case 'pie': return 'pie';
+                case 'scatter': return 'scatter';
+                case 'heatmap': return 'heatmap';
+                case 'radar': return 'radar';
+                default: return 'bar';
+            }
+        }
+
+        // 渲染图表
+        function renderChart(options) {
+    const chartDom = document.getElementById('chartCanvas');
+    if (currentChart) {
+        currentChart.dispose();
+    }
+
+    // 确保图表容器可见并已渲染
+    const chartArea = document.getElementById('chartArea');
+    chartArea.style.display = 'block';
+
+    // 强制重排以确保元素尺寸正确
+    chartDom.offsetHeight;
+
+    // 初始化ECharts并应用主题
+    currentChart = echarts.init(chartDom, null, {
+        renderer: 'canvas',
+        useDirtyRect: false
+    });
+
+    // 设置图表配置
+    currentChart.setOption({
+        ...options,
+        animation: true,
+        animationDuration: 1000,
+        animationEasing: 'cubicOut'
+    });
+
+    // 确保图表尺寸正确
+    setTimeout(() =&gt; {
+        currentChart.resize();
+    }, 100);
+
+    // 响应式调整
+    window.addEventListener('resize', () =&gt; {
+        if (currentChart) {
+            currentChart.resize();
+        }
+    });
+}
+
+        // 重置配置
+        function resetConfig() {
+            document.querySelectorAll('.drop-zone-content').forEach(div =&gt; {
+                div.innerHTML = '';
+            });
+
+            document.getElementById('filterFieldSelect').value = '';
+            document.getElementById('filterValueSelect').innerHTML = '&lt;option value=&quot;&quot;&gt;请先选择筛选字段&lt;/option&gt;';
+            document.getElementById('groupSelect').value = '';
+            document.getElementById('aggregationSelect').value = 'none';
+            document.getElementById('chartTypeSelect').value = 'auto';
+            document.getElementById('sortSelect').value = 'none';
+            document.getElementById('sortBySelect').value = 'value';
+
+            document.querySelectorAll('.chart-type-btn').forEach(btn =&gt; {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.chart-type-btn[data-type=&quot;auto&quot;]').classList.add('active');
+
+            updateChartGuide('auto');
+        }
+
+        // 显示数据预览
+        function showData() {
+            if (uploadedData.data.length === 0) {
+                showNotification('暂无数据', 'warning');
+                return;
+            }
+
+            const modal = document.getElementById('dataModal');
+            const content = document.getElementById('modalDataContent');
+
+            // 创建数据表格
+            let tableHtml = `
+                &lt;div class=&quot;data-table-container&quot;&gt;
+                    &lt;table class=&quot;data-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                ${uploadedData.fields.map(field =&gt; `&lt;th&gt;${field}&lt;/th&gt;`).join('')}
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+            `;
+
+            uploadedData.data.slice(0, 50).forEach(row =&gt; {
+                tableHtml += '&lt;tr&gt;';
+                uploadedData.fields.forEach(field =&gt; {
+                    tableHtml += `&lt;td&gt;${row[field] || ''}&lt;/td&gt;`;
+                });
+                tableHtml += '&lt;/tr&gt;';
+            });
+
+            tableHtml += `
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+                &lt;div style=&quot;margin-top: 16px; color: var(--text-secondary); font-size: 14px; display: flex; justify-content: space-between; align-items: center;&quot;&gt;
+                    &lt;div&gt;显示前50条数据，共${uploadedData.data.length}条&lt;/div&gt;
+                    &lt;div&gt;数据更新时间: ${new Date().toLocaleString()}&lt;/div&gt;
+                &lt;/div&gt;
+            `;
+
+            content.innerHTML = tableHtml;
+            modal.classList.add('active');
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('dataModal').classList.remove('active');
+        }
+
+        // 导出图表
+        function exportChart() {
+            if (!currentChart) {
+                showNotification('请先生成图表', 'warning');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.download = `数据可视化图表_${new Date().getTime()}.png`;
+            link.href = currentChart.getDataURL({
+                type: 'png',
+                pixelRatio: 2,
+                backgroundColor: '#ffffff',
+                excludeComponents: ['toolbox']
+            });
+            link.click();
+
+            showNotification('图表已导出为PNG图片', 'success');
+        }
+
+        // 保存图表
+        function saveChart() {
+            try {
+                // 实际项目中可保存配置到localStorage
+                localStorage.setItem('chartConfig', JSON.stringify({
+                    xAxisField: document.querySelector('#xAxisZone .drop-zone-content .data-field span')?.textContent,
+                    yAxisFields: Array.from(document.querySelectorAll('#yAxisZone .drop-zone-content .data-field span'))
+                        .map(el =&gt; el.textContent),
+                    chartType: document.getElementById('chartTypeSelect').value,
+                    aggregationType: document.getElementById('aggregationSelect').value,
+                    groupField: document.getElementById('groupSelect').value,
+                    filterField: document.getElementById('filterFieldSelect').value,
+                    filterValue: document.getElementById('filterValueSelect').value,
+                    saveTime: new Date().toISOString()
+                }));
+                showNotification('图表配置已保存到本地存储', 'info');
+            } catch (e) {
+                showNotification('浏览器阻止了本地存储，已跳过保存', 'warning');
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type) {
+            // 移除已存在的通知
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+
+            // 设置图标
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                warning: 'fas fa-exclamation-triangle',
+                info: 'fas fa-info-circle'
+            };
+
+            notification.innerHTML = `
+                &lt;i class=&quot;${icons[type]}&quot;&gt;&lt;/i&gt;
+                &lt;span&gt;${message}&lt;/span&gt;
+            `;
+
+            document.body.appendChild(notification);
+
+            // 3秒后自动移除
+            setTimeout(() =&gt; {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() =&gt; {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
