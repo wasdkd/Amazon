@@ -9,23 +9,13 @@ import re
 import math
 from http import HTTPStatus
 
-# ================= 0. 版本检测与样式 =================
-st.set_page_config(layout="wide", page_title="亚马逊选品清洗系统 V3.1 (修复版)")
-
-# 检测 Streamlit 版本，防止环境没更新导致的报错
-try:
-    st_version = st.__version__
-    major, minor, patch = map(int, st_version.split('.'))
-    if major < 1 or (major == 1 and minor < 35):
-        st.error(f"🚨 当前 Streamlit 版本过低 ({st_version})！")
-        st.warning("请在 requirements.txt 中指定 streamlit>=1.35.0，并在 Streamlit Cloud 控制台【删除】该 App 后重新部署。")
-        st.stop()
-except:
-    pass
+# ================= 1. 页面配置 =================
+st.set_page_config(layout="wide", page_title="亚马逊选品清洗系统 V4.0 (防弹版)")
 
 st.markdown("""
 <style>
     .block-container { padding-top: 1rem; padding-bottom: 2rem; }
+    /* 左侧预览图样式 */
     [data-testid="stSidebar"] img {
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -33,14 +23,14 @@ st.markdown("""
         max-height: 400px; 
         object-fit: contain;
     }
-    div[data-testid="stButton"] button { font-weight: bold; border: none; transition: 0.3s; }
+    /* 按钮颜色 */
     div[data-testid="column"]:nth-of-type(3) button { background-color: #10b981; color: white; }
     div[data-testid="column"]:nth-of-type(4) button { background-color: #0ea5e9; color: white; }
     div[data-testid="column"]:nth-of-type(2) button { background-color: #722ed1; color: white; }
 </style>
 """, unsafe_allow_html=True)
 
-# ================= 1. 核心字典 =================
+# ================= 2. 核心字典 =================
 RAW_CAT_MAP = {
     "vest":"Vests","top":"Tops","shirt":"Tops","tee":"Tops","blouse":"Blouse",
     "dress":"Dresses","pant":"Pants","jean":"Jeans","short":"Shorts",
@@ -57,12 +47,13 @@ DICTS = {
     "elements": {"print":"印花","floral":"碎花","pocket":"口袋","solid":"纯色","button":"纽扣","lace":"蕾丝","rib":"罗纹","zipper":"拉链","pleated":"褶皱"}
 }
 
+# 选项去重
 OPT_FIT = sorted(list(set(filter(None, DICTS['fit'].values()))))
 OPT_COLLAR = sorted(list(set(filter(None, DICTS['collar'].values()))))
 OPT_SLEEVE = sorted(list(set(filter(None, DICTS['sleeve'].values()))))
 OPT_CAT = sorted(list(set(RAW_CAT_MAP.values())))
 
-# ================= 2. 核心函数 =================
+# ================= 3. 核心函数 =================
 
 def process_fabric(text):
     if not isinstance(text, str): return ""
@@ -141,6 +132,7 @@ def load_data(uploaded_file):
 
         new_row = {
             "ID": idx,
+            "🔍预览": False,  # 新增：用于勾选预览的列
             "图片": img_url,
             "ASIN": row.get(col_asin, ""),
             "品类": category,
@@ -171,31 +163,31 @@ def call_ai_api(api_key, img_url, title):
     except: pass
     return None
 
-# ================= 3. Session State =================
+# ================= 4. Session State =================
 if 'df' not in st.session_state: st.session_state.df = None
 if 'page' not in st.session_state: st.session_state.page = 1
-# 用于存储预览的图片和信息
-if 'preview_data' not in st.session_state: st.session_state.preview_data = None
+# 用于存储当前预览的商品信息
+if 'preview_info' not in st.session_state: st.session_state.preview_info = None
 
 PAGE_SIZE = 50
 
-# ================= 4. 主界面 =================
-st.title("🛒 亚马逊选品清洗系统 V3.1")
+# ================= 5. 主界面 =================
+st.title("🛒 亚马逊选品清洗系统 V4.0 (稳定版)")
 
 # --- 侧边栏 ---
 with st.sidebar:
     st.header("🖼️ 图片预览")
-    # 显示逻辑：如果有预览数据，显示；否则提示
-    if st.session_state.preview_data:
-        p_img = st.session_state.preview_data.get('img')
-        p_asin = st.session_state.preview_data.get('asin')
+    # 显示逻辑
+    if st.session_state.preview_info:
+        p_img = st.session_state.preview_info.get('img')
+        p_asin = st.session_state.preview_info.get('asin')
         if p_img:
-            st.image(p_img, use_container_width=True)
+            st.image(p_img, use_column_width=True)
         else:
-            st.warning("该商品无图片链接")
+            st.warning("该商品无图片")
         st.markdown(f"**ASIN**: `{p_asin}`")
     else:
-        st.info("👈 单击表格中的任意一行，此处会自动显示图片。")
+        st.info("👈 请在表格第一列勾选【预览】框")
     
     st.divider()
     st.markdown("### 🛠️ 工具箱")
@@ -221,7 +213,6 @@ if st.session_state.df is not None:
         view_df = df
     
     total_pages = math.ceil(len(view_df) / PAGE_SIZE)
-    # 防止切过滤条件时页码溢出
     if st.session_state.page > total_pages: st.session_state.page = 1
     
     start_idx = (st.session_state.page - 1) * PAGE_SIZE
@@ -275,17 +266,16 @@ if st.session_state.df is not None:
         cc2.markdown(f"<div style='text-align:center; margin-top:5px'>{st.session_state.page}/{total_pages} 页</div>", unsafe_allow_html=True)
         if cc3.button("▶", disabled=st.session_state.page>=total_pages): st.session_state.page+=1; st.rerun()
 
-    # --- 核心表格 ---
-    # 修复逻辑：edited_df 接收修改后的数据
-    # 选中状态通过 st.session_state.editor["selection"] 获取
+    # --- 核心交互表格 ---
+    # ⚠️ 移除了所有不兼容参数 (on_select, selection_mode)
+    # 增加了 "🔍预览" 这一列作为替代方案
     edited_df = st.data_editor(
         page_data,
-        key="editor", # 状态 Key
-        on_select="rerun",  # 选中行触发重跑
-        selection_mode="single-row",
-        column_order=["ID", "图片", "ASIN", "品类", "材质", "版型", "领型", "袖型", "元素", "中文标题", "英文标题"],
+        key="editor",
+        column_order=["ID", "🔍预览", "图片", "ASIN", "品类", "材质", "版型", "领型", "袖型", "元素", "中文标题", "英文标题"],
         column_config={
             "ID": st.column_config.NumberColumn("#", disabled=True, width="small"),
+            "🔍预览": st.column_config.CheckboxColumn("勾选预览", width="small", help="勾选此框在左侧预览图片"),
             "图片": st.column_config.ImageColumn("图片", width="small"),
             "ASIN": st.column_config.TextColumn("ASIN", disabled=True, width="small"),
             "品类": st.column_config.SelectboxColumn("品类", options=OPT_CAT, width="small"),
@@ -304,32 +294,27 @@ if st.session_state.df is not None:
 
     # --- 逻辑处理 ---
     
-    # 1. 获取选中行 (修复后的正确写法)
-    # st.data_editor 的返回值是编辑后的 DataFrame
-    # 选中状态存储在 session_state["editor"]["selection"] 中
-    if "editor" in st.session_state:
-        selection_state = st.session_state["editor"].get("selection", {})
-        selected_rows = selection_state.get("rows", [])
-        
-        if selected_rows:
-            # selected_rows 是当前页面显示的索引（0, 1, 2...）
-            row_idx_in_view = selected_rows[0]
-            # 找到对应的数据行
-            if row_idx_in_view < len(page_data):
-                sel_row = page_data.iloc[row_idx_in_view]
-                st.session_state.preview_data = {
-                    'img': sel_row['图片'],
-                    'asin': sel_row['ASIN']
-                }
-
-    # 2. 处理编辑同步
-    # 遍历 edited_df (返回值) 将修改同步回总表
+    # 1. 预览逻辑：查找哪一行被勾选了
+    # 获取“🔍预览”列为 True 的行
+    checked_rows = edited_df[edited_df["🔍预览"] == True]
+    
+    if not checked_rows.empty:
+        # 取最后勾选的一行（为了方便，如果用户勾多个，只看最后一个）
+        last_checked = checked_rows.iloc[-1]
+        st.session_state.preview_info = {
+            'img': last_checked['图片'],
+            'asin': last_checked['ASIN']
+        }
+    
+    # 2. 同步数据：检测用户是否修改了“品类”、“版型”等内容
     for i, row in edited_df.iterrows():
         orig_idx = int(row['ID'])
-        cols = ['品类', '材质', '版型', '领型', '袖型', '元素', '中文标题']
+        cols = ['品类', '材质', '版型', '领型', '袖型', '元素', '中文标题', '🔍预览']
         for col in cols:
             if st.session_state.df.at[orig_idx, col] != row[col]:
                 st.session_state.df.at[orig_idx, col] = row[col]
+                # 这是一个小trick：如果用户修改了数据，自动刷新页面，保证数据同步
+                # 但 st.data_editor 默认就会 rerun，所以通常不需要额外操作
 
 else:
     st.info("👈 请在左侧上传 Excel 文件")
