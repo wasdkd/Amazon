@@ -489,16 +489,16 @@
     <div class="controls">
         <div class="group">
             <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none" onchange="handleFile(this)">
-            <button class="btn-up" onclick="document.getElementById('fileInput').click()">📂 上传表格</button>
+            <button class="btn-up" onclick="document.getElementById('fileInput').click()">📂 上传表格（卖家精灵导出的数据）</button>
             <button class="btn-exp" onclick="exportData()">📥 导出 Excel</button>
             <button class="btn-zip" onclick="exportImagesZip()">📦 下载图片包</button>
-            <button class="btn-clear" onclick="clearDB(true)" title="清空浏览器缓存的数据">🗑️ 清空缓存</button>
-        </div>
+<!--            <button class="btn-clear" onclick="clearDB(true)" title="清空浏览器缓存的数据">🗑️ 清空缓存</button>-->
+<!--        </div>-->
 
-        <div class="group" style="border-right: none;">
-            <input type="password" id="apiKey" class="api-input" placeholder="粘贴阿里云 API Key (sk-...)">
-            <input type="number" id="threadCount" class="thread-input" value="10" min="1" max="20" title="并发线程数">
-            <button class="btn-ai" onclick="startAIFill()">🚀 极速AI补全（线上暂时用不了）</button>
+<!--        <div class="group" style="border-right: none;">-->
+<!--            <input type="password" id="apiKey" class="api-input" placeholder="粘贴阿里云 API Key (sk-...)">-->
+<!--            <input type="number" id="threadCount" class="thread-input" value="10" min="1" max="20" title="并发线程数">-->
+<!--            <button class="btn-ai" onclick="startAIFill()">🚀 极速AI补全（线上暂时用不了）</button>-->
             <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform">
             <button style="
                 padding: 3px 8px;
@@ -942,7 +942,7 @@
         }
 
         async function callLocalProxy(apiKey, imgUrl, title) {
-            const url = "https://amazon-my6q.onrender.com/analyze";
+            const url = "http://127.0.0.1:5000/analyze";
             try {
                 const response = await fetch(url, {
                     method: 'POST',
