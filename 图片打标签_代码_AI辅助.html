@@ -397,7 +397,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>亚马逊选品清洗系统 V22.0 (品类算法修复版)</title>
+    <title>亚马逊产品打标签</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -426,7 +426,7 @@
         .thread-input { width: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
 
         .table-container { background: white; border-radius: 6px 6px 0 0; flex-grow: 1; overflow: auto; border: 1px solid #999; }
-        table { width: 100%; border-collapse: collapse; min-width: 1800px; table-layout: fixed; }
+        table { width: 100%; border-collapse: collapse; min-width: 1730px; table-layout: fixed; } /* 稍微调整了最小宽度 */
         th { background: #232f3e; color: white; padding: 10px 8px; text-align: left; position: sticky; top: 0; z-index: 10; font-size: 13px; border: 1px solid #555; }
 
         td { border: 1px solid var(--border-color); padding: 0; vertical-align: top; background: white; min-height: 50px; position: relative; transition: background-color 0.1s; }
@@ -520,6 +520,7 @@
     <div class="filter-bar">
         <span>🔍 筛选核对:</span>
         <select id="filter-cat" class="filter-select" onchange="applyFilter()"><option value="">所有品类</option></select>
+        <select id="filter-fabric" class="filter-select" onchange="applyFilter()"><option value="">所有面料</option></select>
         <select id="filter-fit" class="filter-select" onchange="applyFilter()"><option value="">所有版型</option></select>
         <select id="filter-collar" class="filter-select" onchange="applyFilter()"><option value="">所有领型</option></select>
         <select id="filter-sleeve" class="filter-select" onchange="applyFilter()"><option value="">所有袖型</option></select>
@@ -529,8 +530,9 @@
 
         <label style="font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:10px;">
             <input type="checkbox" id="onlyEmptyCheck" onchange="applyFilter()">
-            <span style="color:#e11d48; font-weight:bold;">只看缺漏</span>
+            <span style="color:#e11d48; font-weight:bold;">只看缺漏 (不含面料)</span>
         </label>
+        <span style="color:#1de155; font-weight:bold;">  自动 + 人工核对修改 </span>
 
         <div style="flex-grow: 1; display:flex; justify-content: flex-end; gap:5px;">
             <span id="totalInfo" style="margin-right:15px; font-weight:bold;">总数: 0</span>
@@ -554,7 +556,7 @@
                     <th style="width: 80px;">图片</th>
                     <th style="width: 110px;">ASIN</th>
                     <th style="width: 110px;">品类</th>
-                    <th style="width: 180px;">材质</th>
+                    <th style="width: 110px;">面料 (手动填写)</th> <!-- 修改：宽度改为110px -->
                     <th style="width: 80px;">版型</th>
                     <th style="width: 80px;">领型</th>
                     <th style="width: 80px;">袖型</th>
@@ -567,7 +569,7 @@
     </div>
 
     <script>
-        const PAGE_SIZE = 50;
+        const PAGE_SIZE = 100;
         let allData = [];
         let filteredData = [];
         let currentPage = 1;
@@ -577,21 +579,24 @@
         const DB_STORE = "dataStore";
         let db;
 
-        // 👇 核心更新：在词典中增加了 tank 和 cami 等关键词
         const RAW_CAT_MAP = {
-            "vest":"Vests", "tank":"tanks", "cami":"tanks", "camisole":"tanks", // 新增Tank/Cami
+            "vest":"Vests", "tank":"tanks", "cami":"tanks", "camisole":"tanks",
             "top":"Tops", "shirt":"Tops", "tee":"Tops", "blouse":"Blouse",
             "dress":"Dresses", "pant":"Pants", "jean":"Jeans", "short":"Shorts", "skirt":"Skirts",
             "sweater":"Sweaters", "sweatshirt":"Sweatshirts", "hoodie":"Hoodies",
             "jacket":"Jackets", "coat":"Coats", "set":"Sets", "bikini":"Bikini", "swim":"Swimsuits", "t-shirt":"Tops"
         };
         const SORTED_CAT_KEYS = Object.keys(RAW_CAT_MAP).sort((a,b) => b.length - a.length);
-
         const DICTS = {
             fit: {
-                "slim":"修身", "fitted":"修身", "skinny":"修身", "tight":"修身", "tunic":"修身", "hugging":"修身", "sexy":"修身",
+                "slim":"修身", "fitted":"修身", "skinny":"修身", "tight":"修身", "hugging":"修身", "sexy":"修身",
                 "regular":"合身", "standard":"合身", "loose":"合身", "relax":"合身", "casual fit":"合身",
-                "oversize":"宽松", "baggy":"宽松", "plus size":"宽松"
+                "oversize":"宽松", "baggy":"宽松", "plus size":"宽松",
+                "bodycon":"修身", "pencil":"修身",
+                "slouchy":"合身", "boyfriend":"合身",
+                "a-line":"A字型", "swing":"A字型", "flare":"A字型",
+                "flowy":"长款", "boho":"波西米亚", "tunic": "长款",
+                "crop":"短款", "cropped":"短款"
             },
             collar: {
                 "v-neck":"V领", "v neck":"V领", "crew":"圆领", "round":"圆领", "o-neck":"圆领", "henley":"亨利领",
@@ -599,7 +604,11 @@
                 "square":"方领", "square neck":"方领", "polo":"POLO领", "collared":"翻领", "lapel":"翻领", "shirt collar":"翻领",
                 "hood":"连帽", "hooded":"连帽", "boat":"船领", "boat neck":"船领", "cowl":"荡领", "cowl neck":"荡领",
                 "off shoulder":"一字肩", "off-shoulder":"一字肩", "cold shoulder":"露肩", "halter":"挂脖",
-                "sweetheart":"桃心领", "one shoulder":"单肩", "asymmetric":"不对称领", "u-neck":"U领", "scoop":"U领"
+                "sweetheart":"桃心领", "one shoulder":"单肩", "asymmetric":"不对称领", "u-neck":"U领", "scoop":"U领",
+                "deep v":"深V", "plunge":"深V",
+                "notch":"西装领", "stand":"立领", "mandarin":"立领",
+                "surplice":"交叉领", "wrap":"交叉领",
+                "funnel":"堆堆领", "slash neck":"一字领"
             },
             sleeve: {
                 "sleeveless":"无袖", "tank":"无袖", "cami":"无袖", "short sleeve":"短袖", "cap sleeve":"盖袖",
@@ -607,14 +616,22 @@
                 "lantern":"灯笼袖", "batwing":"蝙蝠袖", "dolman":"蝙蝠袖", "raglan":"插肩袖",
                 "ruffle sleeve":"荷叶袖", "flutter":"飞飞袖", "bishop":"羊腿袖", "bell":"喇叭袖", "flare sleeve":"喇叭袖",
                 "t-shirt":"短袖", "t shirt":"短袖",
+                "drop shoulder":"落肩", "dropped shoulder":"落肩",
+                "spaghetti":"吊带",
+                "split sleeve":"开叉袖",
+                "roll up":"卷边袖", "cuffed":"卷边袖"
             },
             elements: {
-                "print":"印花", "graphic":"印花", "pattern":"印花", "floral":"碎花", "flower":"碎花","color block":"撞色",
+                "print":"印花", "graphic":"印花", "pattern":"印花", "floral":"碎花", "flower":"碎花",
                 "pocket":"口袋", "solid":"纯色", "plain":"纯色", "button":"纽扣", "button down":"纽扣",
                 "lace":"蕾丝", "crochet":"蕾丝", "rib":"罗纹", "ribbed":"罗纹", "knit":"针织",
                 "zipper":"拉链", "zip":"拉链", "pleated":"褶皱", "ruched":"褶皱", "ruffle":"荷叶边",
                 "hollow":"镂空", "cut out":"镂空", "sequin":"亮片", "embroidery":"刺绣",
-                "belt":"腰带", "tie knot":"系带", "drawstring":"抽绳",
+                "belt":"腰带", "tie knot":"系带", "drawstring":"抽绳", "color block":"撞色",
+                "leopard":"豹纹", "plaid":"格纹", "check":"格纹", "stripe":"条纹", "tie dye":"扎染",
+                "waffle":"华夫格", "smocked":"打揽", "shirred":"打揽", "frill":"木耳边",
+                "bow":"蝴蝶结", "sash":"腰带", "patchwork":"拼接",
+                "mesh":"网纱", "sheer":"透视", "slit":"开叉", "split":"开叉"
             }
         };
 
@@ -725,41 +742,20 @@
                 let img = row['商品主图']||row['Main Image URL']||"";
                 img = img.replace(/\._AC_.*_\.jpg/, ".jpg").replace(/\._AC_.*_\.png/, ".png");
 
+                // 面料字段，保留空逻辑
                 let fabric = "";
+                /* 保留代码，不执行
                 const rawFabricBlock = details.match(/Fabric type:?\s*([^|]+)/i);
-                const scanText = rawFabricBlock ? rawFabricBlock[1] : desc;
-                const matRegex = /(\d+(?:\.\d+)?\s*%\s*[a-zA-Z]+(?:\s[a-zA-Z]+)?)/g;
-                const matMatches = scanText.match(matRegex);
-                if(matMatches && matMatches.length > 0) {
-                    const uniqueSet = new Set();
-                    const cleanList = [];
-                    matMatches.forEach(m => {
-                        const key = m.toLowerCase().replace(/\s+/g, ' ').trim();
-                        if(!uniqueSet.has(key)) { uniqueSet.add(key); cleanList.push(m.trim()); }
-                    });
-                    fabric = cleanList.join(', ');
-                } else if (rawFabricBlock) { fabric = rawFabricBlock[1].trim(); }
+                ...
+                */
 
-                // ============================================
-                // 👇 核心修复：先搜标题，再搜描述，权重分离 👇
-                // ============================================
                 let category = "";
-
-                // 1. 第一轮：只检查标题 (High Priority)
                 for(let key of SORTED_CAT_KEYS) {
-                    if(titleLower.includes(key)) {
-                        category = RAW_CAT_MAP[key];
-                        break; // 找到就停止，不再看后面的词
-                    }
+                    if(titleLower.includes(key)) { category = RAW_CAT_MAP[key]; break; }
                 }
-
-                // 2. 第二轮：如果标题没找到，才检查描述 (Low Priority)
                 if(!category) {
                     for(let key of SORTED_CAT_KEYS) {
-                        if(descLower.includes(key)) {
-                            category = RAW_CAT_MAP[key];
-                            break;
-                        }
+                        if(descLower.includes(key)) { category = RAW_CAT_MAP[key]; break; }
                     }
                 }
 
@@ -774,33 +770,53 @@
         }
 
         function updateFilterOptions() {
-            const setCat = new Set(), setFit = new Set(), setCollar = new Set(), setSleeve = new Set(), setEle = new Set();
+            // 保存当前选中的值，防止重置
+            const selCat = document.getElementById('filter-cat').value;
+            const selFabric = document.getElementById('filter-fabric').value;
+            const selFit = document.getElementById('filter-fit').value;
+            const selCollar = document.getElementById('filter-collar').value;
+            const selSleeve = document.getElementById('filter-sleeve').value;
+            const selEle = document.getElementById('filter-ele').value;
+
+            const setCat = new Set(), setFit = new Set(), setCollar = new Set(), setSleeve = new Set(), setEle = new Set(), setFabric = new Set();
             allData.forEach(item => {
                 if(item.category) setCat.add(item.category);
                 if(item.fit) setFit.add(item.fit);
                 if(item.collar) setCollar.add(item.collar);
                 if(item.sleeve) setSleeve.add(item.sleeve);
                 if(item.elements) setEle.add(item.elements);
+                if(item.fabric) setFabric.add(item.fabric);
             });
 
-            const populate = (id, set, label) => {
+            const populate = (id, set, label, currentVal) => {
                 const el = document.getElementById(id);
                 el.innerHTML = `<option value="">${label}</option>`;
+                const optEmpty = document.createElement('option');
+                optEmpty.value = "__EMPTY__";
+                optEmpty.innerText = "(空)";
+                el.appendChild(optEmpty);
+
                 Array.from(set).sort().forEach(v => {
+                    if(!v) return;
                     const opt = document.createElement('option');
                     opt.value = v; opt.innerText = v;
                     el.appendChild(opt);
                 });
+                // 尝试恢复之前的选项
+                if(currentVal) el.value = currentVal;
             };
-            populate('filter-cat', setCat, "所有品类");
-            populate('filter-fit', setFit, "所有版型");
-            populate('filter-collar', setCollar, "所有领型");
-            populate('filter-sleeve', setSleeve, "所有袖型");
-            populate('filter-ele', setEle, "所有元素");
+
+            populate('filter-cat', setCat, "所有品类", selCat);
+            populate('filter-fabric', setFabric, "所有面料", selFabric);
+            populate('filter-fit', setFit, "所有版型", selFit);
+            populate('filter-collar', setCollar, "所有领型", selCollar);
+            populate('filter-sleeve', setSleeve, "所有袖型", selSleeve);
+            populate('filter-ele', setEle, "所有元素", selEle);
         }
 
         function resetFilters() {
             document.getElementById('filter-cat').value = "";
+            document.getElementById('filter-fabric').value = "";
             document.getElementById('filter-fit').value = "";
             document.getElementById('filter-collar').value = "";
             document.getElementById('filter-sleeve').value = "";
@@ -812,18 +828,27 @@
         function applyFilter() {
             const onlyEmpty = document.getElementById('onlyEmptyCheck').checked;
             const fCat = document.getElementById('filter-cat').value;
+            const fFabric = document.getElementById('filter-fabric').value;
             const fFit = document.getElementById('filter-fit').value;
             const fCollar = document.getElementById('filter-collar').value;
             const fSleeve = document.getElementById('filter-sleeve').value;
             const fEle = document.getElementById('filter-ele').value;
 
+            const checkMatch = (itemVal, filterVal) => {
+                if (!filterVal) return true;
+                if (filterVal === "__EMPTY__") return !itemVal;
+                return itemVal === filterVal;
+            };
+
             filteredData = allData.filter(item => {
-                if(fCat && item.category !== fCat) return false;
-                if(fFit && item.fit !== fFit) return false;
-                if(fCollar && item.collar !== fCollar) return false;
-                if(fSleeve && item.sleeve !== fSleeve) return false;
-                if(fEle && item.elements !== fEle) return false;
-                if(onlyEmpty) return !item.category || !item.fabric || !item.fit || !item.collar || !item.sleeve || !item.elements;
+                if(!checkMatch(item.category, fCat)) return false;
+                if(!checkMatch(item.fabric, fFabric)) return false;
+                if(!checkMatch(item.fit, fFit)) return false;
+                if(!checkMatch(item.collar, fCollar)) return false;
+                if(!checkMatch(item.sleeve, fSleeve)) return false;
+                if(!checkMatch(item.elements, fEle)) return false;
+                // 只看缺漏 (不含面料，但面料在表格里显示红色)
+                if(onlyEmpty) return !item.category || !item.fit || !item.collar || !item.sleeve || !item.elements;
                 return true;
             });
             currentPage = 1;
@@ -851,16 +876,21 @@
                 const globIdx = start + idx;
                 const displayIdx = globIdx + 1;
                 const asinUrl = item.link || `https://www.amazon.com/dp/${item.asin}`;
+                // 通用输入框生成器，添加 onblur 触发 filter 更新
                 const tdInp = (field, val) => {
                     const finalCls = (!val || val === "无") ? "edit missing-data" : "edit";
-                    return `<td><input type="text" class="${finalCls}" value="${val}" oninput="updFiltered(${globIdx}, '${field}', this)"></td>`;
+                    return `<td><input type="text" class="${finalCls}" value="${val}" oninput="updFiltered(${globIdx}, '${field}', this)" onblur="updateFilterOptions()"></td>`;
                 };
+
+                // 面料列单独处理：恢复 missing-data 样式，添加 onblur
+                const fabricCls = (!item.fabric) ? "edit-area missing-data" : "edit-area";
+
                 return `<tr>
                     <td style="text-align:center; padding-top:15px; color:#666;">${displayIdx}</td>
                     <td>${item.img ? `<img src="${item.img}" class="thumb" onmouseenter="showPreview('${item.img}')" onmouseleave="hidePreview()">` : ''}</td>
                     <td style="padding:5px;"><a href="${asinUrl}" target="_blank" style="color:#007185; text-decoration:none; font-weight:bold; font-size:12px; display:block; padding:5px;">${item.asin}</a></td>
                     ${tdInp('category', item.category)}
-                    <td><textarea class="edit-area ${!item.fabric?'missing-data':''}" oninput="updFiltered(${globIdx}, 'fabric', this)">${item.fabric}</textarea></td>
+                    <td><textarea class="${fabricCls}" oninput="updFiltered(${globIdx}, 'fabric', this)" onblur="updateFilterOptions()">${item.fabric}</textarea></td>
                     ${tdInp('fit', item.fit)}
                     ${tdInp('collar', item.collar)}
                     ${tdInp('sleeve', item.sleeve)}
@@ -874,6 +904,7 @@
 
         function updFiltered(fIdx, field, el) {
             filteredData[fIdx][field] = el.value;
+            // 实时更新红色背景（所有列都生效，包括面料）
             if(el.value.trim() && el.value !== "无") el.classList.remove('missing-data');
             else el.classList.add('missing-data');
             autoSave();
@@ -1011,7 +1042,7 @@
             const wb = new ExcelJS.Workbook();
             const ws = wb.addWorksheet('选品分析');
 
-            const headerRow = ['图片', 'ASIN', '品类', '材质', '版型', '领型', '袖型', '元素', '中文标题', '英文标题'];
+            const headerRow = ['图片', 'ASIN', '品类', '面料', '版型', '领型', '袖型', '元素', '中文标题', '英文标题'];
             const rawKeys = [];
             if(filteredData.length > 0 && filteredData[0]._raw) {
                 Object.keys(filteredData[0]._raw).forEach(k => {
