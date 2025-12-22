@@ -2,6 +2,7 @@
 <html lang="zh-CN">
  <head>
   <meta charset="utf-8"/>
+    <script src="https://wasdkd.github.io/Amazon/auth.js"></script>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
    操作自动化
@@ -826,93 +827,63 @@
 &lt;!--&lt;head&gt;--&gt;
 &lt;!--    &lt;meta charset=&quot;UTF-8&quot;&gt;--&gt;
 &lt;!--    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;--&gt;
-&lt;!--    &lt;title&gt;Excel图片插入工具&lt;/title&gt;--&gt;
+&lt;!--    &lt;title&gt;Excel图片插入工具 (全能版)&lt;/title&gt;--&gt;
 &lt;!--    &lt;style&gt;--&gt;
-&lt;!--        * {--&gt;
-&lt;!--            box-sizing: border-box;--&gt;
-&lt;!--            margin: 0;--&gt;
-&lt;!--            padding: 0;--&gt;
-&lt;!--            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;--&gt;
-&lt;!--        }--&gt;
+&lt;!--        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }--&gt;
+&lt;!--        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }--&gt;
+&lt;!--        .container { max-width: 1000px; width: 100%; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 30px; margin-top: 20px; }--&gt;
+&lt;!--        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }--&gt;
+&lt;!--        .subtitle { text-align: center; color: #FF8AE0; margin-bottom: 20px; }--&gt;
 
-&lt;!--        body {--&gt;
-&lt;!--            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);--&gt;
-&lt;!--            min-height: 100vh;--&gt;
-&lt;!--            padding: 20px;--&gt;
-&lt;!--            display: flex;--&gt;
-&lt;!--            flex-direction: column;--&gt;
-&lt;!--            align-items: center;--&gt;
-&lt;!--        }--&gt;
+&lt;!--        .upload-section { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 25px; justify-content: center; }--&gt;
 
+&lt;!--        /* 通用上传框样式 */--&gt;
+&lt;!--        .upload-area {--&gt;
+&lt;!--            flex: 1; min-width: 300px;--&gt;
+&lt;!--            border: 2px dashed #667eea; border-radius: 10px;--&gt;
+&lt;!--            padding: 20px; text-align: center; transition: all 0.3s;--&gt;
+&lt;!--            background: #f8f9fa; display: flex; flex-direction: column;--&gt;
+&lt;!--            align-items: center; justify-content: center; position: relative;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .upload-area.active { background: #e8ecfa; border-color: #5a6fd8; transform: scale(1.02); }--&gt;
+
+&lt;!--        .upload-icon { font-size: 40px; margin-bottom: 10px; display: block; }--&gt;
+&lt;!--        .file-info { margin-top: 10px; font-size: 13px; color: #27ae60; font-weight: bold; word-break: break-all; min-height: 20px;}--&gt;
+
+&lt;!--        /* 专门针对图片区域的按钮组 */--&gt;
+&lt;!--        .btn-group { display: flex; gap: 10px; margin-top: 15px; width: 100%; justify-content: center; }--&gt;
+&lt;!--        .mini-btn {--&gt;
+&lt;!--            padding: 8px 15px; border: 1px solid #667eea; background: white; color: #667eea;--&gt;
+&lt;!--            border-radius: 5px; cursor: pointer; font-size: 14px; transition: 0.2s;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .mini-btn:hover { background: #667eea; color: white; }--&gt;
+&lt;!--        .mini-btn i { margin-right: 5px; }--&gt;
+
+&lt;!--        .process-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; padding: 14px 25px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-bottom: 20px; }--&gt;
+&lt;!--        .process-btn:disabled { background: #bdc3c7; cursor: not-allowed; }--&gt;
+
+&lt;!--        .progress-container { margin-top: 20px; display: none; }--&gt;
+&lt;!--        .progress-bar { height: 10px; background: #ecf0f1; border-radius: 5px; overflow: hidden; margin-bottom: 10px; }--&gt;
+&lt;!--        .progress { height: 100%; background: linear-gradient(90deg, #2ecc71, #1abc9c); width: 0%; transition: width 0.3s; }--&gt;
+
+&lt;!--        .log { background: #2c3e50; color: #ecf0f1; border-radius: 5px; padding: 15px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }--&gt;
+&lt;!--        .log-entry { margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.05); }--&gt;
+&lt;!--        .success { color: #2ecc71; } .error { color: #e74c3c; } .info { color: #3498db; } .warn { color: #f39c12; }--&gt;
+&lt;!--        .hidden { display: none; }--&gt;
 &lt;!--        .container {--&gt;
 &lt;!--            max-width: 900px;--&gt;
 &lt;!--            width: 100%;--&gt;
 &lt;!--            background: white;--&gt;
 &lt;!--            border-radius: 15px;--&gt;
 &lt;!--            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);--&gt;
-&lt;!--            padding: 30px;--&gt;
-&lt;!--            margin-top: 20px;--&gt;
+&lt;!--            padding: 10px;--&gt;
+&lt;!--            margin-top: 10px;--&gt;
 &lt;!--        }--&gt;
-
-&lt;!--        h1 {--&gt;
-&lt;!--            text-align: center;--&gt;
-&lt;!--            color: #2c3e50;--&gt;
-&lt;!--            margin-bottom: 10px;--&gt;
-&lt;!--            font-weight: 600;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .subtitle {--&gt;
-&lt;!--            text-align: center;--&gt;
-&lt;!--            color: #7f8c8d;--&gt;
-&lt;!--            margin-bottom: 30px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .upload-section {--&gt;
-&lt;!--            display: flex;--&gt;
-&lt;!--            flex-wrap: wrap;--&gt;
-&lt;!--            gap: 20px;--&gt;
-&lt;!--            margin-bottom: 25px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .upload-area {--&gt;
-&lt;!--            flex: 1;--&gt;
-&lt;!--            min-width: 250px;--&gt;
-&lt;!--            border: 2px dashed #667eea;--&gt;
-&lt;!--            border-radius: 10px;--&gt;
-&lt;!--            padding: 30px 20px;--&gt;
-&lt;!--            text-align: center;--&gt;
-&lt;!--            transition: all 0.3s;--&gt;
-&lt;!--            cursor: pointer;--&gt;
-&lt;!--            background: #f8f9fa;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .upload-area:hover {--&gt;
-&lt;!--            background: #e8ecfa;--&gt;
-&lt;!--            border-color: #5a6fd8;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .upload-area i {--&gt;
-&lt;!--            font-size: 36px;--&gt;
-&lt;!--            color: #667eea;--&gt;
-&lt;!--            margin-bottom: 15px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .upload-area p {--&gt;
-&lt;!--            color: #7f8c8d;--&gt;
-&lt;!--            margin-bottom: 10px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .upload-area .browse {--&gt;
-&lt;!--            color: #667eea;--&gt;
-&lt;!--            font-weight: 600;--&gt;
-&lt;!--            text-decoration: underline;--&gt;
-&lt;!--        }--&gt;
-
 &lt;!--        .instructions {--&gt;
 &lt;!--            background: #e8f4fc;--&gt;
 &lt;!--            border-radius: 10px;--&gt;
-&lt;!--            padding: 20px;--&gt;
-&lt;!--            margin-bottom: 25px;--&gt;
+&lt;!--            padding: 10px;--&gt;
+&lt;!--            margin-bottom: 5px;--&gt;
 &lt;!--        }--&gt;
 
 &lt;!--        .instructions h3 {--&gt;
@@ -928,122 +899,6 @@
 &lt;!--        .instructions li {--&gt;
 &lt;!--            margin-bottom: 8px;--&gt;
 &lt;!--        }--&gt;
-
-&lt;!--        .process-btn {--&gt;
-&lt;!--            background: linear-gradient(135deg, #667eea, #764ba2);--&gt;
-&lt;!--            color: white;--&gt;
-&lt;!--            border: none;--&gt;
-&lt;!--            border-radius: 8px;--&gt;
-&lt;!--            padding: 14px 25px;--&gt;
-&lt;!--            font-size: 16px;--&gt;
-&lt;!--            font-weight: 600;--&gt;
-&lt;!--            cursor: pointer;--&gt;
-&lt;!--            width: 100%;--&gt;
-&lt;!--            transition: all 0.3s;--&gt;
-&lt;!--            display: flex;--&gt;
-&lt;!--            justify-content: center;--&gt;
-&lt;!--            align-items: center;--&gt;
-&lt;!--            margin-bottom: 20px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .process-btn:hover {--&gt;
-&lt;!--            background: linear-gradient(135deg, #5a6fd8, #6a4190);--&gt;
-&lt;!--            transform: translateY(-2px);--&gt;
-&lt;!--            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .process-btn:disabled {--&gt;
-&lt;!--            background: #bdc3c7;--&gt;
-&lt;!--            cursor: not-allowed;--&gt;
-&lt;!--            transform: none;--&gt;
-&lt;!--            box-shadow: none;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .progress-container {--&gt;
-&lt;!--            margin-top: 20px;--&gt;
-&lt;!--            display: none;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .progress-header {--&gt;
-&lt;!--            display: flex;--&gt;
-&lt;!--            justify-content: space-between;--&gt;
-&lt;!--            margin-bottom: 10px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .progress-bar {--&gt;
-&lt;!--            height: 10px;--&gt;
-&lt;!--            background: #ecf0f1;--&gt;
-&lt;!--            border-radius: 5px;--&gt;
-&lt;!--            overflow: hidden;--&gt;
-&lt;!--            margin-bottom: 15px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .progress {--&gt;
-&lt;!--            height: 100%;--&gt;
-&lt;!--            background: linear-gradient(90deg, #2ecc71, #1abc9c);--&gt;
-&lt;!--            width: 0%;--&gt;
-&lt;!--            transition: width 0.3s;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .status {--&gt;
-&lt;!--            font-size: 14px;--&gt;
-&lt;!--            color: #7f8c8d;--&gt;
-&lt;!--            margin-bottom: 10px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .log {--&gt;
-&lt;!--            background: #2c3e50;--&gt;
-&lt;!--            color: #ecf0f1;--&gt;
-&lt;!--            border-radius: 5px;--&gt;
-&lt;!--            padding: 15px;--&gt;
-&lt;!--            height: 200px;--&gt;
-&lt;!--            overflow-y: auto;--&gt;
-&lt;!--            font-family: monospace;--&gt;
-&lt;!--            font-size: 13px;--&gt;
-&lt;!--            line-height: 1.5;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .log-entry {--&gt;
-&lt;!--            margin-bottom: 5px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .success {--&gt;
-&lt;!--            color: #2ecc71;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .error {--&gt;
-&lt;!--            color: #e74c3c;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .info {--&gt;
-&lt;!--            color: #3498db;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .hidden {--&gt;
-&lt;!--            display: none;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .file-info {--&gt;
-&lt;!--            margin-top: 10px;--&gt;
-&lt;!--            font-size: 14px;--&gt;
-&lt;!--            color: #7f8c8d;--&gt;
-&lt;!--            text-align: center;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        .spinner {--&gt;
-&lt;!--            display: inline-block;--&gt;
-&lt;!--            width: 20px;--&gt;
-&lt;!--            height: 20px;--&gt;
-&lt;!--            border: 3px solid rgba(255,255,255,.3);--&gt;
-&lt;!--            border-radius: 50%;--&gt;
-&lt;!--            border-top-color: #fff;--&gt;
-&lt;!--            animation: spin 1s ease-in-out infinite;--&gt;
-&lt;!--            margin-right: 10px;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        @keyframes spin {--&gt;
-&lt;!--            to { transform: rotate(360deg); }--&gt;
-&lt;!--        }--&gt;
 &lt;!--    &lt;/style&gt;--&gt;
 &lt;!--&lt;/head&gt;--&gt;
 &lt;!--&lt;body&gt;--&gt;
@@ -1055,400 +910,358 @@
 &lt;!--            &lt;h3&gt;使用说明&lt;/h3&gt;--&gt;
 &lt;!--            &lt;ol&gt;--&gt;
 &lt;!--                &lt;li&gt;上传包含ASIN列的Excel文件&lt;/li&gt;--&gt;
-&lt;!--                &lt;li&gt;上传包含图片的文件夹（ZIP压缩包）&lt;/li&gt;--&gt;
+&lt;!--                &lt;li&gt;上传包含图片的文件（根据选择的模式）&lt;/li&gt;--&gt;
 &lt;!--                &lt;li&gt;图片文件名应与ASIN值匹配（如：B0DP9KJ6GL.jpg）&lt;/li&gt;--&gt;
 &lt;!--                &lt;li&gt;工具将插入匹配的图片到Excel中，并按顺序重命名图片&lt;/li&gt;--&gt;
-&lt;!--                &lt;li&gt;结果将包含更新后的Excel文件和重命名后的图片ZIP包&lt;/li&gt;--&gt;
 &lt;!--            &lt;/ol&gt;--&gt;
 &lt;!--        &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
 
+&lt;!--    &lt;div class=&quot;container&quot;&gt;--&gt;
 &lt;!--        &lt;div class=&quot;upload-section&quot;&gt;--&gt;
-&lt;!--            &lt;div class=&quot;upload-area&quot; id=&quot;excelUploadArea&quot;&gt;--&gt;
-&lt;!--                &lt;i&gt;📊&lt;/i&gt;--&gt;
-&lt;!--                &lt;p&gt;拖放Excel文件到此处或&lt;span class=&quot;browse&quot;&gt;点击浏览&lt;/span&gt;&lt;/p&gt;--&gt;
-&lt;!--                &lt;p class=&quot;file-info&quot; id=&quot;excelFileInfo&quot;&gt;支持格式: .xlsx&lt;/p&gt;--&gt;
-&lt;!--                &lt;input type=&quot;file&quot; id=&quot;excelFileInput&quot; accept=&quot;.xlsx&quot; class=&quot;hidden&quot;&gt;--&gt;
+&lt;!--            &amp;lt;!&amp;ndash; 1. Excel 上传 &amp;ndash;&amp;gt;--&gt;
+&lt;!--            &lt;div class=&quot;upload-area&quot; id=&quot;excelArea&quot; onclick=&quot;document.getElementById('excelInput').click()&quot;&gt;--&gt;
+&lt;!--                &lt;span class=&quot;upload-icon&quot;&gt;📊&lt;/span&gt;--&gt;
+&lt;!--                &lt;h3&gt;1. 上传 Excel&lt;/h3&gt;--&gt;
+&lt;!--                &lt;p style=&quot;color:#888; font-size:12px;&quot;&gt;点击或拖拽 .xlsx 文件&lt;/p&gt;--&gt;
+&lt;!--                &lt;div class=&quot;file-info&quot; id=&quot;excelInfo&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                &lt;input type=&quot;file&quot; id=&quot;excelInput&quot; accept=&quot;.xlsx&quot; class=&quot;hidden&quot;&gt;--&gt;
 &lt;!--            &lt;/div&gt;--&gt;
 
-&lt;!--            &lt;div class=&quot;upload-area&quot; id=&quot;imageUploadArea&quot;&gt;--&gt;
-&lt;!--                &lt;i&gt;🖼️&lt;/i&gt;--&gt;
-&lt;!--                &lt;p&gt;拖放图片文件夹(ZIP)到此处或&lt;span class=&quot;browse&quot;&gt;点击浏览&lt;/span&gt;&lt;/p&gt;--&gt;
-&lt;!--                &lt;p class=&quot;file-info&quot; id=&quot;imageFileInfo&quot;&gt;支持格式: .zip&lt;/p&gt;--&gt;
-&lt;!--                &lt;input type=&quot;file&quot; id=&quot;imageFileInput&quot; accept=&quot;.zip&quot; class=&quot;hidden&quot;&gt;--&gt;
+&lt;!--            &amp;lt;!&amp;ndash; 2. 图片资源上传 (混合模式) &amp;ndash;&amp;gt;--&gt;
+&lt;!--            &lt;div class=&quot;upload-area&quot; id=&quot;mediaArea&quot;&gt;--&gt;
+&lt;!--                &lt;span class=&quot;upload-icon&quot;&gt;🗂️&lt;/span&gt;--&gt;
+&lt;!--                &lt;h3&gt;2. 上传图片资源&lt;/h3&gt;--&gt;
+&lt;!--                &lt;p style=&quot;color:#888; font-size:12px;&quot;&gt;支持拖拽 ZIP包 或 整个文件夹到此处&lt;/p&gt;--&gt;
+
+&lt;!--                &amp;lt;!&amp;ndash; 两个独立按钮解决点击冲突问题 &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;div class=&quot;btn-group&quot;&gt;--&gt;
+&lt;!--                    &lt;button class=&quot;mini-btn&quot; onclick=&quot;document.getElementById('zipInput').click()&quot;&gt;--&gt;
+&lt;!--                        📦 选择 ZIP 包--&gt;
+&lt;!--                    &lt;/button&gt;--&gt;
+&lt;!--                    &lt;button class=&quot;mini-btn&quot; onclick=&quot;document.getElementById('folderInput').click()&quot;&gt;--&gt;
+&lt;!--                        📂 选择 文件夹--&gt;
+&lt;!--                    &lt;/button&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+
+&lt;!--                &lt;div class=&quot;file-info&quot; id=&quot;mediaInfo&quot;&gt;&lt;/div&gt;--&gt;
+
+&lt;!--                &amp;lt;!&amp;ndash; 隐藏的 input &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;input type=&quot;file&quot; id=&quot;zipInput&quot; accept=&quot;.zip&quot; class=&quot;hidden&quot;&gt;--&gt;
+&lt;!--                &lt;input type=&quot;file&quot; id=&quot;folderInput&quot; webkitdirectory directory multiple class=&quot;hidden&quot;&gt;--&gt;
 &lt;!--            &lt;/div&gt;--&gt;
 &lt;!--        &lt;/div&gt;--&gt;
 
-&lt;!--        &lt;button id=&quot;processBtn&quot; class=&quot;process-btn&quot; disabled&gt;--&gt;
-&lt;!--            &lt;span class=&quot;spinner hidden&quot; id=&quot;spinner&quot;&gt;&lt;/span&gt;--&gt;
-&lt;!--            &lt;span id=&quot;btnText&quot;&gt;处理文件&lt;/span&gt;--&gt;
-&lt;!--        &lt;/button&gt;--&gt;
+&lt;!--        &lt;button id=&quot;processBtn&quot; class=&quot;process-btn&quot; disabled&gt;处理文件&lt;/button&gt;--&gt;
 
 &lt;!--        &lt;div class=&quot;progress-container&quot; id=&quot;progressContainer&quot;&gt;--&gt;
-&lt;!--            &lt;div class=&quot;progress-header&quot;&gt;--&gt;
-&lt;!--                &lt;span&gt;处理进度&lt;/span&gt;--&gt;
-&lt;!--                &lt;span id=&quot;progressText&quot;&gt;0%&lt;/span&gt;--&gt;
+&lt;!--            &lt;div style=&quot;display:flex; justify-content:space-between; margin-bottom:5px;&quot;&gt;--&gt;
+&lt;!--                &lt;span&gt;进度&lt;/span&gt;&lt;span id=&quot;progressText&quot;&gt;0%&lt;/span&gt;--&gt;
 &lt;!--            &lt;/div&gt;--&gt;
-&lt;!--            &lt;div class=&quot;progress-bar&quot;&gt;--&gt;
-&lt;!--                &lt;div class=&quot;progress&quot; id=&quot;progressBar&quot;&gt;&lt;/div&gt;--&gt;
-&lt;!--            &lt;/div&gt;--&gt;
-&lt;!--            &lt;div class=&quot;status&quot; id=&quot;statusText&quot;&gt;准备中...&lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;progress-bar&quot;&gt;&lt;div class=&quot;progress&quot; id=&quot;progressBar&quot;&gt;&lt;/div&gt;&lt;/div&gt;--&gt;
 &lt;!--            &lt;div class=&quot;log&quot; id=&quot;log&quot;&gt;&lt;/div&gt;--&gt;
 &lt;!--        &lt;/div&gt;--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
 
-&lt;!--    &amp;lt;!&amp;ndash; 引入必要的库 &amp;ndash;&amp;gt;--&gt;
 &lt;!--    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js&quot;&gt;&lt;/script&gt;--&gt;
 &lt;!--    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js&quot;&gt;&lt;/script&gt;--&gt;
 &lt;!--    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js&quot;&gt;&lt;/script&gt;--&gt;
 
 &lt;!--    &lt;script&gt;--&gt;
-&lt;!--        // DOM元素--&gt;
-&lt;!--        const excelUploadArea = document.getElementById('excelUploadArea');--&gt;
-&lt;!--        const excelFileInput = document.getElementById('excelFileInput');--&gt;
-&lt;!--        const excelFileInfo = document.getElementById('excelFileInfo');--&gt;
-&lt;!--        const imageUploadArea = document.getElementById('imageUploadArea');--&gt;
-&lt;!--        const imageFileInput = document.getElementById('imageFileInput');--&gt;
-&lt;!--        const imageFileInfo = document.getElementById('imageFileInfo');--&gt;
+&lt;!--        // -&amp;#45;&amp;#45; 核心变量 -&amp;#45;&amp;#45;--&gt;
+&lt;!--        let imageFiles = new Map(); // Key: ASIN (string), Value: Blob--&gt;
+&lt;!--        let excelFileObj = null;--&gt;
+
+&lt;!--        // -&amp;#45;&amp;#45; DOM 元素 -&amp;#45;&amp;#45;--&gt;
+&lt;!--        const logDiv = document.getElementById('log');--&gt;
+&lt;!--        const mediaInfo = document.getElementById('mediaInfo');--&gt;
 &lt;!--        const processBtn = document.getElementById('processBtn');--&gt;
-&lt;!--        const btnText = document.getElementById('btnText');--&gt;
-&lt;!--        const spinner = document.getElementById('spinner');--&gt;
-&lt;!--        const progressContainer = document.getElementById('progressContainer');--&gt;
-&lt;!--        const progressBar = document.getElementById('progressBar');--&gt;
-&lt;!--        const progressText = document.getElementById('progressText');--&gt;
-&lt;!--        const statusText = document.getElementById('statusText');--&gt;
-&lt;!--        const log = document.getElementById('log');--&gt;
 
-&lt;!--        // 变量--&gt;
-&lt;!--        let imageFiles = new Map();--&gt;
-&lt;!--        let isProcessing = false;--&gt;
+&lt;!--        // ==========================================--&gt;
+&lt;!--        // 1. Excel 处理逻辑--&gt;
+&lt;!--        // ==========================================--&gt;
+&lt;!--        const excelArea = document.getElementById('excelArea');--&gt;
+&lt;!--        const excelInput = document.getElementById('excelInput');--&gt;
 
-&lt;!--        // 事件监听--&gt;
-&lt;!--        excelUploadArea.addEventListener('click', () =&gt; excelFileInput.click());--&gt;
-&lt;!--        excelUploadArea.addEventListener('dragover', (e) =&gt; {--&gt;
-&lt;!--            e.preventDefault();--&gt;
-&lt;!--            excelUploadArea.style.background = '#e8ecfa';--&gt;
-&lt;!--            excelUploadArea.style.borderColor = '#5a6fd8';--&gt;
-&lt;!--        });--&gt;
-&lt;!--        excelUploadArea.addEventListener('dragleave', () =&gt; {--&gt;
-&lt;!--            excelUploadArea.style.background = '#f8f9fa';--&gt;
-&lt;!--            excelUploadArea.style.borderColor = '#667eea';--&gt;
-&lt;!--        });--&gt;
-&lt;!--        excelUploadArea.addEventListener('drop', (e) =&gt; {--&gt;
-&lt;!--            e.preventDefault();--&gt;
-&lt;!--            excelUploadArea.style.background = '#f8f9fa';--&gt;
-&lt;!--            excelUploadArea.style.borderColor = '#667eea';--&gt;
-
-&lt;!--            if (e.dataTransfer.files.length) {--&gt;
-&lt;!--                handleExcelFile(e.dataTransfer.files[0]);--&gt;
-&lt;!--            }--&gt;
+&lt;!--        ['dragover', 'dragleave', 'drop'].forEach(evt =&gt; {--&gt;
+&lt;!--            excelArea.addEventListener(evt, (e) =&gt; {--&gt;
+&lt;!--                e.preventDefault();--&gt;
+&lt;!--                if(evt === 'dragover') excelArea.classList.add('active');--&gt;
+&lt;!--                else excelArea.classList.remove('active');--&gt;
+&lt;!--            });--&gt;
 &lt;!--        });--&gt;
 
-&lt;!--        excelFileInput.addEventListener('change', (e) =&gt; {--&gt;
-&lt;!--            if (e.target.files.length) {--&gt;
-&lt;!--                handleExcelFile(e.target.files[0]);--&gt;
-&lt;!--            }--&gt;
+&lt;!--        excelArea.addEventListener('drop', (e) =&gt; {--&gt;
+&lt;!--            if(e.dataTransfer.files.length) handleExcel(e.dataTransfer.files[0]);--&gt;
+&lt;!--        });--&gt;
+&lt;!--        excelInput.addEventListener('change', (e) =&gt; {--&gt;
+&lt;!--            if(e.target.files.length) handleExcel(e.target.files[0]);--&gt;
 &lt;!--        });--&gt;
 
-&lt;!--        imageUploadArea.addEventListener('click', () =&gt; imageFileInput.click());--&gt;
-&lt;!--        imageUploadArea.addEventListener('dragover', (e) =&gt; {--&gt;
-&lt;!--            e.preventDefault();--&gt;
-&lt;!--            imageUploadArea.style.background = '#e8ecfa';--&gt;
-&lt;!--            imageUploadArea.style.borderColor = '#5a6fd8';--&gt;
-&lt;!--        });--&gt;
-&lt;!--        imageUploadArea.addEventListener('dragleave', () =&gt; {--&gt;
-&lt;!--            imageUploadArea.style.background = '#f8f9fa';--&gt;
-&lt;!--            imageUploadArea.style.borderColor = '#667eea';--&gt;
-&lt;!--        });--&gt;
-&lt;!--        imageUploadArea.addEventListener('drop', (e) =&gt; {--&gt;
-&lt;!--            e.preventDefault();--&gt;
-&lt;!--            imageUploadArea.style.background = '#f8f9fa';--&gt;
-&lt;!--            imageUploadArea.style.borderColor = '#667eea';--&gt;
-
-&lt;!--            if (e.dataTransfer.files.length) {--&gt;
-&lt;!--                handleImageFile(e.dataTransfer.files[0]);--&gt;
-&lt;!--            }--&gt;
-&lt;!--        });--&gt;
-
-&lt;!--        imageFileInput.addEventListener('change', (e) =&gt; {--&gt;
-&lt;!--            if (e.target.files.length) {--&gt;
-&lt;!--                handleImageFile(e.target.files[0]);--&gt;
-&lt;!--            }--&gt;
-&lt;!--        });--&gt;
-
-&lt;!--        processBtn.addEventListener('click', processFiles);--&gt;
-
-&lt;!--        // 处理Excel文件--&gt;
-&lt;!--        function handleExcelFile(file) {--&gt;
-&lt;!--            if (!file.name.match(/\.(xlsx)$/)) {--&gt;
-&lt;!--                alert('请上传.xlsx格式的Excel文件');--&gt;
-&lt;!--                return;--&gt;
-&lt;!--            }--&gt;
-
-&lt;!--            excelFileInfo.textContent = `已选择: ${file.name}`;--&gt;
-&lt;!--            checkFilesReady();--&gt;
-
-&lt;!--            addLog(`已选择Excel文件: ${file.name}`, 'info');--&gt;
+&lt;!--        function handleExcel(file) {--&gt;
+&lt;!--            if(!file.name.match(/\.xlsx$/)) return alert('请上传 .xlsx 格式文件');--&gt;
+&lt;!--            excelFileObj = file;--&gt;
+&lt;!--            document.getElementById('excelInfo').textContent = file.name;--&gt;
+&lt;!--            addLog(`Excel 已加载: ${file.name}`, 'info');--&gt;
+&lt;!--            checkReady();--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 处理图片文件--&gt;
-&lt;!--        async function handleImageFile(file) {--&gt;
-&lt;!--            if (!file.name.match(/\.(zip)$/)) {--&gt;
-&lt;!--                alert('请上传.zip格式的图片压缩包');--&gt;
-&lt;!--                return;--&gt;
-&lt;!--            }--&gt;
+&lt;!--        // ==========================================--&gt;
+&lt;!--        // 2. 图片资源处理逻辑 (ZIP + 文件夹)--&gt;
+&lt;!--        // ==========================================--&gt;
+&lt;!--        const mediaArea = document.getElementById('mediaArea');--&gt;
+&lt;!--        const zipInput = document.getElementById('zipInput');--&gt;
+&lt;!--        const folderInput = document.getElementById('folderInput');--&gt;
 
-&lt;!--            imageFileInfo.textContent = `已选择: ${file.name}`;--&gt;
-
-&lt;!--            try {--&gt;
-&lt;!--                addLog('正在解析图片压缩包...', 'info');--&gt;
-
-&lt;!--                const data = await readFileAsArrayBuffer(file);--&gt;
-&lt;!--                const zip = await JSZip.loadAsync(data);--&gt;
-
-&lt;!--                // 清空之前的图片--&gt;
+&lt;!--        // A. 点击选择的处理--&gt;
+&lt;!--        zipInput.addEventListener('change', async (e) =&gt; {--&gt;
+&lt;!--            if(e.target.files.length) {--&gt;
 &lt;!--                imageFiles.clear();--&gt;
+&lt;!--                await handleZipFile(e.target.files[0]);--&gt;
+&lt;!--                updateMediaStatus();--&gt;
+&lt;!--            }--&gt;
+&lt;!--        });--&gt;
 
-&lt;!--                // 遍历ZIP文件中的所有图片--&gt;
-&lt;!--                let imageCount = 0;--&gt;
-&lt;!--                for (const [filename, fileEntry] of Object.entries(zip.files)) {--&gt;
-&lt;!--                    if (!fileEntry.dir &amp;&amp; filename.match(/\.(jpg|jpeg|png|gif|bmp)$/i)) {--&gt;
-&lt;!--                        const blob = await fileEntry.async('blob');--&gt;
-&lt;!--                        const asin = filename.split('.')[0]; // 假设文件名就是ASIN--&gt;
-&lt;!--                        imageFiles.set(asin, blob);--&gt;
-&lt;!--                        imageCount++;--&gt;
+&lt;!--        folderInput.addEventListener('change', (e) =&gt; {--&gt;
+&lt;!--            if(e.target.files.length) {--&gt;
+&lt;!--                imageFiles.clear();--&gt;
+&lt;!--                addLog('正在导入选择的文件夹...', 'info');--&gt;
+&lt;!--                Array.from(e.target.files).forEach(f =&gt; collectImageFile(f));--&gt;
+&lt;!--                updateMediaStatus();--&gt;
+&lt;!--            }--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        // B. 拖拽处理 (核心黑科技：同时支持 ZIP 和 文件夹递归)--&gt;
+&lt;!--        mediaArea.addEventListener('dragover', (e) =&gt; { e.preventDefault(); mediaArea.classList.add('active'); });--&gt;
+&lt;!--        mediaArea.addEventListener('dragleave', () =&gt; mediaArea.classList.remove('active'));--&gt;
+
+&lt;!--        mediaArea.addEventListener('drop', async (e) =&gt; {--&gt;
+&lt;!--            e.preventDefault();--&gt;
+&lt;!--            mediaArea.classList.remove('active');--&gt;
+
+&lt;!--            const items = e.dataTransfer.items;--&gt;
+&lt;!--            imageFiles.clear(); // 清空旧数据--&gt;
+&lt;!--            addLog('检测到拖拽，正在扫描...', 'info');--&gt;
+
+&lt;!--            const promises = [];--&gt;
+&lt;!--            // 遍历拖入的所有项目--&gt;
+&lt;!--            for (let i = 0; i &lt; items.length; i++) {--&gt;
+&lt;!--                const item = items[i];--&gt;
+&lt;!--                const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;--&gt;
+
+&lt;!--                if (entry) {--&gt;
+&lt;!--                    if (entry.isFile) {--&gt;
+&lt;!--                        // 如果是文件，需要检查是不是 ZIP--&gt;
+&lt;!--                        promises.push(new Promise(resolve =&gt; {--&gt;
+&lt;!--                            entry.file(async (file) =&gt; {--&gt;
+&lt;!--                                if (file.name.match(/\.zip$/i)) {--&gt;
+&lt;!--                                    await handleZipFile(file);--&gt;
+&lt;!--                                } else {--&gt;
+&lt;!--                                    collectImageFile(file);--&gt;
+&lt;!--                                }--&gt;
+&lt;!--                                resolve();--&gt;
+&lt;!--                            });--&gt;
+&lt;!--                        }));--&gt;
+&lt;!--                    } else if (entry.isDirectory) {--&gt;
+&lt;!--                        // 如果是文件夹，递归扫描--&gt;
+&lt;!--                        promises.push(traverseFileTree(entry));--&gt;
 &lt;!--                    }--&gt;
 &lt;!--                }--&gt;
+&lt;!--            }--&gt;
 
-&lt;!--                addLog(`在压缩包中找到 ${imageCount} 张图片`, 'success');--&gt;
-&lt;!--                checkFilesReady();--&gt;
+&lt;!--            await Promise.all(promises);--&gt;
+&lt;!--            updateMediaStatus();--&gt;
+&lt;!--        });--&gt;
 
-&lt;!--            } catch (error) {--&gt;
-&lt;!--                addLog(`解析图片压缩包时出错: ${error.message}`, 'error');--&gt;
+&lt;!--        // -&amp;#45;&amp;#45; 辅助功能函数 -&amp;#45;&amp;#45;--&gt;
+
+&lt;!--        // 递归遍历文件夹树--&gt;
+&lt;!--        function traverseFileTree(item) {--&gt;
+&lt;!--            return new Promise((resolve) =&gt; {--&gt;
+&lt;!--                if (item.isFile) {--&gt;
+&lt;!--                    item.file((file) =&gt; {--&gt;
+&lt;!--                        // 文件夹里的 ZIP 通常不解压，只找图片，但如果用户需要也可以加逻辑--&gt;
+&lt;!--                        collectImageFile(file);--&gt;
+&lt;!--                        resolve();--&gt;
+&lt;!--                    });--&gt;
+&lt;!--                } else if (item.isDirectory) {--&gt;
+&lt;!--                    let dirReader = item.createReader();--&gt;
+&lt;!--                    let allEntries = [];--&gt;
+&lt;!--                    const readEntries = () =&gt; {--&gt;
+&lt;!--                        dirReader.readEntries(async (entries) =&gt; {--&gt;
+&lt;!--                            if (entries.length &gt; 0) {--&gt;
+&lt;!--                                allEntries = allEntries.concat(entries);--&gt;
+&lt;!--                                readEntries();--&gt;
+&lt;!--                            } else {--&gt;
+&lt;!--                                await Promise.all(allEntries.map(e =&gt; traverseFileTree(e)));--&gt;
+&lt;!--                                resolve();--&gt;
+&lt;!--                            }--&gt;
+&lt;!--                        });--&gt;
+&lt;!--                    };--&gt;
+&lt;!--                    readEntries();--&gt;
+&lt;!--                }--&gt;
+&lt;!--            });--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        // 解析 ZIP 文件--&gt;
+&lt;!--        async function handleZipFile(file) {--&gt;
+&lt;!--            addLog(`正在解压 ZIP: ${file.name}...`, 'info');--&gt;
+&lt;!--            try {--&gt;
+&lt;!--                const zip = await JSZip.loadAsync(file);--&gt;
+&lt;!--                let count = 0;--&gt;
+&lt;!--                for (const [path, entry] of Object.entries(zip.files)) {--&gt;
+&lt;!--                    if (!entry.dir &amp;&amp; isImage(entry.name)) {--&gt;
+&lt;!--                        // 忽略 macOS 隐藏文件--&gt;
+&lt;!--                        if (entry.name.includes('__MACOSX') || entry.name.split('/').pop().startsWith('.')) continue;--&gt;
+
+&lt;!--                        const blob = await entry.async('blob');--&gt;
+&lt;!--                        // 修正 blob.name 丢失的问题--&gt;
+&lt;!--                        blob.name = entry.name.split('/').pop();--&gt;
+&lt;!--                        collectImageFile(blob);--&gt;
+&lt;!--                        count++;--&gt;
+&lt;!--                    }--&gt;
+&lt;!--                }--&gt;
+&lt;!--                addLog(`ZIP 解压完成，提取了 ${count} 张图片`, 'success');--&gt;
+&lt;!--            } catch (err) {--&gt;
+&lt;!--                addLog(`ZIP 解析失败: ${err.message}`, 'error');--&gt;
 &lt;!--            }--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 检查是否已准备好处理--&gt;
-&lt;!--        function checkFilesReady() {--&gt;
-&lt;!--            const excelReady = excelFileInput.files.length &gt; 0;--&gt;
-&lt;!--            const imageReady = imageFiles.size &gt; 0;--&gt;
+&lt;!--        // 收集单个图片文件到 Map--&gt;
+&lt;!--        function collectImageFile(file) {--&gt;
+&lt;!--            if (!isImage(file.name)) return;--&gt;
+&lt;!--            if (file.name.startsWith('.')) return; // 忽略隐藏文件--&gt;
 
-&lt;!--            processBtn.disabled = !(excelReady &amp;&amp; imageReady);--&gt;
+&lt;!--            // 提取 ASIN (文件名，无后缀)--&gt;
+&lt;!--            const asin = file.name.split('/').pop().split('.')[0];--&gt;
+&lt;!--            imageFiles.set(asin, file);--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 读取文件为ArrayBuffer--&gt;
-&lt;!--        function readFileAsArrayBuffer(file) {--&gt;
-&lt;!--            return new Promise((resolve, reject) =&gt; {--&gt;
-&lt;!--                const reader = new FileReader();--&gt;
-&lt;!--                reader.onload = (e) =&gt; resolve(e.target.result);--&gt;
-&lt;!--                reader.onerror = (e) =&gt; reject(e);--&gt;
-&lt;!--                reader.readAsArrayBuffer(file);--&gt;
-&lt;!--            });--&gt;
+&lt;!--        function isImage(filename) {--&gt;
+&lt;!--            return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(filename);--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 将Blob转换为Base64--&gt;
-&lt;!--        function blobToBase64(blob) {--&gt;
-&lt;!--            return new Promise((resolve, reject) =&gt; {--&gt;
-&lt;!--                const reader = new FileReader();--&gt;
-&lt;!--                reader.onload = () =&gt; {--&gt;
-&lt;!--                    const dataUrl = reader.result;--&gt;
-&lt;!--                    const base64 = dataUrl.split(',')[1];--&gt;
-&lt;!--                    resolve(base64);--&gt;
-&lt;!--                };--&gt;
-&lt;!--                reader.onerror = reject;--&gt;
-&lt;!--                reader.readAsDataURL(blob);--&gt;
-&lt;!--            });--&gt;
+&lt;!--        function updateMediaStatus() {--&gt;
+&lt;!--            const count = imageFiles.size;--&gt;
+&lt;!--            mediaInfo.textContent = `已就绪: ${count} 张图片`;--&gt;
+&lt;!--            if (count &gt; 0) {--&gt;
+&lt;!--                addLog(`当前图片库共有 ${count} 张图片`, 'success');--&gt;
+&lt;!--            } else {--&gt;
+&lt;!--                addLog(`未找到有效图片`, 'warn');--&gt;
+&lt;!--            }--&gt;
+&lt;!--            checkReady();--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 获取图片扩展名--&gt;
-&lt;!--        function getImageExtension(blob) {--&gt;
-&lt;!--            const type = blob.type;--&gt;
-&lt;!--            if (type === 'image/jpeg') return 'jpeg';--&gt;
-&lt;!--            if (type === 'image/png') return 'png';--&gt;
-&lt;!--            if (type === 'image/gif') return 'gif';--&gt;
-&lt;!--            if (type === 'image/bmp') return 'bmp';--&gt;
-&lt;!--            return 'jpeg'; // 默认--&gt;
+&lt;!--        function checkReady() {--&gt;
+&lt;!--            processBtn.disabled = !(excelFileObj &amp;&amp; imageFiles.size &gt; 0);--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 处理文件--&gt;
-&lt;!--        async function processFiles() {--&gt;
-&lt;!--            if (!excelFileInput.files.length || imageFiles.size === 0) return;--&gt;
+&lt;!--        function addLog(msg, type) {--&gt;
+&lt;!--            const div = document.createElement('div');--&gt;
+&lt;!--            div.className = `log-entry ${type}`;--&gt;
+&lt;!--            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;--&gt;
+&lt;!--            logDiv.appendChild(div);--&gt;
+&lt;!--            logDiv.scrollTop = logDiv.scrollHeight;--&gt;
+&lt;!--            document.getElementById('progressContainer').style.display = 'block';--&gt;
+&lt;!--        }--&gt;
 
-&lt;!--            isProcessing = true;--&gt;
+&lt;!--        // ==========================================--&gt;
+&lt;!--        // 3. 执行合并处理--&gt;
+&lt;!--        // ==========================================--&gt;
+&lt;!--        processBtn.addEventListener('click', async () =&gt; {--&gt;
 &lt;!--            processBtn.disabled = true;--&gt;
-&lt;!--            spinner.classList.remove('hidden');--&gt;
-&lt;!--            btnText.textContent = '处理中...';--&gt;
-&lt;!--            progressContainer.style.display = 'block';--&gt;
-&lt;!--            log.innerHTML = '';--&gt;
+&lt;!--            processBtn.innerText = '正在处理...';--&gt;
 
 &lt;!--            try {--&gt;
-&lt;!--                addLog('开始处理文件...', 'info');--&gt;
-
-&lt;!--                // 读取Excel文件--&gt;
-&lt;!--                const excelFile = excelFileInput.files[0];--&gt;
-&lt;!--                const excelData = await readFileAsArrayBuffer(excelFile);--&gt;
-
-&lt;!--                // 使用ExcelJS读取Excel文件--&gt;
+&lt;!--                // 读取 Excel--&gt;
+&lt;!--                const buffer = await readFile(excelFileObj);--&gt;
 &lt;!--                const workbook = new ExcelJS.Workbook();--&gt;
-&lt;!--                await workbook.xlsx.load(excelData);--&gt;
-
-&lt;!--                // 获取第一个工作表--&gt;
+&lt;!--                await workbook.xlsx.load(buffer);--&gt;
 &lt;!--                const worksheet = workbook.getWorksheet(1);--&gt;
 
-&lt;!--                // 查找ASIN列--&gt;
-&lt;!--                let asinColumnIndex = -1;--&gt;
-&lt;!--                const headerRow = worksheet.getRow(1);--&gt;
-&lt;!--                headerRow.eachCell((cell, colNumber) =&gt; {--&gt;
-&lt;!--                    if (cell.value &amp;&amp; cell.value.toString().trim() === 'ASIN') {--&gt;
-&lt;!--                        asinColumnIndex = colNumber;--&gt;
-&lt;!--                    }--&gt;
+&lt;!--                // 定位列--&gt;
+&lt;!--                let asinCol = -1;--&gt;
+&lt;!--                worksheet.getRow(1).eachCell((cell, col) =&gt; {--&gt;
+&lt;!--                    if(cell.value &amp;&amp; cell.value.toString().trim().toUpperCase() === 'ASIN') asinCol = col;--&gt;
 &lt;!--                });--&gt;
+&lt;!--                if(asinCol === -1) throw new Error('找不到 ASIN 列');--&gt;
 
-&lt;!--                if (asinColumnIndex === -1) {--&gt;
-&lt;!--                    throw new Error('未找到名为&quot;ASIN&quot;的列');--&gt;
-&lt;!--                }--&gt;
+&lt;!--                const imgCol = asinCol + 1;--&gt;
+&lt;!--                worksheet.getRow(1).getCell(imgCol).value = '图片';--&gt;
+&lt;!--                worksheet.getColumn(imgCol).width = 15;--&gt;
 
-&lt;!--                addLog(`找到ASIN列，位于第 ${asinColumnIndex} 列`, 'success');--&gt;
+&lt;!--                let success = 0, fail = 0;--&gt;
+&lt;!--                const resultZipImages = new Map();--&gt;
 
-&lt;!--                // 确定图片列的位置（ASIN列的下一个列）--&gt;
-&lt;!--                const imageColumnIndex = asinColumnIndex + 1;--&gt;
+&lt;!--                // 循环处理--&gt;
+&lt;!--                for (let i = 2; i &lt;= worksheet.rowCount; i++) {--&gt;
+&lt;!--                    const row = worksheet.getRow(i);--&gt;
+&lt;!--                    const asin = row.getCell(asinCol).value ? row.getCell(asinCol).value.toString().trim() : null;--&gt;
 
-&lt;!--                // 设置图片列标题--&gt;
-&lt;!--                if (!worksheet.getRow(1).getCell(imageColumnIndex).value) {--&gt;
-&lt;!--                    worksheet.getRow(1).getCell(imageColumnIndex).value = '图片';--&gt;
-&lt;!--                }--&gt;
+&lt;!--                    if(asin &amp;&amp; imageFiles.has(asin)) {--&gt;
+&lt;!--                        const blob = imageFiles.get(asin);--&gt;
+&lt;!--                        const base64 = await blobToBase64(blob);--&gt;
+&lt;!--                        const ext = getExt(blob.name || (blob.type.split('/')[1]));--&gt;
 
-&lt;!--                // 调整列宽以适应图片--&gt;
-&lt;!--                worksheet.getColumn(imageColumnIndex).width = 15;--&gt;
+&lt;!--                        const imgId = workbook.addImage({ base64: base64, extension: ext === 'jpg' ? 'jpeg' : ext });--&gt;
+&lt;!--                        worksheet.addImage(imgId, {--&gt;
+&lt;!--                            tl: { col: imgCol - 1, row: i - 1 },--&gt;
+&lt;!--                            br: { col: imgCol, row: i },--&gt;
+&lt;!--                            editAs: 'oneCell'--&gt;
+&lt;!--                        });--&gt;
+&lt;!--                        row.height = 100;--&gt;
 
-&lt;!--                // 处理每一行数据--&gt;
-&lt;!--                const renamedImages = new Map();--&gt;
-&lt;!--                let imageCounter = 1;--&gt;
-&lt;!--                let matchedCount = 0;--&gt;
-&lt;!--                let missingCount = 0;--&gt;
-
-&lt;!--                // 从第二行开始遍历--&gt;
-&lt;!--                for (let rowIndex = 2; rowIndex &lt;= worksheet.rowCount; rowIndex++) {--&gt;
-&lt;!--                    const row = worksheet.getRow(rowIndex);--&gt;
-&lt;!--                    const asinCell = row.getCell(asinColumnIndex);--&gt;
-&lt;!--                    const asin = asinCell.value ? asinCell.value.toString().trim() : '';--&gt;
-
-&lt;!--                    if (!asin) {--&gt;
-&lt;!--                        continue; // 跳过空ASIN--&gt;
-&lt;!--                    }--&gt;
-
-&lt;!--                    // 查找匹配的图片--&gt;
-&lt;!--                    if (imageFiles.has(asin)) {--&gt;
-&lt;!--                        try {--&gt;
-&lt;!--                            const imageBlob = imageFiles.get(asin);--&gt;
-&lt;!--                            const imageBase64 = await blobToBase64(imageBlob);--&gt;
-&lt;!--                            const extension = getImageExtension(imageBlob);--&gt;
-
-&lt;!--                            // 将图片添加到工作簿--&gt;
-&lt;!--                            const imageId = workbook.addImage({--&gt;
-&lt;!--                                base64: imageBase64,--&gt;
-&lt;!--                                extension: extension,--&gt;
-&lt;!--                            });--&gt;
-
-&lt;!--                            // 插入图片到工作表 [citation:1]--&gt;
-&lt;!--                            // 图片将插入到当前行的图片列，并调整行高以适应图片--&gt;
-&lt;!--                            worksheet.addImage(imageId, {--&gt;
-&lt;!--                                tl: { col: imageColumnIndex - 1, row: rowIndex - 1 },--&gt;
-&lt;!--                                br: { col: imageColumnIndex, row: rowIndex },--&gt;
-&lt;!--                                editAs: 'oneCell'--&gt;
-&lt;!--                            });--&gt;
-
-&lt;!--                            // 调整行高以显示图片--&gt;
-&lt;!--                            worksheet.getRow(rowIndex).height = 100;--&gt;
-
-&lt;!--                            // 记录重命名的图片--&gt;
-&lt;!--                            const newImageName = `图片${imageCounter}.${extension}`;--&gt;
-&lt;!--                            renamedImages.set(newImageName, imageBlob);--&gt;
-
-&lt;!--                            imageCounter++;--&gt;
-&lt;!--                            matchedCount++;--&gt;
-
-&lt;!--                            addLog(`匹配成功: ${asin} -&gt; ${newImageName}`, 'success');--&gt;
-
-&lt;!--                        } catch (error) {--&gt;
-&lt;!--                            addLog(`插入图片失败 ${asin}: ${error.message}`, 'error');--&gt;
-&lt;!--                            missingCount++;--&gt;
-&lt;!--                        }--&gt;
-&lt;!--                    } else {--&gt;
-&lt;!--                        missingCount++;--&gt;
-&lt;!--                        addLog(`未找到匹配图片: ${asin}`, 'error');--&gt;
+&lt;!--                        // 保存重命名后的文件--&gt;
+&lt;!--                        resultZipImages.set(`图片${success + 1}.${ext}`, blob);--&gt;
+&lt;!--                        success++;--&gt;
+&lt;!--                    } else if (asin) {--&gt;
+&lt;!--                        fail++;--&gt;
 &lt;!--                    }--&gt;
 
 &lt;!--                    // 更新进度--&gt;
-&lt;!--                    const progress = Math.round(((rowIndex - 1) / (worksheet.rowCount - 1)) * 100);--&gt;
-&lt;!--                    updateProgress(progress, 100, `处理中: ${rowIndex - 1}/${worksheet.rowCount - 1}`);--&gt;
-
-&lt;!--                    // 避免阻塞UI，让出控制权--&gt;
-&lt;!--                    if (rowIndex % 5 === 0) {--&gt;
-&lt;!--                        await new Promise(resolve =&gt; setTimeout(resolve, 0));--&gt;
+&lt;!--                    if(i % 5 === 0) {--&gt;
+&lt;!--                        const pct = Math.round((i / worksheet.rowCount) * 100) + '%';--&gt;
+&lt;!--                        document.getElementById('progressBar').style.width = pct;--&gt;
+&lt;!--                        document.getElementById('progressText').innerText = pct;--&gt;
+&lt;!--                        await new Promise(r =&gt; setTimeout(r, 0));--&gt;
 &lt;!--                    }--&gt;
 &lt;!--                }--&gt;
 
-&lt;!--                // 生成Excel文件的ArrayBuffer--&gt;
-&lt;!--                addLog('正在生成Excel文件...', 'info');--&gt;
-&lt;!--                const excelBuffer = await workbook.xlsx.writeBuffer();--&gt;
+&lt;!--                // 打包下载--&gt;
+&lt;!--                addLog(`处理完成! 成功: ${success}, 失败: ${fail}`, 'success');--&gt;
+&lt;!--                addLog('正在生成最终文件...', 'info');--&gt;
 
-&lt;!--                // 创建结果ZIP文件--&gt;
-&lt;!--                addLog('正在创建结果ZIP文件...', 'info');--&gt;
-&lt;!--                const resultZip = new JSZip();--&gt;
+&lt;!--                const outBuffer = await workbook.xlsx.writeBuffer();--&gt;
+&lt;!--                const zip = new JSZip();--&gt;
+&lt;!--                zip.file(&quot;处理结果.xlsx&quot;, outBuffer);--&gt;
+&lt;!--                const folder = zip.folder(&quot;重命名图片&quot;);--&gt;
+&lt;!--                resultZipImages.forEach((blob, name) =&gt; folder.file(name, blob));--&gt;
 
-&lt;!--                // 添加Excel文件--&gt;
-&lt;!--                resultZip.file('嵌入图片的Excel文件.xlsx', excelBuffer);--&gt;
+&lt;!--                const content = await zip.generateAsync({type:&quot;blob&quot;});--&gt;
+&lt;!--                saveAs(content, &quot;Excel处理结果.zip&quot;);--&gt;
 
-&lt;!--                // 添加重命名的图片--&gt;
-&lt;!--                const imagesFolder = resultZip.folder('重命名图片');--&gt;
-&lt;!--                for (const [filename, blob] of renamedImages.entries()) {--&gt;
-&lt;!--                    imagesFolder.file(filename, blob);--&gt;
-&lt;!--                }--&gt;
-
-&lt;!--                // 生成ZIP文件--&gt;
-&lt;!--                updateProgress(100, 100, '正在生成最终文件...');--&gt;
-&lt;!--                const zipContent = await resultZip.generateAsync({type: 'blob'});--&gt;
-
-&lt;!--                // 下载文件--&gt;
-&lt;!--                saveAs(zipContent, 'Excel图片处理结果.zip');--&gt;
-
-&lt;!--                addLog(`处理完成! 成功插入 ${matchedCount} 张图片, 未匹配: ${missingCount}`, 'success');--&gt;
-&lt;!--                statusText.textContent = `处理完成! 成功插入 ${matchedCount} 张图片, 未匹配: ${missingCount}`;--&gt;
-
-&lt;!--            } catch (error) {--&gt;
-&lt;!--                addLog(`处理错误: ${error.message}`, 'error');--&gt;
+&lt;!--            } catch (err) {--&gt;
+&lt;!--                addLog(`错误: ${err.message}`, 'error');--&gt;
+&lt;!--                console.error(err);--&gt;
 &lt;!--            } finally {--&gt;
-&lt;!--                resetUI();--&gt;
+&lt;!--                processBtn.disabled = false;--&gt;
+&lt;!--                processBtn.innerText = '处理文件';--&gt;
 &lt;!--            }--&gt;
-&lt;!--        }--&gt;
+&lt;!--        });--&gt;
 
-&lt;!--        // 更新进度--&gt;
-&lt;!--        function updateProgress(completed, total, status) {--&gt;
-&lt;!--            const percent = Math.round((completed / total) * 100);--&gt;
-&lt;!--            progressBar.style.width = `${percent}%`;--&gt;
-&lt;!--            progressText.textContent = `${percent}%`;--&gt;
-&lt;!--            statusText.textContent = status;--&gt;
-&lt;!--        }--&gt;
+&lt;!--        // 工具函数--&gt;
+&lt;!--        const readFile = (f) =&gt; new Promise(r =&gt; { const rd = new FileReader(); rd.onload=e=&gt;r(e.target.result); rd.readAsArrayBuffer(f); });--&gt;
+&lt;!--        const blobToBase64 = (b) =&gt; new Promise(r =&gt; { const rd = new FileReader(); rd.onload=()=&gt;r(rd.result.split(',')[1]); rd.readAsDataURL(b); });--&gt;
+&lt;!--        const getExt = (name) =&gt; {--&gt;
+&lt;!--            if(!name) return 'png';--&gt;
+&lt;!--            const ext = name.split('.').pop().toLowerCase();--&gt;
+&lt;!--            return ext === 'jpg' ? 'jpeg' : ext;--&gt;
+&lt;!--        };--&gt;
 
-&lt;!--        // 添加日志--&gt;
-&lt;!--        function addLog(message, type = 'info') {--&gt;
-&lt;!--            const entry = document.createElement('div');--&gt;
-&lt;!--            entry.className = `log-entry ${type}`;--&gt;
-&lt;!--            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;--&gt;
-&lt;!--            log.appendChild(entry);--&gt;
-&lt;!--            log.scrollTop = log.scrollHeight;--&gt;
-&lt;!--        }--&gt;
-
-&lt;!--        // 重置UI--&gt;
-&lt;!--        function resetUI() {--&gt;
-&lt;!--            isProcessing = false;--&gt;
-&lt;!--            processBtn.disabled = false;--&gt;
-&lt;!--            spinner.classList.add('hidden');--&gt;
-&lt;!--            btnText.textContent = '处理文件';--&gt;
-&lt;!--        }--&gt;
 &lt;!--    &lt;/script&gt;--&gt;
 &lt;!--&lt;/body&gt;--&gt;
 &lt;!--&lt;/html&gt;--&gt;
+
 
 
 &lt;!DOCTYPE html&gt;
@@ -1456,7 +1269,7 @@
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
     &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-    &lt;title&gt;Excel图片插入工具 (全能版)&lt;/title&gt;
+    &lt;title&gt;Excel图片插入工具 (服装版-比例自适应)&lt;/title&gt;
     &lt;style&gt;
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
@@ -1499,35 +1312,15 @@
         .log-entry { margin-bottom: 3px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .success { color: #2ecc71; } .error { color: #e74c3c; } .info { color: #3498db; } .warn { color: #f39c12; }
         .hidden { display: none; }
-        .container {
-            max-width: 900px;
-            width: 100%;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            padding: 10px;
-            margin-top: 10px;
-        }
         .instructions {
             background: #e8f4fc;
             border-radius: 10px;
             padding: 10px;
             margin-bottom: 5px;
         }
-
-        .instructions h3 {
-            color: #3498db;
-            margin-bottom: 10px;
-        }
-
-        .instructions ol {
-            margin-left: 20px;
-            color: #2c3e50;
-        }
-
-        .instructions li {
-            margin-bottom: 8px;
-        }
+        .instructions h3 { color: #3498db; margin-bottom: 10px; }
+        .instructions ol { margin-left: 20px; color: #2c3e50; }
+        .instructions li { margin-bottom: 8px; }
     &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
@@ -1544,7 +1337,7 @@
                 &lt;li&gt;工具将插入匹配的图片到Excel中，并按顺序重命名图片&lt;/li&gt;
             &lt;/ol&gt;
         &lt;/div&gt;
-        &lt;/div&gt;
+    &lt;/div&gt;
 
     &lt;div class=&quot;container&quot;&gt;
         &lt;div class=&quot;upload-section&quot;&gt;
@@ -1660,7 +1453,7 @@
             }
         });
 
-        // B. 拖拽处理 (核心黑科技：同时支持 ZIP 和 文件夹递归)
+        // B. 拖拽处理
         mediaArea.addEventListener('dragover', (e) =&gt; { e.preventDefault(); mediaArea.classList.add('active'); });
         mediaArea.addEventListener('dragleave', () =&gt; mediaArea.classList.remove('active'));
 
@@ -1673,14 +1466,12 @@
             addLog('检测到拖拽，正在扫描...', 'info');
 
             const promises = [];
-            // 遍历拖入的所有项目
             for (let i = 0; i &lt; items.length; i++) {
                 const item = items[i];
                 const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
 
                 if (entry) {
                     if (entry.isFile) {
-                        // 如果是文件，需要检查是不是 ZIP
                         promises.push(new Promise(resolve =&gt; {
                             entry.file(async (file) =&gt; {
                                 if (file.name.match(/\.zip$/i)) {
@@ -1692,7 +1483,6 @@
                             });
                         }));
                     } else if (entry.isDirectory) {
-                        // 如果是文件夹，递归扫描
                         promises.push(traverseFileTree(entry));
                     }
                 }
@@ -1702,14 +1492,10 @@
             updateMediaStatus();
         });
 
-        // --- 辅助功能函数 ---
-
-        // 递归遍历文件夹树
         function traverseFileTree(item) {
             return new Promise((resolve) =&gt; {
                 if (item.isFile) {
                     item.file((file) =&gt; {
-                        // 文件夹里的 ZIP 通常不解压，只找图片，但如果用户需要也可以加逻辑
                         collectImageFile(file);
                         resolve();
                     });
@@ -1732,7 +1518,6 @@
             });
         }
 
-        // 解析 ZIP 文件
         async function handleZipFile(file) {
             addLog(`正在解压 ZIP: ${file.name}...`, 'info');
             try {
@@ -1740,11 +1525,8 @@
                 let count = 0;
                 for (const [path, entry] of Object.entries(zip.files)) {
                     if (!entry.dir &amp;&amp; isImage(entry.name)) {
-                        // 忽略 macOS 隐藏文件
                         if (entry.name.includes('__MACOSX') || entry.name.split('/').pop().startsWith('.')) continue;
-
                         const blob = await entry.async('blob');
-                        // 修正 blob.name 丢失的问题
                         blob.name = entry.name.split('/').pop();
                         collectImageFile(blob);
                         count++;
@@ -1756,12 +1538,9 @@
             }
         }
 
-        // 收集单个图片文件到 Map
         function collectImageFile(file) {
             if (!isImage(file.name)) return;
-            if (file.name.startsWith('.')) return; // 忽略隐藏文件
-
-            // 提取 ASIN (文件名，无后缀)
+            if (file.name.startsWith('.')) return;
             const asin = file.name.split('/').pop().split('.')[0];
             imageFiles.set(asin, file);
         }
@@ -1795,20 +1574,30 @@
         }
 
         // ==========================================
-        // 3. 执行合并处理
+        // 3. 执行合并处理 (核心优化部分)
         // ==========================================
+
+        // 辅助函数：获取图片的原始长宽
+        function getImageDimensions(base64) {
+            return new Promise((resolve, reject) =&gt; {
+                const img = new Image();
+                img.onload = () =&gt; resolve({ w: img.width, h: img.height });
+                img.onerror = reject;
+                img.src = &quot;data:image/png;base64,&quot; + base64;
+            });
+        }
+
         processBtn.addEventListener('click', async () =&gt; {
             processBtn.disabled = true;
             processBtn.innerText = '正在处理...';
 
             try {
-                // 读取 Excel
                 const buffer = await readFile(excelFileObj);
                 const workbook = new ExcelJS.Workbook();
                 await workbook.xlsx.load(buffer);
                 const worksheet = workbook.getWorksheet(1);
 
-                // 定位列
+                // 1. 定位列
                 let asinCol = -1;
                 worksheet.getRow(1).eachCell((cell, col) =&gt; {
                     if(cell.value &amp;&amp; cell.value.toString().trim().toUpperCase() === 'ASIN') asinCol = col;
@@ -1817,7 +1606,18 @@
 
                 const imgCol = asinCol + 1;
                 worksheet.getRow(1).getCell(imgCol).value = '图片';
-                worksheet.getColumn(imgCol).width = 15;
+
+                // --- 优化设置：适合服装图片的单元格大小 ---
+                // 列宽 20 约等于 145px，行高 120 约等于 160px
+                const COL_WIDTH = 20;
+                const ROW_HEIGHT = 120;
+                // 像素估算值 (用于计算居中)
+                const CELL_PIXEL_W = 145;
+                const CELL_PIXEL_H = 160;
+                // EMU 单位转换 (1像素 = 9525 EMU) - 用于精确居中
+                const EMU = 9525;
+
+                worksheet.getColumn(imgCol).width = COL_WIDTH;
 
                 let success = 0, fail = 0;
                 const resultZipImages = new Map();
@@ -1832,22 +1632,44 @@
                         const base64 = await blobToBase64(blob);
                         const ext = getExt(blob.name || (blob.type.split('/')[1]));
 
-                        const imgId = workbook.addImage({ base64: base64, extension: ext === 'jpg' ? 'jpeg' : ext });
-                        worksheet.addImage(imgId, {
-                            tl: { col: imgCol - 1, row: i - 1 },
-                            br: { col: imgCol, row: i },
-                            editAs: 'oneCell'
-                        });
-                        row.height = 100;
+                        // --- 核心优化：按比例计算尺寸 ---
+                        try {
+                            // 1. 获取原图尺寸
+                            const dim = await getImageDimensions(base64);
 
-                        // 保存重命名后的文件
-                        resultZipImages.set(`图片${success + 1}.${ext}`, blob);
-                        success++;
+                            // 2. 计算缩放比例 (Contain 模式：适应单元格宽或高，取最小值)
+                            const scale = Math.min(CELL_PIXEL_W / dim.w, CELL_PIXEL_H / dim.h);
+
+                            // 3. 计算最终显示宽高
+                            const finalW = Math.floor(dim.w * scale);
+                            const finalH = Math.floor(dim.h * scale);
+
+                            // 4. 计算居中偏移量
+                            const offsetX = Math.floor((CELL_PIXEL_W - finalW) / 2 * EMU);
+                            const offsetY = Math.floor((CELL_PIXEL_H - finalH) / 2 * EMU);
+
+                            const imgId = workbook.addImage({ base64: base64, extension: ext === 'jpg' ? 'jpeg' : ext });
+
+                            // 5. 插入图片 (使用 ext + nativeOffset 实现居中不拉伸)
+                            worksheet.addImage(imgId, {
+                                tl: { col: imgCol - 1, row: i - 1, nativeColOff: offsetX, nativeRowOff: offsetY },
+                                ext: { width: finalW, height: finalH },
+                                editAs: 'oneCell'
+                            });
+
+                            row.height = ROW_HEIGHT;
+
+                            resultZipImages.set(`图片${success + 1}.${ext}`, blob);
+                            success++;
+
+                        } catch (imgErr) {
+                            console.error(&quot;图片处理错误&quot;, imgErr);
+                            addLog(`图片处理出错 ${asin}: ${imgErr.message}`, 'warn');
+                        }
                     } else if (asin) {
                         fail++;
                     }
 
-                    // 更新进度
                     if(i % 5 === 0) {
                         const pct = Math.round((i / worksheet.rowCount) * 100) + '%';
                         document.getElementById('progressBar').style.width = pct;
@@ -1856,7 +1678,6 @@
                     }
                 }
 
-                // 打包下载
                 addLog(`处理完成! 成功: ${success}, 失败: ${fail}`, 'success');
                 addLog('正在生成最终文件...', 'info');
 
@@ -1889,12 +1710,7 @@
 
     &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;
-
-
-
-
-">
+&lt;/html&gt;">
       </iframe>
      </div>
     </div>
