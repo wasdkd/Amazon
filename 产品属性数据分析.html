@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Amazon 选品数据分析 V11.0 (全景透视版)</title>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;       /* 本期蓝 */
+            --secondary: #94a3b8;     /* 上期灰 */
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+
+            --trend-up: #16a34a;      /* 涨 (绿) */
+            --trend-down: #dc2626;    /* 跌 (红) */
+            --trend-bg-up: #dcfce7;
+            --trend-bg-down: #fee2e2;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* --- Header --- */
+        .header {
+            background: var(--surface); height: 60px; padding: 0 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        .brand { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 10px; color: var(--text-main); }
+        .brand i { color: #f59e0b; }
+
+        .mode-switch { background: #f1f5f9; padding: 3px; border-radius: 8px; display: flex; gap: 4px; }
+        .mode-btn {
+            border: none; background: transparent; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+            color: var(--text-sub); cursor: pointer; transition: 0.2s;
+        }
+        .mode-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        /* --- Layout --- */
+        .layout { display: flex; flex: 1; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-head { padding: 16px; font-size: 12px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .cat-list { list-style: none; padding: 10px; margin: 0; flex: 1; overflow-y: auto; }
+        .cat-item {
+            padding: 12px; margin-bottom: 4px; border-radius: 6px; cursor: pointer; font-size: 13px;
+            display: flex; justify-content: space-between; align-items: center; color: var(--text-main);
+        }
+        .cat-item:hover { background: #eff6ff; color: var(--primary); }
+        .cat-item.active { background: #eff6ff; color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); }
+        .badge { background: #e2e8f0; color: var(--text-sub); font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        .cat-item.active .badge { background: #bfdbfe; color: var(--primary); }
+
+        /* Content */
+        .main-area { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+        /* Controls */
+        .control-panel {
+            background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border);
+            display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .ctrl-group { display: flex; flex-direction: column; gap: 6px; }
+        .ctrl-label { font-size: 12px; font-weight: 600; color: var(--text-sub); }
+
+        .file-upload {
+            width: 240px; height: 40px; border: 2px dashed #cbd5e1; border-radius: 6px;
+            display: flex; align-items: center; padding: 0 12px; cursor: pointer; background: #f8fafc;
+            transition: 0.2s; position: relative;
+        }
+        .file-upload:hover { border-color: var(--primary); background: #f0f9ff; }
+        .file-upload.has-file { border-color: var(--trend-up); background: #f0fdf4; }
+        .file-upload input { display: none; }
+        .file-name { font-size: 13px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+        .file-upload.has-file .file-name { color: var(--trend-up); font-weight: 600; }
+
+        .btn-run {
+            background: var(--primary); color: white; border: none; height: 40px; padding: 0 24px;
+            border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; margin-left: auto;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: 0.2s;
+        }
+        .btn-run:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+        /* --- Charts Grid --- */
+        /* 趋势模式下卡片变宽以容纳更多列 */
+        .charts-wrapper { display: none; grid-template-columns: repeat(auto-fill, minmax(650px, 1fr)); gap: 24px; padding-bottom: 50px; }
+        .charts-wrapper.active { display: grid; }
+
+        .chart-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            overflow: hidden; box-shadow: 0 4px 6px -2px rgba(0,0,0,0.03); display: flex; flex-direction: column;
+        }
+        .card-head {
+            padding: 16px 20px; border-bottom: 1px solid var(--border); background: #fcfcfc;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .head-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+
+        .insight-bar {
+            background: #fffbeb; border-bottom: 1px solid #fef3c7; padding: 12px 20px;
+            font-size: 13px; color: #92400e; line-height: 1.5; display: flex; gap: 10px;
+        }
+
+        /* --- Data Table Layout --- */
+        .card-body { padding: 0; display: flex; flex-direction: column; }
+
+        /* Grid Definitions - The Key to Alignment */
+        /* 单期模式: Name | Viz | New | Share */
+        .grid-single { display: grid; grid-template-columns: 140px 1fr 100px 80px; gap: 10px; }
+        /* 趋势模式: Name | Viz | Old | New | Diff | Rate | Share */
+        .grid-trend { display: grid; grid-template-columns: 140px 1fr 80px 80px 70px 80px 60px; gap: 10px; }
+
+        /* Header Row */
+        .table-header {
+            padding: 12px 20px; background: #f8fafc; border-bottom: 1px solid var(--border);
+            font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase;
+        }
+        .th-right { text-align: right; }
+
+        /* Data Row */
+        .data-row {
+            padding: 12px 20px; border-bottom: 1px solid #f1f5f9; transition: 0.1s; align-items: center;
+        }
+        .data-row:last-child { border-bottom: none; }
+        .data-row:hover { background: #f8fafc; }
+
+        /* Column Styles */
+        .col-label { display: flex; flex-direction: column; line-height: 1.3; overflow: hidden; }
+        .lbl-main { font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lbl-sub { font-size: 11px; color: var(--text-sub); }
+
+        .col-viz { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+        .bar-wrapper { display: flex; align-items: center; height: 8px; gap: 8px; }
+        .bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; }
+        .fill-new { background: var(--primary); }
+        .fill-old { background: #cbd5e1; }
+
+        /* Data Columns */
+        .col-val { text-align: right; font-family: 'Consolas', monospace; font-size: 13px; font-weight: 500; color: var(--text-sub); }
+        .col-val-new { text-align: right; font-family: 'Consolas', monospace; font-size: 13px; font-weight: 700; color: var(--text-main); }
+
+        .col-diff { text-align: right; font-family: 'Consolas', monospace; font-size: 13px; font-weight: 600; }
+        .diff-pos { color: var(--trend-up); }
+        .diff-neg { color: var(--trend-down); }
+        .diff-neu { color: var(--text-sub); opacity: 0.5; }
+
+        .col-rate { text-align: right; display: flex; justify-content: flex-end; }
+        .rate-badge {
+            font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; display: inline-block; min-width: 50px; text-align: center;
+        }
+        .rate-up { background: var(--trend-bg-up); color: var(--trend-up); }
+        .rate-down { background: var(--trend-bg-down); color: var(--trend-down); }
+        .rate-flat { background: #f1f5f9; color: var(--text-sub); }
+
+        .col-share { text-align: right; font-family: 'Consolas', monospace; font-size: 13px; font-weight: 700; color: var(--text-main); }
+
+        .hidden { display: none !important; }
+        .empty-tip { text-align: center; color: var(--text-sub); padding: 40px; grid-column: 1 / -1; }
+
+        #loading {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(255,255,255,0.95); z-index: 1000; flex-direction: column; justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <i class="fas fa-spinner fa-spin fa-3x" style="color:var(--primary)"></i>
+        <div style="margin-top:15px; font-weight:600; color:#475569;">正在处理多维度数据...</div>
+    </div>
+
+    <header class="header">
+        <div class="brand"><i class="fas fa-amazon"></i> 选品数据专家 V11.0</div>
+        <div class="mode-switch">
+            <button class="mode-btn active" onclick="setMode('single')">📊 单期分布</button>
+            <button class="mode-btn" onclick="setMode('trend')">📈 趋势对比</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-head">Category List</div>
+            <ul id="cat-list" class="cat-list">
+                <li style="text-align:center; padding:20px; color:#94a3b8; font-size:12px;">等待数据导入...</li>
+            </ul>
+        </aside>
+
+        <main class="main-area">
+            <div class="control-panel">
+                <div class="ctrl-group">
+                    <span class="ctrl-label">📁 本期数据 (New)</span>
+                    <label class="file-upload" id="box-f1">
+                        <span class="file-name"><i class="fas fa-file-excel"></i> 点击选择 Excel...</span>
+                        <input type="file" id="f1" accept=".xlsx,.csv" onchange="handleFile(this, 'box-f1')">
+                    </label>
+                </div>
+
+                <div class="ctrl-group hidden" id="group-f2">
+                    <span class="ctrl-label">📁 上期数据 (Old - 对比基准)</span>
+                    <label class="file-upload" id="box-f2">
+                        <span class="file-name"><i class="fas fa-history"></i> 点击选择旧数据...</span>
+                        <input type="file" id="f2" accept=".xlsx,.csv" onchange="handleFile(this, 'box-f2')">
+                    </label>
+                </div>
+
+                <div class="ctrl-group">
+                    <span class="ctrl-label">⚖️ 统计权重</span>
+                    <select id="w-sel" style="height:40px; border:1px solid #cbd5e1; border-radius:6px; padding:0 10px; background:#f8fafc; font-size:13px;">
+                        <option value="count">按 Listing 数量 (供给)</option>
+                        <option value="sales">按 月销量 (需求)</option>
+                    </select>
+                </div>
+
+                <button class="btn-run" onclick="startAnalysis()">开始透视分析</button>
+            </div>
+
+            <div id="chart-grid" class="charts-wrapper">
+                <div class="empty-tip">
+                    <i class="fas fa-chart-bar" style="font-size:40px; margin-bottom:15px; opacity:0.3;"></i>
+                    <p>请上传数据并点击“开始分析”</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+    // ================= 配置区 =================
+    const CONFIG = { mode: 'single' };
+
+    const DIMS = [
+        {k:'fabric', n:'面料材质 (Fabric)', i:'fa-layer-group'},
+        {k:'fit', n:'版型分析 (Fit)', i:'fa-tshirt'},
+        {k:'collar', n:'领型分析 (Collar)', i:'fa-user-tie'},
+        {k:'sleeve', n:'袖型分析 (Sleeve)', i:'fa-child'},
+        {k:'length', n:'长度分析 (Length)', i:'fa-ruler-vertical'},
+        {k:'pattern', n:'图案分析 (Pattern)', i:'fa-shapes'},
+        {k:'style', n:'风格分析 (Style)', i:'fa-palette'},
+        {k:'elements', n:'流行元素 (Elements)', i:'fa-star'}
+    ];
+
+    const ALIAS = {
+        category: ['category','品类','product_type','分类'],
+        fit: ['fit','版型'], style: ['style','风格'], length: ['length','长度'],
+        pattern: ['pattern','图案'],
+        fabric: ['fabric','面料','材质','material','composition','成分','visual'],
+        collar: ['collar','领型','neck'], sleeve: ['sleeve','袖型'],
+        elements: ['elements','元素','设计元素','decoration']
+    };
+
+    const TRANS = {
+        "修身":"Slim","宽松":"Loose","合身":"Regular","A字":"A-Line","阔腿":"Wide Leg","直筒":"Straight",
+        "休闲":"Casual","通勤":"Work","派对":"Party","复古":"Vintage","性感":"Sexy","度假":"Boho","街头":"Street",
+        "长款":"Maxi","短款":"Mini","中长":"Midi","长裤":"Pants","九分":"Ankle","拖地":"Floor",
+        "纯色":"Solid","碎花":"Floral","条纹":"Striped","格纹":"Plaid","豹纹":"Leopard","扎染":"Tie Dye",
+        "V领":"V-Neck","圆领":"Crew Neck","方领":"Square Neck","高领":"Turtleneck","翻领":"Lapel","一字肩":"Off Shoulder",
+        "无袖":"Sleeveless","短袖":"Short Sleeve","长袖":"Long Sleeve","泡泡袖":"Puff","吊带":"Cami",
+        "口袋":"Pockets","纽扣":"Buttons","蕾丝":"Lace","褶皱":"Ruched","荷叶边":"Ruffle","镂空":"Cutout","亮片":"Sequin",
+        "棉":"Cotton","聚酯纤维":"Polyester","雪纺":"Chiffon","亚麻":"Linen","丝绸":"Silk","针织":"Knit","牛仔":"Denim","皮革":"Leather"
+    };
+
+    let G = { new:{}, old:{}, cats:[] };
+    let curCat = "__ALL__";
+
+    // ================= 逻辑区 =================
+
+    function setMode(m) {
+        CONFIG.mode = m;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('group-f2').classList.toggle('hidden', m==='single');
+        if(G.cats.length > 0) renderCharts(curCat);
+    }
+
+    function handleFile(input, boxId) {
+        const box = document.getElementById(boxId);
+        const txt = box.querySelector('.file-name');
+        if(input.files[0]) {
+            txt.innerHTML = `<i class="fas fa-check"></i> ${input.files[0].name}`;
+            box.classList.add('has-file');
+        }
+    }
+
+    async function startAnalysis() {
+    // 检查URL参数中是否有传递的数据
+    const urlParams = new URLSearchParams(window.location.search);
+    const encodedData = urlParams.get('data');
+
+    if (encodedData) {
+        try {
+            // 解码并解析传递的数据
+            const dataJson = decodeURIComponent(encodedData);
+            const rows = JSON.parse(dataJson);
+
+            // 使用传递的数据直接进行分析
+            processDataFromTagSystem(rows);
+            return;
+        } catch (error) {
+            console.error('解析传递的数据失败:', error);
+        }
+    }
+
+    // 如果没有传递数据，则使用原有的文件上传方式
+    const f1 = document.getElementById('f1').files[0];
+    const f2 = document.getElementById('f2').files[0];
+
+    if(!f1) return alert("请上传本期数据！");
+    if(CONFIG.mode==='trend' && !f2) return alert("趋势模式需上传上期数据！");
+
+    document.getElementById('loading').style.display = 'flex';
+    await new Promise(r => setTimeout(r, 100));
+
+    try {
+        const d1 = await readFile(f1);
+        const d2 = CONFIG.mode==='trend' ? await readFile(f2) : [];
+        const wMode = document.getElementById('w-sel').value;
+
+        G.new = processData(d1, wMode);
+        G.old = processData(d2, wMode);
+        G.cats = Object.keys(G.new).sort((a,b) => G.new[b].total - G.new[a].total);
+
+        renderSidebar();
+        selectCat('__ALL__');
+
+    } catch(e) { console.error(e); alert("错误: "+e.message); }
+    finally { document.getElementById('loading').style.display = 'none'; }
+}
+
+// 添加从标签系统传递的数据处理函数
+function processDataFromTagSystem(rows) {
+    document.getElementById('loading').style.display = 'flex';
+
+    setTimeout(() => {
+        try {
+            const wMode = document.getElementById('w-sel').value;
+
+            G.new = processData(rows, wMode);
+            G.old = {}; // 从标签系统传递的数据默认没有对比数据
+            G.cats = Object.keys(G.new).sort((a,b) => G.new[b].total - G.new[a].total);
+
+            renderSidebar();
+            selectCat('__ALL__');
+        } catch(e) {
+            console.error(e);
+            alert("数据处理错误: " + e.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }, 100);
+}
+
+    function processData(rows, wMode) {
+    const res = { "__ALL__": { total:0 } };
+    DIMS.forEach(d => res["__ALL__"][d.k] = {});
+
+    rows.forEach(r => {
+        // 从标签系统传递的数据使用不同的字段名
+        let cat = r.category || "Unknown";
+        let w = 1;
+
+        if(wMode === 'sales') {
+            // 优先使用月销量字段
+            if(r.monthly_sales !== undefined && r.monthly_sales !== "") {
+                w = Number(r.monthly_sales) || 1;
+            } else {
+                // 如果没有月销量，则尝试从原始数据中查找
+                const k = Object.keys(r._raw || {}).find(key => /sales|销量|bought/i.test(key));
+                if(k && r._raw) {
+                    let s = String(r._raw[k]).toUpperCase().replace(/,/g,'').replace('+','');
+                    if(s.includes('K')) w = parseFloat(s)*1000;
+                    else w = parseFloat(s)||1;
+                }
+            }
+        }
+
+        if(!res[cat]) {
+            res[cat] = { total:0 };
+            DIMS.forEach(d => res[cat][d.k] = {});
+        }
+        res[cat].total += w;
+        res["__ALL__"].total += w;
+
+        DIMS.forEach(d => {
+            let v;
+            // 根据维度类型获取对应的值
+            switch(d.k) {
+                case 'fabric': v = r.fabric_visual; break;
+                case 'fit': v = r.fit; break;
+                case 'collar': v = r.collar; break;
+                case 'sleeve': v = r.sleeve; break;
+                case 'length': v = r.length; break;
+                case 'pattern': v = r.pattern; break;
+                case 'style': v = r.style; break;
+                case 'elements': v = r.elements; break;
+                default: v = findVal(r, d.k);
+            }
+
+            if(v && v!=='无' && v!=='') {
+                String(v).split(/[,，/]/).forEach(val => {
+                    val = val.trim().replace(/['"]/g,'');
+                    if(val) {
+                        res[cat][d.k][val] = (res[cat][d.k][val]||0) + w;
+                        res["__ALL__"][d.k][val] = (res["__ALL__"][d.k][val]||0) + w;
+                    }
+                });
+            }
+        });
+    });
+    return res;
+}
+
+    function findVal(row, type) {
+        const kws = ALIAS[type];
+        for(let col of Object.keys(row)) {
+            for(let kw of kws) {
+                if(col.toLowerCase().includes(kw)) return row[col];
+            }
+        }
+        return null;
+    }
+
+    function readFile(f) {
+        return new Promise((r,j) => {
+            const fr = new FileReader();
+            fr.onload = e => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+                    r(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+                } catch(err){ j(err); }
+            };
+            fr.readAsArrayBuffer(f);
+        });
+    }
+
+    // ================= 渲染区 =================
+
+    function renderSidebar() {
+        const ul = document.getElementById('cat-list'); ul.innerHTML='';
+        G.cats.forEach(c => {
+            const li = document.createElement('li');
+            li.className = `cat-item ${c==='__ALL__'?'active':''}`;
+            const num = formatNum(G.new[c].total);
+            li.innerHTML = `<span>${c==='__ALL__'?'🌎 全品类聚合':c}</span> <span class="badge">${num}</span>`;
+            li.onclick = () => selectCat(c, li);
+            ul.appendChild(li);
+        });
+    }
+
+    function selectCat(cat, el) {
+        curCat = cat;
+        document.querySelectorAll('.cat-item').forEach(i=>i.classList.remove('active'));
+        if(el) el.classList.add('active');
+        else document.querySelector('.cat-item').classList.add('active');
+        renderCharts(cat);
+    }
+
+    function renderCharts(cat) {
+        const grid = document.getElementById('chart-grid');
+        grid.innerHTML = '';
+        grid.classList.add('active');
+
+        const nD = G.new[cat], oD = G.old[cat] || { total:1 };
+
+        DIMS.forEach(dim => {
+            const nAttr = nD[dim.k] || {};
+            const oAttr = oD[dim.k] || {};
+            const keys = new Set([...Object.keys(nAttr), ...Object.keys(oAttr)]);
+            let list = [];
+
+            keys.forEach(k => {
+                const nv = nAttr[k] || 0;
+                const ov = oAttr[k] || 0;
+                const nPct = (nv / nD.total) * 100;
+                const oPct = (ov / (oD.total||1)) * 100;
+
+                // 计算: 增量(Delta) 和 涨幅(Rate)
+                const delta = nv - ov;
+                let rate = 0;
+                if(ov > 0) rate = ((nv - ov)/ov) * 100;
+                else if(nv > 0) rate = 100; // 新增
+
+                list.push({ name:k, nPct, oPct, rate, nv, ov, delta });
+            });
+
+            if(list.length === 0) return;
+            // 默认按本期数值排序
+            list.sort((a,b) => b.nv - a.nv);
+            const topList = list.slice(0, 10);
+
+            const insight = genInsight(dim.n, topList, CONFIG.mode==='trend');
+
+            const card = document.createElement('div');
+            card.className = 'chart-card';
+
+            // 动态表头
+            let headerHtml = '';
+            let gridClass = '';
+
+            if(CONFIG.mode === 'single') {
+                gridClass = 'grid-single';
+                headerHtml = `
+                    <div class="table-header ${gridClass}">
+                        <div>属性名称 (Name)</div>
+                        <div>数据分布 (Distribution)</div>
+                        <div class="th-right">数值 (Vol)</div>
+                        <div class="th-right">占比 (Share)</div>
+                    </div>
+                `;
+            } else {
+                gridClass = 'grid-trend';
+                headerHtml = `
+                    <div class="table-header ${gridClass}">
+                        <div>属性名称 (Name)</div>
+                        <div>趋势对比 (Trend)</div>
+                        <div class="th-right">上期 (Old)</div>
+                        <div class="th-right">本期 (New)</div>
+                        <div class="th-right">增量 (Diff)</div>
+                        <div class="th-right">涨幅 (Rate)</div>
+                        <div class="th-right">占比 (Share)</div>
+                    </div>
+                `;
+            }
+
+            let rowsHtml = topList.map(item => {
+                const en = TRANS[item.name] || item.name;
+                const nW = Math.max(item.nPct, 1);
+                const oW = Math.max(item.oPct, 1);
+
+                // 根据模式生成不同的行
+                if(CONFIG.mode === 'single') {
+                    return `
+                        <div class="data-row ${gridClass}">
+                            <div class="col-label"><span class="lbl-main">${item.name}</span><span class="lbl-sub">${en}</span></div>
+                            <div class="col-viz"><div class="bar-wrapper"><div class="bar-track"><div class="bar-fill fill-new" style="width:${nW}%"></div></div></div></div>
+                            <div class="col-val-new">${formatNum(item.nv)}</div>
+                            <div class="col-share">${item.nPct.toFixed(1)}%</div>
+                        </div>
+                    `;
+                } else {
+                    // Trend Mode
+                    let diffHtml = item.delta > 0 ? `<span class="diff-pos">+${formatNum(item.delta)}</span>`
+                                : item.delta < 0 ? `<span class="diff-neg">${formatNum(item.delta)}</span>`
+                                : `<span class="diff-neu">-</span>`;
+
+                    let rateHtml = '';
+                    if(item.ov === 0 && item.nv > 0) rateHtml = `<span class="rate-badge rate-up">New</span>`;
+                    else if(item.rate > 0) rateHtml = `<span class="rate-badge rate-up">+${item.rate.toFixed(1)}%</span>`;
+                    else if(item.rate < 0) rateHtml = `<span class="rate-badge rate-down">${item.rate.toFixed(1)}%</span>`;
+                    else rateHtml = `<span class="rate-badge rate-flat">-</span>`;
+
+                    return `
+                        <div class="data-row ${gridClass}">
+                            <div class="col-label"><span class="lbl-main">${item.name}</span><span class="lbl-sub">${en}</span></div>
+                            <div class="col-viz">
+                                <div class="bar-wrapper"><div class="bar-track"><div class="bar-fill fill-old" style="width:${oW}%"></div></div></div>
+                                <div class="bar-wrapper"><div class="bar-track"><div class="bar-fill fill-new" style="width:${nW}%"></div></div></div>
+                            </div>
+                            <div class="col-val">${formatNum(item.ov)}</div>
+                            <div class="col-val-new">${formatNum(item.nv)}</div>
+                            <div class="col-diff">${diffHtml}</div>
+                            <div class="col-rate">${rateHtml}</div>
+                            <div class="col-share">${item.nPct.toFixed(1)}%</div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            card.innerHTML = `
+                <div class="card-head">
+                    <span class="head-title"><i class="fas ${dim.i}" style="color:var(--primary)"></i> ${dim.n}</span>
+                </div>
+                <div class="insight-bar"><i class="fas fa-robot"></i> ${insight}</div>
+                <div class="card-body">
+                    ${headerHtml}
+                    ${rowsHtml}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function genInsight(title, list, isTrend) {
+        if(!list.length) return "暂无数据";
+        const top1 = list[0];
+        let txt = `<strong>${top1.name}</strong> 占比 ${top1.nPct.toFixed(1)}% 领跑市场。`;
+
+        if(list.length > 1) {
+            const top2 = list[1];
+            if(top1.nPct > top2.nPct*2) txt += " 头部效应非常显著。";
+            else txt += ` <strong>${top2.name}</strong> 紧随其后。`;
+        }
+
+        if(isTrend) {
+            // 找增量最大的
+            const gainer = list.reduce((prev, curr) => (curr.delta > prev.delta) ? curr : prev, list[0]);
+            if(gainer.delta > 0) txt += ` 🚀 <strong>${gainer.name}</strong> 增长最快 (净增 ${formatNum(gainer.delta)})。`;
+
+            // 找跌幅最大的
+            const loser = list.reduce((prev, curr) => (curr.delta < prev.delta) ? curr : prev, list[0]);
+            if(loser.delta < 0) txt += ` 📉 <strong>${loser.name}</strong> 流失最多 (减少 ${formatNum(Math.abs(loser.delta))})。`;
+        }
+        return txt;
+    }
+
+    function formatNum(n) {
+        return n.toLocaleString();
+    }
+</script>
+</body>
+</html>
