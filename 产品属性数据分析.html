@@ -182,9 +182,23 @@
     <header class="header">
         <div class="brand"><i class="fas fa-amazon"></i> 选品数据专家 V11.0</div>
         <div class="mode-switch">
-            <button class="mode-btn active" onclick="setMode('single')">📊 单期分布</button>
-            <button class="mode-btn" onclick="setMode('trend')">📈 趋势对比</button>
-        </div>
+    <a href="https://wasdkd.github.io/Amazon/图片打标签_代码_AI辅助" style="text-decoration: none;">
+        <button class="mode-btn" style="
+            background: linear-gradient(135deg, #2eccbf 0%, #3498db 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.3s;
+        " onmouseover="this.style.transform='translateY(-2px)'"
+        onmouseout="this.style.transform='translateY(0)'">
+            🔙 返回打标系统
+        </button>
+    </a>
+    <button class="mode-btn active" onclick="setMode('single')">📊 单期分布</button>
+    <button class="mode-btn" onclick="setMode('trend')">📈 趋势对比</button>
+</div>
     </header>
 
     <div class="layout">
@@ -234,6 +248,147 @@
     </div>
 
 <script>
+    // ================= 自动数据接收 =================
+
+// 检查是否有来自打标系统的数据
+function checkTransferredData() {
+    try {
+        // 先检查 localStorage（数据持久化）
+        let storedData = localStorage.getItem('amazon_tagging_data');
+        let dataSource = 'localStorage';
+
+        // 如果没有，检查 sessionStorage
+        if (!storedData) {
+            storedData = sessionStorage.getItem('amazon_analysis_data');
+            dataSource = 'sessionStorage';
+
+            if (storedData) {
+                // 将 sessionStorage 数据转换为统一格式
+                const dataArray = JSON.parse(storedData);
+                storedData = JSON.stringify({
+                    data: dataArray,
+                    timestamp: new Date().getTime(),
+                    totalCount: dataArray.length
+                });
+            }
+        }
+
+        if (storedData) {
+            const dataObj = JSON.parse(storedData);
+            const data = dataObj.data || [];
+
+            if (data.length > 0) {
+                console.log(`从${dataSource}接收到 ${data.length} 条数据`);
+
+                // 显示数据来源提示
+                showDataSourceTip(data.length, new Date(dataObj.timestamp).toLocaleTimeString());
+
+                // 自动填充本期数据
+                useTransferredData(data);
+
+                // 自动开始分析
+                setTimeout(() => {
+                    startAnalysis();
+                }, 500);
+
+                return true;
+            }
+        }
+
+        return false;
+    } catch (error) {
+        console.error('数据接收失败:', error);
+        return false;
+    }
+}
+
+// 使用传输的数据
+function useTransferredData(data) {
+    // 隐藏上传控件，显示数据已加载
+    const fileBox = document.getElementById('box-f1');
+    const fileName = fileBox.querySelector('.file-name');
+
+    fileBox.classList.add('has-file');
+    fileName.innerHTML = `<i class="fas fa-database"></i> 已加载打标系统数据 (${data.length} 条)`;
+
+    // 禁用文件输入
+    document.getElementById('f1').disabled = true;
+
+    // 存储数据到全局变量
+    window.transferredData = data;
+}
+
+// 显示数据来源提示
+function showDataSourceTip(count, time) {
+    // 创建提示条
+    const tipBar = document.createElement('div');
+    tipBar.id = 'data-source-tip';
+    tipBar.style.cssText = `
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 20px;
+        margin: 0 24px 20px 24px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    `;
+
+    tipBar.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-sync-alt fa-spin"></i>
+            <span>已自动加载 <strong>${count}</strong> 条打标系统数据 (${time})</span>
+        </div>
+        <button onclick="clearTransferredData()" style="
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+            <i class="fas fa-times"></i> 清除数据并重新上传
+        </button>
+    `;
+
+    // 插入到控制面板之前
+    const controlPanel = document.querySelector('.control-panel');
+    controlPanel.parentNode.insertBefore(tipBar, controlPanel);
+}
+
+// 清除传输的数据
+function clearTransferredData() {
+    localStorage.removeItem('amazon_tagging_data');
+    sessionStorage.removeItem('amazon_analysis_data');
+    delete window.transferredData;
+
+    // 移除提示条
+    const tipBar = document.getElementById('data-source-tip');
+    if (tipBar) tipBar.remove();
+
+    // 恢复上传控件
+    const fileBox = document.getElementById('box-f1');
+    const fileName = fileBox.querySelector('.file-name');
+
+    fileBox.classList.remove('has-file');
+    fileName.innerHTML = `<i class="fas fa-file-excel"></i> 点击选择 Excel...`;
+
+    document.getElementById('f1').disabled = false;
+    document.getElementById('f1').value = '';
+
+    // 清空图表区域
+    document.getElementById('chart-grid').innerHTML = `
+        <div class="empty-tip">
+            <i class="fas fa-chart-bar" style="font-size:40px; margin-bottom:15px; opacity:0.3;"></i>
+            <p>请上传数据并点击"开始分析"</p>
+        </div>
+    `;
+}
     // ================= 配置区 =================
     const CONFIG = { mode: 'single' };
 
@@ -291,30 +446,47 @@
     }
 
     async function startAnalysis() {
-        const f1 = document.getElementById('f1').files[0];
-        const f2 = document.getElementById('f2').files[0];
+    const f1 = document.getElementById('f1').files[0];
+    const f2 = document.getElementById('f2').files[0];
 
-        if(!f1) return alert("请上传本期数据！");
-        if(CONFIG.mode==='trend' && !f2) return alert("趋势模式需上传上期数据！");
+    // 检查是否有传输的数据或上传的文件
+    const hasTransferredData = window.transferredData && window.transferredData.length > 0;
+    const hasUploadedFile = f1;
 
-        document.getElementById('loading').style.display = 'flex';
-        await new Promise(r => setTimeout(r, 100));
+    if(!hasTransferredData && !hasUploadedFile) return alert("请上传本期数据！");
+    if(CONFIG.mode==='trend' && !f2) return alert("趋势模式需上传上期数据！");
 
-        try {
-            const d1 = await readFile(f1);
-            const d2 = CONFIG.mode==='trend' ? await readFile(f2) : [];
-            const wMode = document.getElementById('w-sel').value;
+    document.getElementById('loading').style.display = 'flex';
+    await new Promise(r => setTimeout(r, 100));
 
-            G.new = processData(d1, wMode);
-            G.old = processData(d2, wMode);
-            G.cats = Object.keys(G.new).sort((a,b) => G.new[b].total - G.new[a].total);
+    try {
+        let d1;
+        if (hasTransferredData) {
+            // 使用传输的数据
+            d1 = window.transferredData;
+        } else {
+            // 使用上传的文件
+            d1 = await readFile(f1);
+        }
 
-            renderSidebar();
-            selectCat('__ALL__');
+        const d2 = CONFIG.mode==='trend' ? await readFile(f2) : [];
+        const wMode = document.getElementById('w-sel').value;
 
-        } catch(e) { console.error(e); alert("错误: "+e.message); }
-        finally { document.getElementById('loading').style.display = 'none'; }
+        G.new = processData(d1, wMode);
+        G.old = processData(d2, wMode);
+        G.cats = Object.keys(G.new).sort((a,b) => G.new[b].total - G.new[a].total);
+
+        renderSidebar();
+        selectCat('__ALL__');
+
+    } catch(e) {
+        console.error(e);
+        alert("分析错误: " + e.message);
     }
+    finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
 
     function processData(rows, wMode) {
         const res = { "__ALL__": { total:0 } };
@@ -551,6 +723,17 @@
     function formatNum(n) {
         return n.toLocaleString();
     }
+    // 页面加载完成后检查是否有传输的数据
+document.addEventListener('DOMContentLoaded', function() {
+    // 等待页面完全加载
+    setTimeout(() => {
+        const hasData = checkTransferredData();
+
+        if (!hasData) {
+            console.log('未检测到传输的数据，等待用户上传');
+        }
+    }, 300);
+});
 </script>
 </body>
 </html>
