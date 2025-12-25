@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google" content="notranslate">
-    <title>亚马逊全维度选品清洗系统 V34.4 (完美关联筛选版)</title>
+    <title>亚马逊多维度打标签系统</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -12,6 +12,30 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
+        .sortable {
+    cursor: pointer;
+    position: relative;
+    background: #232f3e !important; /* 与其它表头保持一致 */
+}
+.sort-indicator {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    opacity: 0.5;
+}
+.sort-indicator.asc::after {
+    content: '▲';
+    color: #1890ff;
+}
+.sort-indicator.desc::after {
+    content: '▼';
+    color: #1890ff;
+}
+.sortable:hover {
+    background: #1c2732 !important; /* 悬停时的背景色 */
+}
         :root { --primary: #007185; --warning: #FF9900; --danger-bg: #fee2e2; --border-color: #bbb; --ai-btn: #722ed1; --active-row-bg: #dcfce7; }
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; color: #333; display: flex; flex-direction: column; height: 100vh; margin: 0; }
@@ -32,8 +56,9 @@
         td { border: 1px solid var(--border-color); padding: 0; vertical-align: top; background: white; min-height: 50px; position: relative; transition: background-color 0.1s; }
         tr.active-row td { background-color: var(--active-row-bg) !important; border-top: 1px solid #86efac; border-bottom: 1px solid #86efac; }
         textarea.edit-area { width: 100%; height: 100%; border: none; padding: 8px; resize: none; font-family: inherit; font-size: 12px; line-height: 1.4; min-height: 70px; white-space: pre-wrap; background: transparent; display: block; }
-        textarea.edit-area:focus, input.edit:focus { outline: none; box-shadow: inset 0 0 0 2px var(--primary); background: #faffff; }
+        textarea.edit-area:focus, input.edit:focus, select.edit-select:focus { outline: none; box-shadow: inset 0 0 0 2px var(--primary); background: #faffff; }
         input.edit { width: 100%; height: 100%; padding: 8px; border: none; background: transparent; font-family: inherit; font-size: 13px; min-height: 50px; }
+        select.edit-select { width: 100%; height: 100%; padding: 8px; border: none; background: transparent; font-family: inherit; font-size: 13px; min-height: 50px; cursor: pointer; }
         .title-cell { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
         .en-title { font-size: 12px; color: #222; font-weight: 600; }
         .cn-title { font-size: 11px; color: #666; border-top: 1px dashed #ccc; padding-top: 4px; }
@@ -80,6 +105,12 @@
             font-weight: bold; color: #1890ff; border-bottom: 2px solid #eee; background: #fafafa;
             position: sticky; top: 0; z-index: 2;
         }
+
+        /* 月销量样式 */
+        .sales-cell { text-align: center; padding: 8px !important; font-weight: bold; }
+        .sales-high { color: #10b981; }
+        .sales-medium { color: #f59e0b; }
+        .sales-low { color: #ef4444; }
     </style>
 </head>
 <body>
@@ -113,6 +144,33 @@
             <span id="ref-status"></span>
             <button class="btn-ai" onclick="startAIFill()">🚀 极速AI补全</button>
         </div>
+        <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" style="text-decoration: none;">
+    <button style="
+        padding: 8px 16px;
+        background-color: #2eccbf;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    "
+    >返回平台</button>
+</a>
+        <a href="https://wasdkd.github.io/Amazon/产品属性数据分析" style="text-decoration: none;">
+    <button style="
+        padding: 8px 16px;
+        background-color: #2ecc71;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    "
+    >数据分析</button>
+</a>
+
     </div>
 
     <div class="filter-bar">
@@ -160,8 +218,13 @@
                     <th style="width: 10px;">#</th>
                     <th style="width: 20px;">图片</th>
                     <th style="width: 30px;">ASIN</th>
+                    <!-- 新增月销量列 -->
+                    <th style="width: 25px; position: sticky; left: 135px; z-index: 10;" onclick="toggleSort('monthly_sales')" class="sortable">月销量
+    <span id="sort-indicator-monthly_sales" class="sort-indicator"></span>
+</th>
                     <th style="width: 30px;">品类</th>
                     <th style="width: 30px; background:#005566;">面料 (AI识别)</th>
+                    <!-- 版型、领型、袖型、长度改为下拉选择 -->
                     <th style="width: 30px;">版型</th>
                     <th style="width: 30px;">领型</th>
                     <th style="width: 30px;">袖型</th>
@@ -182,6 +245,7 @@
         let allData = [], filteredData = [], currentPage = 1, lastActiveRow = null, referenceImages = [];
         const DB_NAME = "AmazonToolDB", DB_STORE = "dataStore";
         let db;
+        let sortConfig = { key: null, order: 'asc' }; // 当前排序字段和顺序
 
         // 核心配置
         const FILTER_CONFIG = [
@@ -193,11 +257,21 @@
             { key: 'elements', label: '元素' },
             { key: 'length', label: '长度' },
             { key: 'pattern', label: '图案' },
-            { key: 'style', label: '风格' }
+            { key: 'style', label: '风格' },
+            // { key: 'monthly_sales', label: '月销量' } // 添加月销量筛选
         ];
 
         // 存储筛选状态：Set为空代表"未筛选(显示全部)"
         let activeFilters = {};
+
+        // 下拉选项数据
+        const DROPDOWN_OPTIONS = {
+    fit: ["修身", "合身", "宽松", "A字", "微喇", "裹身", "直筒", "男友风", "老爹风", "超宽松"],
+    collar: ["V领", "圆领", "半高领", "立领", "高领", "方领", "POLO领", "翻领", "娃娃领", "连帽", "船领", "荡领", "一字肩", "露肩", "挂脖", "桃心领", "单肩", "不对称领", "U领", "钥匙孔领", "交叉领", "青果领", "无"],
+    sleeve: ["无袖", "短袖", "盖袖", "长袖", "七分袖", "五分袖", "泡泡袖", "蝙蝠袖", "插肩袖", "荷叶袖", "喇叭袖", "挽袖", "开叉袖", "挖肩袖", "无"],
+    length: ["长款", "拖地", "中长", "及膝", "短款", "九分", "七分", "盖臀", "及臀", "长裤", "短裤", "超短", "常规"],
+    style: ["休闲", "通勤", "派对", "婚礼", "晚礼", "正式", "度假", "波西米亚", "运动", "复古", "千禧风", "学院风", "甜美", "性感", "街头", "朋克", "哥特"]  // 添加风格下拉选项
+};
 
         // 基础词库映射
         const RAW_CAT_MAP = {
@@ -379,7 +453,7 @@
     }
 };
 
-        window.onload = function() { initDB(); initRowHighlight(); };
+        window.onload = function() { initDB(); initRowHighlight(); updateSortIndicators();};
         function initRowHighlight() { const tableContainer = document.querySelector('.table-container'); tableContainer.addEventListener('click', function(e) { const tr = e.target.closest('tr'); if (tr && tr.parentElement.tagName === 'TBODY') highlightRow(tr); }); tableContainer.addEventListener('focusin', function(e) { const tr = e.target.closest('tr'); if (tr && tr.parentElement.tagName === 'TBODY') highlightRow(tr); }); }
         function highlightRow(row) { if (lastActiveRow) lastActiveRow.classList.remove('active-row'); row.classList.add('active-row'); lastActiveRow = row; }
         function initDB() { const request = indexedDB.open(DB_NAME, 1); request.onupgradeneeded = function(e) { const db = e.target.result; if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE); }; request.onsuccess = function(e) { db = e.target.result; checkRestore(); }; }
@@ -405,6 +479,24 @@
         // 读取图片
         let img = row['商品主图']||row['Main Image URL']||row['image']||"";
         img = img.replace(/\._AC_.*_\.jpg/, ".jpg").replace(/\._AC_.*_\.png/, ".png");
+
+        // === 提取月销量 ===
+        let monthly_sales = "";
+        // 尝试多个可能的字段名
+        const salesFields = ['月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+        for (let field of salesFields) {
+            if (row[field] !== undefined && row[field] !== "") {
+                let salesVal = row[field];
+                // 清理数据，提取数字
+                if (typeof salesVal === 'string') {
+                    const match = salesVal.match(/(\d+)/);
+                    if (match) monthly_sales = parseInt(match[0]);
+                } else {
+                    monthly_sales = Number(salesVal);
+                }
+                if (monthly_sales) break;
+            }
+        }
 
         // === 材质清洗逻辑 (保持不变) ===
         let material = "";
@@ -450,8 +542,7 @@
 
 
         // === 其他属性匹配逻辑 (保持不变) ===
-        // 1. 定义一个“干净的”描述文本，专门用于匹配，去掉了“搭配建议”
-        // 正则含义：匹配 "pair/match/wear with" 到句号或行尾的内容，替换为空
+        // 1. 定义一个“干净的”描述文本，专门用于匹配，去掉了"搭配建议"
         let cleanDesc = desc.toLowerCase()
             .replace(/pair\s+with.*?[,.]/gi, "")
             .replace(/match\s+with.*?[,.]/gi, "")
@@ -486,9 +577,6 @@
         // 4. 多选查找 (元素)
         const findMulti = (dict) => {
             let res = [];
-            // 元素匹配不需要剔除搭配建议吗？通常元素很少在搭配建议里出现，
-            // 但为了保险，也可以用 cleanDesc。不过元素一般是 "pocket", "zip" 这种，问题不大。
-            // 这里我们用全文，但为了准确，可以优先取 cleanDesc 的内容
             const fullText = title + " " + cleanDesc;
             const keys = Object.keys(dict);
             for(let k of keys) {
@@ -502,16 +590,16 @@
         let length = find(DICTS.length);
          if (["Pants", "Jeans", "Leggings", "Sweatpants"].includes(category)) {
                     if (length && length.includes("短款")) {
-                        length = "长裤"; // 清空，让 AI 跑，别瞎猜
+                        length = ""; // 清空，让 AI 跑，别瞎猜
                     }
                     if (!length || length==="") {
-                        length = "长裤"; // 清空，让 AI 跑，别瞎猜
+                        length = ""; // 清空，让 AI 跑，别瞎猜
                     }
                 }
 
                 // === 图案优化逻辑开始 ===
                 let pattern = find(DICTS.pattern);
-                // 策略：如果没有匹配到任何花哨的图案关键词，默认它就是“纯色”
+                // 策略：如果没有匹配到任何花哨的图案关键词，默认它就是"纯色"
                 // 因为卖家通常不会忘记写 "Floral" 或 "Stripe"，但经常省略 "Solid"
                 if (!pattern || pattern === "") {
                     pattern = "纯色";
@@ -519,7 +607,7 @@
                 // === 图案优化逻辑结束 ===
 
                 let style = find(DICTS.style);
-                // 策略：如果没有匹配到特定的风格词（如复古、通勤、派对），默认归为“休闲”
+                // 策略：如果没有匹配到特定的风格词（如复古、通勤、派对），默认归为"休闲"
                 if (!style || style === "") {
                     style = "休闲";
                 }
@@ -529,7 +617,25 @@
                 let elements = findMulti(DICTS.elements);
         if (category && BOTTOM_CATS.includes(category)) { collar = "无"; sleeve = "无"; }
 
-        return { img: img, asin: row['ASIN']||row['asin']||"", link: row['商品详情页链接']||"", category: category, material: material, fabric_visual: "", length: length, pattern: pattern, style: style, fit: fit, collar: collar, sleeve: sleeve, elements: elements, title: title, title_cn: title_cn, _raw: row };
+        return {
+            img: img,
+            asin: row['ASIN']||row['asin']||"",
+            link: row['商品详情页链接']||"",
+            monthly_sales: monthly_sales, // 添加月销量
+            category: category,
+            material: material,
+            fabric_visual: "",
+            length: length,
+            pattern: pattern,
+            style: style,
+            fit: fit,
+            collar: collar,
+            sleeve: sleeve,
+            elements: elements,
+            title: title,
+            title_cn: title_cn,
+            _raw: row
+        };
     });
     initFilters(); applyFilter(); autoSave();
 }
@@ -546,7 +652,7 @@
             FILTER_CONFIG.forEach(cfg => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'filter-wrapper';
-                // 默认 Set 为空，表示“显示全部”
+                // 默认 Set 为空，表示"显示全部"
                 activeFilters[cfg.key] = new Set();
                 wrapper.innerHTML = `<button class="filter-btn" id="btn-${cfg.key}" onclick="toggleDropdown(event, '${cfg.key}')">${cfg.label}</button><div id="list-${cfg.key}" class="dropdown-content"></div>`;
                 container.appendChild(wrapper);
@@ -556,7 +662,7 @@
         }
 
         // 2. 获取用于渲染当前列下拉框的数据 (排除自身的筛选，保留其他列的筛选)
-        // 实现了“关联筛选”：比如选了“连衣裙”，图案下拉框里只显示连衣裙有的图案
+        // 实现了"关联筛选"：比如选了"连衣裙"，图案下拉框里只显示连衣裙有的图案
         function getContextData(currentKey) {
             return allData.filter(item => {
                 for (let cfg of FILTER_CONFIG) {
@@ -659,10 +765,10 @@
             const set = activeFilters[key];
 
             if (set.size > 0) {
-                // 如果当前有勾选 -> 点击变为“全不选”（恢复显示全部）
+                // 如果当前有勾选 -> 点击变为"全不选"（恢复显示全部）
                 set.clear();
             } else {
-                // 如果当前没勾选（显示全部） -> 点击变为“全选所有有效项”
+                // 如果当前没勾选（显示全部） -> 点击变为"全选所有有效项"
                 // 获取当前关联的所有有效值
                 const contextData = getContextData(key);
                 contextData.forEach(item => {
@@ -707,7 +813,7 @@
                     // 1. 下拉筛选逻辑
                     for (let cfg of FILTER_CONFIG) {
                         const set = activeFilters[cfg.key];
-                        // 只有 Set 不为空时，才进行过滤；空 Set 代表“不限制”
+                        // 只有 Set 不为空时，才进行过滤；空 Set 代表"不限制"
                         if (set.size > 0) {
                             const val = item[cfg.key];
                             let match = false;
@@ -734,7 +840,9 @@
                     if (onlyEmpty) return checkIsMissing(item);
                     return true;
                 });
-                currentPage = 1; renderTable();
+                currentPage = 1;
+                applySort();
+                renderTable();
             } catch (e) { console.error("Filter error:", e); }
         }
 
@@ -762,6 +870,40 @@
                 const asinUrl = item.link || `https://www.amazon.com/dp/${item.asin}`;
                 const isBottom = BOTTOM_CATS.includes(item.category);
 
+                // 月销量单元格 - 根据销量大小添加不同样式
+                let salesClass = "";
+                if (item.monthly_sales) {
+                    if (item.monthly_sales >= 1000) salesClass = "sales-high";
+                    else if (item.monthly_sales >= 100) salesClass = "sales-medium";
+                    else salesClass = "sales-low";
+                }
+                const salesCell = `<td class="sales-cell ${salesClass}" title="${item.monthly_sales || 0}">${item.monthly_sales || "N/A"}</td>`;
+
+                // 生成下拉选择框的函数
+                const tdSelect = (field, val, options, allowEmpty = true) => {
+                    let isMissing = (!val || val === "无" || val === "");
+                    if (isBottom && (field === 'collar' || field === 'sleeve')) isMissing = false;
+                    if (field === 'fabric_visual') isMissing = false;
+
+                    // 生成选项HTML
+                    let optionsHtml = '';
+                    if (allowEmpty) {
+                        optionsHtml += `<option value=""></option>`;
+                    }
+                    options.forEach(opt => {
+                        const selected = val === opt ? 'selected' : '';
+                        optionsHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+                    });
+
+                    // 如果当前值不在选项中，添加一个额外的选项
+                    if (val && !options.includes(val) && val !== "") {
+                        optionsHtml += `<option value="${val}" selected>${val} (自定义)</option>`;
+                    }
+
+                    const finalCls = isMissing ? "edit-select missing-data" : "edit-select";
+                    return `<td><select class="${finalCls}" onchange="updFiltered(${globIdx}, '${field}', this)">${optionsHtml}</select></td>`;
+                };
+
                 // 普通单行输入框生成函数
                 const tdInp = (field, val) => {
                     let isMissing = (!val || val === "无" || val === "");
@@ -780,22 +922,22 @@
                             <span onclick="copyToClip('${item.asin}', this)" style="cursor:pointer; font-size:14px; opacity:0.6;" title="点击复制">📋</span>
                         </div>
                     </td>
+                    ${salesCell}
                     ${tdInp('category', item.category)}
                     ${tdInp('fabric_visual', item.fabric_visual)}
-                    ${tdInp('fit', item.fit)}
-                    ${tdInp('collar', item.collar)}
-                    ${tdInp('sleeve', item.sleeve)}
+                    ${tdSelect('fit', item.fit, DROPDOWN_OPTIONS.fit)}
+                    ${tdSelect('collar', item.collar, DROPDOWN_OPTIONS.collar)}
+                    ${tdSelect('sleeve', item.sleeve, DROPDOWN_OPTIONS.sleeve)}
 
-                    <!-- ★★★ 修改开始：将元素列改为 textarea 以支持换行 ★★★ -->
+                    <!-- ★★★ 元素列改为 textarea 以支持换行 ★★★ -->
                     <td>
                         <textarea class="edit-area ${(!item.elements||item.elements===''||item.elements==='无')?'missing-data':''}"
                         oninput="updFiltered(${globIdx}, 'elements', this)">${item.elements||''}</textarea>
                     </td>
-                    <!-- ★★★ 修改结束 ★★★ -->
 
-                    ${tdInp('length', item.length)}
+                    ${tdSelect('length', item.length, DROPDOWN_OPTIONS.length)}
                     ${tdInp('pattern', item.pattern)}
-                    ${tdInp('style', item.style)}
+                    ${tdSelect('style', item.style, DROPDOWN_OPTIONS.style)}
                     <td><textarea class="edit-area ${(!item.material||item.material==='无')?'missing-data':''}" oninput="updFiltered(${globIdx}, 'material', this)">${item.material}</textarea></td>
                     <td><div class="title-cell"><div class="en-title">${item.title}</div><div class="cn-title">${item.title_cn || "(无中文标题)"}</div></div></td>
                 </tr>`;
@@ -803,8 +945,37 @@
             lastActiveRow = null;
         }
 
-        function updFiltered(fIdx, field, el) { const val = el.value; filteredData[fIdx][field] = val; const item = filteredData[fIdx]; const isBottom = BOTTOM_CATS.includes(item.category); let isMissing = (!val || val.trim() === "" || val === "无"); if (isBottom && (field === 'collar' || field === 'sleeve')) isMissing = false; if (field === 'fabric_visual') isMissing = false; if (isMissing) { el.classList.add('missing-data'); } else { el.classList.remove('missing-data'); } autoSave(); }
-        const overlay = document.getElementById('preview-overlay'); const pImg = document.getElementById('preview-img'); function showPreview(url) { pImg.src = url; overlay.style.display = 'block'; } function hidePreview() { overlay.style.display = 'none'; }
+        function updFiltered(fIdx, field, el) {
+            const val = el.tagName === 'SELECT' ? el.value : el.value;
+            filteredData[fIdx][field] = val;
+            const item = filteredData[fIdx];
+            const isBottom = BOTTOM_CATS.includes(item.category);
+            let isMissing = (!val || val.trim() === "" || val === "无");
+            if (isBottom && (field === 'collar' || field === 'sleeve')) isMissing = false;
+            if (field === 'fabric_visual') isMissing = false;
+
+            // 更新UI
+            if (el.tagName === 'SELECT') {
+                if (isMissing) {
+                    el.classList.add('missing-data');
+                } else {
+                    el.classList.remove('missing-data');
+                }
+            } else if (el.tagName === 'INPUT') {
+                if (isMissing) {
+                    el.classList.add('missing-data');
+                } else {
+                    el.classList.remove('missing-data');
+                }
+            }
+
+            autoSave();
+        }
+
+        const overlay = document.getElementById('preview-overlay');
+        const pImg = document.getElementById('preview-img');
+        function showPreview(url) { pImg.src = url; overlay.style.display = 'block'; }
+        function hidePreview() { overlay.style.display = 'none'; }
 
         async function startAIFill() {
     const key = document.getElementById('apiKey').value.trim();
@@ -876,7 +1047,127 @@
         function copyToClip(text, el) { navigator.clipboard.writeText(text).then(() => { const original = el.innerText; el.innerText = '✅'; setTimeout(() => el.innerText = original, 1000); }).catch(err => { alert("复制失败"); }); }
         function urlToBase64(url) { return new Promise(resolve => { const img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; const timer = setTimeout(() => resolve(null), 5000); img.onload = () => { clearTimeout(timer); const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img,0,0); resolve(c.toDataURL('image/jpeg', 0.6)); }; img.onerror = () => { clearTimeout(timer); resolve(null); }; }); }
         async function exportImagesZip() { if(filteredData.length === 0) return alert("无数据"); const zip = new JSZip(); const mask = document.getElementById('export-mask'); const bar = document.getElementById('exp-bar'); mask.style.display = 'flex'; const tasks = []; for(let i=0; i<filteredData.length; i++) { if(filteredData[i].img) { const fileName = `${i+1}.jpg`; tasks.push({ url: filteredData[i].img, name: fileName }); } } if(tasks.length === 0) { mask.style.display = 'none'; return alert("无图片"); } const BATCH = 5; let count = 0; for(let i=0; i<tasks.length; i+=BATCH) { const batch = tasks.slice(i, i+BATCH); await Promise.all(batch.map(async (t) => { try { const res = await fetch(t.url); if(res.ok) { const blob = await res.blob(); zip.file(t.name, blob); } } catch(e){} count++; })); bar.style.width = `${Math.round((count/tasks.length)*100)}%`; } const content = await zip.generateAsync({type:"blob"}); saveAs(content, "amazon_images.zip"); mask.style.display = 'none'; }
-        async function exportData() { if(filteredData.length === 0) return alert("无数据"); const mask = document.getElementById('export-mask'); const bar = document.getElementById('exp-bar'); const txt = document.getElementById('exp-status'); mask.style.display = 'flex'; txt.innerText = "初始化 Excel..."; bar.style.width = "0%"; const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('选品分析'); const headerRow = ['图片', 'ASIN', '品类', '长度', '图案', '风格', '面料(AI)', '材质(成分)', '版型', '领型', '袖型', '元素', '中文标题', '英文标题']; const rawKeys = []; if(filteredData.length > 0 && filteredData[0]._raw) { Object.keys(filteredData[0]._raw).forEach(k => { if(!['商品主图','Main Image URL','ASIN','asin','标题(翻译)','中文标题'].includes(k)) { rawKeys.push(k); headerRow.push(`[原]${k}`); } }); } const hRow = ws.addRow(headerRow); hRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }; hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF232F3E' } }; const imgTasks = []; for(let i=0; i<filteredData.length; i++){ const item = filteredData[i]; const rowValues = [ '', item.asin, item.category, item.length, item.pattern, item.style, item.fabric_visual, item.material, item.fit, item.collar, item.sleeve, item.elements, item.title_cn, item.title ]; rawKeys.forEach(k => rowValues.push(item._raw[k])); const r = ws.addRow(rowValues); r.height = 70; r.getCell(4).alignment = { wrapText: true, vertical: 'top' }; r.getCell(5).alignment = { wrapText: true, vertical: 'top' }; r.getCell(10).alignment = { wrapText: true, vertical: 'top' }; r.getCell(11).alignment = { wrapText: true, vertical: 'top' }; if(item.img) imgTasks.push({ url:item.img, idx: r.number }); } txt.innerText = `下载图片...`; const BATCH = 5; for(let i=0; i<imgTasks.length; i+=BATCH) { const batch = imgTasks.slice(i, i+BATCH); await Promise.all(batch.map(async t => { try { const b64 = await urlToBase64(t.url); if(b64) { const imgId = wb.addImage({ base64:b64, extension:'jpeg' }); ws.addImage(imgId, { tl: { col: 0, row: t.idx-1 }, br: { col: 1, row: t.idx }, editAs: 'oneCell' }); } } catch(e){} })); bar.style.width = `${Math.min(100, Math.round(((i+BATCH)/imgTasks.length)*100))}%`; } txt.innerText = "生成文件..."; const buffer = await wb.xlsx.writeBuffer(); saveAs(new Blob([buffer]), `Amazon_Analysis_${Date.now()}.xlsx`); mask.style.display = 'none'; }
+        async function exportData() {
+            if (filteredData.length === 0) return alert("无数据");
+
+            const mask = document.getElementById('export-mask');
+            const bar = document.getElementById('exp-bar');
+            const txt = document.getElementById('exp-status');
+            mask.style.display = 'flex';
+
+            try {
+                txt.innerText = "初始化 Excel...";
+                bar.style.width = "0%";
+
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet('选品分析');
+
+                // 1. 定义表头 (严格按照页面表格顺序)
+                // 页面顺序: 图片 | ASIN | 月销量 | 品类 | 面料(AI) | 版型 | 领型 | 袖型 | 元素 | 长度 | 图案 | 风格 | 材质(成分) | 中文标题 | 英文标题
+                const coreHeaders = [
+                    '图片', 'ASIN', '月销量', '品类', '面料(AI)',
+                    '版型', '领型', '袖型', '元素',
+                    '长度', '图案', '风格', '材质(成分)',
+                    '中文标题', '英文标题'
+                ];
+
+                // 2. 提取原始数据中的额外列
+                const rawKeys = [];
+                if (filteredData.length > 0 && filteredData[0]._raw) {
+                    Object.keys(filteredData[0]._raw).forEach(k => {
+                        const skipList = ['商品主图', 'Main Image URL', 'image', 'ASIN', 'asin', '标题(翻译)', '中文标题', 'Title', 'title', '商品标题', '月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+                        if (!skipList.includes(k)) {
+                            rawKeys.push(k);
+                        }
+                    });
+                }
+
+                // 合并表头
+                const fullHeader = [...coreHeaders, ...rawKeys];
+
+                // 写入表头行
+                const hRow = ws.addRow(fullHeader);
+                hRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF232F3E' } };
+
+                const imgTasks = [];
+
+                // 3. 填充数据
+                for (let i = 0; i < filteredData.length; i++) {
+                    const item = filteredData[i];
+
+                    // 核心数据 (顺序必须与 coreHeaders 一致)
+                    const rowValues = [
+                        '', // 图片占位
+                        item.asin,
+                        item.monthly_sales || 0, // 月销量
+                        item.category,
+                        item.fabric_visual, // 面料(AI)
+                        item.fit,
+                        item.collar,
+                        item.sleeve,
+                        item.elements,
+                        item.length,
+                        item.pattern,
+                        item.style,
+                        item.material,      // 材质(成分)
+                        item.title_cn,
+                        item.title
+                    ];
+
+                    // 追加原始数据
+                    rawKeys.forEach(k => {
+                        let val = item._raw[k];
+                        if(!isNaN(Number(val)) && val !== '') val = Number(val);
+                        rowValues.push(val);
+                    });
+
+                    const r = ws.addRow(rowValues);
+                    r.height = 80; //稍微调高一点图片高度
+
+                    // 设置单元格对齐
+                    [4,5,6,7,8,9,10,11,12,13,14].forEach(colIdx => {
+                        // ExcelJS 列索引从1开始，所以+1
+                        r.getCell(colIdx + 1).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+                    });
+
+                    // 收集图片任务
+                    if (item.img) imgTasks.push({ url: item.img, idx: r.number });
+                }
+
+                // 4. 下载并插入图片
+                txt.innerText = `下载图片...`;
+                const BATCH = 5;
+                for (let i = 0; i < imgTasks.length; i += BATCH) {
+                    const batch = imgTasks.slice(i, i + BATCH);
+                    await Promise.all(batch.map(async t => {
+                        try {
+                            const b64 = await urlToBase64(t.url);
+                            if (b64) {
+                                const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+                                ws.addImage(imgId, {
+                                    tl: { col: 0, row: t.idx - 1 },
+                                    br: { col: 1, row: t.idx },
+                                    editAs: 'oneCell'
+                                });
+                            }
+                        } catch (e) { console.log('Image fail', e); }
+                    }));
+                    bar.style.width = `${Math.min(100, Math.round(((i + BATCH) / imgTasks.length) * 100))}%`;
+                }
+
+                // 5. 导出文件
+                txt.innerText = "生成文件...";
+                const buffer = await wb.xlsx.writeBuffer();
+                saveAs(new Blob([buffer]), `Amazon_Cleaned_Data_${Date.now()}.xlsx`);
+
+            } catch (e) {
+                console.error(e);
+                alert("导出出错: " + e.message);
+            } finally {
+                mask.style.display = 'none';
+            }
+        }
         // === 批量清空功能 ===
 function batchClearColumn() {
     const col = document.getElementById('batch-col-select').value;
@@ -903,13 +1194,12 @@ function batchClearColumn() {
     });
 
     // 5. 后续处理
-    alert(`✅ 操作完成！已清空 ${count} 条数据的 ${col} 字段。\n这些数据现在是空白状态，可以使用“AI补全”重新识别。`);
+    alert(`✅ 操作完成！已清空 ${count} 条数据的 ${col} 字段。\n这些数据现在是空白状态，可以使用"AI补全"重新识别。`);
 
     // 立即保存
     autoSave();
 
-    // 刷新视图 (因为原本筛选条件可能包含这个字段，清空后它们可能会从当前筛选视图中消失，这是符合逻辑的)
-    // 比如：筛选了“修身”，把它们清空后，它们就不再属于“修身”，自然会从列表里暂时消失（直到你重置筛选）
+    // 刷新视图
     applyFilter();
 
     // 重新渲染下拉筛选框的数字统计
@@ -923,11 +1213,64 @@ function batchClearColumn() {
         updateButtonLabel(cfg.key, cfg.label);
     });
 }
+// 排序功能
+function toggleSort(key) {
+    if (sortConfig.key === key) {
+        // 如果当前排序字段相同，切换升序/降序
+        sortConfig.order = sortConfig.order === 'asc' ? 'desc' : 'asc';
+    } else {
+        // 如果是新字段，设置为升序
+        sortConfig.key = key;
+        sortConfig.order = 'asc';
+    }
+
+    // 更新排序指示器
+    updateSortIndicators();
+
+    // 重新排序并渲染表格
+    applySort();
+    renderTable();
+}
+
+function updateSortIndicators() {
+    // 清除所有排序指示器
+    document.querySelectorAll('.sort-indicator').forEach(el => {
+        el.className = 'sort-indicator';
+    });
+
+    // 设置当前排序字段的指示器
+    if (sortConfig.key) {
+        const indicator = document.getElementById(`sort-indicator-${sortConfig.key}`);
+        if (indicator) {
+            indicator.className = `sort-indicator ${sortConfig.order}`;
+        }
+    }
+}
+
+function applySort() {
+    if (!sortConfig.key) return;
+
+    filteredData.sort((a, b) => {
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+
+        // 处理数字类型
+        if (sortConfig.key === 'monthly_sales') {
+            valA = valA ? Number(valA) : 0;
+            valB = valB ? Number(valB) : 0;
+        } else {
+            // 其他字段转为字符串比较
+            valA = String(valA || '');
+            valB = String(valB || '');
+        }
+
+        let result = 0;
+        if (valA < valB) result = -1;
+        else if (valA > valB) result = 1;
+
+        return sortConfig.order === 'asc' ? result : -result;
+    });
+}
     </script>
 </body>
 </html>
-
-
-
-
-
