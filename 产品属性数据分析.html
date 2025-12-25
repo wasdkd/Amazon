@@ -614,6 +614,42 @@ function processDataFromTagSystem(rows) {
     function formatNum(n) {
         return n.toLocaleString();
     }
+    // 在目标页面添加此函数来接收数据
+function receiveDataFromStorage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataKey = urlParams.get('dataKey');
+
+    if (dataKey) {
+        try {
+            // 从localStorage获取数据
+            const dataJson = localStorage.getItem(dataKey);
+            if (dataJson) {
+                const data = JSON.parse(dataJson);
+
+                // 使用数据后清理localStorage
+                localStorage.removeItem(dataKey);
+
+                // 在这里处理接收到的数据
+                processDataFromStorage(data);
+            }
+        } catch (error) {
+            console.error('数据接收错误:', error);
+        }
+    }
+}
+
+// 处理接收到的数据
+function processDataFromStorage(data) {
+    // 这里实现你的数据分析逻辑
+    console.log('接收到的数据:', data);
+    // ... 数据分析代码
+}
+
+// 页面加载完成后执行
+window.onload = function() {
+    receiveDataFromStorage();
+};
+
 </script>
 </body>
 </html>
