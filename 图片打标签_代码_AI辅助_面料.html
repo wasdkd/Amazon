@@ -123,7 +123,14 @@
 <body>
 
     <div id="preview-overlay"><img id="preview-img" src=""></div>
-    <div id="export-mask"><h3 id="exp-status">正在处理...</h3><div style="width:300px; height:8px; background:#444; border-radius:4px; margin-top:10px;"><div id="exp-bar" style="width:0%; height:100%; background:#10b981; transition:0.3s;"></div></div></div>
+    <!-- 修改后的导出遮罩层，增加了取消按钮 -->
+<div id="export-mask">
+    <h3 id="exp-status">正在处理...</h3>
+    <div style="width:300px; height:8px; background:#444; border-radius:4px; margin-top:10px; margin-bottom: 20px;">
+        <div id="exp-bar" style="width:0%; height:100%; background:#10b981; transition:0.3s;"></div>
+    </div>
+    <button onclick="cancelExportProcess()" style="background:#ef4444; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold;">❌ 停止并取消</button>
+</div>
 
     <div id="restore-toast">
         ⚠️ 检测到上次未保存的数据，是否恢复？
@@ -286,6 +293,14 @@
             sleeve: { "sleeveless": "无袖", "tank": "无袖", "cami": "无袖", "spaghetti strap": "吊带", "short sleeve": "短袖", "short-sleeve": "短袖", "cap sleeve": "盖袖", "petal": "花瓣袖", "long sleeve": "长袖", "long-sleeve": "长袖", "full sleeve": "长袖", "3/4": "七分袖", "three quarter": "七分袖", "half sleeve": "五分袖", "elbow": "五分袖", "puff": "泡泡袖", "balloon": "泡泡袖", "leg of mutton": "羊腿袖", "juliet": "羊腿袖", "bishop": "羊腿袖", "lantern": "灯笼袖", "batwing": "蝙蝠袖", "dolman": "蝙蝠袖", "kimono": "和服袖", "raglan": "插肩袖", "drop shoulder": "落肩", "ruffle sleeve": "荷叶袖", "flutter": "飞飞袖", "butterfly": "蝴蝶袖", "bell": "喇叭袖", "flare sleeve": "喇叭袖", "flounce": "喇叭袖", "roll-tab": "挽袖", "roll up": "挽袖", "split": "开叉袖", "slit sleeve": "开叉袖", "cold shoulder": "挖肩袖" },
             elements: { "pocket": "口袋", "pockets": "口袋", "cargo": "工装口袋", "button": "纽扣", "button down": "纽扣", "button up": "纽扣", "single breasted": "单排扣", "double breasted": "双排扣", "lace": "蕾丝", "lace up": "系带", "crochet": "蕾丝/钩花", "guipure": "蕾丝", "rib": "罗纹", "ribbed": "罗纹", "knit": "针织", "knitted": "针织", "cable knit": "麻花", "waffle": "华夫格", "zipper": "拉链", "zip": "拉链", "quarter zip": "1/4拉链", "half zip": "半拉链", "pleated": "褶皱", "pleat": "褶皱", "ruched": "褶皱(抽褶)", "ruching": "褶皱(抽褶)", "smocked": "打揽(松紧)", "shirred": "打揽", "elastic waist": "松紧腰", "ruffle": "荷叶边", "ruffled": "荷叶边", "frill": "荷叶边", "peplum": "荷叶边", "hollow": "镂空", "cut out": "镂空", "cutout": "镂空", "open back": "露背", "backless": "露背", "mesh": "网纱", "sheer": "透视", "see through": "透视", "chiffon": "雪纺", "sequin": "亮片", "sequins": "亮片", "glitter": "亮片", "sparkle": "亮片", "rhinestone": "水钻", "diamond": "水钻", "beaded": "钉珠", "pearl": "珍珠", "embroidery": "刺绣", "embroidered": "刺绣", "belt": "腰带", "belted": "腰带", "sash": "腰带", "tie waist": "系带", "tie knot": "系带", "bow": "蝴蝶结", "bowknot": "蝴蝶结", "drawstring": "抽绳", "fringe": "流苏", "tassel": "流苏", "split": "开叉", "slit": "开叉", "side slit": "侧开叉", "patchwork": "拼接", "raw hem": "毛边", "frayed": "毛边", "distressed": "破洞/做旧", "ripped": "破洞", "hole": "破洞", "tiered": "蛋糕/层叠", "layer": "层叠", "ruffle hem": "荷叶边下摆", "fur": "毛领/毛边", "fuzzy": "毛绒", "fleece": "抓绒", "sherpa": "羊羔毛", "faux fur": "仿皮草" }
         };
+
+        // === 新增：导出控制变量 ===
+        let isExportCancelled = false;
+
+        function cancelExportProcess() {
+            isExportCancelled = true;
+            document.getElementById('exp-status').innerText = "正在停止...";
+        }
 
         window.onload = function() { initDB(); initRowHighlight(); updateSortIndicators();};
 
@@ -804,40 +819,172 @@
             const content = await zip.generateAsync({type:"blob"}); saveAs(content, "amazon_images.zip"); mask.style.display = 'none';
         }
 
-        async function exportData() {
-            if (filteredData.length === 0) return alert("无数据");
-            const mask = document.getElementById('export-mask'); const bar = document.getElementById('exp-bar'); const txt = document.getElementById('exp-status'); mask.style.display = 'flex';
-            try {
-                txt.innerText = "初始化 Excel..."; bar.style.width = "0%";
-                const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('选品分析');
-                const coreHeaders = [ '图片', 'ASIN', '月销量', '品类', '面料(AI)', '版型', '领型', '袖型', '元素', '长度', '图案', '风格', '材质(成分)', '中文标题', '英文标题' ];
-                const rawKeys = [];
-                if (filteredData.length > 0 && filteredData[0]._raw) {
-                    Object.keys(filteredData[0]._raw).forEach(k => {
-                        const skipList = ['商品主图', 'Main Image URL', 'image', 'ASIN', 'asin', '标题(翻译)', '中文标题', 'Title', 'title', '商品标题', '月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
-                        if (!skipList.includes(k)) rawKeys.push(k);
-                    });
-                }
-                const fullHeader = [...coreHeaders, ...rawKeys];
-                const hRow = ws.addRow(fullHeader); hRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }; hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF232F3E' } };
-                const imgTasks = [];
-                for (let i = 0; i < filteredData.length; i++) {
-                    const item = filteredData[i];
-                    const rowValues = [ '', item.asin, item.monthly_sales || 0, item.category, item.fabric_visual, item.fit, item.collar, item.sleeve, item.elements, item.length, item.pattern, item.style, item.material, item.title_cn, item.title ];
-                    rawKeys.forEach(k => { let val = item._raw[k]; if(!isNaN(Number(val)) && val !== '') val = Number(val); rowValues.push(val); });
-                    const r = ws.addRow(rowValues); r.height = 80;
-                    [4,5,6,7,8,9,10,11,12,13,14].forEach(colIdx => { r.getCell(colIdx + 1).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' }; });
-                    if (item.img) imgTasks.push({ url: item.img, idx: r.number });
-                }
-                txt.innerText = `下载图片...`; const BATCH = 5;
-                for (let i = 0; i < imgTasks.length; i += BATCH) {
-                    const batch = imgTasks.slice(i, i + BATCH);
-                    await Promise.all(batch.map(async t => { try { const b64 = await urlToBase64(t.url); if (b64) { const imgId = wb.addImage({ base64: b64, extension: 'jpeg' }); ws.addImage(imgId, { tl: { col: 0, row: t.idx - 1 }, br: { col: 1, row: t.idx }, editAs: 'oneCell' }); } } catch (e) { console.log('Image fail', e); } }));
-                    bar.style.width = `${Math.min(100, Math.round(((i + BATCH) / imgTasks.length) * 100))}%`;
-                }
-                txt.innerText = "生成文件..."; const buffer = await wb.xlsx.writeBuffer(); saveAs(new Blob([buffer]), `Amazon_Cleaned_Data_${Date.now()}.xlsx`);
-            } catch (e) { console.error(e); alert("导出出错: " + e.message); } finally { mask.style.display = 'none'; }
+
+        // === 优化后的导出功能 (支持筛选图片/取消) ===
+async function exportData() {
+    if (filteredData.length === 0) return alert("无数据");
+
+    // 1. 统计有多少张图片
+    let imgCount = 0;
+    filteredData.forEach(item => {
+        if (item.img && item.img.trim() !== "") imgCount++;
+    });
+
+    // 2. 询问用户是否导出图片
+    let needImages = false;
+    if (imgCount > 0) {
+        let msg = "";
+        if (imgCount > 500) {
+            msg = `⚠️ 检测到图片数量较多 (${imgCount} 张)，导出图片会非常缓慢！\n\n强烈建议【不导出图片】。\n\n点击【确定】= 坚持导出图片 (可能需要几分钟)\n点击【取消】= 仅导出文字 (推荐，瞬间完成)`;
+        } else {
+            msg = `共检测到 ${imgCount} 张图片。\n\n是否需要将图片插入 Excel？\n\n点击【确定】= 包含图片\n点击【取消】= 仅导出文字`;
         }
+        // confirm 返回 true (确定) 或 false (取消)
+        needImages = confirm(msg);
+    }
+
+    // 3. 初始化 UI 和 状态
+    const mask = document.getElementById('export-mask');
+    const bar = document.getElementById('exp-bar');
+    const txt = document.getElementById('exp-status');
+
+    isExportCancelled = false; // 重置取消标记
+    mask.style.display = 'flex'; // 显示遮罩
+
+    try {
+        txt.innerText = "初始化 Excel...";
+        bar.style.width = "0%";
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('选品分析');
+
+        // 定义表头
+        const coreHeaders = [
+            '图片', 'ASIN', '月销量', '品类', '面料(AI)',
+            '版型', '领型', '袖型', '元素',
+            '长度', '图案', '风格', '材质(成分)',
+            '中文标题', '英文标题'
+        ];
+
+        // 提取额外列
+        const rawKeys = [];
+        if (filteredData.length > 0 && filteredData[0]._raw) {
+            Object.keys(filteredData[0]._raw).forEach(k => {
+                const skipList = ['商品主图', 'Main Image URL', 'image', 'ASIN', 'asin', '标题(翻译)', '中文标题', 'Title', 'title', '商品标题', '月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+                if (!skipList.includes(k)) {
+                    rawKeys.push(k);
+                }
+            });
+        }
+
+        const fullHeader = [...coreHeaders, ...rawKeys];
+        const hRow = ws.addRow(fullHeader);
+        hRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF232F3E' } };
+
+        const imgTasks = [];
+
+        // 4. 填充数据 (第一层循环)
+        for (let i = 0; i < filteredData.length; i++) {
+            // [检测取消]
+            if (isExportCancelled) throw new Error("USER_CANCEL");
+
+            const item = filteredData[i];
+            const rowValues = [
+                '', // 图片占位
+                item.asin,
+                item.monthly_sales || 0,
+                item.category,
+                item.fabric_visual,
+                item.fit,
+                item.collar,
+                item.sleeve,
+                item.elements,
+                item.length,
+                item.pattern,
+                item.style,
+                item.material,
+                item.title_cn,
+                item.title
+            ];
+
+            rawKeys.forEach(k => {
+                let val = item._raw[k];
+                if(!isNaN(Number(val)) && val !== '') val = Number(val);
+                rowValues.push(val);
+            });
+
+            const r = ws.addRow(rowValues);
+
+            // 如果需要图片，设置行高并加入任务队列
+            if (needImages && item.img) {
+                r.height = 80;
+                imgTasks.push({ url: item.img, idx: r.number });
+            } else {
+                r.height = 25; // 不需要图片时，行高正常
+            }
+
+            // 简单对齐
+            [4,5,6,7,8,9,10,11,12,13,14].forEach(colIdx => {
+                r.getCell(colIdx + 1).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+            });
+        }
+
+        // 5. 处理图片 (第二层循环 - 最耗时部分)
+        if (needImages && imgTasks.length > 0) {
+            txt.innerText = `正在下载并插入图片 (共${imgTasks.length}张)...`;
+            const BATCH = 5;
+
+            for (let i = 0; i < imgTasks.length; i += BATCH) {
+                // [检测取消]
+                if (isExportCancelled) throw new Error("USER_CANCEL");
+
+                const batch = imgTasks.slice(i, i + BATCH);
+                await Promise.all(batch.map(async t => {
+                    try {
+                        const b64 = await urlToBase64(t.url);
+                        if (b64) {
+                            const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+                            ws.addImage(imgId, {
+                                tl: { col: 0, row: t.idx - 1 },
+                                br: { col: 1, row: t.idx },
+                                editAs: 'oneCell'
+                            });
+                        }
+                    } catch (e) { console.log('Image fail', e); }
+                }));
+
+                // 更新进度条
+                const pct = Math.min(100, Math.round(((i + BATCH) / imgTasks.length) * 100));
+                bar.style.width = `${pct}%`;
+                txt.innerText = `处理图片: ${i + 1}/${imgTasks.length}`;
+            }
+        }
+
+        // [检测取消] (防止在最后生成文件前一秒取消)
+        if (isExportCancelled) throw new Error("USER_CANCEL");
+
+        // 6. 生成文件
+        txt.innerText = "生成 Excel 文件...";
+        const buffer = await wb.xlsx.writeBuffer();
+
+        // [检测取消]
+        if (isExportCancelled) throw new Error("USER_CANCEL");
+
+        saveAs(new Blob([buffer]), `Amazon_Data_${needImages?'WithImg':'TextOnly'}_${Date.now()}.xlsx`);
+
+    } catch (e) {
+        if (e.message === "USER_CANCEL") {
+            alert("❌ 导出已取消");
+        } else {
+            console.error(e);
+            alert("导出出错: " + e.message);
+        }
+    } finally {
+        mask.style.display = 'none';
+        bar.style.width = '0%';
+    }
+}
 
         function batchClearColumn() {
             const col = document.getElementById('batch-col-select').value;
