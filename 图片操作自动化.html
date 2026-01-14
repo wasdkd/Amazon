@@ -223,7 +223,10 @@
      7. G 创建 修改excel表
     </button>
     <button class="nav-btn" onclick="navigateToReport(7)">
-     8. H 可视化
+     8. H 数据透视表
+    </button>
+    <button class="nav-btn" onclick="navigateToReport(8)">
+     9. J 可视化
     </button>
    </div>
    <div id="visualizationsContainer">
@@ -8135,6 +8138,1144 @@
     </div>
     <div class="visualization-section">
      <div class="iframe-container">
+      <iframe srcdoc="&lt;!--&lt;!DOCTYPE html&gt;--&gt;
+&lt;!--&lt;html lang=&quot;zh-CN&quot;&gt;--&gt;
+&lt;!--&lt;head&gt;--&gt;
+&lt;!--    &lt;meta charset=&quot;UTF-8&quot;&gt;--&gt;
+&lt;!--    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;--&gt;
+&lt;!--    &lt;title&gt;BI Pivot Pro - 智能数据透视分析系统&lt;/title&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 引入 Bootstrap 5 和 Icons &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;link href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css&quot; rel=&quot;stylesheet&quot;&gt;--&gt;
+&lt;!--    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css&quot;&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 引入 Excel 处理库 SheetJS &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;script src=&quot;https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;--&gt;
+
+&lt;!--    &lt;style&gt;--&gt;
+&lt;!--        :root {--&gt;
+&lt;!--            &amp;#45;&amp;#45;primary-color: #4f46e5;--&gt;
+&lt;!--            &amp;#45;&amp;#45;primary-hover: #4338ca;--&gt;
+&lt;!--            &amp;#45;&amp;#45;accent-gold: #fbbf24;--&gt;
+&lt;!--            &amp;#45;&amp;#45;border-color: #d1d5db; /* 定义边框颜色 */--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        body {--&gt;
+&lt;!--            background-color: #f8fafc;--&gt;
+&lt;!--            font-family: 'Segoe UI', system-ui, sans-serif;--&gt;
+&lt;!--            color: #1f2937;--&gt;
+&lt;!--            padding-bottom: 60px;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        /* 顶部导航 */--&gt;
+&lt;!--        .navbar-custom {--&gt;
+&lt;!--            background: white;--&gt;
+&lt;!--            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);--&gt;
+&lt;!--            padding: 1rem 0;--&gt;
+&lt;!--            margin-bottom: 2rem;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .brand-logo {--&gt;
+&lt;!--            font-weight: 800; font-size: 1.5rem;--&gt;
+&lt;!--            background: linear-gradient(to right, #4f46e5, #9333ea);--&gt;
+&lt;!--            -webkit-background-clip: text; -webkit-text-fill-color: transparent;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        /* 卡片 */--&gt;
+&lt;!--        .app-card {--&gt;
+&lt;!--            background: white; border-radius: 16px;--&gt;
+&lt;!--            border: 1px solid rgba(229, 231, 235, 0.5);--&gt;
+&lt;!--            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);--&gt;
+&lt;!--            margin-bottom: 24px; overflow: hidden;--&gt;
+&lt;!--            transition: transform 0.2s;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .card-header-custom {--&gt;
+&lt;!--            padding: 20px 24px; border-bottom: 1px solid #e5e7eb;--&gt;
+&lt;!--            display: flex; justify-content: space-between; align-items: center;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .step-indicator {--&gt;
+&lt;!--            display: inline-flex; align-items: center; justify-content: center;--&gt;
+&lt;!--            width: 32px; height: 32px; background: #e0e7ff; color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--            border-radius: 8px; font-weight: 700; margin-right: 12px;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        /* 上传区 */--&gt;
+&lt;!--        .upload-zone {--&gt;
+&lt;!--            border: 2px dashed #d1d5db; border-radius: 12px;--&gt;
+&lt;!--            padding: 40px; text-align: center; background: #f9fafb;--&gt;
+&lt;!--            cursor: pointer; transition: all 0.3s ease;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .upload-zone:hover { border-color: var(&amp;#45;&amp;#45;primary-color); background: #eff6ff; }--&gt;
+&lt;!--        .upload-icon { font-size: 48px; color: #9ca3af; }--&gt;
+
+&lt;!--        /* 标签 */--&gt;
+&lt;!--        .tag-container {--&gt;
+&lt;!--            display: flex; flex-wrap: wrap; gap: 8px; padding: 12px;--&gt;
+&lt;!--            background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;--&gt;
+&lt;!--            min-height: 50px;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .custom-tag {--&gt;
+&lt;!--            font-size: 0.85rem; padding: 6px 14px; border-radius: 20px;--&gt;
+&lt;!--            background: white; border: 1px solid #cbd5e1; color: #4b5563;--&gt;
+&lt;!--            cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px;--&gt;
+&lt;!--            transition: all 0.2s;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .custom-tag:hover { border-color: var(&amp;#45;&amp;#45;primary-color); color: var(&amp;#45;&amp;#45;primary-color); }--&gt;
+&lt;!--        .custom-tag.active {--&gt;
+&lt;!--            background: var(&amp;#45;&amp;#45;primary-color); color: white; border-color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        /* -&amp;#45;&amp;#45; 表格样式 -&amp;#45;&amp;#45; */--&gt;
+&lt;!--        .table-custom {--&gt;
+&lt;!--            border-collapse: collapse;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .table-custom thead th {--&gt;
+&lt;!--            background-color: #f1f5f9 !important;--&gt;
+&lt;!--            color: #475569;--&gt;
+&lt;!--            font-weight: 700;--&gt;
+&lt;!--            font-size: 20px;--&gt;
+&lt;!--            white-space: nowrap;--&gt;
+&lt;!--            text-align: center !important;--&gt;
+&lt;!--            vertical-align: middle;--&gt;
+&lt;!--            border: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--            position: sticky; top: 0; z-index: 10;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .table-custom tbody td {--&gt;
+&lt;!--            text-align: center !important;--&gt;
+&lt;!--            vertical-align: middle; /* 确保合并单元格后垂直居中 */--&gt;
+&lt;!--            border: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--            font-size: 18px;--&gt;
+&lt;!--            background-color: #fff; /* 防止透明背景问题 */--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        /* 冠军高亮修正 */--&gt;
+&lt;!--        .row-champion &gt; td {--&gt;
+&lt;!--            background-color: #fffbeb !important; /* 给单元格上色 */--&gt;
+&lt;!--            font-weight: 700;--&gt;
+&lt;!--            color: #b45309;--&gt;
+&lt;!--            border: 1px solid #fcd34d !important;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        .row-champion &gt; td:first-child {--&gt;
+&lt;!--            border-left: 5px solid var(&amp;#45;&amp;#45;accent-gold) !important;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        /* 筛选栏 */--&gt;
+&lt;!--        .filter-toolbar {--&gt;
+&lt;!--            background: #fff; padding: 12px 20px; border-bottom: 1px solid #eee;--&gt;
+&lt;!--            display: flex; gap: 12px; flex-wrap: wrap; align-items: center;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        .loader {--&gt;
+&lt;!--            width: 48px; height: 48px; border: 5px solid #FFF;--&gt;
+&lt;!--            border-bottom-color: var(&amp;#45;&amp;#45;primary-color); border-radius: 50%;--&gt;
+&lt;!--            display: none; margin: 0 auto; animation: rotation 1s linear infinite;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }--&gt;
+&lt;!--    &lt;/style&gt;--&gt;
+&lt;!--&lt;/head&gt;--&gt;
+&lt;!--&lt;body&gt;--&gt;
+
+&lt;!--    &lt;nav class=&quot;navbar-custom sticky-top&quot;&gt;--&gt;
+&lt;!--        &lt;div class=&quot;container d-flex justify-content-between align-items-center&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;brand-logo&quot;&gt;&lt;i class=&quot;bi bi-bar-chart-fill text-primary&quot;&gt;&lt;/i&gt; 数据透视&lt;/div&gt;--&gt;
+&lt;!--            &lt;button class=&quot;btn btn-light text-secondary btn-sm&quot; onclick=&quot;location.reload()&quot;&gt;--&gt;
+&lt;!--                &lt;i class=&quot;bi bi-arrow-clockwise&quot;&gt;&lt;/i&gt; 重置页面--&gt;
+&lt;!--            &lt;/button&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--    &lt;/nav&gt;--&gt;
+
+&lt;!--    &lt;div class=&quot;container&quot;&gt;--&gt;
+
+&lt;!--        &amp;lt;!&amp;ndash; STEP 1: 导入 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;div class=&quot;app-card&quot; id=&quot;cardStep1&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;card-header-custom&quot;&gt;--&gt;
+&lt;!--                &lt;h5 class=&quot;mb-0 fw-bold&quot;&gt;&lt;span class=&quot;step-indicator&quot;&gt;1&lt;/span&gt;导入源数据&lt;/h5&gt;--&gt;
+&lt;!--                &lt;span class=&quot;badge bg-light text-secondary border&quot;&gt;.xlsx / .csv&lt;/span&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;card-body p-4&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-zone&quot; id=&quot;dropZone&quot;&gt;--&gt;
+&lt;!--                    &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; accept=&quot;.xlsx,.xls,.csv&quot; hidden&gt;--&gt;
+&lt;!--                    &lt;div id=&quot;uploadContent&quot;&gt;--&gt;
+&lt;!--                        &lt;i class=&quot;bi bi-cloud-arrow-up upload-icon&quot;&gt;&lt;/i&gt;--&gt;
+&lt;!--                        &lt;h5 class=&quot;fw-bold text-dark mt-2&quot;&gt;点击或拖拽文件到此处&lt;/h5&gt;--&gt;
+&lt;!--                    &lt;/div&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;loader&quot; id=&quot;loader&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+
+&lt;!--        &amp;lt;!&amp;ndash; STEP 2: 配置 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;div class=&quot;app-card&quot; id=&quot;cardStep2&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;card-header-custom&quot;&gt;--&gt;
+&lt;!--                &lt;h5 class=&quot;mb-0 fw-bold&quot;&gt;&lt;span class=&quot;step-indicator&quot;&gt;2&lt;/span&gt;分析配置&lt;/h5&gt;--&gt;
+&lt;!--                &lt;button class=&quot;btn btn-primary px-4 shadow-sm&quot; id=&quot;btnAnalyze&quot;&gt;--&gt;
+&lt;!--                    &lt;i class=&quot;bi bi-lightning-charge-fill&quot;&gt;&lt;/i&gt; 生成报表--&gt;
+&lt;!--                &lt;/button&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;card-body p-4&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;row g-4&quot;&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;col-md-4&quot;&gt;--&gt;
+&lt;!--                        &lt;label class=&quot;form-label fw-bold mb-2&quot;&gt;固定维度&lt;/label&gt;--&gt;
+&lt;!--                        &lt;div id=&quot;fixedContainer&quot; class=&quot;tag-container&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                        &lt;div class=&quot;form-text small&quot;&gt;如：品类。作为分组基准。&lt;/div&gt;--&gt;
+&lt;!--                    &lt;/div&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;col-md-4&quot;&gt;--&gt;
+&lt;!--                        &lt;label class=&quot;form-label fw-bold text-primary mb-2&quot;&gt;分析维度 (变量)&lt;/label&gt;--&gt;
+&lt;!--                        &lt;div id=&quot;analysisContainer&quot; class=&quot;tag-container bg-white border-primary border-opacity-25&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                    &lt;/div&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;col-md-4&quot;&gt;--&gt;
+&lt;!--                        &lt;div class=&quot;bg-light rounded p-3 h-100 border&quot;&gt;--&gt;
+&lt;!--                            &lt;label class=&quot;form-label fw-bold mb-3&quot;&gt;统计规则&lt;/label&gt;--&gt;
+&lt;!--                            &lt;div class=&quot;mb-3&quot;&gt;--&gt;
+&lt;!--                                &lt;label class=&quot;small text-muted fw-bold&quot;&gt;透视列 (横头)&lt;/label&gt;--&gt;
+&lt;!--                                &lt;select class=&quot;form-select&quot; id=&quot;pivotSelect&quot;&gt;&lt;/select&gt;--&gt;
+&lt;!--                            &lt;/div&gt;--&gt;
+&lt;!--                            &lt;div class=&quot;mb-3&quot;&gt;--&gt;
+&lt;!--                                &lt;label class=&quot;small text-muted fw-bold&quot;&gt;数值列&lt;/label&gt;--&gt;
+&lt;!--                                &lt;select class=&quot;form-select&quot; id=&quot;valueSelect&quot;&gt;&lt;/select&gt;--&gt;
+&lt;!--                            &lt;/div&gt;--&gt;
+&lt;!--                            &lt;div class=&quot;d-flex gap-3&quot;&gt;--&gt;
+&lt;!--                                &lt;div class=&quot;form-check&quot;&gt;--&gt;
+&lt;!--                                    &lt;input class=&quot;form-check-input&quot; type=&quot;radio&quot; name=&quot;agg&quot; id=&quot;aggCount&quot; value=&quot;COUNT&quot; checked&gt;--&gt;
+&lt;!--                                    &lt;label class=&quot;form-check-label small&quot; for=&quot;aggCount&quot;&gt;计数&lt;/label&gt;--&gt;
+&lt;!--                                &lt;/div&gt;--&gt;
+&lt;!--                                &lt;div class=&quot;form-check&quot;&gt;--&gt;
+&lt;!--                                    &lt;input class=&quot;form-check-input&quot; type=&quot;radio&quot; name=&quot;agg&quot; id=&quot;aggSum&quot; value=&quot;SUM&quot;&gt;--&gt;
+&lt;!--                                    &lt;label class=&quot;form-check-label small&quot; for=&quot;aggSum&quot;&gt;求和&lt;/label&gt;--&gt;
+&lt;!--                                &lt;/div&gt;--&gt;
+&lt;!--                            &lt;/div&gt;--&gt;
+&lt;!--                        &lt;/div&gt;--&gt;
+&lt;!--                    &lt;/div&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+
+&lt;!--        &amp;lt;!&amp;ndash; STEP 3: 结果 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;div class=&quot;app-card&quot; id=&quot;cardStep3&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;card-header-custom bg-white&quot;&gt;--&gt;
+&lt;!--                &lt;h5 class=&quot;mb-0 fw-bold text-dark&quot;&gt;&lt;span class=&quot;step-indicator bg-success text-white border-0&quot;&gt;3&lt;/span&gt;分析结果&lt;/h5&gt;--&gt;
+&lt;!--                &lt;button class=&quot;btn btn-success text-white shadow-sm&quot; onclick=&quot;exportToExcel()&quot;&gt;--&gt;
+&lt;!--                    &lt;i class=&quot;bi bi-file-earmark-excel-fill me-1&quot;&gt;&lt;/i&gt; 导出报告--&gt;
+&lt;!--                &lt;/button&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div class=&quot;px-4 pt-3 border-bottom&quot;&gt;--&gt;
+&lt;!--                &lt;ul class=&quot;nav nav-tabs border-0&quot; id=&quot;resultTabs&quot; role=&quot;tablist&quot;&gt;--&gt;
+&lt;!--                    &lt;li class=&quot;nav-item&quot;&gt;--&gt;
+&lt;!--                        &lt;button class=&quot;nav-link active fw-bold&quot; data-bs-toggle=&quot;tab&quot; data-bs-target=&quot;#tabMatrix&quot;&gt;--&gt;
+&lt;!--                            &lt;i class=&quot;bi bi-trophy me-1&quot;&gt;&lt;/i&gt; 智能排序透视表--&gt;
+&lt;!--                        &lt;/button&gt;--&gt;
+&lt;!--                    &lt;/li&gt;--&gt;
+&lt;!--                    &lt;li class=&quot;nav-item&quot;&gt;--&gt;
+&lt;!--                        &lt;button class=&quot;nav-link text-secondary&quot; data-bs-toggle=&quot;tab&quot; data-bs-target=&quot;#tabProcess&quot;&gt;--&gt;
+&lt;!--                            &lt;i class=&quot;bi bi-database me-1&quot;&gt;&lt;/i&gt; 过程明细数据--&gt;
+&lt;!--                        &lt;/button&gt;--&gt;
+&lt;!--                    &lt;/li&gt;--&gt;
+&lt;!--                &lt;/ul&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div class=&quot;tab-content&quot;&gt;--&gt;
+&lt;!--                &amp;lt;!&amp;ndash; Tab 1 &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;div class=&quot;tab-pane fade show active&quot; id=&quot;tabMatrix&quot;&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;filter-toolbar&quot; id=&quot;filterToolbar&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;table-responsive&quot; style=&quot;max-height: 700px;&quot;&gt;--&gt;
+&lt;!--                        &lt;table class=&quot;table table-custom table-bordered table-hover mb-0&quot; id=&quot;matrixTable&quot;&gt;--&gt;
+&lt;!--                            &lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;--&gt;
+&lt;!--                        &lt;/table&gt;--&gt;
+&lt;!--                    &lt;/div&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &amp;lt;!&amp;ndash; Tab 2 &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;div class=&quot;tab-pane fade&quot; id=&quot;tabProcess&quot;&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;table-responsive&quot; style=&quot;max-height: 700px;&quot;&gt;--&gt;
+&lt;!--                        &lt;table class=&quot;table table-sm table-bordered table-hover mb-0&quot; id=&quot;processTable&quot; style=&quot;font-size: 0.85rem; text-align: center;&quot;&gt;--&gt;
+&lt;!--                            &lt;thead class=&quot;bg-light&quot;&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;--&gt;
+&lt;!--                        &lt;/table&gt;--&gt;
+&lt;!--                    &lt;/div&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; JS &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js&quot;&gt;&lt;/script&gt;--&gt;
+&lt;!--    &lt;script&gt;--&gt;
+&lt;!--        let rawData = [];--&gt;
+&lt;!--        let headers = [];--&gt;
+&lt;!--        let gMatrixData = [];--&gt;
+&lt;!--        let gProcessData = [];--&gt;
+&lt;!--        let gFixedDims = [];--&gt;
+&lt;!--        let gMatrixCols = [];--&gt;
+
+&lt;!--        // 1. 文件导入--&gt;
+&lt;!--        const dropZone = document.getElementById('dropZone');--&gt;
+&lt;!--        const fileInput = document.getElementById('fileInput');--&gt;
+&lt;!--        const loader = document.getElementById('loader');--&gt;
+
+&lt;!--        dropZone.onclick = () =&gt; fileInput.click();--&gt;
+&lt;!--        dropZone.ondragover = (e) =&gt; { e.preventDefault(); dropZone.style.borderColor = 'var(&amp;#45;&amp;#45;primary-color)'; dropZone.style.background = '#eff6ff'; };--&gt;
+&lt;!--        dropZone.ondragleave = (e) =&gt; { e.preventDefault(); dropZone.style.borderColor = '#d1d5db'; dropZone.style.background = '#f9fafb'; };--&gt;
+&lt;!--        dropZone.ondrop = (e) =&gt; {--&gt;
+&lt;!--            e.preventDefault();--&gt;
+&lt;!--            dropZone.style.borderColor = '#d1d5db'; dropZone.style.background = '#f9fafb';--&gt;
+&lt;!--            if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);--&gt;
+&lt;!--        };--&gt;
+&lt;!--        fileInput.onchange = (e) =&gt; { if(e.target.files[0]) handleFile(e.target.files[0]); };--&gt;
+
+&lt;!--        function handleFile(file) {--&gt;
+&lt;!--            document.getElementById('uploadContent').style.display = 'none';--&gt;
+&lt;!--            loader.style.display = 'block';--&gt;
+&lt;!--            const reader = new FileReader();--&gt;
+&lt;!--            reader.onload = (e) =&gt; {--&gt;
+&lt;!--                try {--&gt;
+&lt;!--                    const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});--&gt;
+&lt;!--                    rawData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval: &quot;&quot;});--&gt;
+&lt;!--                    if (rawData.length &gt; 0) {--&gt;
+&lt;!--                        headers = Object.keys(rawData[0]);--&gt;
+&lt;!--                        initConfigUI();--&gt;
+&lt;!--                        document.getElementById('cardStep1').style.display = 'none';--&gt;
+&lt;!--                        document.getElementById('cardStep2').style.display = 'block';--&gt;
+&lt;!--                    } else { alert(&quot;文件为空&quot;); loader.style.display = 'none'; document.getElementById('uploadContent').style.display = 'block'; }--&gt;
+&lt;!--                } catch (err) { alert(&quot;读取失败&quot;); console.error(err); }--&gt;
+&lt;!--            };--&gt;
+&lt;!--            reader.readAsArrayBuffer(file);--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        // 2. 初始化UI--&gt;
+&lt;!--        function initConfigUI() {--&gt;
+&lt;!--            const addTag = (id, txt) =&gt; {--&gt;
+&lt;!--                const t = document.createElement('div');--&gt;
+&lt;!--                t.className = 'custom-tag';--&gt;
+&lt;!--                t.innerHTML = `&lt;i class=&quot;bi bi-tag-fill text-secondary opacity-50&quot;&gt;&lt;/i&gt; ${txt}`;--&gt;
+&lt;!--                t.dataset.v = txt;--&gt;
+&lt;!--                t.onclick = function() {--&gt;
+&lt;!--                    this.classList.toggle('active');--&gt;
+&lt;!--                    this.querySelector('i').className = this.classList.contains('active') ? 'bi bi-check-circle-fill text-white' : 'bi bi-tag-fill text-secondary opacity-50';--&gt;
+&lt;!--                };--&gt;
+&lt;!--                document.getElementById(id).appendChild(t);--&gt;
+&lt;!--            };--&gt;
+&lt;!--            document.getElementById('fixedContainer').innerHTML = '';--&gt;
+&lt;!--            document.getElementById('analysisContainer').innerHTML = '';--&gt;
+&lt;!--            const pSel = document.getElementById('pivotSelect'); pSel.innerHTML = '&lt;option value=&quot;&quot;&gt;&amp;#45;&amp;#45; 请选择 &amp;#45;&amp;#45;&lt;/option&gt;';--&gt;
+&lt;!--            const vSel = document.getElementById('valueSelect'); vSel.innerHTML = '&lt;option value=&quot;&quot;&gt;&amp;#45;&amp;#45; 自动 &amp;#45;&amp;#45;&lt;/option&gt;';--&gt;
+&lt;!--            headers.forEach(h =&gt; {--&gt;
+&lt;!--                addTag('fixedContainer', h);--&gt;
+&lt;!--                addTag('analysisContainer', h);--&gt;
+&lt;!--                pSel.add(new Option(h, h));--&gt;
+&lt;!--                vSel.add(new Option(h, h));--&gt;
+&lt;!--            });--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        // 3. 核心计算--&gt;
+&lt;!--        document.getElementById('btnAnalyze').addEventListener('click', () =&gt; {--&gt;
+&lt;!--            const getTags = (id) =&gt; Array.from(document.querySelectorAll(`#${id} .custom-tag.active`)).map(e =&gt; e.dataset.v);--&gt;
+&lt;!--            const fixedDims = getTags('fixedContainer');--&gt;
+&lt;!--            const analysisDims = getTags('analysisContainer');--&gt;
+&lt;!--            const pivotCol = document.getElementById('pivotSelect').value;--&gt;
+&lt;!--            const valueCol = document.getElementById('valueSelect').value || pivotCol || fixedDims[0];--&gt;
+&lt;!--            const agg = document.querySelector('input[name=&quot;agg&quot;]:checked').value;--&gt;
+
+&lt;!--            if (!analysisDims.length || !pivotCol) { alert(&quot;请选择维度和透视列&quot;); return; }--&gt;
+
+&lt;!--            const pHeaders = Array.from(new Set(rawData.map(r =&gt; r[pivotCol] !== undefined ? r[pivotCol] : &quot;(空)&quot;))).sort();--&gt;
+
+&lt;!--            let tempMatrix = [];--&gt;
+&lt;!--            let tempProcess = [];--&gt;
+
+&lt;!--            analysisDims.forEach(targetDim =&gt; {--&gt;
+&lt;!--                const aggMap = new Map();--&gt;
+&lt;!--                rawData.forEach(row =&gt; {--&gt;
+&lt;!--                    const fixedValues = fixedDims.map(d =&gt; row[d]);--&gt;
+&lt;!--                    const uniqueKey = [...fixedValues, targetDim, row[targetDim]].join('|||');--&gt;
+&lt;!--                    if(!aggMap.has(uniqueKey)) aggMap.set(uniqueKey, { meta: row, rows: [] });--&gt;
+&lt;!--                    aggMap.get(uniqueKey).rows.push(row);--&gt;
+&lt;!--                });--&gt;
+
+&lt;!--                const dimRows = [];--&gt;
+&lt;!--                aggMap.forEach((gData, k) =&gt; {--&gt;
+&lt;!--                    const mRow = {};--&gt;
+&lt;!--                    mRow['分析维度'] = targetDim;--&gt;
+&lt;!--                    fixedDims.forEach(d =&gt; mRow[d] = gData.meta[d]);--&gt;
+&lt;!--                    mRow['属性值'] = gData.meta[targetDim];--&gt;
+
+&lt;!--                    let total = 0;--&gt;
+&lt;!--                    pHeaders.forEach(ph =&gt; {--&gt;
+&lt;!--                        const sub = gData.rows.filter(r =&gt; (r[pivotCol]!==undefined?r[pivotCol]:&quot;(空)&quot;) == ph);--&gt;
+&lt;!--                        let val = 0;--&gt;
+&lt;!--                        if(agg==='COUNT') val = sub.length;--&gt;
+&lt;!--                        else val = sub.reduce((s,r) =&gt; s+(parseFloat(r[valueCol])||0), 0);--&gt;
+
+&lt;!--                        mRow[ph] = val;--&gt;
+&lt;!--                        total += val;--&gt;
+
+&lt;!--                        if(val &gt; 0) {--&gt;
+&lt;!--                            const pRow = {};--&gt;
+&lt;!--                            pRow['分析维度'] = targetDim;--&gt;
+&lt;!--                            fixedDims.forEach(d =&gt; pRow[d] = gData.meta[d]);--&gt;
+&lt;!--                            pRow['属性值'] = gData.meta[targetDim];--&gt;
+&lt;!--                            pRow[pivotCol] = ph;--&gt;
+&lt;!--                            pRow['数量'] = val;--&gt;
+&lt;!--                            tempProcess.push(pRow);--&gt;
+&lt;!--                        }--&gt;
+&lt;!--                    });--&gt;
+&lt;!--                    mRow['总计'] = total;--&gt;
+&lt;!--                    mRow._groupKey = fixedDims.map(d =&gt; gData.meta[d]).join('|||');--&gt;
+&lt;!--                    dimRows.push(mRow);--&gt;
+&lt;!--                });--&gt;
+
+&lt;!--                const buckets = {};--&gt;
+&lt;!--                dimRows.forEach(r =&gt; {--&gt;
+&lt;!--                    if(!buckets[r._groupKey]) buckets[r._groupKey] = [];--&gt;
+&lt;!--                    buckets[r._groupKey].push(r);--&gt;
+&lt;!--                });--&gt;
+
+&lt;!--                Object.values(buckets).forEach(arr =&gt; {--&gt;
+&lt;!--                    arr.sort((a,b) =&gt; b['总计'] - a['总计']);--&gt;
+&lt;!--                    if(arr.length &amp;&amp; arr[0]['总计'] &gt; 0) arr[0]._isChampion = true;--&gt;
+&lt;!--                    tempMatrix.push(...arr);--&gt;
+&lt;!--                });--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            gMatrixData = tempMatrix;--&gt;
+&lt;!--            gProcessData = tempProcess;--&gt;
+&lt;!--            gFixedDims = fixedDims;--&gt;
+&lt;!--            gMatrixCols = ['分析维度', ...fixedDims, '属性值', ...pHeaders, '总计'];--&gt;
+
+&lt;!--            renderMatrix(gMatrixData);--&gt;
+&lt;!--            renderProcess(gProcessData);--&gt;
+&lt;!--            initFilters();--&gt;
+
+&lt;!--            document.getElementById('cardStep3').style.display = 'block';--&gt;
+&lt;!--            document.getElementById('cardStep3').scrollIntoView({behavior:'smooth'});--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        // 4. 渲染 (含合并单元格逻辑)--&gt;
+&lt;!--        function renderMatrix(data) {--&gt;
+&lt;!--            const th = document.querySelector('#matrixTable thead');--&gt;
+&lt;!--            th.innerHTML = `&lt;tr&gt;${gMatrixCols.map(c=&gt;`&lt;th&gt;${c}&lt;/th&gt;`).join('')}&lt;/tr&gt;`;--&gt;
+&lt;!--            const tb = document.querySelector('#matrixTable tbody');--&gt;
+&lt;!--            tb.innerHTML = '';--&gt;
+
+&lt;!--            // -&amp;#45;&amp;#45; A. 预计算合并单元格 (Span Calculation) -&amp;#45;&amp;#45;--&gt;
+&lt;!--            const mergeCols = ['分析维度', ...gFixedDims];--&gt;
+&lt;!--            const spanMap = {}; // Key: &quot;rowIndex-colName&quot; -&gt; spanCount (0=skip)--&gt;
+
+&lt;!--            // 按列遍历，计算每一列的合并情况--&gt;
+&lt;!--            mergeCols.forEach((col, colIdx) =&gt; {--&gt;
+&lt;!--                let startRow = 0;--&gt;
+&lt;!--                for (let i = 1; i &lt;= data.length; i++) {--&gt;
+&lt;!--                    let isDiff = false;--&gt;
+&lt;!--                    if (i === data.length) {--&gt;
+&lt;!--                        isDiff = true; // 结束边界--&gt;
+&lt;!--                    } else {--&gt;
+&lt;!--                        // 1. 检查当前列值是否变化--&gt;
+&lt;!--                        if (data[i][col] !== data[startRow][col]) isDiff = true;--&gt;
+
+&lt;!--                        // 2. 检查父级列是否变化 (防止跨组合并)--&gt;
+&lt;!--                        // 比如：虽然品类都是 &quot;Sets&quot;，但分析维度从 &quot;面料&quot; 变成了 &quot;版型&quot;，则不能合并--&gt;
+&lt;!--                        for (let p = 0; p &lt; colIdx; p++) {--&gt;
+&lt;!--                            const parentCol = mergeCols[p];--&gt;
+&lt;!--                            if (data[i][parentCol] !== data[startRow][parentCol]) {--&gt;
+&lt;!--                                isDiff = true;--&gt;
+&lt;!--                                break;--&gt;
+&lt;!--                            }--&gt;
+&lt;!--                        }--&gt;
+&lt;!--                    }--&gt;
+
+&lt;!--                    if (isDiff) {--&gt;
+&lt;!--                        const span = i - startRow;--&gt;
+&lt;!--                        spanMap[`${startRow}-${col}`] = span; // 首行记录跨度--&gt;
+&lt;!--                        for (let k = startRow + 1; k &lt; i; k++) {--&gt;
+&lt;!--                            spanMap[`${k}-${col}`] = 0; // 后续行标记隐藏--&gt;
+&lt;!--                        }--&gt;
+&lt;!--                        startRow = i; // 重置起点--&gt;
+&lt;!--                    }--&gt;
+&lt;!--                }--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            // -&amp;#45;&amp;#45; B. 渲染表格 -&amp;#45;&amp;#45;--&gt;
+&lt;!--            const displayData = data.slice(0, 1000); // 性能限制--&gt;
+
+&lt;!--            displayData.forEach((r, rowIndex) =&gt; {--&gt;
+&lt;!--                const tr = document.createElement('tr');--&gt;
+&lt;!--                if(r._isChampion) tr.className = 'row-champion';--&gt;
+
+&lt;!--                gMatrixCols.forEach(col =&gt; {--&gt;
+&lt;!--                    // 判断是否是需要合并的列--&gt;
+&lt;!--                    if (mergeCols.includes(col)) {--&gt;
+&lt;!--                        const span = spanMap[`${rowIndex}-${col}`];--&gt;
+
+&lt;!--                        if (span === 0) return; // 跳过被合并的单元格--&gt;
+
+&lt;!--                        const td = document.createElement('td');--&gt;
+&lt;!--                        if (span &gt; 1) td.rowSpan = span; // 设置跨度--&gt;
+
+&lt;!--                        // 内容渲染--&gt;
+&lt;!--                        let v = r[col] !== undefined ? r[col] : 0;--&gt;
+&lt;!--                        if (col === '分析维度' &amp;&amp; r._isChampion) {--&gt;
+&lt;!--                            td.innerHTML = `&lt;i class=&quot;bi bi-trophy-fill text-warning me-2&quot;&gt;&lt;/i&gt;${v}`;--&gt;
+&lt;!--                        } else {--&gt;
+&lt;!--                            td.innerText = v;--&gt;
+&lt;!--                        }--&gt;
+&lt;!--                        tr.appendChild(td);--&gt;
+
+&lt;!--                    } else {--&gt;
+&lt;!--                        // 普通列 (属性值、数值)--&gt;
+&lt;!--                        const td = document.createElement('td');--&gt;
+&lt;!--                        let v = r[col] !== undefined ? r[col] : 0;--&gt;
+&lt;!--                        td.innerText = v;--&gt;
+&lt;!--                        if(typeof v==='number' &amp;&amp; v===0) td.style.color='#ccc';--&gt;
+&lt;!--                        tr.appendChild(td);--&gt;
+&lt;!--                    }--&gt;
+&lt;!--                });--&gt;
+&lt;!--                tb.appendChild(tr);--&gt;
+&lt;!--            });--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        function renderProcess(data) {--&gt;
+&lt;!--            const pCol = document.getElementById('pivotSelect').value;--&gt;
+&lt;!--            const cols = ['分析维度', ...gFixedDims, '属性值', pCol, '数量'];--&gt;
+&lt;!--            const th = document.querySelector('#processTable thead');--&gt;
+&lt;!--            th.innerHTML = `&lt;tr&gt;${cols.map(c=&gt;`&lt;th&gt;${c}&lt;/th&gt;`).join('')}&lt;/tr&gt;`;--&gt;
+&lt;!--            const tb = document.querySelector('#processTable tbody');--&gt;
+&lt;!--            tb.innerHTML = '';--&gt;
+&lt;!--            data.slice(0,500).forEach(r =&gt; {--&gt;
+&lt;!--                const tr = document.createElement('tr');--&gt;
+&lt;!--                cols.forEach(c =&gt; {--&gt;
+&lt;!--                    const td = document.createElement('td');--&gt;
+&lt;!--                    td.innerText = r[c];--&gt;
+&lt;!--                    tr.appendChild(td);--&gt;
+&lt;!--                });--&gt;
+&lt;!--                tb.appendChild(tr);--&gt;
+&lt;!--            });--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        function initFilters() {--&gt;
+&lt;!--            const bar = document.getElementById('filterToolbar');--&gt;
+&lt;!--            bar.innerHTML = '&lt;span class=&quot;small fw-bold text-muted me-2&quot;&gt;&lt;i class=&quot;bi bi-funnel-fill&quot;&gt;&lt;/i&gt; 筛选:&lt;/span&gt;';--&gt;
+&lt;!--            ['分析维度', ...gFixedDims].forEach(k =&gt; {--&gt;
+&lt;!--                const vals = Array.from(new Set(gMatrixData.map(r=&gt;r[k]))).sort();--&gt;
+&lt;!--                const sel = document.createElement('select');--&gt;
+&lt;!--                sel.className = 'form-select form-select-sm border-secondary border-opacity-25';--&gt;
+&lt;!--                sel.style.width='auto'; sel.style.display='inline-block';--&gt;
+&lt;!--                sel.dataset.k = k;--&gt;
+&lt;!--                sel.innerHTML = `&lt;option value=&quot;&quot;&gt;全部 ${k}&lt;/option&gt;`;--&gt;
+&lt;!--                vals.forEach(v =&gt; sel.add(new Option(v,v)));--&gt;
+&lt;!--                sel.onchange = () =&gt; {--&gt;
+&lt;!--                    let d = gMatrixData;--&gt;
+&lt;!--                    document.querySelectorAll('#filterToolbar select').forEach(s =&gt; {--&gt;
+&lt;!--                        if(s.value) d = d.filter(r =&gt; r[s.dataset.k] == s.value);--&gt;
+&lt;!--                    });--&gt;
+&lt;!--                    renderMatrix(d); // 筛选后重新渲染，合并逻辑会自动适应新的数据--&gt;
+&lt;!--                };--&gt;
+&lt;!--                bar.appendChild(sel);--&gt;
+&lt;!--            });--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        function exportToExcel() {--&gt;
+&lt;!--            if(!gMatrixData.length) return;--&gt;
+&lt;!--            const wb = XLSX.utils.book_new();--&gt;
+&lt;!--            const cleanM = gMatrixData.map(r =&gt; {--&gt;
+&lt;!--                const o = {}; gMatrixCols.forEach(c =&gt; o[c]=r[c]); return o;--&gt;
+&lt;!--            });--&gt;
+&lt;!--            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanM), &quot;透视表&quot;);--&gt;
+
+&lt;!--            const pCol = document.getElementById('pivotSelect').value;--&gt;
+&lt;!--            const pCols = ['分析维度', ...gFixedDims, '属性值', pCol, '数量'];--&gt;
+&lt;!--            const ws2Data = [pCols, ...gProcessData.map(r =&gt; pCols.map(c=&gt;r[c]))];--&gt;
+&lt;!--            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws2Data), &quot;过程明细&quot;);--&gt;
+
+&lt;!--            XLSX.writeFile(wb, &quot;智能分析报告.xlsx&quot;);--&gt;
+&lt;!--        }--&gt;
+&lt;!--    &lt;/script&gt;--&gt;
+&lt;!--&lt;/body&gt;--&gt;
+&lt;!--&lt;/html&gt;--&gt;
+
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;BI Pivot Pro - 智能数据透视分析系统&lt;/title&gt;
+
+    &lt;!-- 引入 Bootstrap 5 和 Icons --&gt;
+    &lt;link href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css&quot; rel=&quot;stylesheet&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css&quot;&gt;
+
+    &lt;!-- 引入 Excel 处理库 SheetJS --&gt;
+    &lt;script src=&quot;https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+
+    &lt;style&gt;
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent-gold: #fbbf24;
+            --border-color: #d1d5db;
+            --header-height: 45px; /* 定义表头高度变量 */
+        }
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #1f2937;
+            padding-bottom: 60px;
+        }
+
+        /* 顶部导航 */
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .brand-logo {
+            font-weight: 800; font-size: 1.5rem;
+            background: linear-gradient(to right, #4f46e5, #9333ea);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* 卡片 */
+        .app-card {
+            background: white; border-radius: 16px;
+            border: 1px solid rgba(229, 231, 235, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            margin-bottom: 24px; overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .card-header-custom {
+            padding: 20px 24px; border-bottom: 1px solid #e5e7eb;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .step-indicator {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; background: #e0e7ff; color: var(--primary-color);
+            border-radius: 8px; font-weight: 700; margin-right: 12px;
+        }
+
+        /* 上传区 */
+        .upload-zone {
+            border: 2px dashed #d1d5db; border-radius: 12px;
+            padding: 40px; text-align: center; background: #f9fafb;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .upload-zone:hover { border-color: var(--primary-color); background: #eff6ff; }
+        .upload-icon { font-size: 48px; color: #9ca3af; }
+
+        /* 标签 */
+        .tag-container {
+            display: flex; flex-wrap: wrap; gap: 8px; padding: 12px;
+            background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;
+            min-height: 50px;
+        }
+        .custom-tag {
+            font-size: 0.85rem; padding: 6px 14px; border-radius: 20px;
+            background: white; border: 1px solid #cbd5e1; color: #4b5563;
+            cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s;
+        }
+        .custom-tag:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .custom-tag.active {
+            background: var(--primary-color); color: white; border-color: var(--primary-color);
+        }
+
+        /* --- 表格样式优化 (核心修改点) --- */
+        .table-custom {
+            border-collapse: collapse;
+        }
+        .table-custom thead th {
+            background-color: #f1f5f9 !important;
+            color: #475569;
+            font-weight: 700;
+            font-size: 20px;
+            white-space: nowrap;
+            text-align: center !important;
+            vertical-align: middle;
+            border: 1px solid var(--border-color);
+            position: sticky; top: 0;
+            z-index: 20; /* 提高表头层级，防止被内容遮挡 */
+            height: var(--header-height);
+            box-shadow: 0 1px 0 #d1d5db; /* 增加表头下划线阴影 */
+        }
+        .table-custom tbody td {
+            text-align: center !important;
+            vertical-align: middle;
+            border: 1px solid var(--border-color);
+            font-size: 18px;
+            background-color: #fff;
+        }
+
+        /* --- 合并单元格的特殊样式 (Sticky Hack) --- */
+        .merged-cell {
+            vertical-align: top !important; /* 1. 让内容从顶部开始 */
+            padding: 0 !important;          /* 2. 清除内边距，交给内部div */
+            background-color: #fff;
+            z-index: 5;
+        }
+
+        .sticky-wrapper {
+            position: sticky;               /* 3. 核心：粘性定位 */
+            top: var(--header-height);      /* 4. 距离顶部的高度 = 表头高度 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px 8px;             /* 恢复内边距视觉效果 */
+            min-height: 50px;              /* 确保最小高度 */
+            box-sizing: border-box;
+            max-height: 100vh;             /* 防止内容溢出屏幕 */
+        }
+
+        /* 冠军高亮 */
+        .row-champion td {
+            background-color: #fffbeb !important;
+            font-weight: 700;
+            color: #b45309;
+            border: 1px solid #fcd34d !important;
+        }
+        .row-champion td:first-child {
+            border-left: 5px solid var(--accent-gold) !important;
+        }
+
+        /* 修复：当合并列本身是冠军行的一部分时，颜色需要穿透 wrapper */
+        .row-champion .merged-cell {
+            background-color: #fffbeb !important;
+        }
+
+        /* 筛选栏 */
+        .filter-toolbar {
+            background: #fff; padding: 12px 20px; border-bottom: 1px solid #eee;
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+        }
+
+        .loader {
+            width: 48px; height: 48px; border: 5px solid #FFF;
+            border-bottom-color: var(--primary-color); border-radius: 50%;
+            display: none; margin: 0 auto; animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;nav class=&quot;navbar-custom sticky-top&quot;&gt;
+        &lt;div class=&quot;container d-flex justify-content-between align-items-center&quot;&gt;
+            &lt;div class=&quot;brand-logo&quot;&gt;&lt;i class=&quot;bi bi-bar-chart-fill text-primary&quot;&gt;&lt;/i&gt; 数据透视&lt;/div&gt;
+            &lt;button class=&quot;btn btn-light text-secondary btn-sm&quot; onclick=&quot;location.reload()&quot;&gt;
+                &lt;i class=&quot;bi bi-arrow-clockwise&quot;&gt;&lt;/i&gt; 重置页面
+            &lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/nav&gt;
+
+    &lt;div class=&quot;container&quot;&gt;
+
+        &lt;!-- STEP 1: 导入 --&gt;
+        &lt;div class=&quot;app-card&quot; id=&quot;cardStep1&quot;&gt;
+            &lt;div class=&quot;card-header-custom&quot;&gt;
+                &lt;h5 class=&quot;mb-0 fw-bold&quot;&gt;&lt;span class=&quot;step-indicator&quot;&gt;1&lt;/span&gt;导入源数据&lt;/h5&gt;
+                &lt;span class=&quot;badge bg-light text-secondary border&quot;&gt;.xlsx / .csv&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-4&quot;&gt;
+                &lt;div class=&quot;upload-zone&quot; id=&quot;dropZone&quot;&gt;
+                    &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; accept=&quot;.xlsx,.xls,.csv&quot; hidden&gt;
+                    &lt;div id=&quot;uploadContent&quot;&gt;
+                        &lt;i class=&quot;bi bi-cloud-arrow-up upload-icon&quot;&gt;&lt;/i&gt;
+                        &lt;h5 class=&quot;fw-bold text-dark mt-2&quot;&gt;点击或拖拽文件到此处&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;loader&quot; id=&quot;loader&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- STEP 2: 配置 --&gt;
+        &lt;div class=&quot;app-card&quot; id=&quot;cardStep2&quot; style=&quot;display: none;&quot;&gt;
+            &lt;div class=&quot;card-header-custom&quot;&gt;
+                &lt;h5 class=&quot;mb-0 fw-bold&quot;&gt;&lt;span class=&quot;step-indicator&quot;&gt;2&lt;/span&gt;分析配置&lt;/h5&gt;
+                &lt;button class=&quot;btn btn-primary px-4 shadow-sm&quot; id=&quot;btnAnalyze&quot;&gt;
+                    &lt;i class=&quot;bi bi-lightning-charge-fill&quot;&gt;&lt;/i&gt; 生成报表
+                &lt;/button&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-4&quot;&gt;
+                &lt;div class=&quot;row g-4&quot;&gt;
+                    &lt;div class=&quot;col-md-4&quot;&gt;
+                        &lt;label class=&quot;form-label fw-bold mb-2&quot;&gt;固定维度&lt;/label&gt;
+                        &lt;div id=&quot;fixedContainer&quot; class=&quot;tag-container&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;form-text small&quot;&gt;如：品类。作为分组基准。&lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-md-4&quot;&gt;
+                        &lt;label class=&quot;form-label fw-bold text-primary mb-2&quot;&gt;分析维度 (变量)&lt;/label&gt;
+                        &lt;div id=&quot;analysisContainer&quot; class=&quot;tag-container bg-white border-primary border-opacity-25&quot;&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-md-4&quot;&gt;
+                        &lt;div class=&quot;bg-light rounded p-3 h-100 border&quot;&gt;
+                            &lt;label class=&quot;form-label fw-bold mb-3&quot;&gt;统计规则&lt;/label&gt;
+                            &lt;div class=&quot;mb-3&quot;&gt;
+                                &lt;label class=&quot;small text-muted fw-bold&quot;&gt;透视列 (横头)&lt;/label&gt;
+                                &lt;select class=&quot;form-select&quot; id=&quot;pivotSelect&quot;&gt;&lt;/select&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;mb-3&quot;&gt;
+                                &lt;label class=&quot;small text-muted fw-bold&quot;&gt;数值列&lt;/label&gt;
+                                &lt;select class=&quot;form-select&quot; id=&quot;valueSelect&quot;&gt;&lt;/select&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;d-flex gap-3&quot;&gt;
+                                &lt;div class=&quot;form-check&quot;&gt;
+                                    &lt;input class=&quot;form-check-input&quot; type=&quot;radio&quot; name=&quot;agg&quot; id=&quot;aggCount&quot; value=&quot;COUNT&quot; checked&gt;
+                                    &lt;label class=&quot;form-check-label small&quot; for=&quot;aggCount&quot;&gt;计数&lt;/label&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;form-check&quot;&gt;
+                                    &lt;input class=&quot;form-check-input&quot; type=&quot;radio&quot; name=&quot;agg&quot; id=&quot;aggSum&quot; value=&quot;SUM&quot;&gt;
+                                    &lt;label class=&quot;form-check-label small&quot; for=&quot;aggSum&quot;&gt;求和&lt;/label&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- STEP 3: 结果 --&gt;
+        &lt;div class=&quot;app-card&quot; id=&quot;cardStep3&quot; style=&quot;display: none;&quot;&gt;
+            &lt;div class=&quot;card-header-custom bg-white&quot;&gt;
+                &lt;h5 class=&quot;mb-0 fw-bold text-dark&quot;&gt;&lt;span class=&quot;step-indicator bg-success text-white border-0&quot;&gt;3&lt;/span&gt;分析结果&lt;/h5&gt;
+                &lt;button class=&quot;btn btn-success text-white shadow-sm&quot; onclick=&quot;exportToExcel()&quot;&gt;
+                    &lt;i class=&quot;bi bi-file-earmark-excel-fill me-1&quot;&gt;&lt;/i&gt; 导出报告
+                &lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;px-4 pt-3 border-bottom&quot;&gt;
+                &lt;ul class=&quot;nav nav-tabs border-0&quot; id=&quot;resultTabs&quot; role=&quot;tablist&quot;&gt;
+                    &lt;li class=&quot;nav-item&quot;&gt;
+                        &lt;button class=&quot;nav-link active fw-bold&quot; data-bs-toggle=&quot;tab&quot; data-bs-target=&quot;#tabMatrix&quot;&gt;
+                            &lt;i class=&quot;bi bi-trophy me-1&quot;&gt;&lt;/i&gt; 智能排序透视表
+                        &lt;/button&gt;
+                    &lt;/li&gt;
+                    &lt;li class=&quot;nav-item&quot;&gt;
+                        &lt;button class=&quot;nav-link text-secondary&quot; data-bs-toggle=&quot;tab&quot; data-bs-target=&quot;#tabProcess&quot;&gt;
+                            &lt;i class=&quot;bi bi-database me-1&quot;&gt;&lt;/i&gt; 过程明细数据
+                        &lt;/button&gt;
+                    &lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;tab-content&quot;&gt;
+                &lt;!-- Tab 1 --&gt;
+                &lt;div class=&quot;tab-pane fade show active&quot; id=&quot;tabMatrix&quot;&gt;
+                    &lt;div class=&quot;filter-toolbar&quot; id=&quot;filterToolbar&quot;&gt;&lt;/div&gt;
+                    &lt;div class=&quot;table-responsive&quot; style=&quot;max-height: 700px;&quot;&gt;
+                        &lt;table class=&quot;table table-custom table-bordered table-hover mb-0&quot; id=&quot;matrixTable&quot;&gt;
+                            &lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;
+                        &lt;/table&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;!-- Tab 2 --&gt;
+                &lt;div class=&quot;tab-pane fade&quot; id=&quot;tabProcess&quot;&gt;
+                    &lt;div class=&quot;table-responsive&quot; style=&quot;max-height: 700px;&quot;&gt;
+                        &lt;table class=&quot;table table-sm table-bordered table-hover mb-0&quot; id=&quot;processTable&quot; style=&quot;font-size: 0.85rem; text-align: center;&quot;&gt;
+                            &lt;thead class=&quot;bg-light&quot;&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;
+                        &lt;/table&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+    &lt;/div&gt;
+
+    &lt;!-- JS --&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        let rawData = [];
+        let headers = [];
+        let gMatrixData = [];
+        let gProcessData = [];
+        let gFixedDims = [];
+        let gMatrixCols = [];
+
+        // 1. 文件导入
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const loader = document.getElementById('loader');
+
+        dropZone.onclick = () =&gt; fileInput.click();
+        dropZone.ondragover = (e) =&gt; { e.preventDefault(); dropZone.style.borderColor = 'var(--primary-color)'; dropZone.style.background = '#eff6ff'; };
+        dropZone.ondragleave = (e) =&gt; { e.preventDefault(); dropZone.style.borderColor = '#d1d5db'; dropZone.style.background = '#f9fafb'; };
+        dropZone.ondrop = (e) =&gt; {
+            e.preventDefault();
+            dropZone.style.borderColor = '#d1d5db'; dropZone.style.background = '#f9fafb';
+            if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) =&gt; { if(e.target.files[0]) handleFile(e.target.files[0]); };
+
+        function handleFile(file) {
+            document.getElementById('uploadContent').style.display = 'none';
+            loader.style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = (e) =&gt; {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+                    rawData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval: &quot;&quot;});
+                    if (rawData.length &gt; 0) {
+                        headers = Object.keys(rawData[0]);
+                        initConfigUI();
+                        document.getElementById('cardStep1').style.display = 'none';
+                        document.getElementById('cardStep2').style.display = 'block';
+                    } else { alert(&quot;文件为空&quot;); loader.style.display = 'none'; document.getElementById('uploadContent').style.display = 'block'; }
+                } catch (err) { alert(&quot;读取失败&quot;); console.error(err); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 2. 初始化UI
+        function initConfigUI() {
+            const addTag = (id, txt) =&gt; {
+                const t = document.createElement('div');
+                t.className = 'custom-tag';
+                t.innerHTML = `&lt;i class=&quot;bi bi-tag-fill text-secondary opacity-50&quot;&gt;&lt;/i&gt; ${txt}`;
+                t.dataset.v = txt;
+                t.onclick = function() {
+                    this.classList.toggle('active');
+                    this.querySelector('i').className = this.classList.contains('active') ? 'bi bi-check-circle-fill text-white' : 'bi bi-tag-fill text-secondary opacity-50';
+                };
+                document.getElementById(id).appendChild(t);
+            };
+            document.getElementById('fixedContainer').innerHTML = '';
+            document.getElementById('analysisContainer').innerHTML = '';
+            const pSel = document.getElementById('pivotSelect'); pSel.innerHTML = '&lt;option value=&quot;&quot;&gt;-- 请选择 --&lt;/option&gt;';
+            const vSel = document.getElementById('valueSelect'); vSel.innerHTML = '&lt;option value=&quot;&quot;&gt;-- 自动 --&lt;/option&gt;';
+            headers.forEach(h =&gt; {
+                addTag('fixedContainer', h);
+                addTag('analysisContainer', h);
+                pSel.add(new Option(h, h));
+                vSel.add(new Option(h, h));
+            });
+        }
+
+        // 3. 核心计算
+        document.getElementById('btnAnalyze').addEventListener('click', () =&gt; {
+            const getTags = (id) =&gt; Array.from(document.querySelectorAll(`#${id} .custom-tag.active`)).map(e =&gt; e.dataset.v);
+            const fixedDims = getTags('fixedContainer');
+            const analysisDims = getTags('analysisContainer');
+            const pivotCol = document.getElementById('pivotSelect').value;
+            const valueCol = document.getElementById('valueSelect').value || pivotCol || fixedDims[0];
+            const agg = document.querySelector('input[name=&quot;agg&quot;]:checked').value;
+
+            if (!analysisDims.length || !pivotCol) { alert(&quot;请选择维度和透视列&quot;); return; }
+
+            const pHeaders = Array.from(new Set(rawData.map(r =&gt; r[pivotCol] !== undefined ? r[pivotCol] : &quot;(空)&quot;))).sort();
+
+            let tempMatrix = [];
+            let tempProcess = [];
+
+            analysisDims.forEach(targetDim =&gt; {
+                const aggMap = new Map();
+                rawData.forEach(row =&gt; {
+                    const fixedValues = fixedDims.map(d =&gt; row[d]);
+                    const uniqueKey = [...fixedValues, targetDim, row[targetDim]].join('|||');
+                    if(!aggMap.has(uniqueKey)) aggMap.set(uniqueKey, { meta: row, rows: [] });
+                    aggMap.get(uniqueKey).rows.push(row);
+                });
+
+                const dimRows = [];
+                aggMap.forEach((gData, k) =&gt; {
+                    const mRow = {};
+                    mRow['分析维度'] = targetDim;
+                    fixedDims.forEach(d =&gt; mRow[d] = gData.meta[d]);
+                    mRow['属性值'] = gData.meta[targetDim];
+
+                    let total = 0;
+                    pHeaders.forEach(ph =&gt; {
+                        const sub = gData.rows.filter(r =&gt; (r[pivotCol]!==undefined?r[pivotCol]:&quot;(空)&quot;) == ph);
+                        let val = 0;
+                        if(agg==='COUNT') val = sub.length;
+                        else val = sub.reduce((s,r) =&gt; s+(parseFloat(r[valueCol])||0), 0);
+
+                        mRow[ph] = val;
+                        total += val;
+
+                        if(val &gt; 0) {
+                            const pRow = {};
+                            pRow['分析维度'] = targetDim;
+                            fixedDims.forEach(d =&gt; pRow[d] = gData.meta[d]);
+                            pRow['属性值'] = gData.meta[targetDim];
+                            pRow[pivotCol] = ph;
+                            pRow['数量'] = val;
+                            tempProcess.push(pRow);
+                        }
+                    });
+                    mRow['总计'] = total;
+                    mRow._groupKey = fixedDims.map(d =&gt; gData.meta[d]).join('|||');
+                    dimRows.push(mRow);
+                });
+
+                const buckets = {};
+                dimRows.forEach(r =&gt; {
+                    if(!buckets[r._groupKey]) buckets[r._groupKey] = [];
+                    buckets[r._groupKey].push(r);
+                });
+
+                Object.values(buckets).forEach(arr =&gt; {
+                    arr.sort((a,b) =&gt; b['总计'] - a['总计']);
+                    if(arr.length &amp;&amp; arr[0]['总计'] &gt; 0) arr[0]._isChampion = true;
+                    tempMatrix.push(...arr);
+                });
+            });
+
+            gMatrixData = tempMatrix;
+            gProcessData = tempProcess;
+            gFixedDims = fixedDims;
+            gMatrixCols = ['分析维度', ...fixedDims, '属性值', ...pHeaders, '总计'];
+
+            renderMatrix(gMatrixData);
+            renderProcess(gProcessData);
+            initFilters();
+
+            document.getElementById('cardStep3').style.display = 'block';
+            document.getElementById('cardStep3').scrollIntoView({behavior:'smooth'});
+        });
+
+        // 4. 渲染 (含 Sticky 合并逻辑)
+        function renderMatrix(data) {
+            const th = document.querySelector('#matrixTable thead');
+            th.innerHTML = `&lt;tr&gt;${gMatrixCols.map(c=&gt;`&lt;th&gt;${c}&lt;/th&gt;`).join('')}&lt;/tr&gt;`;
+            const tb = document.querySelector('#matrixTable tbody');
+            tb.innerHTML = '';
+
+            // A. 预计算合并单元格
+            const mergeCols = ['分析维度', ...gFixedDims];
+            const spanMap = {};
+
+            mergeCols.forEach((col, colIdx) =&gt; {
+                let startRow = 0;
+                for (let i = 1; i &lt;= data.length; i++) {
+                    let isDiff = false;
+                    if (i === data.length) {
+                        isDiff = true;
+                    } else {
+                        if (data[i][col] !== data[startRow][col]) isDiff = true;
+                        for (let p = 0; p &lt; colIdx; p++) {
+                            const parentCol = mergeCols[p];
+                            if (data[i][parentCol] !== data[startRow][parentCol]) {
+                                isDiff = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isDiff) {
+                        const span = i - startRow;
+                        spanMap[`${startRow}-${col}`] = span;
+                        for (let k = startRow + 1; k &lt; i; k++) {
+                            spanMap[`${k}-${col}`] = 0;
+                        }
+                        startRow = i;
+                    }
+                }
+            });
+
+            // B. 渲染
+            const displayData = data.slice(0, 1000);
+
+            displayData.forEach((r, rowIndex) =&gt; {
+                const tr = document.createElement('tr');
+                if(r._isChampion) tr.className = 'row-champion';
+
+                gMatrixCols.forEach(col =&gt; {
+                    if (mergeCols.includes(col)) {
+                        const span = spanMap[`${rowIndex}-${col}`];
+                        if (span === 0) return;
+
+                        const td = document.createElement('td');
+                        if (span &gt; 1) td.rowSpan = span;
+
+                        // 【核心修改】添加 merged-cell 类和 sticky-wrapper
+                        td.className = 'merged-cell';
+
+                        let content = '';
+                        let v = r[col] !== undefined ? r[col] : 0;
+
+                        if (col === '分析维度' &amp;&amp; r._isChampion) {
+                            content = `${v}`;
+                        } else {
+                            content = v;
+                        }
+
+                        // 将内容包裹在 sticky-wrapper 中
+                        td.innerHTML = `&lt;div class=&quot;sticky-wrapper&quot;&gt;${content}&lt;/div&gt;`;
+                        tr.appendChild(td);
+
+                    } else {
+                        const td = document.createElement('td');
+                        let v = r[col] !== undefined ? r[col] : 0;
+                        td.innerText = v;
+                        if(typeof v==='number' &amp;&amp; v===0) td.style.color='#ccc';
+                        tr.appendChild(td);
+                    }
+                });
+                tb.appendChild(tr);
+            });
+        }
+
+        function renderProcess(data) {
+            const pCol = document.getElementById('pivotSelect').value;
+            const cols = ['分析维度', ...gFixedDims, '属性值', pCol, '数量'];
+            const th = document.querySelector('#processTable thead');
+            th.innerHTML = `&lt;tr&gt;${cols.map(c=&gt;`&lt;th&gt;${c}&lt;/th&gt;`).join('')}&lt;/tr&gt;`;
+            const tb = document.querySelector('#processTable tbody');
+            tb.innerHTML = '';
+            data.slice(0,500).forEach(r =&gt; {
+                const tr = document.createElement('tr');
+                cols.forEach(c =&gt; {
+                    const td = document.createElement('td');
+                    td.innerText = r[c];
+                    tr.appendChild(td);
+                });
+                tb.appendChild(tr);
+            });
+        }
+
+        function initFilters() {
+            const bar = document.getElementById('filterToolbar');
+            bar.innerHTML = '&lt;span class=&quot;small fw-bold text-muted me-2&quot;&gt;&lt;i class=&quot;bi bi-funnel-fill&quot;&gt;&lt;/i&gt; 筛选:&lt;/span&gt;';
+            ['分析维度', ...gFixedDims].forEach(k =&gt; {
+                const vals = Array.from(new Set(gMatrixData.map(r=&gt;r[k]))).sort();
+                const sel = document.createElement('select');
+                sel.className = 'form-select form-select-sm border-secondary border-opacity-25';
+                sel.style.width='auto'; sel.style.display='inline-block';
+                sel.dataset.k = k;
+                sel.innerHTML = `&lt;option value=&quot;&quot;&gt;全部 ${k}&lt;/option&gt;`;
+                vals.forEach(v =&gt; sel.add(new Option(v,v)));
+                sel.onchange = () =&gt; {
+                    let d = gMatrixData;
+                    document.querySelectorAll('#filterToolbar select').forEach(s =&gt; {
+                        if(s.value) d = d.filter(r =&gt; r[s.dataset.k] == s.value);
+                    });
+                    renderMatrix(d);
+                };
+                bar.appendChild(sel);
+            });
+        }
+
+        function exportToExcel() {
+            if(!gMatrixData.length) return;
+            const wb = XLSX.utils.book_new();
+            const cleanM = gMatrixData.map(r =&gt; {
+                const o = {}; gMatrixCols.forEach(c =&gt; o[c]=r[c]); return o;
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(cleanM), &quot;透视表&quot;);
+
+            const pCol = document.getElementById('pivotSelect').value;
+            const pCols = ['分析维度', ...gFixedDims, '属性值', pCol, '数量'];
+            const ws2Data = [pCols, ...gProcessData.map(r =&gt; pCols.map(c=&gt;r[c]))];
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ws2Data), &quot;过程明细&quot;);
+
+            XLSX.writeFile(wb, &quot;智能分析报告.xlsx&quot;);
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;">
+      </iframe>
+     </div>
+    </div>
+    <div class="visualization-section">
+     <div class="iframe-container">
       <iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
@@ -8944,7 +10085,7 @@
         &lt;div class=&quot;top-bar&quot;&gt;
             &lt;div class=&quot;logo&quot;&gt;
                 &lt;i class=&quot;fas fa-chart-line&quot;&gt;&lt;/i&gt;
-                &lt;span&gt;智能数据可视化平台&lt;/span&gt;
+                &lt;span&gt;智能数据可视化平台       |&lt;/span&gt;
             &lt;/div&gt;
 
             &lt;div class=&quot;chart-type-selector&quot; id=&quot;chartTypeSelector&quot;&gt;
