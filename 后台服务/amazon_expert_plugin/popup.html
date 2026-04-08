@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root { --main: #d35400; --bg: #f8f9fa; }
+    body { width: 460px; margin: 0; background: var(--bg); font-family: 'Segoe UI', system-ui; }
+    .header { background: var(--main); color: white; padding: 12px; text-align: center; font-size: 16px; font-weight: bold; }
+    .content { padding: 12px; }
+    .section { background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border: 1px solid #eee; }
+    .title { font-size: 12px; font-weight: bold; color: var(--main); margin-bottom: 8px; border-left: 4px solid var(--main); padding-left: 8px; display:flex; justify-content:space-between; align-items:center; }
+    .badge { background:#fff4ec; color:#d35400; border:1px solid #ffd8bf; padding:2px 6px; border-radius:10px; font-size:11px; font-weight:600; }
+    .hint { font-size: 11px; color:#999; margin-top:6px; }
+    
+    .grid { display: grid; gap: 8px; }
+    .grid.base { grid-template-columns: repeat(4, 1fr); }
+    .grid.weights { grid-template-columns: repeat(4, 1fr); }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field.compact { gap: 2px; }
+    label { font-size: 11px; color: #666; font-weight: 600; }
+    input { padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 55px }
+    .range { display: flex; align-items: center; gap: 6px; }
+    .range .dash { color: #999; }
+    
+    .btn-save { background: var(--main); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    .btn-save:hover { background: #e67e22; }
+  </style>
+</head>
+<body>
+  <div class="header">指挥官选品控制台 V21.0</div>
+  <div class="content">
+    <div class="section">
+      <div class="title">🎯 100分基准设置</div>
+      <div class="grid base">
+        <div class="field compact">
+          <label>价格区间</label>
+          <div class="range">
+            <input type="number" id="p_min" value="9.9" step="0.1">
+            <span class="dash">—</span>
+            <input type="number" id="p_max" value="19.9" step="0.1">
+          </div>
+        </div>
+		
+        <div class="field"><label>月销量满分</label><input type="number" id="t_sales" value="20000"></div>
+        <div class="field"><label>BSR 满分</label><input type="number" id="t_bsr" value="1000"></div>
+        <div class="field"><label>毛利基准%</label><input type="number" id="t_margin" value="50"></div>
+        <div class="field compact">
+          <label>评论区间</label>
+          <div class="range">
+            <input type="number" id="t_rev_min" value="300">
+            <span class="dash">—</span>
+            <input type="number" id="t_rev_max" value="2000">
+          </div>
+        </div>
+		<div class="field"><label>SEO自然比%</label><input type="number" id="t_seo" value="60"></div>
+        
+        <div class="field"><label>新品定义(天)</label><input type="number" id="t_days" value="180"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="title">
+        <span>⚖️ 全维度权重分配 (总和=100)</span>
+        <span class="badge" id="sumBadge">合计: 100</span>
+      </div>
+      <div class="grid weights">
+        <div class="field"><label>销量权重%</label><input type="number" id="w_s" value="20"></div>
+        <div class="field"><label>毛利权重%</label><input type="number" id="w_m" value="10"></div>
+        <div class="field"><label>价格权重%</label><input type="number" id="w_p" value="10"></div>
+        <div class="field"><label>星级权重%</label><input type="number" id="w_star" value="10"></div>
+        <div class="field"><label>评论权重%</label><input type="number" id="w_rev" value="10"></div>
+        <div class="field"><label>BSR权重%</label><input type="number" id="w_b" value="20"></div>
+        <div class="field"><label>新品权重%</label><input type="number" id="w_d" value="10"></div>
+        <div class="field"><label>SEO权重%</label><input type="number" id="w_o" value="10"></div>
+      </div>
+      <div class="hint" id="sumHint"></div>
+    </div>
+  </div>
+  <div style="padding: 0 15px 15px;"><button class="btn-save" id="saveBtn">💾 保存记忆并同步重载 F5</button></div>
+  <script src="popup.js" defer></script>
+</body>
+</html>
