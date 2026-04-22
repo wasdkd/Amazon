@@ -54,38 +54,69 @@ function parseV21(str) {
 }
 
 function scanProducts() {
-    document.querySelectorAll('.s-result-item[data-asin]').forEach(item => {
+    const list1 = Array.from(document.querySelectorAll('.s-result-item[data-asin]'));
+    const list2 = Array.from(document.querySelectorAll('#zg-ordered-list li, .zg-grid-general-faceout, li.zg-item-immersion, div[id^="gridItemRoot"]'));
+    const items = Array.from(new Set(list1.concat(list2)));
+    const seen = new Set();
+    items.forEach(item => {
+        let asin = item.getAttribute('data-asin');
+        if (!asin) {
+            const a = item.querySelector('a[href*="/dp/"]');
+            if (a) {
+                const m = a.href.match(/\/dp\/([A-Z0-9]{10})/);
+                if (m) asin = m[1];
+                item.setAttribute('data-asin', asin || '');
+            }
+        }
+        if (!asin) return;
+        if (seen.has(asin)) return;
+        seen.add(asin);
         const root = item.querySelector('.quick-view-ext');
-        if (!root) return;
-
-        const text = root.innerText;
-        let d = { sales: 0, bsr: 999999, margin: 0, price: 0, star: 0, reviews: 0, days: 365, seoRatio: 0 };
-        
-        const sMatch = text.match(/近30天销量\(父体\)[:：\s]*([\d,K.]+)/);
-        const mMatch = text.match(/毛利率[:：\s]*([\d.]+)%/);
-        const pMatch = text.match(/价格[:：\s]*\$([\d.]+)/);
-        const dMatch = text.match(/\((\d+)天\)/);
-        const rMatch = text.match(/(?:评分|Rating)[^0-9]*([\d.]+)\(([\d,K.]+)\)/);
-        const bsrBox = root.querySelector('.rank-box.green-box');
-        const organic = text.match(/自然搜索词[:：\s]*([\d,]+)/);
-        const totalKW = text.match(/全部流量词[:：\s]*([\d,]+)/);
-
-        if (sMatch) d.sales = parseV21(sMatch[1]);
-        if (mMatch) d.margin = parseV21(mMatch[1]);
-        if (pMatch) d.price = parseFloat(pMatch[1]);
-        if (dMatch) d.days = parseInt(dMatch[1]);
-        if (rMatch) { d.star = parseFloat(rMatch[1]); d.reviews = parseV21(rMatch[2]); }
-        if (bsrBox) d.bsr = parseV21(bsrBox.innerText.replace('#', ''));
-        if (organic && totalKW) d.seoRatio = (parseV21(organic[1]) / parseV21(totalKW[1])) * 100;
-
-        if (d.sales === 0 && d.bsr === 999999) return;
-
+        let d = { sales: null, bsr: null, margin: null, price: null, star: null, reviews: null, days: null, seoRatio: null };
+        if (root) {
+            const text = root.innerText || '';
+            const sMatch = text.match(/近30天销量\(父体\)[:：\s]*([\d,K.]+)/);
+            const mMatch = text.match(/毛利率[:：\s]*([\d.]+)%/);
+            const pMatch = text.match(/价格[:：\s]*\$([\d.]+)/);
+            const dMatch = text.match(/\(\s*([\d,]+)\s*天\)/);
+            const rMatch = text.match(/(?:评分|Rating)[^0-9]*([\d.]+)\(([\d,K.]+)\)/);
+            const bsrBox = root.querySelector('.rank-box.green-box');
+            const organic = text.match(/自然搜索词[:：\s]*([\d,]+)/);
+            const totalKW = text.match(/全部流量词[:：\s]*([\d,]+)/);
+            if (sMatch) d.sales = parseV21(sMatch[1]);
+            if (mMatch) d.margin = parseV21(mMatch[1]);
+            if (pMatch) d.price = parseFloat(pMatch[1]);
+            if (dMatch) d.days = parseInt(dMatch[1].replace(/,/g,''));
+            if (d.days==null) {
+                const dateMatch = text.match(/上架时间[:：]\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2})/);
+                if (dateMatch) {
+                    const dt = new Date(dateMatch[1].replace(/-/g,'/'));
+                    if (!isNaN(dt)) {
+                        const now = new Date();
+                        d.days = Math.max(0, Math.floor((now - dt)/86400000));
+                    }
+                }
+            }
+            if (rMatch) { d.star = parseFloat(rMatch[1]); d.reviews = parseV21(rMatch[2]); }
+            if (bsrBox) d.bsr = parseV21(bsrBox.innerText.replace('#', ''));
+            if (organic && totalKW) d.seoRatio = (parseV21(organic[1]) / parseV21(totalKW[1])) * 100;
+        } else {
+            const priceEl = item.querySelector('span.a-offscreen');
+            if (priceEl) d.price = parseV21(priceEl.textContent);
+            const starEl = item.querySelector('.a-icon-alt');
+            if (starEl) d.star = parseV21(starEl.textContent);
+            const revEl = item.querySelector('a[href*="#customerReviews"], .a-size-small, .a-size-base');
+            if (revEl) d.reviews = parseV21(revEl.textContent);
+            const bsrEl = item.querySelector('.zg-badge-text');
+            if (bsrEl) d.bsr = parseV21(bsrEl.textContent.replace('#',''));
+        }
+        if (!d.price && !d.star && !d.bsr && !d.reviews) return;
         let panel = item.querySelector('.expert-v21-panel');
         const cfgKey = [
             CFG.p_min, CFG.p_max, CFG.t_sales, CFG.t_bsr, CFG.t_margin, CFG.t_seo, CFG.t_rev_min, CFG.t_rev_max, CFG.t_days,
             CFG.w_s, CFG.w_m, CFG.w_p, CFG.w_star, CFG.w_rev, CFG.w_b, CFG.w_d, CFG.w_o
         ].join('-');
-        const fv = `${d.sales}-${d.star}-${d.margin}-${d.bsr}-${cfgKey}`;
+        const fv = `${asin}-${d.price||'-'}-${d.star||'-'}-${d.reviews||'-'}-${d.bsr||'-'}-${cfgKey}`;
         if (!panel || panel.getAttribute('data-fv') !== fv) {
             const scores = calculateScores(d, CFG);
             renderUI(item, scores, d);
@@ -94,29 +125,34 @@ function scanProducts() {
 }
 
 function calculateScores(d, c) {
-    let res = { s:0, m:0, p:0, star:0, rev:0, b:0, d:0, o:0 };
-    // 阶梯打分（销量/BSR 五档，其余维持三档）
-    if (d.sales >= c.t_sales) res.s = 100;
-    else if (d.sales >= c.t_sales*0.75) res.s = 80;
-    else if (d.sales >= c.t_sales*0.5) res.s = 60;
-    else if (d.sales >= c.t_sales*0.25) res.s = 40;
-    else res.s = 20;
-    res.m = d.margin >= c.t_margin ? 100 : (d.margin >= c.t_margin*0.8 ? 60 : 20);
-    res.p = (d.price >= c.p_min && d.price <= c.p_max) ? 100 : (d.price > c.p_max ? 80 : 0);
-    res.star = d.star >= 4.5 ? 100 : (d.star >= 4.2 ? 60 : 20);
-    res.rev = (d.reviews >= c.t_rev_min && d.reviews <= c.t_rev_max) ? 100 : (d.reviews < c.t_rev_min ? 60 : 10);
-    if (d.bsr <= c.t_bsr) res.b = 100;
-    else if (d.bsr <= c.t_bsr*2) res.b = 80;
-    else if (d.bsr <= c.t_bsr*3) res.b = 60;
-    else if (d.bsr <= c.t_bsr*4) res.b = 40;
-    else res.b = 20;
-    res.d = d.days <= c.t_days ? 100 : (d.days <= 365 ? 60 : 20);
-    res.o = d.seoRatio >= c.t_seo ? 100 : (d.seoRatio >= 30 ? 60 : 20);
-
-    res.total = (
-        (res.s*c.w_s + res.m*c.w_m + res.p*c.w_p + res.star*c.w_star + 
-         res.rev*c.w_rev + res.b*c.w_b + res.d*c.w_d + res.o*c.w_o) / 100
-    ).toFixed(1);
+    let res = { s:null, m:null, p:null, star:null, rev:null, b:null, d:null, o:null, total:0 };
+    if (d.sales!=null) {
+        if (d.sales >= c.t_sales) res.s = 100;
+        else if (d.sales >= c.t_sales*0.75) res.s = 80;
+        else if (d.sales >= c.t_sales*0.5) res.s = 60;
+        else if (d.sales >= c.t_sales*0.25) res.s = 40;
+        else res.s = 20;
+    }
+    if (d.margin!=null) res.m = d.margin >= c.t_margin ? 100 : (d.margin >= c.t_margin*0.8 ? 60 : 20);
+    if (d.price!=null) res.p = (d.price >= c.p_min && d.price <= c.p_max) ? 100 : (d.price > c.p_max ? 80 : 0);
+    if (d.star!=null) res.star = d.star >= 4.5 ? 100 : (d.star >= 4.2 ? 60 : 20);
+    if (d.reviews!=null) res.rev = (d.reviews >= c.t_rev_min && d.reviews <= c.t_rev_max) ? 100 : (d.reviews < c.t_rev_min ? 60 : 10);
+    if (d.bsr!=null) {
+        if (d.bsr <= c.t_bsr) res.b = 100;
+        else if (d.bsr <= c.t_bsr*2) res.b = 80;
+        else if (d.bsr <= c.t_bsr*3) res.b = 60;
+        else if (d.bsr <= c.t_bsr*4) res.b = 40;
+        else res.b = 20;
+    }
+    if (d.days!=null) res.d = d.days <= c.t_days ? 100 : (d.days <= 365 ? 60 : 20);
+    if (d.seoRatio!=null) res.o = d.seoRatio >= c.t_seo ? 100 : (d.seoRatio >= 30 ? 60 : 20);
+    const pairs = [
+        [res.s, c.w_s],[res.m,c.w_m],[res.p,c.w_p],[res.star,c.w_star],
+        [res.rev,c.w_rev],[res.b,c.w_b],[res.d,c.w_d],[res.o,c.w_o]
+    ];
+    let sum=0, wsum=0;
+    pairs.forEach(([sc, w]) => { if (sc!=null && w>0) { sum += sc*w; wsum += w; } });
+    res.total = (wsum>0 ? (sum/wsum) : 0).toFixed(1);
     return res;
 }
 
@@ -125,16 +161,16 @@ function renderUI(item, res, raw) {
     const color = res.total >= 80 ? '#27ae60' : (res.total >= 60 ? '#f39c12' : '#e74c3c');
 
     const w = CFG;
-    const cS = (res.s * w.w_s / 100).toFixed(1);
-    const cM = (res.m * w.w_m / 100).toFixed(1);
-    const cP = (res.p * w.w_p / 100).toFixed(1);
-    const cStar = (res.star * w.w_star / 100).toFixed(1);
-    const cRev = (res.rev * w.w_rev / 100).toFixed(1);
-    const cB = (res.b * w.w_b / 100).toFixed(1);
-    const cD = (res.d * w.w_d / 100).toFixed(1);
-    const cO = (res.o * w.w_o / 100).toFixed(1);
+    const cS = res.s!=null ? (res.s * w.w_s / 100).toFixed(1) : '0.0';
+    const cM = res.m!=null ? (res.m * w.w_m / 100).toFixed(1) : '0.0';
+    const cP = res.p!=null ? (res.p * w.w_p / 100).toFixed(1) : '0.0';
+    const cStar = res.star!=null ? (res.star * w.w_star / 100).toFixed(1) : '0.0';
+    const cRev = res.rev!=null ? (res.rev * w.w_rev / 100).toFixed(1) : '0.0';
+    const cB = res.b!=null ? (res.b * w.w_b / 100).toFixed(1) : '0.0';
+    const cD = res.d!=null ? (res.d * w.w_d / 100).toFixed(1) : '0.0';
+    const cO = res.o!=null ? (res.o * w.w_o / 100).toFixed(1) : '0.0';
     const dimStyle = (score, weight) => {
-        if (!weight || weight === 0) return 'color:#aaa;';
+        if (score==null || !weight || weight === 0) return 'color:#aaa;';
         return score >= 80 ? 'color:#27ae60;font-weight:bold' : '';
     };
 
@@ -145,17 +181,17 @@ function renderUI(item, res, raw) {
                 <span style="font-size:9px; color:#ddd;">Expert V1</span>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; color: #333;">
-                <div style="${dimStyle(res.s, w.w_s)}">📈 销量: ${res.s} (+${cS})</div>
-                <div style="${dimStyle(res.m, w.w_m)}">💰 毛利: ${res.m} (+${cM})</div>
-                <div style="${dimStyle(res.star, w.w_star)}">⭐ 星级: ${res.star} (+${cStar})</div>
-                <div style="${dimStyle(res.rev, w.w_rev)}">💬 评论: ${res.rev} (+${cRev})</div>
-                <div style="${dimStyle(res.p, w.w_p)}">💵 价格: ${res.p} (+${cP})</div>
-                <div style="${dimStyle(res.b, w.w_b)}">🏅 BSR: ${res.b} (+${cB})</div>
-                <div style="${dimStyle(res.d, w.w_d)}">📅 新品: ${res.d} (+${cD})</div>
-                <div style="${dimStyle(res.o, w.w_o)}">🔍 SEO: ${res.o} (+${cO})</div>
+                <div style="${dimStyle(res.s, w.w_s)}">📈 销量: ${res.s!=null?res.s:'—'} (+${cS})</div>
+                <div style="${dimStyle(res.m, w.w_m)}">💰 毛利: ${res.m!=null?res.m:'—'} (+${cM})</div>
+                <div style="${dimStyle(res.star, w.w_star)}">⭐ 星级: ${res.star!=null?res.star:'—'} (+${cStar})</div>
+                <div style="${dimStyle(res.rev, w.w_rev)}">💬 评论: ${res.rev!=null?res.rev:'—'} (+${cRev})</div>
+                <div style="${dimStyle(res.p, w.w_p)}">💵 价格: ${res.p!=null?res.p:'—'} (+${cP})</div>
+                <div style="${dimStyle(res.b, w.w_b)}">🏅 BSR: ${res.b!=null?res.b:'—'} (+${cB})</div>
+                <div style="${dimStyle(res.d, w.w_d)}">📅 新品: ${res.d!=null?res.d:'—'} (+${cD})</div>
+                <div style="${dimStyle(res.o, w.w_o)}">🔍 SEO: ${res.o!=null?res.o:'—'} (+${cO})</div>
             </div>
             <div style="margin-top: 8px; font-size: 10px; color: #999; text-align: center; border-top: 1px dashed #eee; padding-top: 5px;">
-                实时: 销${raw.sales} | 评${raw.star}(${raw.reviews}) | 利${raw.margin}% | BSR ${raw.bsr} | $${raw.price} | SEO(自然搜索词占比) ${raw.seoRatio.toFixed(1)}% | ${raw.days}天
+                实时: 销${raw.sales??'-'} | 评${raw.star??'-'}(${raw.reviews??'-'}) | 利${raw.margin??'-'}% | BSR ${raw.bsr??'-'} | $${raw.price??'-'} | SEO ${raw.seoRatio!=null?raw.seoRatio.toFixed(1):'-'}% | ${raw.days??'-'}天
             </div>
         </div>
     `;
