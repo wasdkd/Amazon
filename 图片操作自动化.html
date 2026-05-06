@@ -227,6 +227,9 @@
     <button class="nav-btn" onclick="navigateToReport(8)">
      9. J 可视化
     </button>
+    <button class="nav-btn" onclick="navigateToReport(9)">
+     10. K 数据工具
+    </button>
    </div>
    <div id="visualizationsContainer">
     <!-- 可视化内容将在这里插入 -->
@@ -14894,6 +14897,255 @@ function calculateTotal(data, field, aggType) {
 &lt;/html&gt;
 
 ">
+      </iframe>
+     </div>
+    </div>
+    <div class="visualization-section">
+     <div class="iframe-container">
+      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;工作台 | 个人工具聚合&lt;/title&gt;
+    &lt;style&gt;
+        :root {
+            --primary-color: #00d2ff;
+            --secondary-color: #3a7bd5;
+            --bg-color: #0f172a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 动态背景 */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+        }
+
+        .background span {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: move 20s infinite linear;
+        }
+
+        @keyframes move {
+            from { transform: translateY(0); }
+            to { transform: translateY(-100vh); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 50px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        header h1 {
+            font-size: 3rem;
+            background: linear-gradient(to right, #00d2ff, #92fe9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* 网格布局 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-decoration: none;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .card:hover::before {
+            left: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-color);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 210, 255, 0.2);
+        }
+
+        .card .icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* 预留位置样式 */
+        .card.placeholder {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            background: transparent;
+            cursor: default;
+        }
+
+        .card.placeholder:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card.placeholder .icon {
+            filter: grayscale(1);
+            opacity: 0.5;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 600px) {
+            header h1 { font-size: 2rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div class=&quot;background&quot; id=&quot;stars&quot;&gt;&lt;/div&gt;
+
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;header&gt;
+            &lt;h1&gt;数字工具工作台&lt;/h1&gt;
+        &lt;/header&gt;
+
+        &lt;div class=&quot;grid&quot;&gt;
+            &lt;!-- 工具 1 --&gt;
+            &lt;a href=&quot;https://amazon-7uf.pages.dev/&quot; target=&quot;_blank&quot; class=&quot;card&quot;&gt;
+                &lt;div class=&quot;icon&quot;&gt;⚙️&lt;/div&gt;
+                &lt;h3&gt;数据流工作台&lt;/h3&gt;
+                &lt;p&gt;自动化数据集成与处理中心，支持高效流转与任务监控。&lt;/p&gt;
+            &lt;/a&gt;
+
+            &lt;!-- 工具 2 --&gt;
+            &lt;a href=&quot;https://ftableau.pages.dev/&quot; target=&quot;_blank&quot; class=&quot;card&quot;&gt;
+                &lt;div class=&quot;icon&quot;&gt;📊&lt;/div&gt;
+                &lt;h3&gt;仿 Tableau&lt;/h3&gt;
+                &lt;p&gt;轻量级可视化分析工具，快速构建直观的业务仪表盘。&lt;/p&gt;
+            &lt;/a&gt;
+
+            &lt;!-- 工具 3 --&gt;
+            &lt;a href=&quot;https://imgmain.pages.dev/&quot; target=&quot;_blank&quot; class=&quot;card&quot;&gt;
+                &lt;div class=&quot;icon&quot;&gt;🖼️&lt;/div&gt;
+                &lt;h3&gt;图片展示&lt;/h3&gt;
+                &lt;p&gt;高清素材管理与多维展示平台，优化的视觉浏览体验。&lt;/p&gt;
+            &lt;/a&gt;
+
+            &lt;!-- 预留位置 1 --&gt;
+            &lt;div class=&quot;card placeholder&quot;&gt;
+                &lt;div class=&quot;icon&quot;&gt;➕&lt;/div&gt;
+                &lt;h3&gt;敬请期待&lt;/h3&gt;
+                &lt;p&gt;新工具正在开发中，即将在此上线...&lt;/p&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 预留位置 2 --&gt;
+            &lt;div class=&quot;card placeholder&quot;&gt;
+                &lt;div class=&quot;icon&quot;&gt;🚀&lt;/div&gt;
+                &lt;h3&gt;即将到来&lt;/h3&gt;
+                &lt;p&gt;更多功能模块集成，敬请关注。&lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        // 生成背景星星
+        const starsContainer = document.getElementById('stars');
+        const starCount = 50;
+
+        for (let i = 0; i &lt; starCount; i++) {
+            const star = document.createElement('span');
+            const size = Math.random() * 3 + 'px';
+            star.style.width = size;
+            star.style.height = size;
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 10 + 's';
+            star.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            starsContainer.appendChild(star);
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;">
       </iframe>
      </div>
     </div>
