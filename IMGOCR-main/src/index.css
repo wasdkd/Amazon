@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased;
+  }
+}
+
+.italic-serif {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+}
+
+.markdown-body {
+  @apply max-w-none;
+}
+
+.markdown-body h1 { @apply text-2xl font-bold mb-4; }
+.markdown-body h2 { @apply text-xl font-bold mb-3 mt-6; }
+.markdown-body p { @apply mb-4 leading-relaxed; }
+.markdown-body ul { @apply list-disc pl-6 mb-4; }
+.markdown-body ol { @apply list-decimal pl-6 mb-4; }
+.markdown-body table { @apply w-full border-collapse mb-4; }
+.markdown-body th, .markdown-body td { @apply border border-zinc-200 p-2 text-left; }
+.markdown-body th { @apply bg-zinc-50 font-bold; }
