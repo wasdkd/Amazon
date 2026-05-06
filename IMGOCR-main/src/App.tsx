@@ -6,9 +6,9 @@
 import React, { useState } from 'react';
 import { ImageUploader } from './components/ImageUploader';
 import { TableEditor } from './components/TableEditor';
-import { analyzeImage, AnalysisResult, TableData } from './services/gemini';
+import { analyzeImage, AnalysisResult, TableData, isApiKeyMissing } from './services/gemini';
 import { exportToExcel, exportToWord, exportToCSV, exportToText } from './lib/export';
-import { FileDown, Table as TableIcon, FileText, Download, Github, RefreshCw } from 'lucide-react';
+import { FileDown, Table as TableIcon, FileText, Download, Github, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -16,8 +16,25 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isTransposed, setIsTransposed] = useState(false);
+  const [tempKey, setTempKey] = useState('');
+  const [showKeyInput, setShowKeyInput] = useState(false);
+
+  const keyMissing = isApiKeyMissing();
+
+  const handleSaveKey = () => {
+    if (tempKey.trim()) {
+      localStorage.setItem('GEMINI_API_KEY_USER', tempKey.trim());
+      setTempKey('');
+      setShowKeyInput(false);
+      window.location.reload(); // Quickest way to re-init
+    }
+  };
 
   const handleUpload = async (file: File) => {
+    if (keyMissing) {
+      setShowKeyInput(true);
+      return;
+    }
     setLoading(true);
     try {
       const reader = new FileReader();
@@ -84,6 +101,41 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
+      {keyMissing && (
+        <div className="bg-zinc-900 text-white px-6 py-3">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-2 text-sm font-medium">
+              <AlertTriangle size={16} className="text-amber-400" />
+              <span>检测到您在 GitHub 部署。为使应用工作，请在此输入一次 Gemini API Key（免费获取）。</span>
+            </div>
+            
+            <div className="flex items-center space-x-3 w-full md:w-auto">
+              <input 
+                type="password"
+                placeholder="在此粘贴您的 API Key..."
+                value={tempKey}
+                onChange={(e) => setTempKey(e.target.value)}
+                className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm flex-grow md:w-64 focus:outline-none focus:border-white/40"
+              />
+              <button 
+                onClick={handleSaveKey}
+                className="bg-white text-zinc-900 px-4 py-1 rounded text-sm font-bold hover:bg-zinc-100 transition-colors"
+              >
+                保存并开始
+              </button>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-xs text-zinc-400 hover:text-white transition-colors flex items-center space-x-1"
+              >
+                <span>获取 Key</span>
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white border-b border-zinc-200 px-6 py-4 sticky top-0 z-10 shadow-subtle">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
