@@ -106,6 +106,7 @@
     .stats-bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
   <div id="stickyHeader" class="sticky-header">
@@ -162,8 +163,18 @@
       <label for="libToken">GitHub Token（可选，防止限流）：</label>
       <input id="libToken" type="text" placeholder="粘贴个人访问令牌" style="width:280px;" />
       <button id="btnLoad" class="primary">加载数据</button>
+      <select id="exportMode" style="padding:8px; border-radius:8px; border:1px solid var(--border);">
+        <option value="all">下载筛选结果（包含图片）</option>
+        <option value="noImg">下载筛选结果（仅文本，不含图片）</option>
+      </select>
       <button id="btnExportXlsx" disabled>下载表格数据（xlsx）</button>
       <span id="loadStatus" class="summary"></span>
+    </div>
+    <div id="exportProgressWrap" style="display:none; margin-top:10px; align-items:center; gap:10px;">
+      <div style="flex:1; height:12px; background:#e5e7eb; border-radius:6px; overflow:hidden;">
+        <div id="exportProgressBar" style="width:0%; height:100%; background:var(--ok); transition:width 0.2s;"></div>
+      </div>
+      <span id="exportProgressText" class="summary">正在准备...</span>
     </div>
     <!-- 已将筛选区移至粘性头部，确保始终固定在顶部 -->
     <div class="row pagination">
@@ -274,24 +285,171 @@ function updateHeaderStatsFromRows(rows){
   }
 }
 
-    // 导出当前库的四张表到 xlsx
-    function exportLibXlsx(){
+    // 导出当前筛选后的四张表到 xlsx，支持嵌入图片
+    async function exportLibXlsx(){
       try {
-        if (!libStats || (!libStats.salesColor?.length && !libStats.salesSize?.length && !libStats.trafficColor?.length && !libStats.trafficSize?.length)){
+        if (!filteredStats || (!filteredStats.salesColor?.length && !filteredStats.salesSize?.length && !filteredStats.trafficColor?.length && !filteredStats.trafficSize?.length)){
           alert('暂无可导出的数据，请先加载。');
           return;
         }
-        const wb = XLSX.utils.book_new();
-        const add = (name, arr) => { const ws = XLSX.utils.json_to_sheet(arr || []); XLSX.utils.book_append_sheet(wb, ws, name); };
-        add('销量-颜色', libStats.salesColor);
-        add('销量-尺码', libStats.salesSize);
-        add('流量-颜色', libStats.trafficColor);
-        add('流量-尺码', libStats.trafficSize);
+        
+        const mode = document.getElementById('exportMode').value;
+        const btn = document.getElementById('btnExportXlsx');
+        const progressWrap = document.getElementById('exportProgressWrap');
+        const progressBar = document.getElementById('exportProgressBar');
+        const progressText = document.getElementById('exportProgressText');
+        
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '正在生成表格...';
+        progressWrap.style.display = 'flex';
+        progressBar.style.width = '0%';
+        progressText.textContent = '正在准备数据...';
+
+        const workbook = new ExcelJS.Workbook();
+        
+        // 预先计算需要处理的总行数用于进度条
+        const getFinalData = (data) => {
+          if (!data) return [];
+          // 始终下载当前筛选到的全部数据
+          return data;
+        };
+
+        const sheetsToProcess = [
+          { name: '销量-颜色', data: getFinalData(filteredStats.salesColor) },
+          { name: '销量-尺码', data: getFinalData(filteredStats.salesSize) },
+          { name: '流量-颜色', data: getFinalData(filteredStats.trafficColor) },
+          { name: '流量-尺码', data: getFinalData(filteredStats.trafficSize) }
+        ].filter(s => s.data.length > 0);
+
+        const totalRows = sheetsToProcess.reduce((acc, s) => acc + s.data.length, 0);
+        let processedRows = 0;
+
+        const processSheet = async (name, finalData) => {
+          const worksheet = workbook.addWorksheet(name);
+          
+          // 获取所有键名
+          const keys = Object.keys(finalData[0]);
+          // 在适当位置加入图片列
+          const imgIdx = keys.findIndex(k => /(商品主图|主图链接|ImageURL)/i.test(k));
+          const columns = keys.map(k => ({ header: k, key: k, width: 20 }));
+          
+          // 如果不是“仅文本”模式，则添加图片展示列
+          const shouldEmbedImg = mode !== 'noImg';
+          if (shouldEmbedImg) {
+            if (imgIdx !== -1) {
+              columns.splice(imgIdx + 1, 0, { header: '图片展示', key: 'embeddedImage', width: 20 });
+            } else {
+              columns.push({ header: '图片展示', key: 'embeddedImage', width: 20 });
+            }
+          }
+          worksheet.columns = columns;
+
+          // 设置表头样式：绿色背景，加粗字体，白色文字
+          const headerRow = worksheet.getRow(1);
+          headerRow.height = 30; 
+          headerRow.eachCell((cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF22C55E' } // 使用一个现代感强的绿色 (与页面 var(--ok) 接近)
+            };
+            cell.font = {
+              bold: true,
+              color: { argb: 'FFFFFFFF' },
+              size: 12
+            };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          });
+
+          // 设置默认行高（仅在包含图片时增加行高）
+          if (shouldEmbedImg) {
+            worksheet.properties.defaultRowHeight = 110;
+          } else {
+            worksheet.properties.defaultRowHeight = 25; // 文本模式普通行高
+          }
+          
+          // 设置列的对齐方式和换行
+          worksheet.columns.forEach(col => {
+            col.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          });
+
+          for (let i = 0; i < finalData.length; i++) {
+            const item = finalData[i];
+            const row = worksheet.addRow(item);
+            
+            // 确保每个单元格都居中对齐并自动换行
+            row.eachCell({ includeEmpty: true }, (cell) => {
+              cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            });
+
+            const imgSrc = String(item['商品主图'] || '').trim();
+            
+            if (shouldEmbedImg && imgSrc) {
+                 try {
+                   // 尝试抓取图片
+                   const blobResponse = await fetch(imgSrc);
+                   const buffer = await blobResponse.arrayBuffer();
+                   
+                   let extension = 'png';
+                   if (imgSrc.toLowerCase().includes('.jpg') || imgSrc.toLowerCase().includes('.jpeg')) extension = 'jpeg';
+                   else if (imgSrc.toLowerCase().includes('.webp')) extension = 'webp';
+                   else if (imgSrc.toLowerCase().includes('.gif')) extension = 'gif';
+
+                   const imageId = workbook.addImage({
+                     buffer: buffer,
+                     extension: extension,
+                   });
+                   
+                   worksheet.addImage(imageId, {
+                     tl: { col: (imgIdx !== -1 ? imgIdx + 1 : keys.length), row: i + 1 },
+                     ext: { width: 80, height: 110 }, // 调整为高比宽长，适合衣服展示
+                     editAs: 'oneCell'
+                   });
+                } catch (e) {
+                  console.warn('图片嵌入失败 (可能是跨域限制):', imgSrc);
+                  // 失败时在单元格填入提示
+                  row.getCell('embeddedImage').value = '图片加载失败(跨域)';
+                }
+            }
+            
+            processedRows++;
+            const pct = Math.floor((processedRows / totalRows) * 100);
+            progressBar.style.width = pct + '%';
+            progressText.textContent = `正在处理: ${name} (${i+1}/${finalData.length}) - 总进度 ${pct}%`;
+          }
+          
+          // 冻结首行
+          worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+        };
+
+        for (const sheet of sheetsToProcess) {
+          await processSheet(sheet.name, sheet.data);
+        }
+
+        progressText.textContent = '正在打包 Excel 文件...';
         const ts = new Date();
-        const fname = `visual_library_${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')}_${String(ts.getHours()).padStart(2,'0')}${String(ts.getMinutes()).padStart(2,'0')}.xlsx`;
-        XLSX.writeFile(wb, fname);
+        const fname = `visual_library_filtered_${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')}_${String(ts.getHours()).padStart(2,'0')}${String(ts.getMinutes()).padStart(2,'0')}.xlsx`;
+        
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fname;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        btn.disabled = false;
+        btn.textContent = originalText;
+        progressWrap.style.display = 'none';
       } catch(err){
+        console.error(err);
         alert('导出失败：' + err.message);
+        const btn = document.getElementById('btnExportXlsx');
+        btn.disabled = false;
+        btn.textContent = '下载表格数据（xlsx）';
+        document.getElementById('exportProgressWrap').style.display = 'none';
       }
     }
     btnExportXlsx.addEventListener('click', exportLibXlsx);
@@ -634,8 +792,10 @@ function updateHeaderStatsFromRows(rows){
       }
     }
     btnLoad.addEventListener('click', loadData);
-    // 进入页面自动加载
-    (function(){ loadData(); })();
+    // 进入页面自动加载（增加 DOMContentLoaded 确保元素已就绪）
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadData, 500); // 稍微延迟确保 token 等初始化完成
+    });
   </script>
 </body>
 </html>
