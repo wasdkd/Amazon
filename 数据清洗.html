@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python 数据清洗与处理全百科手册</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; scroll-behavior: smooth; }
+        code, pre { font-family: 'Fira Code', monospace !important; font-size: 14px !important; }
+        .sidebar-link { border-left: 3px solid transparent; transition: all 0.2s; cursor: pointer; display: block; padding: 8px 16px; font-size: 14px; color: #4b5563; }
+        .sidebar-link:hover { border-left-color: #3b82f6; background: #f3f4f6; color: #2563eb; }
+        .active-link { border-left-color: #2563eb; background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+        section { scroll-margin-top: 80px; padding-bottom: 40px; border-bottom: 1px solid #e5e7eb; margin-bottom: 40px; }
+        .method-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-top: 15px; }
+        .expert-tip { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+        .param-table { width: 100%; font-size: 13px; margin-top: 10px; border-collapse: collapse; }
+        .param-table th, .param-table td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+        .param-table th { background: #f9fafb; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z" stroke-width="2"></path><path d="M9 12l2 2 4-4" stroke-width="2"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800 tracking-tight">Python Data Cleaning <span class="text-blue-600">Encyclopedia</span></h1>
+            </div>
+            <div class="text-sm text-gray-500 font-medium">数据专家必备 · 完整实战手册</div>
+        </div>
+    </header>
+
+    <div class="max-w-[1600px] mx-auto px-6 py-8 flex gap-10">
+
+        <!-- Sidebar -->
+        <aside class="w-72 flex-shrink-0 hidden lg:block sticky top-24 h-[calc(100vh-120px)] overflow-y-auto pr-2">
+            <nav class="space-y-8">
+                <div>
+                    <h5 class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">01 快速入门</h5>
+                    <a href="#prep" class="sidebar-link">环境准备与库导入</a>
+                    <a href="#inspect" class="sidebar-link">数据探索与质量检查</a>
+                </div>
+                <div>
+                    <h5 class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">02 基础清洗</h5>
+                    <a href="#missing" class="sidebar-link">缺失值处理 (Detailed)</a>
+                    <a href="#duplicates" class="sidebar-link">重复值处理</a>
+                    <a href="#strings" class="sidebar-link">字符串清洗与提取</a>
+                    <a href="#types" class="sidebar-link">数据类型转换</a>
+                </div>
+                <div>
+                    <h5 class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">03 数据结构重组</h5>
+                    <a href="#rename" class="sidebar-link">列名重命名与调整</a>
+                    <a href="#outliers" class="sidebar-link">异常值检测与盖帽</a>
+                    <a href="#grouping" class="sidebar-link">分组聚合 (GroupBy)</a>
+                    <a href="#reshape" class="sidebar-link">透视与逆透视 (Reshape)</a>
+                    <a href="#merge" class="sidebar-link">多表合并与关联</a>
+                </div>
+                <div>
+                    <h5 class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">04 进阶与性能</h5>
+                    <a href="#timeseries" class="sidebar-link">时间序列处理</a>
+                    <a href="#performance" class="sidebar-link">大数据性能优化</a>
+                    <a href="#workflow" class="sidebar-link font-bold text-green-600">★ 清洗工作流 SOP</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 min-w-0">
+
+            <!-- Prep -->
+            <section id="prep">
+                <h2 class="text-3xl font-bold mb-4">清洗前的准备</h2>
+                <p class="text-gray-600 mb-6">数据清洗（Data Cleaning）是数据科学中最关键的环节。在开始之前，确保安装并导入以下核心库：</p>
+                <div class="method-card">
+                    <pre><code class="language-python">import pandas as pd    # 核心数据处理
+import numpy as np     # 数值计算与 NaN 处理
+import re              # 正则表达式
+import datetime        # 时间日期处理
+
+# 载入数据
+df = pd.read_csv('data.csv') # 或 pd.read_excel('data.xlsx')</code></pre>
+                </div>
+            </section>
+
+            <!-- Inspect -->
+            <section id="inspect">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">01</span>
+                    <h3 class="text-2xl font-bold">数据探索与质量检查</h3>
+                </div>
+                <p class="text-gray-600 mb-4 font-medium">在动手之前，你必须通过以下函数全方位了解数据的“健康状况”：</p>
+                <div class="method-card">
+                    <pre><code class="language-python">df.head(10)            # 查看前10行，初步感知数据
+df.info()               # 核心：查看每列数据类型、非空值数量、内存占用
+df.describe()           # 查看数值列统计信息（均值、标准差、四分位数）
+df.isnull().sum()       # 统计每一列缺失值的绝对数量
+df.isnull().mean()      # 统计缺失值百分比（专家推荐：直观评估列可用性）
+df.nunique()            # 查看每列唯一值数量，识别分类变量或无效常数列
+df.sample(5)            # 随机抽取5行（专家推荐：避免前几行数据过好而产生的偏见）</code></pre>
+                </div>
+            </section>
+
+            <!-- Missing Data -->
+            <section id="missing">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">02</span>
+                    <h3 class="text-2xl font-bold">缺失值处理 (Missing Data)</h3>
+                </div>
+                <div class="expert-tip">
+                    <strong>专家提示：</strong> 缺失值不一定都要删。如果缺失比例低于5%，可以考虑填充；如果超过50%，考虑直接删掉该列。
+                </div>
+
+                <h4 class="font-bold text-lg mb-2">1. 彻底删除</h4>
+                <pre><code class="language-python">df.dropna(inplace=True)               # 删除任何包含 NaN 的行
+df.dropna(axis=1)                    # 删除包含 NaN 的列
+df.dropna(subset=['Age', 'Salary'])   # 仅当 Age 或 Salary 缺失时删除行
+df.dropna(thresh=3)                  # 保留至少有3个非空值的行</code></pre>
+
+                <h4 class="font-bold text-lg mt-6 mb-2">2. 智能填充</h4>
+                <pre><code class="language-python"># 填充固定值
+df['Score'] = df['Score'].fillna(0)
+
+# 统计学填充（均值/中位数）
+df['Age'] = df['Age'].fillna(df['Age'].median())
+
+# 业务逻辑填充：按分组填充（专家推荐）
+# 例如：按“职位”填充“薪资”的缺失值
+df['Salary'] = df.groupby('Job_Title')['Salary'].transform(lambda x: x.fillna(x.mean()))
+
+# 邻近填充（常用于时间序列）
+df['Price'].fillna(method='ffill') # 前向填充：用上一行值填充
+df['Price'].fillna(method='bfill') # 后向填充：用下一行值填充</code></pre>
+            </section>
+
+            <!-- Duplicates -->
+            <section id="duplicates">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">03</span>
+                    <h3 class="text-2xl font-bold">重复值处理</h3>
+                </div>
+                <div class="method-card">
+                    <pre><code class="language-python"># 1. 查找重复
+df.duplicated().sum()             # 统计完全重复的行数
+
+# 2. 删除重复
+df.drop_duplicates(inplace=True)  # 保留第一次出现的行，删除其余
+
+# 3. 指定列去重（最常用）
+# 场景：同一个用户 ID 有多条记录，只保留最新的一条
+df.drop_duplicates(subset=['User_ID'], keep='last', inplace=True)</code></pre>
+                </div>
+            </section>
+
+            <!-- Strings -->
+            <section id="strings">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">04</span>
+                    <h3 class="text-2xl font-bold">字符串清洗与提取</h3>
+                </div>
+                <p class="text-gray-600 mb-4">Pandas 的 <code>.str</code> 访问器提供了强大的向量化字符串处理能力。</p>
+                <div class="method-card">
+                    <pre><code class="language-python"># 1. 基础修整
+df['Name'] = df['Name'].str.strip()         # 去首尾空格
+df['City'] = df['City'].str.lower()         # 转小写
+df['City'] = df['City'].str.title()         # 首字母大写
+
+# 2. 替换与清理
+# 将金额中的 $ 和 , 删掉，并转为浮点数
+df['Price'] = df['Price'].str.replace('$', '').str.replace(',', '').astype(float)
+
+# 3. 信息提取 (正则表达式)
+# 从地址中提取 5 位邮编
+df['Zip_Code'] = df['Address'].str.extract(r'(\d{5})')
+
+# 4. 包含与判断
+# 筛选所有 Email 中包含 "gmail" 的行
+gmail_users = df[df['Email'].str.contains('gmail', na=False)]</code></pre>
+                </div>
+            </section>
+
+            <!-- Types -->
+            <section id="types">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">05</span>
+                    <h3 class="text-2xl font-bold">数据类型转换</h3>
+                </div>
+                <div class="expert-tip">
+                    <strong>专家提示：</strong> 转换前请先使用 <code>errors='coerce'</code>。它会将无法转换的值设为 <code>NaN</code>，而不是报错中断程序。
+                </div>
+                <pre><code class="language-python"># 1. 转换为数值
+df['Sales'] = pd.to_numeric(df['Sales'], errors='coerce')
+
+# 2. 转换为日期 (极其重要)
+df['Order_Date'] = pd.to_datetime(df['Order_Date'], errors='coerce')
+
+# 3. 强制转换类型
+df['ID'] = df['ID'].astype(str)
+df['Age'] = df['Age'].astype(int, errors='ignore')</code></pre>
+            </section>
+
+            <!-- Rename -->
+            <section id="rename">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">06</span>
+                    <h3 class="text-2xl font-bold">列名重命名与规范化</h3>
+                </div>
+                <pre><code class="language-python"># 1. 指定重命名
+df.rename(columns={'Old_Name': 'New_Name', 'Date Of Birth': 'DOB'}, inplace=True)
+
+# 2. 批量清洗列名（专家推荐）
+# 规范：全小写，空格变下划线，去首尾空格
+df.columns = [c.lower().strip().replace(' ', '_') for c in df.columns]</code></pre>
+            </section>
+
+            <!-- Outliers -->
+            <section id="outliers">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">07</span>
+                    <h3 class="text-2xl font-bold">异常值检测与盖帽</h3>
+                </div>
+                <h4 class="font-bold text-lg mb-2">IQR 四分位距法</h4>
+                <pre><code class="language-python">Q1 = df['Salary'].quantile(0.25)
+Q3 = df['Salary'].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+# 策略：直接过滤
+df_clean = df[(df['Salary'] >= lower_bound) & (df['Salary'] <= upper_bound)]
+
+# 策略：盖帽法 (Clipping) - 将超出范围的值设为边界值
+df['Salary'] = df['Salary'].clip(lower=lower_bound, upper=upper_bound)</code></pre>
+            </section>
+
+            <!-- Grouping -->
+            <section id="grouping">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">08</span>
+                    <h3 class="text-2xl font-bold">分组聚合 (GroupBy)</h3>
+                </div>
+                <p class="text-gray-600 mb-4">分组不仅是为了看报告，更是为了生成特征数据。</p>
+                <div class="method-card">
+                    <pre><code class="language-python"># 1. 基础聚合
+# 按城市计算薪资均值和人数
+city_stats = df.groupby('City').agg({'Salary': 'mean', 'User_ID': 'count'})
+
+# 2. 进阶：多指标并行
+agg_res = df.groupby('Dept').agg({
+    'Salary': ['sum', 'mean', 'max'],
+    'Bonus': 'std'
+})
+
+# 3. 专家级：transform
+# 计算“个人薪资”占“部门总薪资”的比例
+df['Dept_Total'] = df.groupby('Dept')['Salary'].transform('sum')
+df['Salary_Ratio'] = df['Salary'] / df['Dept_Total']</code></pre>
+                </div>
+            </section>
+
+            <!-- Reshape -->
+            <section id="reshape">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">09</span>
+                    <h3 class="text-2xl font-bold">透视与逆透视 (Reshape)</h3>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 border rounded-xl">
+                        <h4 class="font-bold text-blue-600 mb-3">Pivot Table (行转列)</h4>
+                        <pre><code class="language-python"># 用于制作汇总报表
+df.pivot_table(
+    index='Date',
+    columns='Region',
+    values='Sales',
+    aggfunc='sum'
+)</code></pre>
+                    </div>
+                    <div class="bg-white p-5 border rounded-xl">
+                        <h4 class="font-bold text-blue-600 mb-3">Melt (列转行)</h4>
+                        <pre><code class="language-python"># 用于将宽表变为长表
+# 适合机器学习模型输入
+df.melt(
+    id_vars=['ID'],
+    value_vars=['Q1', 'Q2'],
+    var_name='Quarter'
+)</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Merge -->
+            <section id="merge">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">10</span>
+                    <h3 class="text-2xl font-bold">多表合并与关联</h3>
+                </div>
+                <div class="method-card">
+                    <pre><code class="language-python"># 1. 纵向合并（增加行，多月数据拼接）
+df_full = pd.concat([df_jan, df_feb], axis=0)
+
+# 2. 横向关联（类似于 SQL Join）
+# how 可以是 'left', 'right', 'inner', 'outer'
+merged_df = pd.merge(orders, users, on='User_ID', how='left')</code></pre>
+                </div>
+            </section>
+
+            <!-- Time Series -->
+            <section id="timeseries">
+                <div class="flex items-center mb-6">
+                    <span class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3">11</span>
+                    <h3 class="text-2xl font-bold">时间序列处理</h3>
+                </div>
+                <div class="method-card">
+                    <pre><code class="language-python"># 设置日期为索引
+df['Date'] = pd.to_datetime(df['Date'])
+df.set_index('Date', inplace=True)
+
+# 提取特征
+df['Year'] = df.index.year
+df['Month'] = df.index.month
+df['Day_of_Week'] = df.index.dayofweek
+
+# 重采样 (Resampling)
+# 将每日数据按月汇总均值
+monthly_avg = df['Sales'].resample('M').mean()
+
+# 滑动窗口 (Rolling)
+# 计算 7 天移动平均线
+df['MA7'] = df['Sales'].rolling(window=7).mean()</code></pre>
+                </div>
+            </section>
+
+            <!-- Performance -->
+            <section id="performance">
+                <div class="bg-gray-900 rounded-3xl p-10 text-gray-100">
+                    <h3 class="text-2xl font-bold mb-6 text-yellow-400">性能优化：数据专家的进阶技巧</h3>
+                    <div class="space-y-6">
+                        <div class="border-l-2 border-gray-700 pl-6">
+                            <h4 class="text-white font-bold">1. 禁用循环</h4>
+                            <p class="text-gray-400 text-sm">绝对不要在 Pandas 里用 <code>for index, row in df.iterrows()</code>。它的速度比向量化运算慢 1000 倍以上。</p>
+                        </div>
+                        <div class="border-l-2 border-gray-700 pl-6">
+                            <h4 class="text-white font-bold">2. Category 类型</h4>
+                            <p class="text-gray-400 text-sm">对于“城市”、“等级”等重复率高的字符串列，转换为 <code>category</code>。内存占用可减少 80%。</p>
+                            <code class="text-yellow-200">df['City'] = df['City'].astype('category')</code>
+                        </div>
+                        <div class="border-l-2 border-gray-700 pl-6">
+                            <h4 class="text-white font-bold">3. Parquet 存储</h4>
+                            <p class="text-gray-400 text-sm">CSV 读取慢且不包含类型信息。处理百万级数据时，请使用 <code>df.to_parquet()</code>。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Workflow -->
+            <section id="workflow" class="border-4 border-dashed border-green-200 rounded-3xl p-10 bg-green-50">
+                <h3 class="text-2xl font-bold text-green-800 mb-6 flex items-center">
+                    <svg class="w-8 h-8 mr-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"></path></svg>
+                    数据清洗标准工作流 (Standard SOP)
+                </h3>
+                <div class="space-y-4 text-green-900 font-medium">
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">1</span> 载入数据并执行 <code>info()</code>、<code>sample()</code> 查看质量。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">2</span> 规范列名（去空格、统一下划线、小写）。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">3</span> 处理字符串（strip 空格、正则替换、统一格式）。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">4</span> 类型转换（特别是日期和数值）。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">5</span> 缺失值治理（按需填充或删除）。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">6</span> 重复值去重（重点关注业务主键 ID）。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">7</span> 异常值检测与盖帽。</div>
+                    <div class="flex items-center"><span class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mr-4">8</span> 执行 <code>df.info()</code> 最终验证清洗结果。</div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 border-t py-10 mt-20">
+        <div class="max-w-[1600px] mx-auto px-6 text-center">
+            <p class="text-gray-500 text-sm">Python 数据处理百科手册 - 持续更新</p>
+        </div>
+    </footer>
+
+    <script>
+        // 处理侧边栏高亮
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.sidebar-link');
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 120) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active-link');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active-link');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
