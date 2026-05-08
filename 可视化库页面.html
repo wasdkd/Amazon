@@ -157,6 +157,13 @@
     <select id="qCategory"><option value="">全部品类</option></select>
     <button id="btnSearch">查找</button>
     <button id="btnReset">重置</button>
+	<!-- 已将筛选区移至粘性头部，确保始终固定在顶部 -->
+    <div class="row pagination">
+      <button id="btnPrev">上一页</button>
+      <span id="pageInfo" class="summary"></span>
+      <button id="btnNext">下一页</button>
+    </div>
+	
   </div>
   <div class="section">
     <div class="row">
@@ -176,12 +183,7 @@
       </div>
       <span id="exportProgressText" class="summary">正在准备...</span>
     </div>
-    <!-- 已将筛选区移至粘性头部，确保始终固定在顶部 -->
-    <div class="row pagination">
-      <button id="btnPrev">上一页</button>
-      <span id="pageInfo" class="summary"></span>
-      <button id="btnNext">下一页</button>
-    </div>
+    
   </div>
 
 <!--  <div class="section">-->
@@ -233,7 +235,9 @@
     let libStats = { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
     let filteredStats = { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
     let page = 1;
-    const pageSize = 10;
+    const pageSize = 100; // 每页展示100个父ASIN
+    let totalPages = 1;
+    let currentCtx = null; // 缓存当前的上下文数据
 
     (function initToken(){ try { const saved = localStorage.getItem('gh_token'); if (saved) libToken.value = saved; } catch(e){} })();
 
@@ -328,8 +332,17 @@ function updateHeaderStatsFromRows(rows){
         const processSheet = async (name, finalData) => {
           const worksheet = workbook.addWorksheet(name);
           
-          // 获取所有键名
-          const keys = Object.keys(finalData[0]);
+          // 获取所有键名并排除“上传日期”
+          const allKeys = Object.keys(finalData[0]);
+          const keys = allKeys.filter(k => k !== '上传日期');
+          
+          // 处理数据，移除上传日期字段
+          const sanitizedData = finalData.map(item => {
+            const newItem = { ...item };
+            delete newItem['上传日期'];
+            return newItem;
+          });
+
           // 在适当位置加入图片列
           const imgIdx = keys.findIndex(k => /(商品主图|主图链接|ImageURL)/i.test(k));
           const columns = keys.map(k => ({ header: k, key: k, width: 20 }));
@@ -374,8 +387,8 @@ function updateHeaderStatsFromRows(rows){
             col.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
           });
 
-          for (let i = 0; i < finalData.length; i++) {
-            const item = finalData[i];
+          for (let i = 0; i < sanitizedData.length; i++) {
+            const item = sanitizedData[i];
             const row = worksheet.addRow(item);
             
             // 确保每个单元格都居中对齐并自动换行
@@ -416,7 +429,7 @@ function updateHeaderStatsFromRows(rows){
             processedRows++;
             const pct = Math.floor((processedRows / totalRows) * 100);
             progressBar.style.width = pct + '%';
-            progressText.textContent = `正在处理: ${name} (${i+1}/${finalData.length}) - 总进度 ${pct}%`;
+            progressText.textContent = `正在处理: ${name} (${i+1}/${sanitizedData.length}) - 总进度 ${pct}%`;
           }
           
           // 冻结首行
@@ -646,12 +659,49 @@ function updateHeaderStatsFromRows(rows){
       const gSS = groupByParent(stats.salesSize);
       const gTC = groupByParent(stats.trafficColor);
       const gTS = groupByParent(stats.trafficSize);
-      return { gSC, gSS, gTC, gTS, parents: Array.from(new Set([...gSC.keys(), ...gSS.keys(), ...gTC.keys(), ...gTS.keys()])).sort() };
+      
+      // 记录每个父ASIN的最新上传时间
+      const parentLatestTime = new Map();
+      const allRows = [...stats.salesColor, ...stats.salesSize, ...stats.trafficColor, ...stats.trafficSize];
+      
+      const isExcelSerial = (s) => { if (s==null) return false; const n = Number(String(s).trim()); return isFinite(n) && n>20000 && n<60000; };
+      const excelSerialToDate = (n) => { const base = new Date(1899, 11, 30); const ms = n * 86400000; return new Date(base.getTime() + ms); };
+      const normalizeDate = (s) => {
+        const raw = String(s||'').trim();
+        if (!raw) return 0;
+        if (isExcelSerial(raw)) return excelSerialToDate(Number(raw)).getTime();
+        const t = Date.parse(raw);
+        if (!isNaN(t)) return t;
+        const m = raw.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})(?:\D+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+        if (m) { const y=Number(m[1]), mo=Number(m[2])-1, d0=Number(m[3]), hh=Number(m[4]||0), mm=Number(m[5]||0), ss=Number(m[6]||0); return new Date(y,mo,d0,hh,mm,ss).getTime(); }
+        return 0;
+      };
+
+      allRows.forEach(row => {
+        const p = String(row['父ASIN']||'').trim();
+        if (!p) return;
+        const time = normalizeDate(row['上传日期']);
+        if (!parentLatestTime.has(p) || time > parentLatestTime.get(p)) {
+          parentLatestTime.set(p, time);
+        }
+      });
+
+      // 提取唯一的父ASIN并按时间倒序排列
+      const parents = Array.from(new Set([...gSC.keys(), ...gSS.keys(), ...gTC.keys(), ...gTS.keys()]))
+        .sort((a, b) => {
+          const timeA = parentLatestTime.get(a) || 0;
+          const timeB = parentLatestTime.get(b) || 0;
+          if (timeB !== timeA) return timeB - timeA;
+          return a.localeCompare(b);
+        });
+
+      return { gSC, gSS, gTC, gTS, parents };
     }
     function appendChunk(ctx, container, fabricMap, categoryMap){
       const { gSC, gSS, gTC, gTS, parents } = ctx;
-      const start = lazyIndex;
-      const end = Math.min(parents.length, start + CHUNK_SIZE);
+      const start = (page - 1) * pageSize;
+      const end = Math.min(parents.length, start + pageSize);
+      
       for (let i = start; i < end; i++){
         const parent = parents[i];
         const wrap=document.createElement('div'); wrap.className='gallery-group';
@@ -684,30 +734,42 @@ function updateHeaderStatsFromRows(rows){
         wrap.appendChild(gridWrap);
         container.appendChild(wrap);
       }
-      lazyIndex = end;
+      
+      // 更新分页信息
+      totalPages = Math.ceil(parents.length / pageSize) || 1;
+      pageInfo.textContent = `第 ${page} / ${totalPages} 页 (共 ${parents.length} 个父ASIN)`;
+      btnPrev.disabled = (page <= 1);
+      btnNext.disabled = (page >= totalPages);
+      
+      // 滚动回顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function renderCombinedLazy(stats, container, fabricMap, categoryMap){
       container.innerHTML='';
       const ctx = buildParents(stats);
-      if (!ctx.parents.length){ const empty=document.createElement('div'); empty.className='summary'; empty.textContent='暂无数据，请先在快速页面上传。'; container.appendChild(empty); return; }
-      lazyIndex = 0;
+      currentCtx = { ctx, container, fabricMap, categoryMap }; // 缓存上下文
+      
+      // 更新顶部统计数量（随筛选结果变化）
+      if (statProducts) {
+        statProducts.textContent = `产品数量（父ASIN）：${ctx.parents.length}`;
+      }
+
+      if (!ctx.parents.length){ 
+        const empty=document.createElement('div'); 
+        empty.className='summary'; 
+        empty.textContent='暂无数据，请先在快速页面上传。'; 
+        container.appendChild(empty); 
+        const pg = document.querySelector('.row.pagination'); if (pg) pg.style.display='none';
+        return; 
+      }
+      
+      // 移除瀑布流哨兵逻辑，恢复分页控件
+      const pg = document.querySelector('.row.pagination'); if (pg) pg.style.display='flex';
+      if (lazyObserver) { try { lazyObserver.disconnect(); } catch(e){} lazyObserver = null; }
+      if (lazySentinel && lazySentinel.parentNode) { lazySentinel.parentNode.removeChild(lazySentinel); lazySentinel = null; }
+      
+      page = 1;
       appendChunk(ctx, container, fabricMap, categoryMap);
-      // 放置哨兵
-      if (!lazySentinel){ lazySentinel = document.createElement('div'); lazySentinel.style.height='1px'; lazySentinel.style.margin='1px 0'; }
-      container.appendChild(lazySentinel);
-      // 隐藏原分页控件
-      const pg = document.querySelector('.row.pagination'); if (pg) pg.style.display='none';
-      // 观察者
-      if (lazyObserver) { try { lazyObserver.disconnect(); } catch(e){} }
-      lazyObserver = new IntersectionObserver(entries => {
-        for (const entry of entries){
-          if (entry.isIntersecting){
-            appendChunk(ctx, container, fabricMap, categoryMap);
-            if (lazyIndex >= ctx.parents.length){ try { lazyObserver.disconnect(); } catch(e){} }
-          }
-        }
-      }, { root: null, rootMargin: '200px', threshold: 0 });
-      lazyObserver.observe(lazySentinel);
     }
     function buildGalleryStats(rows){
       if (!rows.length) return { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
@@ -725,6 +787,18 @@ function updateHeaderStatsFromRows(rows){
       const idxImg = headers.findIndex(h=>/(商品主图|主图链接|Image\s*URL|ImageURL|Main\s*Image|MainImage)/i.test(h));
       const idxFabric = headers.indexOf('面料');
       const idxCategory = headers.indexOf('品类');
+
+      // 日期修复辅助函数
+      const isExcelSerial = (s) => { if (s==null || s==='') return false; const n = Number(String(s).trim()); return isFinite(n) && n>20000 && n<60000; };
+      const excelSerialToDate = (n) => { const base = new Date(1899, 11, 30); const ms = n * 86400000; return new Date(base.getTime() + ms); };
+      const toLocalDateTimeStr = (d) => { const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return `${y}-${m}-${dd} ${hh}:${mm}`; };
+      const fixDate = (s) => {
+        const raw = String(s||'').trim();
+        if (!raw) return '';
+        if (isExcelSerial(raw)) return toLocalDateTimeStr(excelSerialToDate(Number(raw)));
+        return raw;
+      };
+
       const fabricMap = new Map();
       const categoryMap = new Map();
       const arr = { salesColor:[], salesSize:[], trafficColor:[], trafficSize:[] };
@@ -738,12 +812,13 @@ function updateHeaderStatsFromRows(rows){
         const img=String(idxImg>=0? (r[idxImg]||'') : '').trim();
         const fabric = String(idxFabric>=0 ? (r[idxFabric]||'') : '').trim();
         const category = String(idxCategory>=0 ? (r[idxCategory]||'') : '').trim();
+        const date = fixDate(idxDate>=0 ? r[idxDate] : '');
         if (fabric) fabricMap.set(parent, fabric);
         if (category) categoryMap.set(parent, category);
-        if (type==='销量' && dim==='颜色') arr.salesColor.push({'父ASIN':parent,'面料':fabric,'品类':category,'颜色':tag,'总销量':r[idxSales]||'', '销量占比%':r[idxSalesPct]||'', '产品详情链接':link, '商品主图':img});
-        if (type==='销量' && dim==='尺码') arr.salesSize.push({'父ASIN':parent,'面料':fabric,'品类':category,'尺码':tag,'总销量':r[idxSales]||'', '销量占比%':r[idxSalesPct]||'', '产品详情链接':link, '商品主图':img});
-        if (type==='流量' && dim==='颜色') arr.trafficColor.push({'父ASIN':parent,'面料':fabric,'品类':category,'颜色':tag,'总自然搜索词':r[idxTraffic]||'', '自然搜索词占比%':r[idxTrafficPct]||'', '产品详情链接':link, '商品主图':img});
-        if (type==='流量' && dim==='尺码') arr.trafficSize.push({'父ASIN':parent,'面料':fabric,'品类':category,'尺码':tag,'总自然搜索词':r[idxTraffic]||'', '自然搜索词占比%':r[idxTrafficPct]||'', '产品详情链接':link, '商品主图':img});
+        if (type==='销量' && dim==='颜色') arr.salesColor.push({'父ASIN':parent,'面料':fabric,'品类':category,'颜色':tag,'总销量':r[idxSales]||'', '销量占比%':r[idxSalesPct]||'', '产品详情链接':link, '商品主图':img, '上传日期': date});
+        if (type==='销量' && dim==='尺码') arr.salesSize.push({'父ASIN':parent,'面料':fabric,'品类':category,'尺码':tag,'总销量':r[idxSales]||'', '销量占比%':r[idxSalesPct]||'', '产品详情链接':link, '商品主图':img, '上传日期': date});
+        if (type==='流量' && dim==='颜色') arr.trafficColor.push({'父ASIN':parent,'面料':fabric,'品类':category,'颜色':tag,'总自然搜索词':r[idxTraffic]||'', '自然搜索词占比%':r[idxTrafficPct]||'', '产品详情链接':link, '商品主图':img, '上传日期': date});
+        if (type==='流量' && dim==='尺码') arr.trafficSize.push({'父ASIN':parent,'面料':fabric,'品类':category,'尺码':tag,'总自然搜索词':r[idxTraffic]||'', '自然搜索词占比%':r[idxTrafficPct]||'', '产品详情链接':link, '商品主图':img, '上传日期': date});
       }
       arr.fabricMap = fabricMap;
       arr.categoryMap = categoryMap;
@@ -762,9 +837,11 @@ function updateHeaderStatsFromRows(rows){
       });
     }
     btnReset.addEventListener('click', () => { qGlobal.value=''; qParent.value=''; qFabric.value=''; qCategory.value=''; filteredStats = { salesColor: libStats.salesColor.slice(), salesSize: libStats.salesSize.slice(), trafficColor: libStats.trafficColor.slice(), trafficSize: libStats.trafficSize.slice() }; renderCombinedByParent(filteredStats, libParentGallery, libStats.fabricMap, libStats.categoryMap); });
-    btnPrev.addEventListener('click', () => { if (page>1){ page--; renderCards(filtered); } });
-    btnNext.addEventListener('click', () => { const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)); if (page<totalPages){ page++; renderCards(filtered); } });
-
+    
+    // 重新绑定分页按钮事件
+     btnPrev.onclick = () => { if (page > 1) { page--; currentCtx.container.innerHTML=''; appendChunk(currentCtx.ctx, currentCtx.container, currentCtx.fabricMap, currentCtx.categoryMap); } };
+     btnNext.onclick = () => { if (page < totalPages) { page++; currentCtx.container.innerHTML=''; appendChunk(currentCtx.ctx, currentCtx.container, currentCtx.fabricMap, currentCtx.categoryMap); } };
+    
     async function loadData(){
       const token = (libToken.value||'').trim();
       loadStatus.textContent = '正在读取固定表 quick_results.csv...';

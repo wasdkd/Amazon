@@ -996,17 +996,30 @@
       parents.forEach(p => {
         const row = document.createElement('div'); row.className='row'; row.style.marginBottom='8px';
         const lab = document.createElement('label'); lab.textContent = `父ASIN：${p}`; lab.style.minWidth='160px';
+        
         // 面料输入
-        const inp = document.createElement('input'); inp.type='text'; inp.placeholder='面料（例如：棉、麻、涤纶、真丝 等）'; inp.style.width='220px'; inp.dataset.parent=p; inp.value = prefillMap.get(p)||''; inp.className='fabric-input';
-        // 品类下拉
-        const sel = document.createElement('select'); sel.dataset.parent=p; sel.className='category-select'; sel.style.width='160px'; sel.style.marginLeft='8px';
-        const options = ['', '背心',	'内衣\\衬衣',	'抹胸',	'紧身裤',	'连体泳衣',	'卫衣',	'卫衣长裤',	'毛衣',	'裤裙',	'半裙',	'坎肩',	'短裤',	'上衣',	'塑身衣',	'格子衫',	'比基尼',	'套装',	'连体短裤',	'长袍', '牛仔裤',	'长裤',	'背带裤',	'性感睡裙',	'瑜伽裤',	'皮衣',	'连体长裤',	'夹克',	'连衣裙',	'罩衫',	'外套',	'开襟羊毛衫',	'开衫',	'七分裤',	'连体衣',	'西装外套',	'套头衫','其他'];
-        options.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent = v? v : '请选择品类'; sel.appendChild(o); });
-        row.appendChild(lab); row.appendChild(inp); row.appendChild(sel); box.appendChild(row);
+        const inpWrap = document.createElement('div'); inpWrap.style.position='relative'; inpWrap.style.display='inline-block';
+        const inp = document.createElement('input'); inp.type='text'; inp.placeholder='面料（可输入或选择）'; inp.style.width='220px'; inp.dataset.parent=p; inp.value = prefillMap.get(p)||''; inp.className='fabric-input';
+        const fabricDatalist = document.createElement('datalist'); fabricDatalist.id = 'datalist-fabric-' + p;
+        const fabrics = ['仿莫代尔', '羊毛拉架磨毛', '世博绒', '牛仔', '羊羔绒', '包芯纱', '羊毛拉架坑条', '棉氨平纹', '涤氨面料', '仿牛绒', '膨体晴棉', '莫代尔空气层', '涤罗马', '锦棉罗马', '美利奴羊毛混纺', '仿貂毛', '卫衣加绒', '羊呢风衣', '尼龙莱卡'];
+        fabrics.forEach(f => { const o = document.createElement('option'); o.value = f; fabricDatalist.appendChild(o); });
+        inp.setAttribute('list', fabricDatalist.id);
+        inpWrap.appendChild(inp); inpWrap.appendChild(fabricDatalist);
+        
+        // 品类输入（改为可输入或选择）
+        const selWrap = document.createElement('div'); selWrap.style.position='relative'; selWrap.style.display='inline-block'; selWrap.style.marginLeft='8px';
+        const selInp = document.createElement('input'); selInp.type='text'; selInp.placeholder='品类（可输入或选择）'; selInp.style.width='160px'; selInp.dataset.parent=p; selInp.className='category-select';
+        const categoryDatalist = document.createElement('datalist'); categoryDatalist.id = 'datalist-category-' + p;
+        const categories = ['上衣', '背心',	'内衣\\衬衣',	'抹胸',	'紧身裤',	'连体泳衣',	'卫衣',	'卫衣长裤',	'毛衣',	'裤裙',	'半裙',	'坎肩',	'短裤',	'上衣',	'塑身衣',	'格子衫',	'比基尼',	'套装',	'连体短裤',	'长袍', '牛仔裤',	'长裤',	'背带裤',	'性感睡裙',	'瑜伽裤',	'皮衣',	'连体长裤',	'夹克',	'连衣裙',	'罩衫',	'外套',	'开襟羊毛衫',	'开衫',	'七分裤',	'连体衣',	'西装外套',	'套头衫','其他'];
+        categories.forEach(c => { const o = document.createElement('option'); o.value = c; categoryDatalist.appendChild(o); });
+        selInp.setAttribute('list', categoryDatalist.id);
+        selWrap.appendChild(selInp); selWrap.appendChild(categoryDatalist);
+        
+        row.appendChild(lab); row.appendChild(inpWrap); row.appendChild(selWrap); box.appendChild(row);
       }); fabricForm.appendChild(box);
     }
     function collectFabricMapFromForm(){ const inputs = fabricForm.querySelectorAll('input.fabric-input'); const m = new Map(); inputs.forEach(inp => { const p = inp.dataset.parent; const v = (inp.value||'').trim(); m.set(p, v); }); return m; }
-    function collectCategoryMapFromForm(){ const selects = fabricForm.querySelectorAll('select.category-select'); const m = new Map(); selects.forEach(sel => { const p = sel.dataset.parent; const v = (sel.value||'').trim(); m.set(p, v); }); return m; }
+    function collectCategoryMapFromForm(){ const inputs = fabricForm.querySelectorAll('input.category-select'); const m = new Map(); inputs.forEach(inp => { const p = inp.dataset.parent; const v = (inp.value||'').trim(); m.set(p, v); }); return m; }
     function formatDateYMD(){ const d=new Date(); const pad=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
     function buildExportRows(fabricMap, categoryMap){
       const rows=[]; const dateStr = formatDateYMD();
