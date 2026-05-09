@@ -28,8 +28,7 @@ export default function App() {
   const [customNumber, setCustomNumber] = useState<string>('');
 
   const getNewWaste = useCallback((cat: Category, num?: number) => {
-    setIsGenerating(true);
-    
+    // Pick from local data instantly
     const filtered = cat === 'random' 
       ? WASTE_DATA 
       : WASTE_DATA.filter(item => item.category === cat);
@@ -43,12 +42,10 @@ export default function App() {
       newText = randomItem.content;
     }
 
-    // Small delay for "meaningful" feel
-    setTimeout(() => {
-      setCurrentWaste(newText);
-      setHistory(prev => [newText, ...prev].slice(0, 10));
-      setIsGenerating(false);
-    }, 300);
+    setCurrentWaste(newText);
+    setHistory(prev => [newText, ...prev].slice(0, 10));
+    // No more artificial delays or spinners unless specifically loading
+    setIsGenerating(false);
   }, []);
 
   useEffect(() => {
@@ -121,54 +118,35 @@ export default function App() {
                  style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
             
             <AnimatePresence mode="wait">
-              {isGenerating ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center gap-4"
-                >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              <motion.div
+                key={currentWaste}
+                initial={{ y: 10, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: -10, opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="relative space-y-6"
+              >
+                <p className="font-sans font-bold text-2xl md:text-5xl leading-tight md:leading-snug max-w-3xl">
+                  {currentWaste}
+                </p>
+                
+                {/* Copy Action */}
+                <div className="flex items-center justify-center gap-4 pt-4">
+                  <button
+                    onClick={handleCopy}
+                    className="group flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-white/10 transition-colors border border-white/10 rounded-sm"
                   >
-                    <Sparkles size={48} className="text-neon-yellow" />
-                  </motion.div>
-                  <p className="font-mono text-neon-yellow uppercase tracking-widest text-sm">
-                    正在回收人间废话...
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={currentWaste}
-                  initial={{ y: 20, opacity: 0, scale: 0.95 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  exit={{ y: -20, opacity: 0, scale: 1.05 }}
-                  className="relative space-y-6"
-                >
-                  <p className="font-sans font-bold text-2xl md:text-5xl leading-tight md:leading-snug max-w-3xl">
-                    {currentWaste}
-                  </p>
-                  
-                  {/* Copy Action */}
-                  <div className="flex items-center justify-center gap-4 pt-4">
-                    <button
-                      onClick={handleCopy}
-                      className="group flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-white/10 transition-colors border border-white/10 rounded-sm"
-                    >
-                      {isCopied ? (
-                        <Check size={16} className="text-neon-green" />
-                      ) : (
-                        <Copy size={16} className="text-white group-hover:text-neon-green transition-colors" />
-                      )}
-                      <span className="font-mono text-xs uppercase tracking-wider">
-                        {isCopied ? '已复制' : '复制原文'}
-                      </span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                    {isCopied ? (
+                      <Check size={16} className="text-neon-green" />
+                    ) : (
+                      <Copy size={16} className="text-white group-hover:text-neon-green transition-colors" />
+                    )}
+                    <span className="font-mono text-xs uppercase tracking-wider">
+                      {isCopied ? '已复制' : '复制原文'}
+                    </span>
+                  </button>
+                </div>
+              </motion.div>
             </AnimatePresence>
 
             {/* Retro UI Overlay */}
