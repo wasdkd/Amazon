@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&family=Space+Grotesk:wght@300;400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anton", sans-serif;
+  
+  --color-neon-green: #00FF00;
+  --color-neon-yellow: #FFFF00;
+  --color-neon-pink: #FF007F;
+  --color-brutal-black: #000000;
+}
+
+@layer base {
+  body {
+    @apply bg-brutal-black text-white selection:bg-neon-green selection:text-brutal-black;
+  }
+}
+
+.brutal-border {
+  border: 4px solid white;
+  box-shadow: 8px 8px 0px 0px rgba(255, 255, 255, 1);
+}
+
+.brutal-btn {
+  @apply bg-white text-brutal-black px-8 py-4 font-display text-2xl uppercase tracking-wider transition-all active:bg-neon-green;
+  border: 4px solid white;
+  box-shadow: 8px 8px 0px 0px rgba(255, 255, 255, 1);
+}
+
+.brutal-btn:hover {
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.brutal-card {
+  @apply bg-brutal-black p-8 relative overflow-hidden;
+  border: 4px solid white;
+  box-shadow: 8px 8px 0px 0px rgba(255, 255, 255, 1);
+}
+
+@keyframes scan {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100vh); }
+}
+
+.animate-[scan_4s_linear_infinite] {
+  animation: scan 4s linear infinite;
+}
+
