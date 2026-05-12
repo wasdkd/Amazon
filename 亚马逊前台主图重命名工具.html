@@ -466,29 +466,24 @@
             const material = row[materialIndex] ? row[materialIndex].toString().trim() : '';
 
             if (sku) {
-                // 处理SKU - 提取用于匹配的部分
+                // 处理SKU - 提取用于匹配的部分 (通常是颜色)
                 let processedSku = sku;
                 let skuPrefix = sku; // 用于压缩包命名的前缀
 
-                // 特殊处理AW开头的SKU，如: AW25D02_LS1066_Black_S
-                if (sku.startsWith('AW') && (sku.match(/_/g) || []).length >= 2) {
+                if (sku.includes('_')) {
                     const parts = sku.split('_');
-                    // 提取颜色部分作为匹配SKU (如: Black)
+                    // 常见的亚马逊SKU格式: 
+                    // 1. STYLE_02_COLOR_SIZE (如: AM1012_02_White_S) -> 颜色在第3部分
+                    // 2. STYLE_COLOR_SIZE (如: LS1066_Black_S) -> 颜色在第2部分
+                    // 3. AW25D02_LS1066_Black_S -> 颜色在第3部分
+                    
                     if (parts.length >= 3) {
+                        // 优先取第3部分作为颜色匹配项
                         processedSku = parts[2];
-                    }
-                    // 提取前两部分作为压缩包命名前缀 (如: AW25D02_LS1066)
-                    if (parts.length >= 2) {
                         skuPrefix = parts[0] + '_' + parts[1];
-                    }
-                } else if (sku.includes('_')) {
-                    // 其他包含下划线的SKU，提取两个下划线中间的部分用于匹配
-                    const parts = sku.split('_');
-                    if (parts.length > 1) {
+                    } else if (parts.length >= 2) {
+                        // 只有两部分时，取第2部分
                         processedSku = parts[1];
-                    }
-                    // 使用第一部分作为压缩包命名前缀
-                    if (parts.length > 0) {
                         skuPrefix = parts[0];
                     }
                 }
@@ -554,39 +549,33 @@
             }
 
             generateNewFileName(originalFileName) {
-                // 从文件名提取SKU（实际上是颜色）
-                const parts = originalFileName.split('-');
-                let extractedSku = '';
+                // 1. 获取不含扩展名的清理后的文件名
+                const lastDotIndex = originalFileName.lastIndexOf('.');
+                const nameWithoutExt = lastDotIndex !== -1 ? originalFileName.substring(0, lastDotIndex) : originalFileName;
+                const cleanedFileName = nameWithoutExt.toLowerCase().replace(/[\s-_]/g, '');
 
-                if (parts.length >= 3) {
-                    // 格式: 任意内容-SKU-颜色.扩展名 (如: SKU-01-Blue Purple.jpg)
-                    // 提取颜色部分作为SKU
-                    const colorPart = parts.slice(2).join('-'); // 处理颜色中可能包含连字符的情况
-                    extractedSku = colorPart.split('.')[0].toLowerCase().replace(/[\s-_]/g, '');
-                } else if (parts.length === 2) {
-                    // 格式: SKU-颜色.扩展名
-                    const colorPart = parts[1];
-                    extractedSku = colorPart.split('.')[0].toLowerCase().replace(/[\s-_]/g, '');
-                } else {
-                    // 其他格式，尝试直接使用文件名（不含扩展名）
-                    const nameWithoutExt = originalFileName.split('.')[0];
-                    extractedSku = nameWithoutExt.toLowerCase().replace(/[\s-_]/g, '');
-                }
-
-                // 在Excel数据中查找匹配的材质
-                const matchedRecord = this.excelData.find(item =>
-                    item.sku === extractedSku
+                // 2. 在Excel数据中查找匹配的材质
+                // 优化：使用包含匹配或后缀匹配，并选择最长的匹配项，以兼容 SKU-01-02rosetaupe 和 SKU-01-SKU-01-02rosetaupe
+                const matches = this.excelData.filter(item => 
+                    cleanedFileName.includes(item.sku)
                 );
+
+                let matchedRecord = null;
+                if (matches.length > 0) {
+                    // 选择最长的匹配 SKU，防止 'blue' 匹配到 'lightblue'
+                    matchedRecord = matches.reduce((prev, curr) => 
+                        (curr.sku.length > prev.sku.length) ? curr : prev
+                    );
+                }
 
                 if (matchedRecord && matchedRecord.material) {
                     const newName = `${this.cleanFilename(matchedRecord.material)}.jpg`;
-                    this.log(`匹配成功: ${originalFileName} → ${newName} (SKU: ${extractedSku})`, 'success');
+                    this.log(`匹配成功: ${originalFileName} → ${newName} (匹配到的SKU: ${matchedRecord.sku})`, 'success');
                     return { newName: newName, matched: true };
                 } else {
                     // 没有匹配的记录
-                    const nameWithoutExt = originalFileName.split('.')[0];
                     const newName = `${this.cleanFilename(nameWithoutExt)}_匹配不上.jpg`;
-                    this.log(`匹配失败: ${originalFileName} → ${newName} (提取的SKU: ${extractedSku})`, 'warning');
+                    this.log(`匹配失败: ${originalFileName} → ${newName} (清理后的文件名: ${cleanedFileName})`, 'warning');
                     return { newName: newName, matched: false };
                 }
             }
