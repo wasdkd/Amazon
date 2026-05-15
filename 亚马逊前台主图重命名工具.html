@@ -473,16 +473,16 @@
                 if (sku.includes('_')) {
                     const parts = sku.split('_');
                     // 常见的亚马逊SKU格式: 
-                    // 1. STYLE_02_COLOR_SIZE (如: AM1012_02_White_S) -> 颜色在第3部分
-                    // 2. STYLE_COLOR_SIZE (如: LS1066_Black_S) -> 颜色在第2部分
-                    // 3. AW25D02_LS1066_Black_S -> 颜色在第3部分
+                    // 1. STYLE_02_COLOR_SIZE (如: AM1012_02_White_S) -> 颜色在倒数第2部分
+                    // 2. STYLE_COLOR_SIZE (如: LS1066_Black_S) -> 颜色在倒数第2部分
+                    // 3. AW25D02_LS1066_Black_S -> 颜色在倒数第2部分
                     
                     if (parts.length >= 3) {
-                        // 优先取第3部分作为颜色匹配项
-                        processedSku = parts[2];
-                        skuPrefix = parts[0] + '_' + parts[1];
+                        // 优先取倒数第2部分作为颜色匹配项 (假设最后一部分是尺寸)
+                        processedSku = parts[parts.length - 2];
+                        skuPrefix = parts.slice(0, parts.length - 2).join('_');
                     } else if (parts.length >= 2) {
-                        // 只有两部分时，取第2部分
+                        // 只有两部分时 (如 STYLE_COLOR)，取第2部分
                         processedSku = parts[1];
                         skuPrefix = parts[0];
                     }
