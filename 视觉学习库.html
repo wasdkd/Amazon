@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>视觉部学习手册</title>
-  
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -49,11 +49,11 @@
 </head>
 <body class="bg-[#F8F9FB] text-slate-800 select-none overflow-hidden font-sans">
 
-  <div id="app" class="flex flex-col h-screen overflow-hidden" 
-       @dragover.prevent="onDragOver" 
-       @dragleave="onDragLeave" 
+  <div id="app" class="flex flex-col h-screen overflow-hidden"
+       @dragover.prevent="onDragOver"
+       @dragleave="onDragLeave"
        @drop.prevent="onDrop">
-       
+
     <!-- 头部导航 -->
     <header class="h-16 bg-white border-b border-slate-100 px-6 flex items-center justify-between shrink-0 z-50 shadow-sm">
       <div class="flex items-center gap-4">
@@ -82,10 +82,10 @@
         <!-- GitHub Token 输入 -->
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/10 focus-within:border-indigo-500 transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <input 
-            v-model="ghToken" 
-            type="password" 
-            placeholder="GitHub Token" 
+          <input
+            v-model="ghToken"
+            type="password"
+            placeholder="GitHub Token"
             class="bg-transparent border-none outline-none text-xs w-32 text-slate-600 placeholder:text-slate-300"
           />
         </div>
@@ -107,8 +107,8 @@
         <!-- 左侧案例卡片列表 -->
         <div class="flex-grow p-8 overflow-y-auto bg-slate-50/50 no-scrollbar">
           <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div 
-              v-for="(c, idx) in cases" 
+            <div
+              v-for="(c, idx) in cases"
               :key="c.id"
               :draggable="editingCaseId !== c.id"
               @dragstart="onCaseDragStart(idx)"
@@ -133,7 +133,7 @@
                   </button>
                 </div>
               </div>
-              
+
               <div class="px-2">
                 <div class="flex justify-between items-center mb-1.5 min-h-[28px]">
                   <h3 class="font-black text-sm text-slate-800 truncate max-w-[85%]">
@@ -166,7 +166,7 @@
               <div class="relative">
                 <!-- 输入状态 -->
                 <div v-if="editingCaseId === activeCase.id" class="mb-3">
-                  <input 
+                  <input
                     v-model="tempTitle"
                     @blur="handleRename(activeCase.id, tempTitle)"
                     @keydown.enter.stop.prevent="$event.target.blur()"
@@ -191,10 +191,10 @@
                 <!-- <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[10px] font-bold border border-indigo-100">DS</div>
                 <span class="text-[11px] font-bold text-slate-500">主创视觉设计师</span> -->
               </div>
-              
+
               <div class="space-y-2">
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">设计拆解备注</span>
-                <textarea 
+                <textarea
                   v-model="activeCase.notes"
                   @input="handleNotesChange"
                   class="w-full h-64 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs leading-relaxed resize-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none text-slate-600"
@@ -208,7 +208,7 @@
               <svg class="rotate-180" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
           </div>
-          
+
           <div v-else class="h-full flex flex-col items-center justify-center text-center">
             <div class="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-300 mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
@@ -229,39 +229,108 @@
             </span>
           </div>
 
-          <div class="flex-grow overflow-y-auto space-y-4 pr-1 no-scrollbar pb-6">
-            <div 
-              v-for="(img, idx) in activeCase?.images" 
+          <div class="flex-grow overflow-y-auto space-y-6 pr-1 no-scrollbar pb-6">
+            <div
+              v-for="(img, idx) in activeCase?.images"
               :key="idx"
               draggable="true"
               @dragstart="onImageDragStart(idx)"
               @dragover.prevent="onImageDragOver(idx)"
               @drop="onImageDrop(idx)"
               @click="toggleSelectImage(idx)"
-              :class="['group relative aspect-video rounded-xl overflow-hidden cursor-move border-2 transition-all',
-                       selectedIndices.includes(idx) ? 'border-indigo-600 ring-4 ring-indigo-500/10' : 'border-transparent opacity-70 hover:opacity-100',
-                       draggedImageIdx === idx ? 'opacity-30 border-dashed border-indigo-400' : '']"
+              class="group flex flex-col gap-2"
             >
-              <img :src="img.src" class="w-full h-full object-cover pointer-events-none" alt="thumbnail" />
-              
-              <!-- 被选中图层标识 -->
-              <div v-if="selectedIndices.includes(idx)" class="absolute inset-0 bg-indigo-900/10 flex items-center justify-center pointer-events-none">
-                <div class="bg-indigo-600 text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg shadow-md border border-white/20">
-                  {{ compareMode ? (selectedIndices.indexOf(idx) === 0 ? '图层 A' : '图层 B') : '查看中' }}
+              <div :class="['relative aspect-video rounded-xl overflow-hidden cursor-move border-2 transition-all',
+                           selectedIndices.includes(idx) ? 'border-indigo-600 ring-4 ring-indigo-500/10' : 'border-transparent opacity-70 hover:opacity-100',
+                           draggedImageIdx === idx ? 'opacity-30 border-dashed border-indigo-400' : '']">
+                <img :src="img.src" class="w-full h-full object-cover pointer-events-none" alt="thumbnail" />
+
+                <!-- 被选中图层标识 -->
+                <div v-if="selectedIndices.includes(idx)" class="absolute inset-0 bg-indigo-900/10 flex items-center justify-center pointer-events-none">
+                  <div class="bg-indigo-600 text-white text-[9px] font-black px-2.5 py-1.5 rounded-lg shadow-md border border-white/20">
+                    {{ compareMode ? (selectedIndices.indexOf(idx) === 0 ? '图层 A' : '图层 B') : '查看中' }}
+                  </div>
+                </div>
+
+                <!-- 操作按钮组 -->
+                <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <!-- 放大查看 -->
+                  <button @click.stop="fullPreview(img.src)" class="p-1.5 bg-white/95 text-slate-600 rounded-lg shadow-md hover:bg-indigo-600 hover:text-white transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                  </button>
+                  <!-- 删除图源 -->
+                  <button @click.stop="requestDeleteImage(idx)" class="p-1.5 bg-white/95 text-red-500 rounded-lg shadow-md hover:bg-red-500 hover:text-white transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                  </button>
                 </div>
               </div>
 
-              <!-- 操作按钮组 -->
-              <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <!-- 放大查看 -->
-                <button @click.stop="fullPreview(img.src)" class="p-1.5 bg-white/95 text-slate-600 rounded-lg shadow-md hover:bg-indigo-600 hover:text-white transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                </button>
-                <!-- 删除图源 -->
-                <button @click.stop="requestDeleteImage(idx)" class="p-1.5 bg-white/95 text-red-500 rounded-lg shadow-md hover:bg-red-500 hover:text-white transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                </button>
-              </div>
+              <!-- 图片名称展示与编辑 -->
+<!--              <div class="px-1">-->
+<!--                <div v-if="editingImageIdx === idx" class="relative">-->
+<!--                  <input-->
+<!--                    v-model="tempImageName"-->
+<!--                    @blur="handleImageRename(idx, tempImageName)"-->
+<!--                    @keydown.enter.stop.prevent="$event.target.blur()"-->
+<!--                    @keydown.esc.stop.prevent="cancelImageRename"-->
+<!--                    @mousedown.stop-->
+<!--                    @click.stop-->
+<!--                    v-focus-->
+<!--                    class="w-full bg-slate-50 border border-indigo-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-700 outline-none ring-2 ring-indigo-500/20"-->
+<!--                  />-->
+<!--                </div>-->
+<!--                <div v-else class="flex items-center justify-between group/name">-->
+<!--                  <span-->
+<!--                    class="text-[10px] font-bold text-slate-500 truncate hover:text-indigo-600 transition-colors cursor-text select-text flex-grow"-->
+<!--                    title="双击可修改名称"-->
+<!--                    @dblclick.stop="triggerImageRename(idx)"-->
+<!--                    @click.stop-->
+<!--                  >-->
+<!--                    {{ img.name || '未命名素材' }}-->
+<!--                  </span>-->
+<!--                  <button-->
+<!--                    @click.stop="triggerImageRename(idx)"-->
+<!--                    class="opacity-0 group-hover/name:opacity-100 p-0.5 text-slate-300 hover:text-indigo-600 transition-all shrink-0"-->
+<!--                  >-->
+<!--                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>-->
+<!--                  </button>-->
+<!--                </div>-->
+<!--              </div>-->
+
+              <!-- 图片名称展示与编辑（优化增强版） -->
+                  <div class="px-1 mt-1.5">
+                    <div v-if="editingImageIdx === idx" class="relative">
+                      <input
+                        v-model="tempImageName"
+                        @blur="handleImageRename(idx, tempImageName)"
+                        @keydown.enter.stop.prevent="$event.target.blur()"
+                        @keydown.esc.stop.prevent="cancelImageRename"
+                        @mousedown.stop
+                        @click.stop
+                        v-focus
+                        class="w-full bg-slate-50 border border-indigo-200 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 outline-none ring-2 ring-indigo-500/20"
+                      />
+                    </div>
+                    <div v-else class="flex items-center justify-between group/name min-h-[22px] gap-1">
+                      <span
+                        class="text-[11px] font-bold text-slate-600 truncate hover:text-indigo-600 transition-colors cursor-pointer select-text flex-grow"
+                        title="双击可快速修改名称"
+                        @dblclick.stop="triggerImageRename(idx)"
+                        @click.stop
+                      >
+                        <!-- 智能兜底：如果 img.name 为空或不存在，则自动显示 “素材 1, 2...” -->
+                        {{ img.name ? img.name : ('素材 ' + (idx + 1)) }}
+                      </span>
+                      <button
+                        @click.stop="triggerImageRename(idx)"
+                        class="opacity-40 group-hover/name:opacity-100 p-1 text-slate-400 hover:text-indigo-600 transition-all shrink-0"
+                        title="点击修改名称"
+                      >
+                        <!-- Pencil Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                    </div>
+                  </div>
             </div>
 
             <div v-if="!activeCase?.images || activeCase.images.length === 0" class="text-center py-10 text-xs text-slate-300">
@@ -270,7 +339,7 @@
           </div>
 
           <!-- 上传新图源入口 -->
-          <label 
+          <label
             class="mt-auto pt-4 border-t border-slate-100 flex flex-col items-center justify-center cursor-pointer group"
             @dragover.prevent="onDragOver"
             @drop.prevent="onDrop"
@@ -285,7 +354,7 @@
         </aside>
 
         <!-- 画布主比对区 -->
-        <main 
+        <main
           class="flex-grow relative bg-[#ECEEF2] overflow-hidden"
           @wheel.prevent="onCanvasWheel"
           @mousedown="onCanvasMouseDown"
@@ -367,8 +436,8 @@
     </div>
 
     <!-- 右键快捷管理菜单 -->
-    <div 
-      v-if="contextMenu" 
+    <div
+      v-if="contextMenu"
       class="fixed z-[100] bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 min-w-[140px]"
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
       @click.stop
@@ -381,8 +450,8 @@
     </div>
 
     <!-- 拖入文件时反馈遮罩 -->
-    <div 
-      v-if="isDraggingFile" 
+    <div
+      v-if="isDraggingFile"
       @drop.prevent="onDrop"
       class="fixed inset-0 z-[100] bg-indigo-600/15 backdrop-blur-sm border-4 border-dashed border-indigo-500 flex items-center justify-center pointer-events-auto"
     >
@@ -411,7 +480,7 @@
         const ghToken = ref(localStorage.getItem('gh_token') || '');
         const cases = ref([]);
         const activeCaseId = ref(null);
-        const view = ref('home'); 
+        const view = ref('home');
         const selectedIndices = ref([]);
         const compareMode = ref(false);
         const isDraggingFile = ref(false);
@@ -429,9 +498,11 @@
         const compareConfirm = ref({ show: false, pendingIndices: [] });
 
         // 右键与快捷命名
-        const contextMenu = ref(null); 
+        const contextMenu = ref(null);
         const editingCaseId = ref(null);
         const tempTitle = ref("");
+        const editingImageIdx = ref(null);
+        const tempImageName = ref("");
 
         // 画布比对状态
         const scale = ref(1);
@@ -459,9 +530,9 @@
           toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-white font-bold z-[1000] transition-all shadow-xl ${type === 'error' ? 'bg-red-500' : 'bg-slate-800'}`;
           toast.textContent = msg;
           document.body.appendChild(toast);
-          setTimeout(() => { 
-            toast.style.opacity = '0'; 
-            setTimeout(() => toast.remove(), 500); 
+          setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
           }, 2000);
         };
 
@@ -480,7 +551,7 @@
           if (isSyncing.value) return; // 如果正在同步，则跳过本次
           isSyncing.value = true;
           isLoading.value = true;
-          
+
           try {
             // 1. 获取最新的 SHA (防止 409 冲突)
             const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?t=${Date.now()}`, {
@@ -497,7 +568,7 @@
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(dataToSync, null, 2))));
             const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
               method: 'PUT',
-              headers: { 
+              headers: {
                 'Authorization': `token ${ghToken.value}`,
                 'Content-Type': 'application/json'
               },
@@ -512,7 +583,7 @@
               const errorData = await putRes.json();
               throw new Error(errorData.message || '同步失败');
             }
-            
+
             notify('云端同步成功');
             return true;
           } catch (e) {
@@ -553,7 +624,7 @@
 
         const uploadImageToGithub = async (file) => {
           if (!ghToken.value) return null;
-          
+
           try {
             const b64 = await new Promise(r => {
               let reader = new FileReader();
@@ -590,12 +661,12 @@
           if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             const nextIdx = (currentIndex + 1) % totalImages;
             selectedIndices.value = [nextIdx];
-            scale.value = 1; 
+            scale.value = 1;
             offset.value = { x: 0, y: 0 };
           } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
             const prevIdx = (currentIndex - 1 + totalImages) % totalImages;
             selectedIndices.value = [prevIdx];
-            scale.value = 1; 
+            scale.value = 1;
             offset.value = { x: 0, y: 0 };
           }
         };
@@ -642,6 +713,62 @@
         };
 
         // --- 画布核心绘图机制 (含卷帘裁剪渲染) ---
+        // const drawCanvas = async () => {
+        //   const canvas = canvasRef.value;
+        //   if (!canvas || selectedIndices.value.length === 0 || !activeCase.value) return;
+        //   const ctx = canvas.getContext('2d');
+        //
+        //   const imgs = [];
+        //   for (let idx of selectedIndices.value) {
+        //     const imgObj = activeCase.value.images[idx];
+        //     if (!imgObj) continue;
+        //     const img = new Image();
+        //     img.src = imgObj.src;
+        //     img.crossOrigin = "anonymous";
+        //     await new Promise(resolve => img.onload = resolve);
+        //     imgs.push(img);
+        //   }
+        //
+        //   const parent = canvas.parentElement;
+        //   canvas.width = parent.clientWidth;
+        //   canvas.height = parent.clientHeight;
+        //
+        //   ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //   const imgA = imgs[0];
+        //   const imgB = imgs[1];
+        //   if (!imgA) return;
+        //
+        //   imgDimensions.value = {
+        //     width: imgA.naturalWidth || imgA.width,
+        //     height: imgA.naturalHeight || imgA.height
+        //   };
+        //
+        //   const dw = imgA.width * scale.value;
+        //   const dh = imgA.height * scale.value;
+        //
+        //   const startX = (canvas.width - dw) / 2 + offset.value.x;
+        //   const startY = (canvas.height - dh) / 2 + offset.value.y;
+        //
+        //   // 计算分割线在画布上的实际像素位置
+        //   const currentSplitX = startX + dw * splitPos.value;
+        //   splitLinePixels.value = currentSplitX;
+        //
+        //   if (!compareMode.value || !imgB) {
+        //     ctx.drawImage(imgA, startX, startY, dw, dh);
+        //   } else {
+        //     // 图层B (基础层)
+        //     ctx.drawImage(imgB, startX, startY, dw, dh);
+        //
+        //     // 剪裁出图层A (卷帘层)
+        //     ctx.save();
+        //     ctx.beginPath();
+        //     ctx.rect(0, 0, currentSplitX, canvas.height);
+        //     ctx.clip();
+        //     ctx.drawImage(imgA, startX, startY, dw, dh);
+        //     ctx.restore();
+        //   }
+        // };
+        // --- 画布核心绘图机制 (含卷帘裁剪渲染) ---
         const drawCanvas = async () => {
           const canvas = canvasRef.value;
           if (!canvas || selectedIndices.value.length === 0 || !activeCase.value) return;
@@ -663,17 +790,30 @@
           canvas.height = parent.clientHeight;
 
           ctx.clearRect(0, 0, canvas.width, canvas.height);
-          const imgA = imgs[0]; 
+          const imgA = imgs[0];
           const imgB = imgs[1];
           if (!imgA) return;
 
-          imgDimensions.value = { 
-            width: imgA.naturalWidth || imgA.width, 
-            height: imgA.naturalHeight || imgA.height 
-          };
+          const imgW = imgA.naturalWidth || imgA.width;
+          const imgH = imgA.naturalHeight || imgA.height;
 
-          const dw = imgA.width * scale.value; 
-          const dh = imgA.height * scale.value;
+          imgDimensions.value = { width: imgW, height: imgH };
+
+          // 【新增核心：首次载入或切换图片时，自动计算整图自适应比例】
+          const currentImgKey = selectedIndices.value.join('-');
+          if (window.lastLoadedKey !== currentImgKey) {
+            window.lastLoadedKey = currentImgKey;
+
+            // 计算等比例缩放系数（保留 90% 的安全可视区域，防止贴边）
+            const scaleX = (canvas.width * 0.9) / imgW;
+            const scaleY = (canvas.height * 0.9) / imgH;
+            scale.value = Math.min(scaleX, scaleY);
+            offset.value = { x: 0, y: 0 };
+            return; // 改变响应式变量会再次触发此 watcher，直接返回避免重复绘制
+          }
+
+          const dw = imgW * scale.value;
+          const dh = imgH * scale.value;
 
           const startX = (canvas.width - dw) / 2 + offset.value.x;
           const startY = (canvas.height - dh) / 2 + offset.value.y;
@@ -687,7 +827,7 @@
           } else {
             // 图层B (基础层)
             ctx.drawImage(imgB, startX, startY, dw, dh);
-            
+
             // 剪裁出图层A (卷帘层)
             ctx.save();
             ctx.beginPath();
@@ -722,7 +862,7 @@
                   if (width > height) { height *= MAX_SIZE / width; width = MAX_SIZE; }
                   else { width *= MAX_SIZE / height; height = MAX_SIZE; }
                 }
-                canvas.width = width; 
+                canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.imageSmoothingEnabled = true;
@@ -736,20 +876,22 @@
 
         const createNewCase = async (initialFiles = []) => {
           if (!ghToken.value) return notify('请先输入 GitHub Token', 'error');
-          
+
           isLoading.value = true;
           const newId = Date.now().toString();
           const processedImages = [];
-          
+
           if (initialFiles.length > 0) {
+            let i = 0;
             for (let file of Array.from(initialFiles)) {
               const ghUrl = await uploadImageToGithub(file);
               if (ghUrl) {
-                processedImages.push({ src: ghUrl, name: file.name });
+                const fileName = file.name || `自动编号_${cases.value.length + 1}_${++i}`;
+                processedImages.push({ src: ghUrl, name: fileName });
               }
             }
           }
-          
+
           if (processedImages.length === 0) {
             processedImages.push({
               name: "新建设计源.jpg",
@@ -776,16 +918,18 @@
         const handleFileUpload = async (files) => {
           if (!activeCaseId.value) return;
           if (!ghToken.value) return notify('请先输入 GitHub Token', 'error');
-          
+
           isLoading.value = true;
           const currentCase = cases.value.find(c => c.id === activeCaseId.value);
           if (!currentCase) return;
 
           const newImages = [...(currentCase.images || [])];
+          let i = 0;
           for (let file of Array.from(files)) {
             const ghUrl = await uploadImageToGithub(file);
             if (ghUrl) {
-              newImages.push({ src: ghUrl, name: file.name });
+              const fileName = file.name || `自动编号_${newImages.length + (++i)}`;
+              newImages.push({ src: ghUrl, name: fileName });
             }
           }
 
@@ -805,18 +949,18 @@
 
         const onImageDrop = async (targetIdx) => {
           if (draggedImageIdx.value === null || draggedImageIdx.value === targetIdx) return;
-          
+
           const currentCase = cases.value.find(c => c.id === activeCaseId.value);
           if (!currentCase) return;
 
           const imgs = [...currentCase.images];
           const movedImg = imgs.splice(draggedImageIdx.value, 1)[0];
           imgs.splice(targetIdx, 0, movedImg);
-          
+
           currentCase.images = imgs;
           draggedImageIdx.value = null;
           selectedIndices.value = []; // 重置选中，防止错乱
-          
+
           await syncToGithub();
         };
 
@@ -827,14 +971,14 @@
 
         const onCaseDrop = async (targetIdx) => {
           if (draggedCaseIdx.value === null || draggedCaseIdx.value === targetIdx) return;
-          
+
           const caseList = [...cases.value];
           const movedCase = caseList.splice(draggedCaseIdx.value, 1)[0];
           caseList.splice(targetIdx, 0, movedCase);
-          
+
           cases.value = caseList;
           draggedCaseIdx.value = null;
-          
+
           await syncToGithub();
         };
 
@@ -851,9 +995,9 @@
           e.preventDefault();
           e.stopPropagation();
           isDraggingFile.value = false;
-          
+
           if (!e.dataTransfer || !e.dataTransfer.files) return;
-          
+
           const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
           if (files.length > 0) {
             if (view.value === 'home') {
@@ -875,10 +1019,10 @@
 
         const triggerRename = (id) => {
           if (isSyncing.value || isRenaming.value) return;
-          
+
           const target = cases.value.find(c => c.id === id);
           if (!target) return;
-          
+
           tempTitle.value = target.title;
           editingCaseId.value = id;
           contextMenu.value = null;
@@ -914,7 +1058,7 @@
               const oldTitle = target.title;
               target.title = finalTitle;
               editingCaseId.value = null; // 立即重置，防止重复触发
-              
+
               const success = await syncToGithub();
               if (!success) {
                 target.title = oldTitle;
@@ -928,6 +1072,60 @@
             setTimeout(() => {
               isRenaming.value = false;
               editingCaseId.value = null;
+            }, 300);
+          }
+        };
+
+        // --- 图片名称重命名 ---
+        const triggerImageRename = (idx) => {
+          if (isSyncing.value || isRenaming.value) return;
+          if (!activeCase.value || !activeCase.value.images[idx]) return;
+
+          tempImageName.value = activeCase.value.images[idx].name || "";
+          editingImageIdx.value = idx;
+        };
+
+        const cancelImageRename = () => {
+          editingImageIdx.value = null;
+          tempImageName.value = "";
+        };
+
+        const handleImageRename = async (idx, newName) => {
+          if (isRenaming.value) return;
+          if (editingImageIdx.value === null) return;
+
+          const finalName = newName ? newName.trim() : "";
+          if (!finalName) {
+            cancelImageRename();
+            return;
+          }
+
+          const img = activeCase.value.images[idx];
+          if (img && img.name === finalName) {
+            cancelImageRename();
+            return;
+          }
+
+          isRenaming.value = true;
+          try {
+            if (img) {
+              const oldName = img.name;
+              img.name = finalName;
+              editingImageIdx.value = null;
+
+              const success = await syncToGithub();
+              if (!success) {
+                img.name = oldName;
+                notify('同步失败，图片名称已回滚', 'error');
+              }
+            }
+          } catch (e) {
+            console.error('Image rename error:', e);
+            notify('重命名异常', 'error');
+          } finally {
+            setTimeout(() => {
+              isRenaming.value = false;
+              editingImageIdx.value = null;
             }, 300);
           }
         };
@@ -985,18 +1183,18 @@
           const canvas = canvasRef.value;
           const rect = canvas.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
-          
+
           // 对比分割线拖拽逻辑
           if (compareMode.value && Math.abs(mouseX - splitLinePixels.value) < 20) {
             const onMouseMove = (me) => {
               const r = canvas.getBoundingClientRect();
               const mx = me.clientX - r.left;
-              
+
               // 重新计算 splitPos (相对于图片宽度的比例)
                if (activeCase.value && imgDimensions.value.width > 0) {
                  const dw = imgDimensions.value.width * scale.value;
                  const startX = (r.width - dw) / 2 + offset.value.x;
-                 
+
                  let newPos = (mx - startX) / dw;
                  splitPos.value = Math.max(0, Math.min(1, newPos));
                }
@@ -1029,8 +1227,20 @@
           window.addEventListener('mouseup', onMouseUp);
         };
 
+        // const resetView = () => {
+        //   scale.value = 1;
+        //   offset.value = { x: 0, y: 0 };
+        // };
         const resetView = () => {
-          scale.value = 1;
+          const canvas = canvasRef.value;
+          if (canvas && imgDimensions.value.width > 0) {
+            // 恢复自适应宽高比
+            const scaleX = (canvas.width * 0.9) / imgDimensions.value.width;
+            const scaleY = (canvas.height * 0.9) / imgDimensions.value.height;
+            scale.value = Math.min(scaleX, scaleY);
+          } else {
+            scale.value = 1;
+          }
           offset.value = { x: 0, y: 0 };
         };
 
@@ -1120,6 +1330,8 @@
           contextMenu,
           editingCaseId,
           tempTitle,
+          editingImageIdx,
+          tempImageName,
           scale,
           offset,
           splitPos,
@@ -1135,6 +1347,9 @@
           triggerRename,
           cancelRename,
           handleRename,
+          triggerImageRename,
+          cancelImageRename,
+          handleImageRename,
           onCanvasWheel,
           onCanvasMouseDown,
           resetView,
