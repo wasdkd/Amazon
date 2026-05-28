@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云端数字化多功能工作台门户</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0b0f19;
+            overflow-x: hidden;
+        }
+        /* 渐变流光边框动效 */
+        .glass-card {
+            background: rgba(17, 25, 40, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
+        }
+        /* 背景模糊流光球 */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen text-slate-200 flex flex-col justify-between">
+
+    <!-- 交互粒子画布 -->
+    <canvas id="canvas-bg" class="absolute inset-0 w-full h-full z-0 pointer-events-auto"></canvas>
+
+    <!-- 氛围光源球 -->
+    <div class="glow-orb w-[400px] h-[400px] bg-indigo-600 top-[-100px] left-[-100px]"></div>
+    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>
+    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
+
+    <!-- 主体容器 -->
+    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 lg:px-8 flex-grow flex flex-col justify-center">
+
+        <!-- 头部标题区 -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 backdrop-blur-md text-xs text-indigo-300 font-mono mb-4">
+                <i class="fa-solid fa-terminal animate-pulse"></i> TERMINAL PORTAL ACTIVE
+            </div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-300">
+                个人专属数字化工作台
+            </h1>
+            <p class="mt-3 text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
+                在这里高效统筹您的个人工具集合。点击任意应用卡片，即可快速接入云端环境并无缝开展工作。
+            </p>
+        </header>
+
+        <!-- 工具过滤与搜索栏 -->
+        <div class="max-w-xl w-full mx-auto mb-10 flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-grow">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </span>
+                <input type="text" id="search-input" oninput="filterTools()" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500" placeholder="检索工具名称或描述...">
+            </div>
+            <div class="flex rounded-xl bg-slate-900/80 p-1 border border-slate-700/50 text-xs font-medium shrink-0">
+                <button onclick="switchCategory('all')" id="btn-all" class="cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all">全部</button>
+                <button onclick="switchCategory('data')" id="btn-data" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">数据分析</button>
+                <button onclick="switchCategory('media')" id="btn-media" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">图像/文本</button>
+                <button onclick="switchCategory('tools')" id="btn-tools" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">实用工具</button>
+            </div>
+        </div>
+
+        <!-- 卡片工作网格 -->
+        <div id="tools-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+            <!-- 卡片由JS动态载入 -->
+        </div>
+
+        <!-- 检索为空提示 -->
+        <div id="no-results" class="hidden text-center py-12">
+            <i class="fa-solid fa-circle-info text-3xl text-slate-600 mb-2"></i>
+            <p class="text-sm text-slate-400">未找到匹配的工具卡片</p>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="relative z-10 py-6 border-t border-slate-800 bg-slate-950/20 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            &copy; 2026 云端数字化门户工作室 &middot; 高效 · 严谨 · 生产力
+        </div>
+    </footer>
+
+    <script>
+        // 工具元数据
+        const toolsData = [
+            {
+                title: "数据流工作台",
+                category: "data",
+                desc: "提供可视化的数据管道流向配置与集成作业。具备在 Cloudflare Pages 下高速加载的特性，用于管理各种复杂流处理节点。",
+                url: "https://amazon-7uf.pages.dev/",
+                icon: "fa-solid fa-shuffle",
+                theme: "from-indigo-500 to-blue-600"
+            },
+            {
+                title: "仿 Tableau 可视化",
+                category: "data",
+                desc: "轻量级、拖拽式的 BI 数据探索工具。提供高自由度、纯浏览器端渲染的多维报表与看板分析，适合快速展示决策数据。",
+                url: "https://ftableau.pages.dev/",
+                icon: "fa-solid fa-chart-column",
+                theme: "from-blue-500 to-cyan-500"
+            },
+            {
+                title: "表格单元格合并工具",
+                category: "data",
+                desc: "在线 Excel/WPS 表格单元格高级合并工具。专门解决复杂表头与大批量单元格自动折叠、清理、格式重组问题。",
+                url: "https://mergecells.pages.dev/",
+                icon: "fa-solid fa-table-cells-large",
+                theme: "from-teal-500 to-emerald-500"
+            },
+            {
+                title: "OCR 图片识别",
+                category: "media",
+                desc: "基于深度学习的浏览器端免服务器 OCR 提取器。一键将上传的截图或照片中的各种文字内容提取出来，支持高效率文本流转。",
+                url: "https://ocrimg.pages.dev/",
+                icon: "fa-solid fa-eye",
+                theme: "from-emerald-500 to-lime-600"
+            },
+            {
+                title: "高清图片展示与图床",
+                category: "media",
+                desc: "高响应、自适应的纯前端云图床画廊。对高画质图像资源进行无损加载和展示，附带一键复制链接、轻量预览与布局微调功能。",
+                url: "https://imgmain.pages.dev/",
+                icon: "fa-solid fa-images",
+                theme: "from-amber-500 to-orange-600"
+            },
+            {
+                title: "浸入式文本阅读空间",
+                category: "media",
+                desc: "为长时间阅读设计的极简阅读台。支持本地文件导入，提供多语种排版微调、防疲劳配色和自适应多排版布局模式。",
+                url: "https://read-32h.pages.dev/",
+                icon: "fa-solid fa-book-open",
+                theme: "from-rose-500 to-purple-600"
+            },
+            {
+                title: "云端简历管理系统",
+                category: "tools",
+                desc: "高保真、多模板联动的专业简历设计器。支持板块重命名与顺序拖拽重排，支持一键保存到 GitHub 以及 4 倍超清 PDF 导出。",
+                url: "https://wasdkd.github.io/Amazon/%E7%AE%80%E5%8E%86",
+                icon: "fa-solid fa-address-card",
+                theme: "from-purple-500 to-pink-600"
+            },
+            {
+                title: "日常沙盒测试 (废料1)",
+                category: "tools",
+                desc: "个人遗留轻量工具集合。用于测试非结构化垃圾内容分类、本地草稿转换以及部分底层逻辑临时沙盒。",
+                url: "https://humanwaste.pages.dev/",
+                icon: "fa-solid fa-box-open",
+                theme: "from-slate-500 to-zinc-600"
+            },
+            {
+                title: "GitHub 沙盒 (废料2)",
+                category: "tools",
+                desc: "部署于 GitHub Pages 上的临时数据调试终端，作为云存储目录及各种非标临时逻辑的试验田与兼容桥梁。",
+                url: "https://wasdkd.github.io/Amazon/%E5%BA%9F%E6%96%99",
+                icon: "fa-solid fa-flask-vial",
+                theme: "from-zinc-600 to-slate-700"
+            }
+        ];
+
+        let activeCategory = "all";
+
+        // 渲染卡片
+        function renderPortal() {
+            const grid = document.getElementById('tools-grid');
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            grid.innerHTML = '';
+
+            let matchedCount = 0;
+
+            toolsData.forEach(tool => {
+                // 分类和搜索双重过滤
+                const matchesCategory = activeCategory === "all" || tool.category === activeCategory;
+                const matchesSearch = tool.title.toLowerCase().includes(searchVal) || tool.desc.toLowerCase().includes(searchVal);
+
+                if (matchesCategory && matchesSearch) {
+                    matchedCount++;
+                    const card = document.createElement('a');
+                    card.href = tool.url;
+                    card.target = "_blank";
+                    card.className = "glass-card p-6 rounded-2xl flex flex-col justify-between group";
+
+                    card.innerHTML = `
+                        <div>
+                            <!-- 图标区 -->
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${tool.theme} text-white text-lg shadow-sm mb-5 group-hover:scale-110 transition duration-300">
+                                <i class="${tool.icon}"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-100 mb-2 group-hover:text-indigo-400 transition duration-150">${tool.title}</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed mb-6">${tool.desc}</p>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-500">
+                            <span class="px-2.5 py-0.5 rounded-full bg-slate-900/60 border border-slate-800 font-medium">${getCategoryName(tool.category)}</span>
+                            <span class="text-indigo-400 font-bold flex items-center gap-1 group-hover:translate-x-1.5 transition-transform duration-200">
+                                接入工具 <i class="fa-solid fa-angle-right"></i>
+                            </span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
+            });
+
+            // 无匹配提示
+            if (matchedCount === 0) {
+                document.getElementById('no-results').classList.remove('hidden');
+            } else {
+                document.getElementById('no-results').classList.add('hidden');
+            }
+        }
+
+        function getCategoryName(cat) {
+            if (cat === "data") return "数据分析";
+            if (cat === "media") return "图像/文本";
+            if (cat === "tools") return "实用工具";
+            return "其他";
+        }
+
+        // 切换分类
+        function switchCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all";
+            });
+            const activeBtn = document.getElementById(`btn-${cat}`);
+            if (activeBtn) {
+                activeBtn.className = "cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all";
+            }
+            renderPortal();
+        }
+
+        // 过滤
+        function filterTools() {
+            renderPortal();
+        }
+
+        // --- 交互粒子背景代码 ---
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 100 };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.density = (Math.random() * 20) + 10;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.color = 'rgba(99, 102, 241, ' + (Math.random() * 0.4 + 0.1) + ')';
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.hypot(dx, dy);
+                let forceDirectionX = dx / distance;
+                let forceDirectionY = dy / distance;
+                let maxDistance = mouse.radius;
+                let force = (maxDistance - distance) / maxDistance;
+                let directionX = forceDirectionX * force * this.density;
+                let directionY = forceDirectionY * force * this.density;
+
+                if (distance < mouse.radius) {
+                    this.x -= directionX;
+                    this.y -= directionY;
+                } else {
+                    if (this.x !== this.baseX) {
+                        let dxBase = this.x - this.baseX;
+                        this.x -= dxBase / 20;
+                    }
+                    if (this.y !== this.baseY) {
+                        let dyBase = this.y - this.baseY;
+                        this.y -= dyBase / 20;
+                    }
+                }
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 18000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                particles.push(new Particle(x, y));
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].draw();
+                particles[i].update();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // 初始化
+        window.onload = function() {
+            resizeCanvas();
+            animate();
+            renderPortal();
+        };
+    </script>
+</body>
+</html>
