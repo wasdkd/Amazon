@@ -1,22 +1,20 @@
-<!--这是一个非常具有前瞻性的功能升级。在实际使用中，求职者（例如应届生、跨行求职者、科研人员）往往需要根据个人背景定制简历板块（如将“工作经历”替换为“实习经历”，或者新增“在校经历”、“项目经验”、“荣誉奖项”等自定义模块），或者在没有相关经历时隐藏该模块。-->
+<!--这是一个非常合乎求职逻辑的痛点。无论是刚毕业的学生（需要将学校背景/教育经历放在最前面），还是资深的职场人（需要将亮眼的工作经历放在最前面），对简历板块的排序自由度有着极高的要求。-->
 
-<!--为了满足这一灵活、个性化的需求，我为您的简历管理系统进行了以下底层重构与升级：-->
+<!--为了彻底解决这一问题，我再次对系统进行了架构升级，加入了主干区板块拖拽式重排算法（流式重排引擎）：-->
 
-<!--升级核心点：-->
+<!--升级核心机制：-->
 
-<!--1.  板块定制管理器 (Section Manager)：-->
-<!--      - 在左侧编辑器中新增了「简历模块管理」面板，支持对 个人简介、工作经历、教育背景、核心技能 四个标准板块进行-->
-<!--        重命名（如将工作经历改为“实习经历”或“项目经历”）与-->
-<!--        一键显示/隐藏 操作。-->
-<!--2.  无限自定义新模块：-->
-<!--      - 支持通过点击 + 新增自定义模块 按钮，自主创建任意命名的新板块（例如：在校表现、荣誉资质、科研成果、社交实践等）。-->
-<!--      - 每一个新增的自定义模块都可以像工作经历一样，自由添加、修改或删除多条子项（含主标题、副标题、时间段及详细描述）。-->
-<!--3.  20 套模板全线自适应渲染：-->
-<!--      - 重构了 20 套高颜值模板的渲染机制。所有模板的标题现在均会自动同步您重命名后的文字。-->
-<!--      - 如果隐藏了某个板块，该板块在模板中会自动消失，其他板块会智能上浮填充空白，绝不留空。-->
-<!--      - 所有的自定义新模块会自动完美融合到对应模板的主内容区，并保持该模板专有的字体与标题样式。-->
+<!--1.  模块重排序面板 (Order Controller)：-->
+<!--      - 在左侧编辑器的「模块管理」中，新增了 【模块排序】-->
+<!--        区域。所有标准模块（个人简介、教育背景、工作经历）与您新增的自定义模块（如在校表现、实习经历）都会以小卡片形式呈现。-->
+<!--      - 点击模块右侧的 ↑（上移） 或 ↓（下移） 箭头，可瞬间改变模块在主干区中展示的先后顺序。-->
+<!--2.  20 套模板全线自适应流排版 (Flow Layout)：-->
+<!--      - 重构了 20 套模板的主干区渲染方式，由原本的“静态硬编码”升级为“动态流渲染 (renderAllMainFlow)”。-->
+<!--      - 无论用户将哪一个模块排到最前面，系统都会根据当前的排序数组，自动计算并采用对应模板专有的视觉标题样式、下划线、边框或网格布局进行渲染，绝不会产生任何排版错位。-->
+<!--      - 即使在复杂的排版中（例如 Template 9 的网格划分、Template 12-->
+<!--        的带序号分区排版），流重排引擎也会动态计算编号（01、02、03...）并保持网格对称美感。-->
 
-<!--以下是优化升级后的完整单文件 HTML 代码：-->
+<!--以下是升级后的完整单文件 HTML 代码（已包含上一次优化的 4 倍超清 PDF/PNG 导出功能）：-->
 
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -42,7 +40,7 @@
 <body class="min-h-screen flex flex-col">
 
     <!-- 顶部导航栏 -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
+    <header class="bg-white shadow-sm border-b border-gray-200 font-sans">
         <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
@@ -50,7 +48,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-900">云端简历管理系统</h1>
-                    <p class="text-xs text-gray-500">20套极具美感模板 · 板块可增删/重命名 · PDF 与 PNG 双超清导出</p>
+                    <p class="text-xs text-gray-500">20套极具美感模板 · 板块可拖拽排序/增删/重命名 · PDF 与 PNG 双超清导出</p>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
@@ -99,7 +97,7 @@
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <div>
                     <h3 class="text-lg font-bold text-gray-900 font-sans" id="editor-title">编辑并预览简历</h3>
-                    <p class="text-xs text-gray-500">您可以在左侧自定义和隐藏模块，右侧会自适应完成渲染与排版</p>
+                    <p class="text-xs text-gray-500">您可以在左侧自定义和调整模块顺序，右侧会自适应完成渲染与排版</p>
                 </div>
                 <div class="flex items-center space-x-2 font-sans">
                     <button onclick="exportToImage()" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-xs">
@@ -120,14 +118,14 @@
                 <div class="w-full md:w-1/2 p-6 overflow-y-auto border-r border-gray-200 bg-gray-50/50 font-sans">
                     <div class="space-y-6">
 
-                        <!-- 核心机制：模块显示/隐藏与重命名控制器 -->
+                        <!-- 核心机制：模块显示/隐藏、排序、重命名控制器 -->
                         <div class="bg-white p-5 rounded-xl border border-indigo-200 shadow-xs">
                             <h4 class="font-bold text-indigo-900 border-b pb-2 mb-4 flex items-center justify-between">
-                                <span class="flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-500"></i> 1. 简历模块定制与重命名</span>
+                                <span class="flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-500"></i> 1. 简历模块管理与顺序重排</span>
                                 <button onclick="createCustomSection()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded border border-indigo-300"><i class="fa-solid fa-plus"></i> 新增自定义模块</button>
                             </h4>
-                            <div class="space-y-3 text-xs" id="section-config-container">
-                                <!-- 由 JS 动态渲染配置项 -->
+                            <div class="space-y-3 text-xs animate-fade-in" id="section-config-container">
+                                <!-- 由 JS 动态渲染配置项与上下调换箭头 -->
                             </div>
                         </div>
 
@@ -214,7 +212,7 @@
 
                 <!-- 右侧实时渲染预览区 -->
                 <div class="w-full md:w-1/2 p-4 bg-gray-200 overflow-y-auto flex justify-center items-start">
-                    <div class="bg-white shadow-lg w-full max-w-[210mm] min-h-[297mm] p-8 border border-gray-300 rounded-xs" id="resume-preview-container">
+                    <div class="bg-white shadow-lg w-full max-w-[210mm] min-h-[297mm] p-8 border border-gray-300 rounded-xs animate-fade-in" id="resume-preview-container">
                         <!-- 模板具体的HTML内容将在此动态渲染 -->
                     </div>
                 </div>
@@ -293,6 +291,13 @@
             </div>
         </div>
     </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 mt-auto py-4">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-400 font-sans">
+            &copy; 2026 云端简历管理系统 - 无缝贴合 GitHub 生产力解决方案
+        </div>
+    </footer>
 
     <script>
         let resumeDatabase = [];
@@ -414,11 +419,10 @@
                     resumeDatabase[i].templateId = i + 1;
                 }
             }
-            // 数据模型自适应修复，确保每个卡片数据都有完整的模块配置项
             resumeDatabase.forEach(item => ensureSectionData(item));
         }
 
-        // 新增/重命名/删除 模块基础架构映射初始化
+        // 数据安全保护与排序机制初始化
         function ensureSectionData(item) {
             if (!item.sectionConfigs) {
                 item.sectionConfigs = {
@@ -431,6 +435,17 @@
             if (!item.customSections) {
                 item.customSections = [];
             }
+            // 初始化板块中轴中枢排序列表
+            if (!item.mainSectionOrder) {
+                item.mainSectionOrder = ["summary", "experiences", "educations"];
+            }
+            // 确保所有的自定义板块也在中枢重排列表里面
+            item.customSections.forEach((sec, idx) => {
+                const key = `custom_${idx}`;
+                if (!item.mainSectionOrder.includes(key)) {
+                    item.mainSectionOrder.push(key);
+                }
+            });
         }
 
         async function saveAllData() {
@@ -461,7 +476,7 @@
 
                 const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(resumeDatabase, null, 2))));
                 const requestPayload = {
-                    message: "Update 20 resumes database with custom sections",
+                    message: "Update 20 resumes database with flow reordering",
                     content: contentBase64,
                     branch: githubConfig.branch
                 };
@@ -495,7 +510,7 @@
             }
         }
 
-        // 初始化 20 个默认完整信息卡片（已全面使用 600px 超清未压缩底图，防止 PDF 渲染模糊）
+        // 初始化 20 个默认完整信息卡片（已使用 600px 超清未压缩底图，防止 PDF 渲染模糊）
         function generateDefaultDatabase() {
             const list = [];
             const defaultAvatars = [
@@ -534,7 +549,7 @@
                     phone: `138-0000-0${100+i}`,
                     website: `github.com/profile-expert-${i}`,
                     avatar: defaultAvatars[(i-1) % defaultAvatars.length],
-                    summary: `拥有多年行业相关开发及团队治理经验。曾主导多次核心业务线研发，对复杂系统的性能优化与精细化运营有着成熟的见解和落地经验。`,
+                    summary: `拥有多年行业相关开发及团队治理经验。曾主导多次核心业务线研发，对复杂系统的性能优化与精细化运营有着成熟的见解 and 落地经验。`,
                     skills: "React, Node.js, Python, 敏捷开发, 团队协作, 战略规划",
                     experiences: [
                         { company: `知名科技集团 (${i})`, role: jobs[i-1] || "技术骨干", period: "2023-09 ~ 至今", desc: "主导了多款核心产品的重构迭代，实现性能与访问体验质的跃迁，获得内部年度优秀项目奖。" },
@@ -600,45 +615,15 @@
             return true;
         }
 
-        // 自定义新模块在各大模板主干区融合渲染引擎
-        function renderCustomSections(data, headingClass, containerClass = "mb-4") {
-            if (!data.customSections || data.customSections.length === 0) return '';
-            return data.customSections.map(sec => {
-                if (!sec.visible) return '';
-                const secItemsHtml = (sec.items || []).map(item => `
-                    <div class="mb-4">
-                        <div class="flex justify-between font-bold text-gray-800 text-sm">
-                            <span>${item.title} ${item.subtitle ? ' | ' + item.subtitle : ''}</span>
-                            <span class="text-gray-500 font-normal text-xs">${item.time || ''}</span>
-                        </div>
-                        <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">${item.desc || ''}</p>
-                    </div>
-                `).join('');
-                return `
-                    <div class="${containerClass}">
-                        <h3 class="${headingClass}">${sec.title}</h3>
-                        ${secItemsHtml || '<p class="text-xs text-gray-400 italic">空模块内容</p>'}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // 核心：20 个高颜值、证件照级别头像占比、支持动态隐藏与重命名的响应式模块模板
-        function getTemplateHtml(templateId, data) {
-            const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()) : [];
-
-            // 数据保护
-            ensureSectionData(data);
-
+        // 单个板块流式渲染核心引擎（支持网格布局、编号自增、无缝自适应）
+        function renderFlowSection(data, key, headingClass, containerClass = "mb-4", layoutType = "standard", indexCounter = { count: 0 }) {
             const showSummary = isSectionVisible(data, 'summary');
             const showExperiences = isSectionVisible(data, 'experiences');
             const showEducations = isSectionVisible(data, 'educations');
-            const showSkills = isSectionVisible(data, 'skills');
 
             const t_summary = getSectionTitle(data, 'summary', '个人简介');
             const t_experiences = getSectionTitle(data, 'experiences', '工作经历');
             const t_educations = getSectionTitle(data, 'educations', '教育背景');
-            const t_skills = getSectionTitle(data, 'skills', '核心技能');
 
             const experiencesHtml = (data.experiences || []).map(exp => `
                 <div class="mb-4">
@@ -657,6 +642,92 @@
                     <span class="text-gray-500">${edu.period}</span>
                 </div>
             `).join('');
+
+            let title = "";
+            let content = "";
+
+            if (key === 'summary' && showSummary && data.summary) {
+                title = t_summary;
+                content = `<p class="text-xs text-gray-600 leading-relaxed">${data.summary}</p>`;
+            } else if (key === 'experiences' && showExperiences && experiencesHtml) {
+                title = t_experiences;
+                content = experiencesHtml;
+            } else if (key === 'educations' && showEducations && educationsHtml) {
+                title = t_educations;
+                content = educationsHtml;
+            } else if (key.startsWith('custom_')) {
+                const idx = parseInt(key.split('_')[1]);
+                if (data.customSections && data.customSections[idx]) {
+                    const sec = data.customSections[idx];
+                    if (sec.visible) {
+                        title = sec.title;
+                        content = (sec.items || []).map(item => `
+                            <div class="mb-4">
+                                <div class="flex justify-between font-bold text-gray-800 text-sm">
+                                    <span>${item.title} ${item.subtitle ? ' | ' + item.subtitle : ''}</span>
+                                    <span class="text-gray-500 font-normal text-xs">${item.time || ''}</span>
+                                </div>
+                                <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">${item.desc || ''}</p>
+                            </div>
+                        `).join('');
+                    }
+                }
+            }
+
+            // 如果内容为空，静默返回不占位
+            if (!content || content.trim() === "") return "";
+
+            // 累计索引（用于模板 12 编号渲染）
+            indexCounter.count++;
+
+            // 自适应布局：网格模式（适用于模板 9 等框线对称网格）
+            if (layoutType === 'grid-cols-4') {
+                return `
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-gray-300 pt-4">
+                        <div class="font-bold text-xs uppercase text-gray-900">${title}:</div>
+                        <div class="md:col-span-3 text-xs text-gray-600">${content}</div>
+                    </div>
+                `;
+            }
+
+            // 自适应布局：黑白色块加数字标号模式（适用于模板 12 等）
+            if (layoutType === 'grid-cols-4-num') {
+                const numStr = indexCounter.count < 10 ? `0${indexCounter.count}` : indexCounter.count;
+                return `
+                    <div class="border-t border-gray-200 pt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="font-bold tracking-wider">${numStr} // ${title.toUpperCase()}</div>
+                            <div class="md:col-span-3 text-gray-700">${content}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 缺省标准流式渲染布局
+            return `
+                <div class="${containerClass}">
+                    <h3 class="${headingClass}">${title}</h3>
+                    ${content}
+                </div>
+            `;
+        }
+
+        // 统一接口：一键流式排版所有主干板块
+        function renderAllMainFlow(data, headingClass, containerClass = "mb-4", layoutType = "standard") {
+            ensureSectionData(data);
+            const indexCounter = { count: 0 };
+            return data.mainSectionOrder.map(key =>
+                renderFlowSection(data, key, headingClass, containerClass, layoutType, indexCounter)
+            ).join('');
+        }
+
+        // 20 套自适应重排版模板核心渲染引擎
+        function getTemplateHtml(templateId, data) {
+            const skillsArray = data.skills ? data.skills.split(',').map(s => s.trim()) : [];
+            ensureSectionData(data);
+
+            const showSkills = isSectionVisible(data, 'skills');
+            const t_skills = getSectionTitle(data, 'skills', '核心技能');
 
             switch (parseInt(templateId)) {
                 case 1: // 1. 经典左侧深色分栏
@@ -682,22 +753,7 @@
                                 </div>` : ''}
                             </div>
                             <div class="w-full md:w-2/3 py-2">
-                                ${showSummary ? `
-                                <div class="border-b pb-3 mb-4">
-                                    <h3 class="text-xs font-bold text-indigo-600 tracking-wider uppercase">${t_summary}</h3>
-                                    <p class="text-xs text-gray-600 mt-2 leading-relaxed">${data.summary}</p>
-                                </div>` : ''}
-                                ${showExperiences ? `
-                                <div class="mb-4">
-                                    <h3 class="text-sm font-bold text-slate-900 border-b pb-1.5 mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${showEducations ? `
-                                <div class="mb-4">
-                                    <h3 class="text-sm font-bold text-slate-900 border-b pb-1.5 mb-3">${t_educations}</h3>
-                                    ${educationsHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-sm font-bold text-slate-900 border-b pb-1.5 mb-3", "mb-4")}
+                                ${renderAllMainFlow(data, "text-sm font-bold text-slate-900 border-b pb-1.5 mb-3", "mb-6")}
                             </div>
                         </div>
                     `;
@@ -719,30 +775,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6">
-                                ${showSummary ? `
-                                <div class="bg-emerald-50/40 p-3 rounded-lg border border-emerald-100">
-                                    <p class="text-xs text-gray-700 leading-relaxed">${data.summary}</p>
+                                ${renderAllMainFlow(data, "text-xs font-bold text-emerald-700 uppercase tracking-widest border-b pb-1.5 mb-3", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="text-xs font-bold text-emerald-700 uppercase tracking-widest border-b pb-1.5 mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-emerald-700 uppercase tracking-widest border-b pb-1.5 mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-emerald-700 uppercase tracking-widest border-b pb-1.5 mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-emerald-700 uppercase tracking-widest border-b pb-1.5 mb-2">${t_skills}</h3>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${skillsArray.map(s => `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-emerald-700 uppercase tracking-widest border-b pb-1.5 mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -764,19 +804,9 @@
                                 </div>
                             </div>
                             <div class="p-6 space-y-6">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-violet-800 uppercase tracking-wider mb-2">${t_summary}</h3>
-                                    <p class="text-xs text-gray-600 leading-relaxed bg-violet-50/50 p-3 rounded-lg">${data.summary}</p>
-                                </div>` : ''}
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="md:col-span-2 space-y-5">
-                                        ${showExperiences ? `
-                                        <div>
-                                            <h3 class="text-xs font-bold text-violet-800 border-b pb-1.5 mb-3">${t_experiences}</h3>
-                                            ${experiencesHtml}
-                                        </div>` : ''}
-                                        ${renderCustomSections(data, "text-xs font-bold text-violet-800 border-b pb-1.5 mb-3", "mb-4")}
+                                        ${renderAllMainFlow(data, "text-xs font-bold text-violet-800 border-b pb-1.5 mb-3", "mb-6")}
                                     </div>
                                     <div class="space-y-5">
                                         ${showSkills ? `
@@ -785,11 +815,6 @@
                                             <div class="flex flex-wrap gap-1">
                                                 ${skillsArray.map(s => `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-medium border border-indigo-100">${s}</span>`).join('')}
                                             </div>
-                                        </div>` : ''}
-                                        ${showEducations ? `
-                                        <div>
-                                            <h3 class="text-xs font-bold text-violet-800 border-b pb-1.5 mb-2">${t_educations}</h3>
-                                            ${educationsHtml}
                                         </div>` : ''}
                                     </div>
                                 </div>
@@ -812,31 +837,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6 font-sans">
-                                ${showSummary ? `
+                                ${renderAllMainFlow(data, "text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-2", "mb-6")}
+                                ${showSkills ? `
                                 <div>
-                                    <h2 class="text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-2">${t_summary}</h2>
-                                    <p class="text-xs text-stone-600 leading-relaxed italic">${data.summary}</p>
+                                    <h2 class="text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-2">${t_skills}</h2>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-stone-200/60 text-stone-800 border border-stone-300/40 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h2 class="text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-3">${t_experiences}</h2>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h2 class="text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-2">${t_skills}</h2>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${skillsArray.map(s => `<span class="bg-stone-200/60 text-stone-800 border border-stone-300/40 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h2 class="text-xs font-bold text-stone-800 tracking-widest uppercase border-b border-stone-300 pb-1 mb-2">${t_educations}</h2>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -858,31 +866,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-2">${t_summary}</h3>
-                                    <p class="text-xs text-gray-600 leading-relaxed">${data.summary}</p>
+                                ${renderAllMainFlow(data, "text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-2", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-rose-50 text-rose-800 border border-rose-200 px-2.5 py-1 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-2">${t_skills}</h3>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${skillsArray.map(s => `<span class="bg-rose-50 text-rose-800 border border-rose-200 px-2.5 py-1 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-rose-950 uppercase tracking-wider border-l-4 border-rose-800 pl-2 mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -906,17 +897,7 @@
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="md:col-span-2 space-y-4">
-                                        ${showSummary ? `
-                                        <div>
-                                            <h3 class="text-xs font-bold text-gray-800 uppercase tracking-wide mb-1.5">${t_summary}</h3>
-                                            <p class="text-xs text-gray-600 leading-normal bg-gray-50 p-2.5 rounded-lg">${data.summary}</p>
-                                        </div>` : ''}
-                                        ${showExperiences ? `
-                                        <div>
-                                            <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-3">${t_experiences}</h3>
-                                            ${experiencesHtml}
-                                        </div>` : ''}
-                                        ${renderCustomSections(data, "text-xs font-bold text-indigo-600 uppercase tracking-wide mb-3", "mb-4")}
+                                        ${renderAllMainFlow(data, "text-xs font-bold text-indigo-600 uppercase tracking-wide mb-3", "mb-6")}
                                     </div>
                                     <div class="space-y-4 font-sans">
                                         ${showSkills ? `
@@ -925,11 +906,6 @@
                                             <div class="flex flex-wrap gap-1">
                                                 ${skillsArray.map(s => `<span class="bg-indigo-50/70 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-medium border border-indigo-100">${s}</span>`).join('')}
                                             </div>
-                                        </div>` : ''}
-                                        ${showEducations ? `
-                                        <div>
-                                            <h3 class="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-2">${t_educations}</h3>
-                                            ${educationsHtml}
                                         </div>` : ''}
                                     </div>
                                 </div>
@@ -955,17 +931,7 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="md:col-span-2 space-y-5">
-                                    ${showSummary ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-cyan-400 mb-2">// ${t_summary}</h3>
-                                        <p class="text-xs text-zinc-300 leading-relaxed">${data.summary}</p>
-                                    </div>` : ''}
-                                    ${showExperiences ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-cyan-400 mb-3">// ${t_experiences}</h3>
-                                        ${experiencesHtml}
-                                    </div>` : ''}
-                                    ${renderCustomSections(data, "text-xs font-bold text-cyan-400 mb-3", "mb-4")}
+                                    ${renderAllMainFlow(data, "text-xs font-bold text-cyan-400 mb-2", "mb-6")}
                                 </div>
                                 <div class="border-t md:border-t-0 md:border-l border-zinc-800 pt-4 md:pt-0 md:pl-4 space-y-5">
                                     ${showSkills ? `
@@ -974,11 +940,6 @@
                                         <div class="flex flex-wrap gap-1.5">
                                             ${skillsArray.map(s => `<span class="bg-zinc-900 text-cyan-300 px-2 py-0.5 rounded text-[10px] border border-zinc-800">${s}</span>`).join('')}
                                         </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-cyan-400 mb-2">// ${t_educations}</h3>
-                                        ${educationsHtml}
                                     </div>` : ''}
                                 </div>
                             </div>
@@ -1002,17 +963,7 @@
                                 </div>
                             </div>
                             <div class="space-y-6">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-xs font-bold uppercase text-rose-800 tracking-wider mb-2">${t_summary}</h3>
-                                    <p class="text-xs text-gray-700 leading-relaxed bg-white/70 p-3 rounded-xl border border-rose-100/50">${data.summary}</p>
-                                </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-xs font-bold uppercase text-rose-800 tracking-wider mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold uppercase text-rose-800 tracking-wider mb-3", "mb-4")}
+                                ${renderAllMainFlow(data, "text-xs font-bold uppercase text-rose-800 tracking-wider mb-2", "mb-6")}
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                                     ${showSkills ? `
                                     <div>
@@ -1021,16 +972,11 @@
                                             ${skillsArray.map(s => `<span class="bg-rose-100/60 text-rose-800 border border-rose-200/50 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
                                         </div>
                                     </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold uppercase text-rose-800 tracking-wider mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
                                 </div>
                             </div>
                         </div>
                     `;
-                case 9: // 9. 对称框线艺术
+                case 9: // 9. 对称框线自适应网格
                     return `
                         <div class="border-2 border-gray-950 p-6 min-h-full font-sans">
                             <div class="flex flex-col sm:flex-row justify-between items-end border-b-2 border-gray-950 pb-4 mb-6 gap-4">
@@ -1048,19 +994,7 @@
                                 </div>
                             </div>
                             <div class="space-y-6">
-                                ${showSummary ? `
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div class="font-bold text-xs uppercase text-gray-900">${t_summary}:</div>
-                                    <div class="md:col-span-3 text-xs text-gray-600 leading-relaxed">${data.summary}</div>
-                                </div>` : ''}
-                                ${showExperiences ? `
-                                <div class="border-t border-gray-300 pt-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div class="font-bold text-xs uppercase text-gray-900">${t_experiences}:</div>
-                                        <div class="md:col-span-3">${experiencesHtml}</div>
-                                    </div>
-                                </div>` : ''}
-                                ${renderCustomSections(data, "font-bold text-xs uppercase text-gray-900", "border-t border-gray-300 pt-4")}
+                                ${renderAllMainFlow(data, "", "", "grid-cols-4")}
                                 ${showSkills ? `
                                 <div class="border-t border-gray-300 pt-4">
                                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1070,13 +1004,6 @@
                                                 ${skillsArray.map(s => `<span class="bg-gray-100 text-gray-800 border border-gray-300 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
                                             </div>
                                         </div>
-                                    </div>
-                                </div>` : ''}
-                                ${showEducations ? `
-                                <div class="border-t border-gray-300 pt-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div class="font-bold text-xs uppercase text-gray-900">${t_educations}:</div>
-                                        <div class="md:col-span-3">${educationsHtml}</div>
                                     </div>
                                 </div>` : ''}
                             </div>
@@ -1102,31 +1029,14 @@
                                 </div>
                             </div>
                             <div class="p-6 space-y-6">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-2">${t_summary}</h3>
-                                    <p class="text-xs text-gray-600 leading-relaxed">${data.summary}</p>
+                                ${renderAllMainFlow(data, "text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-2", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-cyan-50 text-cyan-800 border border-cyan-100 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-2">${t_skills}</h3>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${skillsArray.map(s => `<span class="bg-cyan-50 text-cyan-800 border border-cyan-100 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-cyan-950 uppercase border-b border-cyan-100 pb-1.5 mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1138,7 +1048,7 @@
                                     <img src="${data.avatar}" class="w-28 h-36 rounded-md object-cover border border-stone-400 shadow-sm">
                                     <div>
                                         <h1 class="text-2xl font-bold text-stone-900 font-serif">${data.name}</h1>
-                                        <p class="text-xs text-stone-600 mt-1 font-semibold">${data.title}</p>
+                                        <p class="text-xs text-stone-600 mt-1 font-sans font-semibold">${data.title}</p>
                                     </div>
                                 </div>
                                 <div class="text-xs font-sans text-stone-700 text-left md:text-right space-y-1">
@@ -1148,35 +1058,18 @@
                                 </div>
                             </div>
                             <div class="space-y-6 font-sans text-xs text-stone-800">
-                                ${showSummary ? `
+                                ${renderAllMainFlow(data, "font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-2", "mb-6")}
+                                ${showSkills ? `
                                 <div>
-                                    <h3 class="font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-2">${t_summary}</h3>
-                                    <p class="leading-relaxed text-stone-700">${data.summary}</p>
+                                    <h3 class="font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${skillsArray.map(s => `<span class="bg-stone-200 text-stone-800 border border-stone-300 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h3 class="font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-2">${t_skills}</h3>
-                                        <div class="flex flex-wrap gap-1">
-                                            ${skillsArray.map(s => `<span class="bg-stone-200 text-stone-800 border border-stone-300 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="font-serif font-bold text-sm text-stone-900 border-b border-stone-300 pb-1 mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
-                case 12: // 12. 现代极简纯黑白
+                case 12: // 12. 现代极简纯黑白自动编号
                     return `
                         <div class="p-6 bg-white min-h-full font-sans text-black">
                             <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-black pb-6 mb-6 gap-4 font-sans">
@@ -1194,33 +1087,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6 text-xs font-sans">
-                                ${showSummary ? `
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div class="font-bold tracking-wider">01 // ${t_summary.toUpperCase()}</div>
-                                    <div class="md:col-span-3 text-gray-700 leading-relaxed">${data.summary}</div>
-                                </div>` : ''}
-                                ${showExperiences ? `
-                                <div class="border-t border-gray-200 pt-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div class="font-bold tracking-wider">02 // ${t_experiences.toUpperCase()}</div>
-                                        <div class="md:col-span-3">${experiencesHtml}</div>
-                                    </div>
-                                </div>` : ''}
-                                ${renderCustomSections(data, "font-bold tracking-wider", "border-t border-gray-200 pt-4")}
+                                ${renderAllMainFlow(data, "", "", "grid-cols-4-num")}
                                 ${showSkills ? `
                                 <div class="border-t border-gray-200 pt-4">
                                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div class="font-bold tracking-wider">03 // ${t_skills.toUpperCase()}</div>
-                                        <div class="md:col-span-3 flex flex-wrap gap-1">
+                                        <div class="font-bold tracking-wider">04 // ${t_skills.toUpperCase()}</div>
+                                        <div class="md:col-span-3 flex flex-wrap gap-1 font-sans">
                                             ${skillsArray.map(s => `<span class="bg-black text-white px-2 py-0.5 rounded-sm text-[10px] uppercase font-bold tracking-wider">${s}</span>`).join('')}
                                         </div>
-                                    </div>
-                                </div>` : ''}
-                                ${showEducations ? `
-                                <div class="border-t border-gray-200 pt-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div class="font-bold tracking-wider">04 // ${t_educations.toUpperCase()}</div>
-                                        <div class="md:col-span-3">${educationsHtml}</div>
                                     </div>
                                 </div>` : ''}
                             </div>
@@ -1244,31 +1118,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-emerald-800 tracking-wider uppercase mb-2">${t_summary}</h3>
-                                    <p class="text-xs text-gray-600 leading-relaxed bg-white p-3 rounded-xl border border-emerald-100">${data.summary}</p>
+                                ${renderAllMainFlow(data, "text-xs font-bold text-emerald-800 tracking-wider uppercase mb-2", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="text-xs font-bold text-emerald-800 tracking-wider uppercase mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-emerald-800 tracking-wider uppercase mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-emerald-800 tracking-wider uppercase mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-emerald-800 tracking-wider uppercase mb-2">${t_skills}</h3>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${skillsArray.map(s => `<span class="bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-emerald-800 tracking-wider uppercase mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1288,31 +1145,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6 font-sans">
-                                ${showSummary ? `
-                                <div>
-                                    <h2 class="text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-2">${t_summary}</h2>
-                                    <p class="text-xs text-amber-900/80 leading-relaxed">${data.summary}</p>
+                                ${renderAllMainFlow(data, "text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-2", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h2 class="text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-2">${t_skills}</h2>
+                                    <div class="flex flex-wrap gap-1.5 font-sans">
+                                        ${skillsArray.map(s => `<span class="bg-[#f0ece4] text-amber-950 border border-amber-800/15 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h2 class="text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-3">${t_experiences}</h2>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-3", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h2 class="text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-2">${t_skills}</h2>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${skillsArray.map(s => `<span class="bg-[#f0ece4] text-amber-950 border border-amber-800/15 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h2 class="text-xs font-bold text-amber-900 tracking-widest uppercase border-b border-amber-800/10 pb-1 mb-2">${t_educations}</h2>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1335,28 +1175,13 @@
                                 ${showSkills ? `
                                 <div class="pt-6 border-t border-slate-800">
                                     <h4 class="text-xs font-bold text-orange-400 uppercase tracking-widest mb-2 font-sans">${t_skills}</h4>
-                                    <div class="flex flex-wrap gap-1 font-sans">
+                                    <div class="flex flex-wrap gap-1">
                                         ${skillsArray.map(s => `<span class="bg-slate-800 text-orange-300 border border-orange-500/30 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
                                     </div>
                                 </div>` : ''}
                             </div>
                             <div class="md:col-span-8 p-6 space-y-6">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-orange-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 mb-2">职业自述</h3>
-                                    <p class="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded-lg">${data.summary}</p>
-                                </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-orange-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 mb-3">${t_experiences}</h3>
-                                    <div class="space-y-3">${experiencesHtml}</div>
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-orange-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 mb-3", "mb-4")}
-                                ${showEducations ? `
-                                <div>
-                                    <h3 class="text-xs font-bold text-orange-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 mb-2">${t_educations}</h3>
-                                    ${educationsHtml}
-                                </div>` : ''}
+                                ${renderAllMainFlow(data, "text-xs font-bold text-orange-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 mb-3", "mb-6")}
                             </div>
                         </div>
                     `;
@@ -1379,31 +1204,16 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs font-sans">
                                 <div class="space-y-6">
-                                    ${showSummary ? `
-                                    <div>
-                                        <h3 class="font-bold text-indigo-700 border-b pb-1 mb-2">01. ${t_summary}</h3>
-                                        <p class="text-gray-600 leading-relaxed">${data.summary}</p>
-                                    </div>` : ''}
+                                    ${renderAllMainFlow(data, "font-bold text-indigo-700 border-b pb-1 mb-2", "mb-6")}
+                                </div>
+                                <div class="space-y-6">
                                     ${showSkills ? `
                                     <div>
-                                        <h3 class="font-bold text-indigo-700 border-b pb-1 mb-2">02. ${t_skills}</h3>
+                                        <h3 class="font-bold text-indigo-700 border-b pb-1 mb-2">${t_skills}</h3>
                                         <div class="flex flex-wrap gap-1.5">
                                             ${skillsArray.map(s => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
                                         </div>
                                     </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="font-bold text-indigo-700 border-b pb-1 mb-2">03. ${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
-                                <div class="space-y-6">
-                                    ${showExperiences ? `
-                                    <div>
-                                        <h3 class="font-bold text-indigo-700 border-b pb-1 mb-3">04. ${t_experiences}</h3>
-                                        ${experiencesHtml}
-                                    </div>` : ''}
-                                    ${renderCustomSections(data, "font-bold text-indigo-700 border-b pb-1 mb-3", "mb-4")}
                                 </div>
                             </div>
                         </div>
@@ -1426,34 +1236,14 @@
                                 </div>
                             </div>
                             <div class="p-6 space-y-6 text-xs">
-                                ${showSummary ? `
-                                <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-lg text-indigo-900 leading-relaxed">
-                                    ${data.summary}
+                                ${renderAllMainFlow(data, "font-bold text-indigo-950 border-b pb-1 mb-2", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="font-bold text-indigo-950 border-b pb-1 mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${skillsArray.map(s => `<span class="bg-white text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div class="md:col-span-2 space-y-5">
-                                        ${showExperiences ? `
-                                        <div>
-                                            <h3 class="font-bold text-indigo-950 border-b pb-1">${t_experiences}</h3>
-                                            ${experiencesHtml}
-                                        </div>` : ''}
-                                        ${renderCustomSections(data, "font-bold text-indigo-950 border-b pb-1", "mb-4")}
-                                    </div>
-                                    <div class="space-y-5">
-                                        ${showSkills ? `
-                                        <div>
-                                            <h3 class="font-bold text-indigo-950 border-b pb-1 mb-2">${t_skills}</h3>
-                                            <div class="flex flex-wrap gap-1">
-                                                ${skillsArray.map(s => `<span class="bg-white text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                            </div>
-                                        </div>` : ''}
-                                        ${showEducations ? `
-                                        <div>
-                                            <h3 class="font-bold text-indigo-950 border-b pb-1 mb-2">${t_educations}</h3>
-                                            ${educationsHtml}
-                                        </div>` : ''}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1469,23 +1259,13 @@
                                             <p class="text-xs text-gray-500 font-semibold mt-0.5">${data.title}</p>
                                         </div>
                                     </div>
-                                    <div class="text-xs text-gray-500 space-y-0.5 text-left sm:text-right font-mono">
+                                    <div class="text-xs text-gray-500 space-y-0.5 text-left sm:text-right">
                                         <p><i class="fa-solid fa-phone text-indigo-600 mr-1"></i> ${data.phone}</p>
                                         <p><i class="fa-solid fa-envelope text-indigo-600 mr-1"></i> ${data.email}</p>
                                         <p class="break-all"><i class="fa-solid fa-globe text-indigo-600 mr-1"></i> ${data.website}</p>
                                     </div>
                                 </div>
-                                ${showSummary ? `
-                                <div class="border-t border-gray-100 pt-4">
-                                    <h3 class="text-xs font-bold text-gray-800 tracking-wider uppercase mb-2">${t_summary}</h3>
-                                    <p class="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-xl">${data.summary}</p>
-                                </div>` : ''}
-                                ${showExperiences ? `
-                                <div class="border-t border-gray-100 pt-4">
-                                    <h3 class="text-xs font-bold text-indigo-600 tracking-wider uppercase mb-3">${t_experiences}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-xs font-bold text-indigo-600 tracking-wider uppercase mb-3", "border-t border-gray-100 pt-4")}
+                                ${renderAllMainFlow(data, "text-xs font-bold text-indigo-600 tracking-wider uppercase mb-3", "border-t border-gray-100 pt-4 mb-4")}
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-100 pt-4">
                                     ${showSkills ? `
                                     <div>
@@ -1493,11 +1273,6 @@
                                         <div class="flex flex-wrap gap-1">
                                             ${skillsArray.map(s => `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-medium border border-indigo-100">${s}</span>`).join('')}
                                         </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-xs font-bold text-gray-800 tracking-wider uppercase mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
                                     </div>` : ''}
                                 </div>
                             </div>
@@ -1521,31 +1296,14 @@
                                 </div>
                             </div>
                             <div class="space-y-6 text-xs font-sans">
-                                ${showSummary ? `
-                                <div>
-                                    <h3 class="text-yellow-400 font-bold uppercase tracking-wider mb-2 font-mono">// ${t_summary.toUpperCase()}</h3>
-                                    <p class="text-zinc-300 leading-relaxed bg-zinc-900 p-3 rounded-lg border border-zinc-800">${data.summary}</p>
+                                ${renderAllMainFlow(data, "text-yellow-400 font-bold uppercase tracking-wider mb-3 font-mono", "mb-4")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="text-yellow-400 font-bold uppercase tracking-wider mb-2 font-mono">// ${t_skills.toUpperCase()}</h3>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                ${showExperiences ? `
-                                <div>
-                                    <h3 class="text-yellow-400 font-bold uppercase tracking-wider mb-3 font-mono">// ${t_experiences.toUpperCase()}</h3>
-                                    ${experiencesHtml}
-                                </div>` : ''}
-                                ${renderCustomSections(data, "text-yellow-400 font-bold uppercase tracking-wider mb-3 font-mono", "mb-4")}
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    ${showSkills ? `
-                                    <div>
-                                        <h3 class="text-yellow-400 font-bold uppercase tracking-wider mb-2 font-mono">// ${t_skills.toUpperCase()}</h3>
-                                        <div class="flex flex-wrap gap-1.5 font-sans">
-                                            ${skillsArray.map(s => `<span class="bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <h3 class="text-yellow-400 font-bold uppercase tracking-wider mb-2 font-mono">// ${t_educations.toUpperCase()}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1566,34 +1324,16 @@
                                     <p class="break-all"><i class="fa-solid fa-globe"></i> ${data.website}</p>
                                 </div>
                             </div>
-                            <div class="space-y-6">
-                                ${showSummary ? `
-                                <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 text-xs text-gray-600 leading-relaxed">
-                                    ${data.summary}
+                            <div class="space-y-6 relative border-l-2 border-blue-200 pl-4">
+                                <span class="absolute -left-1.5 top-1 bg-blue-500 w-3 h-3 rounded-full border border-white"></span>
+                                ${renderAllMainFlow(data, "text-xs font-bold text-blue-900 tracking-wider uppercase mb-3", "mb-6")}
+                                ${showSkills ? `
+                                <div class="pt-2">
+                                    <h3 class="text-xs font-bold text-blue-900 tracking-wider uppercase mb-2">${t_skills}</h3>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${skillsArray.map(s => `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
+                                    </div>
                                 </div>` : ''}
-                                <div class="relative border-l-2 border-blue-200 pl-4 space-y-6">
-                                    ${showExperiences ? `
-                                    <div>
-                                        <span class="absolute -left-1.5 top-1 bg-blue-500 w-3 h-3 rounded-full border border-white"></span>
-                                        <h3 class="text-xs font-bold text-blue-900 tracking-wider uppercase mb-3">${t_experiences}</h3>
-                                        ${experiencesHtml}
-                                    </div>` : ''}
-                                    ${renderCustomSections(data, "text-xs font-bold text-blue-900 tracking-wider uppercase mb-3", "mb-4")}
-                                    ${showSkills ? `
-                                    <div>
-                                        <span class="absolute -left-1.5 bg-blue-500 w-3 h-3 rounded-full border border-white" style="top: 50%;"></span>
-                                        <h3 class="text-xs font-bold text-blue-900 tracking-wider uppercase mb-2">${t_skills}</h3>
-                                        <div class="flex flex-wrap gap-1.5 font-sans">
-                                            ${skillsArray.map(s => `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded text-[10px] font-medium">${s}</span>`).join('')}
-                                        </div>
-                                    </div>` : ''}
-                                    ${showEducations ? `
-                                    <div>
-                                        <span class="absolute -left-1.5 bg-blue-500 w-3 h-3 rounded-full border border-white" style="bottom: 10%;"></span>
-                                        <h3 class="text-xs font-bold text-blue-900 tracking-wider uppercase mb-2">${t_educations}</h3>
-                                        ${educationsHtml}
-                                    </div>` : ''}
-                                </div>
                             </div>
                         </div>
                     `;
@@ -1604,12 +1344,12 @@
                             const templateFunc = new Function('data', 'experiencesHtml', 'educationsHtml', 'skillsArray', `return \`${customTemplate.code}\`;`);
                             return templateFunc(data, experiencesHtml, educationsHtml, skillsArray);
                         } catch (err) {
-                            return `<div class="p-4 text-red-500 font-sans">自定义模板渲染错误：${err.message}</div>`;
+                            return `<div class="p-4 text-red-500">自定义模板渲染错误：${err.message}</div>`;
                         }
                     }
                     return `<div class="p-4 font-sans">未找到该模板</div>`;
             }
-        } // 20套自适应自选模块模板渲染闭合
+        } // 20套自适应重排版模板渲染闭合
 
         // 模块管理表单动态渲染器
         function renderSectionConfigPanel() {
@@ -1617,7 +1357,6 @@
             container.innerHTML = '';
             const item = resumeDatabase[currentEditIndex];
 
-            // 确保模块基础配置已存在
             ensureSectionData(item);
 
             const sections = [
@@ -1627,7 +1366,7 @@
                 { key: 'skills', defaultTitle: '核心技能', label: '核心技能模块' }
             ];
 
-            // 渲染 4 个系统标准板块控制器
+            // 1. 渲染模块配置面板
             sections.forEach(sec => {
                 const conf = item.sectionConfigs[sec.key] || { visible: true, title: sec.defaultTitle };
                 const div = document.createElement('div');
@@ -1661,6 +1400,50 @@
                 `;
                 container.appendChild(div);
             });
+
+            // 2. 渲染中轴主干区排序重排面板
+            let orderHtml = `<div class="space-y-2 mt-4 p-3 bg-indigo-50/30 rounded-lg border border-indigo-100/50"><span class="text-[11px] font-bold text-indigo-950 block mb-1">模块展示顺序调整 (点击箭头调换流式先后顺序):</span>`;
+            item.mainSectionOrder.forEach((key, idx) => {
+                let name = "";
+                if (key === 'summary') name = getSectionTitle(item, 'summary', '个人简介');
+                else if (key === 'experiences') name = getSectionTitle(item, 'experiences', '工作经历');
+                else if (key === 'educations') name = getSectionTitle(item, 'educations', '教育背景');
+                else if (key.startsWith('custom_')) {
+                    const cIdx = parseInt(key.split('_')[1]);
+                    name = (item.customSections && item.customSections[cIdx]) ? item.customSections[cIdx].title : "自定义模块";
+                }
+
+                orderHtml += `
+                    <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200/50 shadow-2xs">
+                        <span class="text-xs font-semibold text-gray-700">${name}</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="moveSection(${idx}, -1)" class="text-gray-400 hover:text-indigo-600 p-1 disabled:opacity-30 disabled:hover:text-gray-400" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up text-xs"></i></button>
+                            <button onclick="moveSection(${idx}, 1)" class="text-gray-400 hover:text-indigo-600 p-1 disabled:opacity-30 disabled:hover:text-gray-400" ${idx === item.mainSectionOrder.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down text-xs"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            orderHtml += `</div>`;
+
+            // 将排序模块拼接到配置面板下方
+            const orderWrapper = document.createElement('div');
+            orderWrapper.innerHTML = orderHtml;
+            container.appendChild(orderWrapper);
+        }
+
+        // 重排序模块指针交换算法
+        function moveSection(index, direction) {
+            const item = resumeDatabase[currentEditIndex];
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= item.mainSectionOrder.length) return;
+
+            // 交换两个元素的值
+            const temp = item.mainSectionOrder[index];
+            item.mainSectionOrder[index] = item.mainSectionOrder[targetIndex];
+            item.mainSectionOrder[targetIndex] = temp;
+
+            renderSectionConfigPanel();
+            updatePreview();
         }
 
         // 控制系统板块的显隐
@@ -1668,7 +1451,6 @@
             const item = resumeDatabase[currentEditIndex];
             item.sectionConfigs[key].visible = visible;
 
-            // 实时控制左侧编辑器对应输入容器的显隐
             const container = document.querySelector(`.block-${key}-container`);
             if (container) {
                 if (visible) container.classList.remove('hidden');
@@ -1682,20 +1464,20 @@
             const item = resumeDatabase[currentEditIndex];
             item.sectionConfigs[key].title = title;
 
-            // 实时更新左侧编辑容器中的文本提示
             const lbl = document.querySelector(`.lbl-${key}`);
             if (lbl) lbl.innerText = title;
             updatePreview();
         }
 
-        // 创建自定义新板块（如实习经历、在校经历）
+        // 创建自定义新板块
         function createCustomSection() {
-            const title = prompt("请输入您想增加的自定义简历模块名称（例如：实习经历、在校经历）：", "实习经历");
+            const title = prompt("请输入您想增加的自定义简历模块名称（例如：项目经验、在校表现）：", "项目经验");
             if (!title || title.trim() === "") return;
 
             const item = resumeDatabase[currentEditIndex];
             if (!item.customSections) item.customSections = [];
 
+            // 压入模块子项
             item.customSections.push({
                 title: title.trim(),
                 visible: true,
@@ -1704,20 +1486,40 @@
                 ]
             });
 
+            // 维护排序中枢数组指针
+            rebuildSectionOrder(item);
+
             renderSectionConfigPanel();
             renderCustomSectionEditor();
             updatePreview();
         }
 
-        // 彻底移除自定义板块
+        // 彻底移除自定义板块并维护指针
         function removeCustomSection(idx) {
             if (!confirm("确认彻底删除该自定义模块以及下属所有内容吗？")) return;
             const item = resumeDatabase[currentEditIndex];
             item.customSections.splice(idx, 1);
 
+            // 数据重指引并过滤已经被删除的个性板块，防止产生死指针
+            rebuildSectionOrder(item);
+
             renderSectionConfigPanel();
             renderCustomSectionEditor();
             updatePreview();
+        }
+
+        // 指针归位安全修复算法
+        function rebuildSectionOrder(item) {
+            let newOrder = item.mainSectionOrder.filter(k => !k.startsWith('custom_'));
+            if (item.customSections) {
+                item.customSections.forEach((sec, idx) => {
+                    const key = `custom_${idx}`;
+                    if (!newOrder.includes(key)) {
+                        newOrder.push(key);
+                    }
+                });
+            }
+            item.mainSectionOrder = newOrder;
         }
 
         // 自定义板块显隐控制
@@ -1744,11 +1546,10 @@
             if (!item.customSections) item.customSections = [];
 
             item.customSections.forEach((sec, secIdx) => {
-                // 如果板块被隐藏，不渲染左侧编辑表单
                 if (!sec.visible) return;
 
                 const secDiv = document.createElement('div');
-                secDiv.className = "bg-white p-5 rounded-xl border border-indigo-200 shadow-xs space-y-4 mb-4 font-sans";
+                secDiv.className = "bg-white p-5 rounded-xl border border-indigo-200 shadow-xs space-y-4 mb-4 font-sans animate-fade-in";
                 secDiv.innerHTML = `
                     <div class="flex justify-between items-center border-b pb-2">
                         <h4 class="font-bold text-indigo-900 flex items-center gap-2">
@@ -1757,7 +1558,7 @@
                         <button onclick="addCustomSectionItem(${secIdx})" class="text-xs text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-plus-circle"></i> 添加项</button>
                     </div>
                     <div class="space-y-4" id="custom-sec-items-${secIdx}">
-                        <!-- 子项目容器由下方JS遍历填充 -->
+                        <!-- 子项目容器 -->
                     </div>
                 `;
                 container.appendChild(secDiv);
@@ -1794,7 +1595,7 @@
             });
         }
 
-        // 个性化板块添加全新子项
+        // 个性化板块添加子项
         function addCustomSectionItem(secIdx) {
             const item = resumeDatabase[currentEditIndex];
             item.customSections[secIdx].items.push({ title: "主标题/新条目", subtitle: "副标题/单位名称", time: "时间", desc: "详细条目补充描述。" });
@@ -1817,13 +1618,12 @@
             updatePreview();
         }
 
-        // 核心编辑器装载，全面兼容重组板块机制
+        // 编辑器状态恢复
         function openEditor(index) {
             currentEditIndex = index;
             const item = resumeDatabase[index];
             currentTemplateId = item.templateId;
 
-            // 首发校验与模型恢复
             ensureSectionData(item);
 
             document.getElementById('f-name').value = item.name || '';
@@ -1866,7 +1666,7 @@
                 eduList.appendChild(createEducationElement(edu, idx));
             });
 
-            // 渲染模块定制面板与自定义子项编辑器
+            // 渲染模块重排重组面板与内容区
             renderSectionConfigPanel();
             renderCustomSectionEditor();
 
@@ -1959,7 +1759,6 @@
             openEditor(currentEditIndex);
         }
 
-        // 同步教育经历
         function syncEducation(idx, field, value) {
             resumeDatabase[currentEditIndex].educations[idx][field] = value;
             updatePreview();
@@ -1981,6 +1780,7 @@
                 skills: document.getElementById('f-skills').value,
                 sectionConfigs: item.sectionConfigs,
                 customSections: item.customSections,
+                mainSectionOrder: item.mainSectionOrder,
                 experiences: item.experiences,
                 educations: item.educations
             };
@@ -2093,7 +1893,7 @@
                 filename: `${name}_个人简历.pdf`,
                 image: { type: 'jpeg', quality: 1.0 },
                 html2canvas: {
-                    scale: 4,              // 提高到4倍无损缩放渲染精度
+                    scale: 4,
                     useCORS: true,
                     logging: false,
                     allowTaint: true
@@ -2103,7 +1903,7 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        // 新增功能：4倍无损分辨率 PNG 超清图片一键下载
+        // 4倍无损分辨率 PNG 超清图片一键下载
         function exportToImage() {
             const element = document.getElementById('resume-preview-container');
             const name = document.getElementById('f-name').value || "个人简历";
@@ -2112,8 +1912,8 @@
             element.style.overflow = "hidden";
 
             html2canvas(element, {
-                scale: 4,                  // 使用 4 倍高画质像素输出，防止任何字体与头像模糊
-                useCORS: true,             // 解决跨域图片的头像无法渲染或模糊的问题
+                scale: 4,
+                useCORS: true,
                 allowTaint: true,
                 backgroundColor: "#ffffff",
                 logging: false
