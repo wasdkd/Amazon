@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>2026年第二季度财务数据分析及预测表.xlsx</title>
+    <style>
+        /* Excel 仿真外观 */
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f2f1;
+            font-size: 11pt;
+            user-select: none;
+        }
+
+        /* 顶部 Excel 绿色工具栏 */
+        .excel-header {
+            background-color: #107c41;
+            color: white;
+            padding: 6px 15px;
+            font-weight: bold;
+            font-size: 12pt;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .excel-menu {
+            background-color: #fff;
+            border-bottom: 1px solid #d2d0ce;
+            padding: 5px 15px;
+            display: flex;
+            gap: 15px;
+            font-size: 9pt;
+            color: #323130;
+        }
+
+        .excel-menu span {
+            cursor: pointer;
+        }
+
+        .excel-menu span.active {
+            border-bottom: 2px solid #107c41;
+            font-weight: bold;
+        }
+
+        /* 公式栏 */
+        .formula-bar {
+            background-color: #fff;
+            border-bottom: 1px solid #d2d0ce;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            font-size: 9pt;
+        }
+
+        .formula-box {
+            border: 1px solid #d2d0ce;
+            flex-grow: 1;
+            margin-left: 10px;
+            padding: 2px 5px;
+            background-color: #f3f2f1;
+        }
+
+        /* 表格区域 */
+        .sheet-container {
+            overflow: auto;
+            height: calc(100vh - 90px);
+            background-color: white;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #d2d0ce;
+            padding: 4px 8px;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 表头 */
+        th {
+            background-color: #f3f2f1;
+            color: #323130;
+            font-weight: normal;
+            font-size: 9pt;
+            text-align: center;
+        }
+
+        .row-num {
+            background-color: #f3f2f1;
+            text-align: center;
+            width: 40px;
+            font-size: 9pt;
+            color: #323130;
+        }
+
+        /* 控制台（伪装在 Excel 的输入选项里） */
+        .control-panel {
+            background-color: #e1dfdd;
+        }
+
+        .control-label {
+            font-weight: bold;
+            color: #107c41;
+            font-size: 9pt;
+        }
+
+        .file-input-btn {
+            background-color: #107c41;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            font-size: 9pt;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        .url-input {
+            width: 90%;
+            border: 1px solid #a19f9d;
+            padding: 2px 5px;
+            font-size: 9pt;
+        }
+
+        /* --- 隐蔽视频悬浮窗 --- */
+        #videoContainer {
+            position: absolute;
+            top: 150px;
+            left: 120px;
+            width: 280px; /* 默认宽度 */
+            height: 164px; /* 默认 16:9 尺寸 + 6px 顶部灰色条 */
+            background-color: black;
+            border: 1px solid rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            overflow: hidden;
+            opacity: 0.6; /* 默认 60% 透明度 */
+            display: none; /* 初始隐藏 */
+        }
+
+        /* 拖拽控制手柄（一条极细的灰色横线） */
+        #dragHeader {
+            height: 6px;
+            background-color: #d2d0ce;
+            cursor: move;
+            width: 100%;
+        }
+
+        #moyuVideo {
+            width: 100%;
+            height: calc(100% - 6px);
+            object-fit: contain;
+            background: black;
+            display: none;
+        }
+
+        #moyuIframe {
+            width: 100%;
+            height: calc(100% - 6px);
+            border: none;
+            background: black;
+            display: none;
+        }
+
+        .hint {
+            color: #8a8886;
+            font-size: 8pt;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Excel 顶部 -->
+<div class="excel-header">
+    <span>Excel - 2026年第二季度财务数据分析及预测表.xlsx</span>
+    <span style="font-size: 9pt; font-weight: normal;">👤 用户：管理员</span>
+</div>
+<div class="excel-menu">
+    <span class="active">文件</span>
+    <span>开始</span>
+    <span>插入</span>
+    <span>页面布局</span>
+    <span>公式</span>
+    <span>数据</span>
+    <span>审阅</span>
+    <span>视图</span>
+    <span>帮助</span>
+</div>
+<div class="formula-bar">
+    <span style="font-weight: bold; color: #107c41;">fx</span>
+    <div class="formula-box" id="formulaText">SUM(B4:B15)</div>
+</div>
+
+<!-- Excel 内容区 -->
+<div class="sheet-container">
+    <table>
+        <!-- 列宽调节 -->
+        <colgroup>
+            <col style="width: 40px;">
+            <col style="width: 130px;">
+            <col style="width: 250px;">
+            <col style="width: 70px;">
+            <col style="width: 130px;">
+            <col style="width: 140px;">
+            <col style="width: 220px;">
+        </colgroup>
+
+        <!-- 表头 A B C D ... -->
+        <tr>
+            <th></th>
+            <th>A</th>
+            <th>B</th>
+            <th>C</th>
+            <th>D</th>
+            <th>E</th>
+            <th>F</th>
+        </tr>
+
+        <!-- 第二行：功能配置区（完美隐藏在Excel格式中） -->
+        <tr class="control-panel">
+            <td class="row-num">1</td>
+            <td class="control-label">在线数据(输入链接)</td>
+            <td>
+                <input type="text" id="onlineUrlInput" class="url-input" placeholder="输入B站链接、BV号 或 mp4地址...">
+            </td>
+            <td>
+                <button class="file-input-btn" onclick="loadOnlineVideo()">载入</button>
+            </td>
+            <td class="control-label">混色系数 (透明度)</td>
+            <td>
+                <input type="range" id="opacitySlider" min="0.1" max="1.0" step="0.05" value="0.6" style="width:90%; vertical-align:middle;">
+            </td>
+            <td class="control-label" style="text-align:right;">窗口尺寸 (宽度)</td>
+            <td>
+                <input type="range" id="sizeSlider" min="180" max="800" value="280" style="width:90%; vertical-align:middle;">
+            </td>
+        </tr>
+
+        <!-- 伪造的财务数据 -->
+        <tr>
+            <td class="row-num">2</td>
+            <td style="font-weight: bold; background: #f3f2f1;">统计月份</td>
+            <td style="font-weight: bold; background: #f3f2f1;">销售总额 (RMB)</td>
+            <td style="font-weight: bold; background: #f3f2f1;">固定成本</td>
+            <td style="font-weight: bold; background: #f3f2f1;">变动成本</td>
+            <td style="font-weight: bold; background: #f3f2f1;">纯利润</td>
+            <td style="font-weight: bold; background: #f3f2f1;">备注说明</td>
+        </tr>
+        <tr>
+            <td class="row-num">3</td>
+            <td>2026年1月</td>
+            <td>1,245,800.00</td>
+            <td>320,000.00</td>
+            <td>450,000.00</td>
+            <td style="color: green;">475,800.00</td>
+            <td>按 [Esc] 键，视频立即静音并彻底隐藏</td>
+        </tr>
+        <tr>
+            <td class="row-num">4</td>
+            <td>2026年2月</td>
+            <td>980,500.00</td>
+            <td>320,000.00</td>
+            <td>380,000.00</td>
+            <td style="color: green;">280,500.00</td>
+            <td>双击表格空白处也可以一键瞬间关闭</td>
+        </tr>
+        <tr>
+            <td class="row-num">5</td>
+            <td>2026年3月</td>
+            <td>1,560,000.00</td>
+            <td>325,000.00</td>
+            <td>510,000.00</td>
+            <td style="color: green;">725,000.00</td>
+            <td>春季促回暖明显，达到历史同期新高</td>
+        </tr>
+        <tr>
+            <td class="row-num">6</td>
+            <td>2026年4月</td>
+            <td>1,320,400.00</td>
+            <td>320,000.00</td>
+            <td>460,000.00</td>
+            <td style="color: green;">540,400.00</td>
+            <td>数据平稳过渡，各项指标处于正常区间</td>
+        </tr>
+        <tr>
+            <td class="row-num">7</td>
+            <td>2026年5月（预测）</td>
+            <td>1,450,000.00</td>
+            <td>320,000.00</td>
+            <td>490,000.00</td>
+            <td style="color: green; font-weight: bold;">640,000.00</td>
+            <td>根据当前订单排期预测，维持稳步增长</td>
+        </tr>
+        <tr>
+            <td class="row-num">8</td>
+            <td>2026年6月（预测）</td>
+            <td>1,600,000.00</td>
+            <td>330,000.00</td>
+            <td>540,000.00</td>
+            <td style="color: green; font-weight: bold;">730,000.00</td>
+            <td>年中大促节点，预计有较大幅度爆发</td>
+        </tr>
+        <tr style="background: #e1dfdd; font-weight: bold;">
+            <td class="row-num">9</td>
+            <td>半年度汇总 (SUM)</td>
+            <td>8,156,700.00</td>
+            <td>1,935,000.00</td>
+            <td>2,830,000.00</td>
+            <td style="color: green;">3,391,700.00</td>
+            <td>整体运行健康，现金流充沛</td>
+        </tr>
+        <!-- 空白行填充 -->
+        <tr><td class="row-num">10</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="row-num">11</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="row-num">12</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="row-num">13</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="row-num">14</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+</div>
+
+<!-- 悬浮视频播放容器 -->
+<div id="videoContainer">
+    <div id="dragHeader" title="拖动这里移动位置"></div>
+    <!-- 播放普通网络视频直链 -->
+    <video id="moyuVideo" controls loop>您的浏览器不支持此视频格式。</video>
+    <!-- 增加 allow 参数授予声音播放、全屏等完整交互权限 -->
+    <iframe id="moyuIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>
+</div>
+
+<script>
+    const container = document.getElementById('videoContainer');
+    const header = document.getElementById('dragHeader');
+    const video = document.getElementById('moyuVideo');
+    const iframe = document.getElementById('moyuIframe');
+    const opacitySlider = document.getElementById('opacitySlider');
+    const sizeSlider = document.getElementById('sizeSlider');
+
+    // 1. 在线视频载入逻辑
+    function loadOnlineVideo() {
+        const inputVal = document.getElementById('onlineUrlInput').value.trim();
+        if (!inputVal) {
+            alert("请输入B站链接、BV号或视频直链地址！");
+            return;
+        }
+
+        const bvRegex = /(BV[a-zA-Z0-9]{10})/i;
+        const bvMatch = inputVal.match(bvRegex);
+
+        if (bvMatch) {
+            // 切换至 iframe 模式，加载B站播放器
+            const bvid = bvMatch[1];
+            video.style.display = 'none';
+            video.pause();
+
+            iframe.style.display = 'block';
+
+            // 重要：由于浏览器限制，必须把 autoplay=0 (禁用自动播放)。这样加载出来后，你手动点一下视频播放，声音就100%可以正常播放。
+            iframe.src = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&danmaku=0&autoplay=0`;
+            container.style.display = 'block';
+        } else if (inputVal.match(/\.(mp4|webm|ogg)($|\?)/i)) {
+            // 普通视频格式
+            iframe.style.display = 'none';
+            iframe.src = '';
+
+            video.style.display = 'block';
+            video.src = inputVal;
+            video.play();
+            container.style.display = 'block';
+        } else {
+            // 普通网页
+            video.style.display = 'none';
+            video.pause();
+
+            iframe.style.display = 'block';
+            iframe.src = inputVal;
+            container.style.display = 'block';
+        }
+    }
+
+    // 2. 透明度控制
+    opacitySlider.addEventListener('input', function() {
+        container.style.opacity = this.value;
+    });
+
+    // 3. 窗口尺寸拉伸（直接在Excel里控制，完美避免拖拽冲突）
+    sizeSlider.addEventListener('input', function() {
+        const width = parseInt(this.value);
+        // 按 16:9 比例计算高度，并加上顶部 6px 的拖拽条
+        const height = Math.round(width * 9 / 16) + 6;
+
+        container.style.width = width + 'px';
+        container.style.height = height + 'px';
+    });
+
+    // 4. 拖拽逻辑 (拖动最上方细线移动，拖拽时暂时屏蔽 iframe 的鼠标拦截，保证拖拽流畅)
+    let isDragging = false;
+    let startX, startY, initialX, initialY;
+
+    header.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        iframe.style.pointerEvents = 'none'; // 防止鼠标移进 iframe 导致拖拽中断
+        startX = e.clientX;
+        startY = e.clientY;
+        initialX = container.offsetLeft;
+        initialY = container.offsetTop;
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        container.style.left = (initialX + dx) + 'px';
+        container.style.top = (initialY + dy) + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        iframe.style.pointerEvents = 'auto'; // 恢复 iframe 的交互
+    });
+
+    // 5. “老板键”瞬间隐藏逻辑
+    function hideVideoInstant() {
+        container.style.display = 'none';
+        video.pause();
+        video.src = '';
+        iframe.src = '';
+    }
+
+    // 按 Esc 键触发
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideVideoInstant();
+        }
+    });
+
+    // 双击除小窗外的任意空白区域触发
+    document.addEventListener('dblclick', function(e) {
+        if (e.target !== video && e.target !== header && e.target !== iframe) {
+            hideVideoInstant();
+        }
+    });
+</script>
+
+</body>
+</html>
