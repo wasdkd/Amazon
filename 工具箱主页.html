@@ -154,7 +154,7 @@
 
     <!-- GitHub 配置弹窗 -->
     <div id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-955/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <!-- 弹窗内部整体包裹 Form 并声明禁用自动填充 -->
+        <!-- 弹窗内部整体包裹 Form 并声明禁用自动填充，实现与主页检索框深度分离隔离 -->
         <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in text-slate-800 font-sans">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-100">
                 <h3 class="text-md font-bold text-gray-900"><i class="fa-brands fa-github text-gray-700 mr-1"></i> GitHub 云存储同步配置</h3>
@@ -244,7 +244,7 @@
             {
                 "title": "高清图片展示与图床",
                 "category": "media",
-                "desc": "高响应、自适应的纯前端云图床画廊。对高画质图像资源进行无损加载和展示，附带一键复制链接、轻量预览与布局微调功能。",
+                "desc": "高响应、自适应的纯前端云图床画廊。对高画质图像资源进行无损加载 and 展示，附带一键复制链接、轻量预览与布局微调功能。",
                 "url": "https://imgmain.pages.dev/",
                 "icon": "fa-solid fa-images",
                 "theme": "from-amber-500 to-orange-600"
@@ -290,6 +290,7 @@
 
         let isSyncing = false;
         let syncPending = false;
+        let isGithubVerified = false; // 全局验证防写盾牌
 
         let githubConfig = {
             token: '',
@@ -314,6 +315,7 @@
             } catch (e) {
                 console.warn("读取本地缓存配置失败", e);
             }
+            // 自动清洗首尾空格
             document.getElementById('gh-token').value = (githubConfig.token || '').trim();
             document.getElementById('gh-owner').value = (githubConfig.owner || 'wasdkd').trim();
             document.getElementById('gh-repo').value = (githubConfig.repo || 'Amazon').trim();
@@ -338,6 +340,7 @@
             const statusEl = document.getElementById('sync-status');
 
             if (!githubConfig.token) {
+                isGithubVerified = false; // 未验证
                 statusEl.innerText = "本地暂存模式 (未配置 GitHub 授权)";
                 statusEl.className = "mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800";
 
@@ -347,7 +350,6 @@
                     if (response.ok) {
                         const rawText = await response.text();
                         toolsData = cleanAndParseJSON(rawText);
-                        // 数据自愈式过滤
                         healAndRenderData();
                         statusEl.innerText = "已自动加载并同步 GitHub 只读云端配置";
                         statusEl.className = "mt-3 text-xs text-blue-400 max-w-2xl mx-auto font-sans bg-blue-950/20 py-1.5 px-3 rounded-lg inline-block border border-blue-900/50";
@@ -377,25 +379,28 @@
                 } else if (response.status === 404) {
                     currentFileSha = null;
                     initToolsDatabase();
+                    isGithubVerified = true; // 404但Token握手通过，确认有创建权限
                     statusEl.innerText = "GitHub 已授权 (云端未见配置文件，正在为您全自动建立初始化...)";
                     statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
 
+                    // 首次配对全自动建档
                     triggerBackgroundSync();
                 } else if (response.ok) {
                     const fileData = await response.json();
                     currentFileSha = fileData.sha;
                     const contentDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
 
-                    // 用宽容型引擎解析数据，防止历史脏数据导致前端空白
                     toolsData = cleanAndParseJSON(contentDecoded);
                     healAndRenderData();
+                    isGithubVerified = true; // 验证确认完成
 
-                    statusEl.innerText = "GitHub 已连接 (已成功同步云端数据)";
+                    statusEl.innerText = "GitHub 已连接 (已同步最新云端配置)";
                     statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
                 } else {
                     throw new Error(`连接失败 (状态码: ${response.status})`);
                 }
             } catch (err) {
+                isGithubVerified = false; // 验证失败挂起盾牌
                 initToolsDatabase();
                 statusEl.innerText = `同步失败: ${err.message || "网络请求异常"} (已降级加载本地缓存)`;
                 statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
@@ -403,7 +408,7 @@
             renderPortal();
         }
 
-        // 核心净化过滤：在加载时全自动粉碎所有历史占位卡片
+        // 核心净化过滤
         function healAndRenderData() {
             if (Array.isArray(toolsData)) {
                 toolsData = toolsData.filter(t => !t.isPlaceholder && !t.title.includes("预留应用"));
@@ -432,7 +437,6 @@
         async function saveAllDataSilent() {
             const statusEl = document.getElementById('sync-status');
 
-            // 数据在上传前自动再过滤净化一次，确保云端永远不会再有预留卡片
             healAndRenderData();
 
             if (!githubConfig.token) return;
@@ -507,6 +511,10 @@
 
         // 彻底复原系统卡片并静默同步云端
         function resetToDefaultData() {
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未验证通过 GitHub Token，无法对卡片进行重置。请先配置并成功验证。");
+                return;
+            }
             if (!confirm("确定要抹除一切当前添加、删除卡片及同步设置，将主页面板强制恢复为出厂 10 个系统卡片布局吗？")) return;
             localStorage.removeItem('portal_full_tools_data');
             localStorage.removeItem('portal_custom_tools');
@@ -598,6 +606,11 @@
         }
 
         function openAddModal() {
+            // 强校验：拦截无Token写权限行为
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未成功连接 GitHub，无法添加卡片。请先点击右上角「GitHub 云同步配置」成功连接后再试。");
+                return;
+            }
             document.getElementById('add-modal').classList.remove('hidden');
         }
 
@@ -645,7 +658,7 @@
                 isUserCreated: true
             };
 
-            // 1. 瞬间追加并修改本地缓存（Optimistic UI 瞬间更新）
+            // 1. 瞬间追加并修改本地缓存
             toolsData.push(newToolItem);
             localStorage.setItem('portal_full_tools_data', JSON.stringify(toolsData));
 
@@ -656,7 +669,7 @@
             document.getElementById('new-desc').value = '';
             closeAddModal();
 
-            // 3. 瞬间反馈：立即无感知地刷新前台网页卡片渲染
+            // 3. 瞬间反馈：立即渲染
             renderPortal();
 
             // 4. 异步调用后台，无感知上传 GitHub 并防止频繁排队冲突
@@ -667,6 +680,13 @@
         function deleteCustomTool(index, event) {
             event.stopPropagation();
             event.preventDefault();
+
+            // 强校验：拦截无Token删权限行为
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未成功连接 GitHub，无法删除卡片。请先点击右上角「GitHub 云同步配置」成功连接后再试。");
+                return;
+            }
+
             if (!confirm("确定要删除这个卡片吗？")) return;
 
             // 1. 瞬间从本地内存中剔除（Optimistic UI 瞬间消失）
@@ -804,6 +824,815 @@
 </body>
 </html>
 
+
+
+<!-----------------------------------云端--但是删除和验证没有限制------------------------------------------->
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>云端数字化多功能工作台门户</title>-->
+<!--    &lt;!&ndash; Tailwind CSS CDN &ndash;&gt;-->
+<!--    <script src="https://cdn.tailwindcss.com"></script>-->
+<!--    &lt;!&ndash; FontAwesome 图标 &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">-->
+<!--    &lt;!&ndash; 引入高清截图与高保真 PDF 导出库 &ndash;&gt;-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>-->
+<!--    <style>-->
+<!--        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Fira+Code:wght@400;500&display=swap');-->
+<!--        body {-->
+<!--            font-family: 'Noto Sans SC', sans-serif;-->
+<!--            background-color: #0b0f19;-->
+<!--            overflow-x: hidden;-->
+<!--        }-->
+<!--        /* 渐变流光边框动效 */-->
+<!--        .glass-card {-->
+<!--            background: rgba(17, 25, 40, 0.65);-->
+<!--            backdrop-filter: blur(16px);-->
+<!--            -webkit-backdrop-filter: blur(16px);-->
+<!--            border: 1px solid rgba(255, 255, 255, 0.08);-->
+<!--            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);-->
+<!--        }-->
+<!--        .glass-card:hover {-->
+<!--            transform: translateY(-6px);-->
+<!--            border-color: rgba(99, 102, 241, 0.4);-->
+<!--            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);-->
+<!--        }-->
+<!--        /* 背景模糊流光球 */-->
+<!--        .glow-orb {-->
+<!--            position: absolute;-->
+<!--            border-radius: 50%;-->
+<!--            filter: blur(120px);-->
+<!--            z-index: 0;-->
+<!--            pointer-events: none;-->
+<!--            opacity: 0.35;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body class="relative min-h-screen text-slate-200 flex flex-col justify-between font-sans">-->
+
+<!--    &lt;!&ndash; 交互粒子画布 &ndash;&gt;-->
+<!--    <canvas id="canvas-bg" class="absolute inset-0 w-full h-full z-0 pointer-events-auto"></canvas>-->
+
+<!--    &lt;!&ndash; 氛围光源球 &ndash;&gt;-->
+<!--    <div class="glow-orb w-[400px] h-[400px] bg-indigo-600 top-[-100px] left-[-100px]"></div>-->
+<!--    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>-->
+<!--    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>-->
+
+<!--    &lt;!&ndash; 主体容器 &ndash;&gt;-->
+<!--    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 lg:px-8 flex-grow flex flex-col justify-center">-->
+
+<!--        &lt;!&ndash; 顶部控制面板 &ndash;&gt;-->
+<!--        <div class="flex flex-wrap justify-end gap-2 mb-6 font-sans">-->
+<!--            <button onclick="openAddModal()" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-indigo-500/30 shadow-md backdrop-blur-md transition-all">-->
+<!--                <i class="fa-solid fa-plus-circle"></i> 添加自定义工具-->
+<!--            </button>-->
+<!--            <button onclick="exportStandaloneHTML()" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 shadow-md backdrop-blur-md transition-all" title="将当前添加的所有工具硬编码进源文件，发给别人直接看">-->
+<!--                <i class="fa-solid fa-file-shield"></i> 打包并导出新 HTML 文件-->
+<!--            </button>-->
+<!--            <button onclick="openGithubModal()" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700/50 shadow-md backdrop-blur-md transition-all">-->
+<!--                <i class="fa-brands fa-github"></i> GitHub 云同步配置-->
+<!--            </button>-->
+<!--            <button onclick="resetToDefaultData()" class="bg-red-955/40 hover:bg-red-900/60 text-red-400 border border-red-900/30 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 backdrop-blur-md transition-all" title="恢复出厂10个系统卡片布局">-->
+<!--                <i class="fa-solid fa-rotate-left"></i> 恢复默认-->
+<!--            </button>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 头部标题区 &ndash;&gt;-->
+<!--        <header class="text-center mb-12">-->
+<!--            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 backdrop-blur-md text-xs text-indigo-300 font-mono mb-4">-->
+<!--                <i class="fa-solid fa-terminal animate-pulse"></i> TERMINAL PORTAL ACTIVE-->
+<!--            </div>-->
+<!--            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-300 font-sans">-->
+<!--                个人专属数字化工作台-->
+<!--            </h1>-->
+<!--            <p id="sync-status" class="mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800">-->
+<!--                本地暂存模式 (未配置 GitHub 授权)-->
+<!--            </p>-->
+<!--        </header>-->
+
+<!--        &lt;!&ndash; 工具过滤与搜索栏 &ndash;&gt;-->
+<!--        <div class="max-w-xl w-full mx-auto mb-10 flex flex-col sm:flex-row gap-3">-->
+<!--            <div class="relative flex-grow font-sans">-->
+<!--                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">-->
+<!--                    <i class="fa-solid fa-magnifying-glass text-sm"></i>-->
+<!--                </span>-->
+<!--                <input type="text" id="search-input" name="portal_search_no_autofill_val" autocomplete="off" oninput="filterTools()" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500" placeholder="检索工具名称或描述...">-->
+<!--            </div>-->
+<!--            <div class="flex rounded-xl bg-slate-900/80 p-1 border border-slate-700/50 text-xs font-medium shrink-0 font-sans">-->
+<!--                <button onclick="switchCategory('all')" id="btn-all" class="cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all">全部</button>-->
+<!--                <button onclick="switchCategory('data')" id="btn-data" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">数据分析</button>-->
+<!--                <button onclick="switchCategory('media')" id="btn-media" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">图像/文本</button>-->
+<!--                <button onclick="switchCategory('tools')" id="btn-tools" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">实用工具</button>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 卡片工作网格 &ndash;&gt;-->
+<!--        <div id="tools-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 font-sans">-->
+<!--            &lt;!&ndash; 卡片由JS动态载入 &ndash;&gt;-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 检索为空提示 &ndash;&gt;-->
+<!--        <div id="no-results" class="hidden text-center py-12">-->
+<!--            <i class="fa-solid fa-circle-info text-3xl text-slate-600 mb-2"></i>-->
+<!--            <p class="text-sm text-slate-400">未找到匹配的工具卡片</p>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 动态添加自定义卡片弹窗 &ndash;&gt;-->
+<!--    <div id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-955/80 backdrop-blur-sm flex items-center justify-center p-4">-->
+<!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden font-sans">-->
+<!--            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">-->
+<!--                <h3 class="text-md font-bold text-slate-100"><i class="fa-solid fa-circle-plus text-indigo-500 mr-1"></i> 新增应用工具卡片</h3>-->
+<!--                <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>-->
+<!--            </div>-->
+<!--            <div class="p-6 space-y-4 text-xs">-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">工具名称</label>-->
+<!--                    <input type="text" id="new-title" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200" placeholder="例如：自研代码生成器">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">重定向 URL 链接</label>-->
+<!--                    <input type="text" id="new-url" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200" placeholder="https://example.com">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">工具所属分类</label>-->
+<!--                    <select id="new-category" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200 text-xs">-->
+<!--                        <option value="data">数据分析与处理</option>-->
+<!--                        <option value="media">图像/多媒体与文本</option>-->
+<!--                        <option value="tools">日常生产力辅助工具</option>-->
+<!--                    </select>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">FontAwesome 图标样式代码</label>-->
+<!--                    <input type="text" id="new-icon" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200" placeholder="fa-solid fa-microchip">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">卡片功能简单概述</label>-->
+<!--                    <textarea id="new-desc" rows="3" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200 text-xs" placeholder="请在此处提供该工具的核心作用及功能描述。"></textarea>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">-->
+<!--                <button type="button" onclick="closeAddModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>-->
+<!--                <button type="button" onclick="saveNewTool()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-xs">添加</button>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; GitHub 配置弹窗 &ndash;&gt;-->
+<!--    <div id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-955/80 backdrop-blur-sm flex items-center justify-center p-4">-->
+<!--        &lt;!&ndash; 弹窗内部整体包裹 Form 并声明禁用自动填充 &ndash;&gt;-->
+<!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in text-slate-800 font-sans">-->
+<!--            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-100">-->
+<!--                <h3 class="text-md font-bold text-gray-900"><i class="fa-brands fa-github text-gray-700 mr-1"></i> GitHub 云存储同步配置</h3>-->
+<!--                <button type="button" onclick="closeGithubModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>-->
+<!--            </div>-->
+<!--            <div class="p-6 space-y-4 text-xs">-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">GitHub 访问令牌 (PAT)</label>-->
+<!--                    <input type="password" id="gh-token" autocomplete="new-password" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-800" placeholder="ghp_xxxxxxxxxxxx">-->
+<!--                    <p class="text-[10px] text-gray-400 mt-1">需要具备写入权限的 GitHub 访问 Token</p>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库所有者 (Owner)</label>-->
+<!--                    <input type="text" id="gh-owner" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-800" placeholder="wasdkd">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库名称 (Repo)</label>-->
+<!--                    <input type="text" id="gh-repo" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-800" placeholder="Amazon">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">分支名称 (Branch)</label>-->
+<!--                    <input type="text" id="gh-branch" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-800" placeholder="main">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">中控JSON数据存放路径</label>-->
+<!--                    <input type="text" id="gh-path" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-800" placeholder="uploads2/portal.json">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-2 bg-gray-50">-->
+<!--                <button type="button" onclick="closeGithubModal()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium">取消</button>-->
+<!--                <button type="button" onclick="saveGithubConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-md text-xs font-medium shadow-xs font-sans">确定并保存</button>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 页脚 &ndash;&gt;-->
+<!--    <footer class="relative z-10 py-6 border-t border-slate-800 bg-slate-950/20 backdrop-blur-md">-->
+<!--        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">-->
+<!--            &copy; 2026 云端数字化门户工作室 &middot; 高效 · 严谨 · 生产力-->
+<!--        </div>-->
+<!--    </footer>-->
+
+<!--    <script>-->
+<!--        // 标记定位宏，用于“无损离线打包生成 HTML”正则替换，切勿删除-->
+<!--        /*START_DATA*/-->
+<!--        const defaultToolsData = [-->
+<!--            {-->
+<!--                "title": "数据流工作台",-->
+<!--                "category": "data",-->
+<!--                "desc": "提供可视化的数据管道流向配置与集成作业。具备在 Cloudflare Pages 下高速加载的特性，用于管理各种复杂流处理节点。",-->
+<!--                "url": "https://amazon-7uf.pages.dev/",-->
+<!--                "icon": "fa-solid fa-shuffle",-->
+<!--                "theme": "from-indigo-500 to-blue-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "仿 Tableau 可视化",-->
+<!--                "category": "data",-->
+<!--                "desc": "轻量级、拖拽式的 BI 数据探索工具。提供高自由度、纯浏览器端渲染的多维报表与看板分析，适合快速展示决策数据。",-->
+<!--                "url": "https://ftableau.pages.dev/",-->
+<!--                "icon": "fa-solid fa-chart-column",-->
+<!--                "theme": "from-blue-500 to-cyan-500"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "表格单元格合并工具",-->
+<!--                "category": "data",-->
+<!--                "desc": "在线 Excel/WPS 表格单元格高级合并工具。专门解决复杂表头与大批量单元格自动折叠、清理、格式重组问题。",-->
+<!--                "url": "https://mergecells.pages.dev/",-->
+<!--                "icon": "fa-solid fa-table-cells-large",-->
+<!--                "theme": "from-teal-500 to-emerald-500"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "OCR 图片识别",-->
+<!--                "category": "media",-->
+<!--                "desc": "基于深度学习的浏览器端免服务器 OCR 提取器。一键将上传的截图或照片中的各种文字内容提取出来，支持高效率文本流转。",-->
+<!--                "url": "https://ocrimg.pages.dev/",-->
+<!--                "icon": "fa-solid fa-eye",-->
+<!--                "theme": "from-emerald-500 to-lime-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "图片操作自动化",-->
+<!--                "category": "media",-->
+<!--                "desc": "图像批处理生产线。集成图像批量裁剪、尺寸等比例变换、无损压缩及全要素水印写入等常见的高效自动操作流程。",-->
+<!--                "url": "https://wasdkd.github.io/Amazon/图片操作自动化",-->
+<!--                "icon": "fa-solid fa-wand-magic-sparkles",-->
+<!--                "theme": "from-fuchsia-600 to-indigo-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "高清图片展示与图床",-->
+<!--                "category": "media",-->
+<!--                "desc": "高响应、自适应的纯前端云图床画廊。对高画质图像资源进行无损加载和展示，附带一键复制链接、轻量预览与布局微调功能。",-->
+<!--                "url": "https://imgmain.pages.dev/",-->
+<!--                "icon": "fa-solid fa-images",-->
+<!--                "theme": "from-amber-500 to-orange-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "浸入式文本阅读空间",-->
+<!--                "category": "media",-->
+<!--                "desc": "为长时间阅读设计的极简阅读台。支持本地文件导入，提供多语种排版微调、防疲劳配色和自适应多排版布局模式。",-->
+<!--                "url": "https://read-32h.pages.dev/",-->
+<!--                "icon": "fa-solid fa-book-open",-->
+<!--                "theme": "from-rose-500 to-purple-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "云端简历管理系统",-->
+<!--                "category": "tools",-->
+<!--                "desc": "高保真、多模板联动的专业简历设计器。支持板块重命名与顺序拖拽重排，支持一键保存到 GitHub 以及 4 倍超清 PDF 导出。",-->
+<!--                "url": "https://wasdkd.github.io/Amazon/%E7%AE%80%E5%8E%86",-->
+<!--                "icon": "fa-solid fa-address-card",-->
+<!--                "theme": "from-purple-500 to-pink-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "日常沙盒测试 (废料1)",-->
+<!--                "category": "tools",-->
+<!--                "desc": "个人遗留轻量工具集合。用于测试非结构化垃圾内容分类、本地草稿转换以及部分底层逻辑临时沙盒。",-->
+<!--                "url": "https://humanwaste.pages.dev/",-->
+<!--                "icon": "fa-solid fa-box-open",-->
+<!--                "theme": "from-slate-500 to-zinc-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "GitHub 沙盒 (废料2)",-->
+<!--                "category": "tools",-->
+<!--                "desc": "部署于 GitHub Pages 上的临时数据调试终端，作为云存储目录及各种非标临时逻辑的试验田与兼容桥梁。",-->
+<!--                "url": "https://wasdkd.github.io/Amazon/%E5%BA%9F%E6%96%99",-->
+<!--                "icon": "fa-solid fa-flask-vial",-->
+<!--                "theme": "from-zinc-600 to-slate-700"-->
+<!--            }-->
+<!--        ];-->
+<!--        /*END_DATA*/-->
+
+<!--        let toolsData = [];-->
+<!--        let activeCategory = "all";-->
+<!--        let currentFileSha = null;-->
+
+<!--        let isSyncing = false;-->
+<!--        let syncPending = false;-->
+
+<!--        let githubConfig = {-->
+<!--            token: '',-->
+<!--            owner: 'wasdkd',-->
+<!--            repo: 'Amazon',-->
+<!--            branch: 'main',-->
+<!--            path: 'uploads2/portal.json'-->
+<!--        };-->
+
+<!--        // 强力宽容型 JSON 解析器（自动剔除由于人工编辑手误遗留的所有末尾逗号）-->
+<!--        function cleanAndParseJSON(str) {-->
+<!--            const cleaned = str.replace(/,(\s*[\]}])/g, '$1');-->
+<!--            return JSON.parse(cleaned);-->
+<!--        }-->
+
+<!--        function loadConfig() {-->
+<!--            try {-->
+<!--                const savedConfig = localStorage.getItem('portal_gh_config');-->
+<!--                if (savedConfig) {-->
+<!--                    githubConfig = { ...githubConfig, ...JSON.parse(savedConfig) };-->
+<!--                }-->
+<!--            } catch (e) {-->
+<!--                console.warn("读取本地缓存配置失败", e);-->
+<!--            }-->
+<!--            document.getElementById('gh-token').value = (githubConfig.token || '').trim();-->
+<!--            document.getElementById('gh-owner').value = (githubConfig.owner || 'wasdkd').trim();-->
+<!--            document.getElementById('gh-repo').value = (githubConfig.repo || 'Amazon').trim();-->
+<!--            document.getElementById('gh-branch').value = (githubConfig.branch || 'main').trim();-->
+<!--            document.getElementById('gh-path').value = (githubConfig.path || 'uploads2/portal.json').trim();-->
+<!--        }-->
+
+<!--        function saveGithubConfig() {-->
+<!--            githubConfig.token = document.getElementById('gh-token').value.trim();-->
+<!--            githubConfig.owner = document.getElementById('gh-owner').value.trim();-->
+<!--            githubConfig.repo = document.getElementById('gh-repo').value.trim();-->
+<!--            githubConfig.branch = document.getElementById('gh-branch').value.trim();-->
+<!--            githubConfig.path = document.getElementById('gh-path').value.trim();-->
+
+<!--            localStorage.setItem('portal_gh_config', JSON.stringify(githubConfig));-->
+<!--            closeGithubModal();-->
+<!--            loadFromGithub();-->
+<!--        }-->
+
+<!--        // 双向同步机制-->
+<!--        async function loadFromGithub() {-->
+<!--            const statusEl = document.getElementById('sync-status');-->
+
+<!--            if (!githubConfig.token) {-->
+<!--                statusEl.innerText = "本地暂存模式 (未配置 GitHub 授权)";-->
+<!--                statusEl.className = "mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800";-->
+
+<!--                const rawUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${githubConfig.path}?t=${Date.now()}`;-->
+<!--                try {-->
+<!--                    let response = await fetch(rawUrl);-->
+<!--                    if (response.ok) {-->
+<!--                        const rawText = await response.text();-->
+<!--                        toolsData = cleanAndParseJSON(rawText);-->
+<!--                        // 数据自愈式过滤-->
+<!--                        healAndRenderData();-->
+<!--                        statusEl.innerText = "已自动加载并同步 GitHub 只读云端配置";-->
+<!--                        statusEl.className = "mt-3 text-xs text-blue-400 max-w-2xl mx-auto font-sans bg-blue-950/20 py-1.5 px-3 rounded-lg inline-block border border-blue-900/50";-->
+<!--                    } else {-->
+<!--                        initToolsDatabase();-->
+<!--                    }-->
+<!--                } catch (e) {-->
+<!--                    initToolsDatabase();-->
+<!--                }-->
+<!--                renderPortal();-->
+<!--                return;-->
+<!--            }-->
+
+<!--            statusEl.innerText = "正在同步 GitHub 云端数据库...";-->
+<!--            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";-->
+
+<!--            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;-->
+<!--            try {-->
+<!--                let response = await fetch(apiUrl, {-->
+<!--                    headers: { 'Authorization': `token ${githubConfig.token}` }-->
+<!--                });-->
+
+<!--                if (response.status === 401) {-->
+<!--                    throw new Error("GitHub Token 已失效、过期或已被 GitHub 安全模块自动注销/废除 (401)");-->
+<!--                } else if (response.status === 403) {-->
+<!--                    throw new Error("GitHub 访问速率受限或 Token 角色写入权限不足 (403)");-->
+<!--                } else if (response.status === 404) {-->
+<!--                    currentFileSha = null;-->
+<!--                    initToolsDatabase();-->
+<!--                    statusEl.innerText = "GitHub 已授权 (云端未见配置文件，正在为您全自动建立初始化...)";-->
+<!--                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";-->
+
+<!--                    triggerBackgroundSync();-->
+<!--                } else if (response.ok) {-->
+<!--                    const fileData = await response.json();-->
+<!--                    currentFileSha = fileData.sha;-->
+<!--                    const contentDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));-->
+
+<!--                    // 用宽容型引擎解析数据，防止历史脏数据导致前端空白-->
+<!--                    toolsData = cleanAndParseJSON(contentDecoded);-->
+<!--                    healAndRenderData();-->
+
+<!--                    statusEl.innerText = "GitHub 已连接 (已成功同步云端数据)";-->
+<!--                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";-->
+<!--                } else {-->
+<!--                    throw new Error(`连接失败 (状态码: ${response.status})`);-->
+<!--                }-->
+<!--            } catch (err) {-->
+<!--                initToolsDatabase();-->
+<!--                statusEl.innerText = `同步失败: ${err.message || "网络请求异常"} (已降级加载本地缓存)`;-->
+<!--                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";-->
+<!--            }-->
+<!--            renderPortal();-->
+<!--        }-->
+
+<!--        // 核心净化过滤：在加载时全自动粉碎所有历史占位卡片-->
+<!--        function healAndRenderData() {-->
+<!--            if (Array.isArray(toolsData)) {-->
+<!--                toolsData = toolsData.filter(t => !t.isPlaceholder && !t.title.includes("预留应用"));-->
+<!--            }-->
+<!--            localStorage.setItem('portal_full_tools_data', JSON.stringify(toolsData));-->
+<!--        }-->
+
+<!--        // 异步不阻塞后台队列同步-->
+<!--        async function triggerBackgroundSync() {-->
+<!--            if (isSyncing) {-->
+<!--                syncPending = true;-->
+<!--                return;-->
+<!--            }-->
+<!--            isSyncing = true;-->
+<!--            syncPending = false;-->
+
+<!--            await saveAllDataSilent();-->
+
+<!--            isSyncing = false;-->
+<!--            if (syncPending) {-->
+<!--                triggerBackgroundSync();-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 核心静默上传处理器-->
+<!--        async function saveAllDataSilent() {-->
+<!--            const statusEl = document.getElementById('sync-status');-->
+
+<!--            // 数据在上传前自动再过滤净化一次，确保云端永远不会再有预留卡片-->
+<!--            healAndRenderData();-->
+
+<!--            if (!githubConfig.token) return;-->
+
+<!--            statusEl.innerText = "云端同步中...";-->
+<!--            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";-->
+
+<!--            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;-->
+<!--            try {-->
+<!--                let sha = null;-->
+<!--                const getFileRes = await fetch(apiUrl, {-->
+<!--                    headers: { 'Authorization': `token ${githubConfig.token}` }-->
+<!--                });-->
+<!--                if (getFileRes.ok) {-->
+<!--                    const fileData = await getFileRes.json();-->
+<!--                    sha = fileData.sha;-->
+<!--                } else if (getFileRes.status === 404) {-->
+<!--                    sha = null;-->
+<!--                }-->
+
+<!--                const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(toolsData, null, 2))));-->
+<!--                const requestPayload = {-->
+<!--                    message: "Silent auto-sync portal tools (cleaned placeholders)",-->
+<!--                    content: contentBase64,-->
+<!--                    branch: githubConfig.branch-->
+<!--                };-->
+<!--                if (sha) {-->
+<!--                    requestPayload.sha = sha;-->
+<!--                }-->
+
+<!--                const putRes = await fetch(apiUrl, {-->
+<!--                    method: 'PUT',-->
+<!--                    headers: {-->
+<!--                        'Authorization': `token ${githubConfig.token}`,-->
+<!--                        'Content-Type': 'application/json'-->
+<!--                    },-->
+<!--                    body: JSON.stringify(requestPayload)-->
+<!--                });-->
+
+<!--                if (putRes.ok) {-->
+<!--                    const resData = await putRes.json();-->
+<!--                    currentFileSha = resData.content.sha;-->
+<!--                    statusEl.innerText = "GitHub 已连接 (已成功同步云端数据)";-->
+<!--                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";-->
+<!--                } else {-->
+<!--                    const errPayload = await putRes.json();-->
+<!--                    throw new Error(errPayload.message || "上传写入失败");-->
+<!--                }-->
+<!--            } catch (e) {-->
+<!--                console.error("自动同步云端失败:", e);-->
+<!--                statusEl.innerText = `同步失败: ${e.message || "API异常"} (建议刷新页面重新获取最新的云状态)`;-->
+<!--                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 本地降级恢复机制（防崩溃保护）-->
+<!--        function initToolsDatabase() {-->
+<!--            try {-->
+<!--                const savedFull = localStorage.getItem('portal_full_tools_data');-->
+<!--                if (savedFull) {-->
+<!--                    toolsData = JSON.parse(savedFull);-->
+<!--                } else {-->
+<!--                    toolsData = [...defaultToolsData];-->
+<!--                }-->
+<!--                healAndRenderData();-->
+<!--            } catch (e) {-->
+<!--                console.warn("读取本地配置失败，加载默认卡片数据", e);-->
+<!--                toolsData = [...defaultToolsData];-->
+<!--                healAndRenderData();-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 彻底复原系统卡片并静默同步云端-->
+<!--        function resetToDefaultData() {-->
+<!--            if (!confirm("确定要抹除一切当前添加、删除卡片及同步设置，将主页面板强制恢复为出厂 10 个系统卡片布局吗？")) return;-->
+<!--            localStorage.removeItem('portal_full_tools_data');-->
+<!--            localStorage.removeItem('portal_custom_tools');-->
+<!--            localStorage.removeItem('portal_gh_config');-->
+
+<!--            toolsData = [...defaultToolsData];-->
+<!--            healAndRenderData();-->
+
+<!--            loadConfig();-->
+<!--            renderPortal();-->
+<!--            triggerBackgroundSync();-->
+<!--        }-->
+
+<!--        // 渲染主干门户网格-->
+<!--        function renderPortal() {-->
+<!--            const grid = document.getElementById('tools-grid');-->
+<!--            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();-->
+<!--            grid.innerHTML = '';-->
+
+<!--            let matchedCount = 0;-->
+
+<!--            toolsData.forEach((tool, index) => {-->
+<!--                const matchesCategory = activeCategory === "all" || tool.category === activeCategory;-->
+<!--                const matchesSearch = tool.title.toLowerCase().includes(searchVal) || tool.desc.toLowerCase().includes(searchVal);-->
+
+<!--                if (matchesCategory && matchesSearch) {-->
+<!--                    matchedCount++;-->
+
+<!--                    // 所有人性化卡片均配备删除按钮-->
+<!--                    const deleteBtnHtml = `-->
+<!--                        <button onclick="deleteCustomTool(${index}, event)" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 z-20 text-[10px] bg-slate-950/40 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 animate-fade-in" title="彻底删除该应用卡片">-->
+<!--                            <i class="fa-solid fa-trash-can"></i>-->
+<!--                        </button>-->
+<!--                    `;-->
+
+<!--                    const card = document.createElement('div');-->
+<!--                    card.className = "glass-card p-6 rounded-2xl flex flex-col justify-between group relative";-->
+
+<!--                    card.innerHTML = `-->
+<!--                        ${deleteBtnHtml}-->
+<!--                        <a href="${tool.url}" target="_blank" class="block h-full flex flex-col justify-between">-->
+<!--                            <div>-->
+<!--                                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${tool.theme} text-white text-lg shadow-sm mb-5 group-hover:scale-110 transition duration-300">-->
+<!--                                    <i class="${tool.icon}"></i>-->
+<!--                                </div>-->
+<!--                                <h3 class="text-base font-bold text-slate-100 mb-2 group-hover:text-indigo-400 transition duration-150">${tool.title}</h3>-->
+<!--                                <p class="text-xs text-slate-400 leading-relaxed mb-6">${tool.desc}</p>-->
+<!--                            </div>-->
+<!--                            <div class="flex justify-between items-center text-[10px] text-slate-500 font-sans">-->
+<!--                                <span class="px-2.5 py-0.5 rounded-full bg-slate-900/60 border border-slate-800 font-medium">${getCategoryName(tool.category)}</span>-->
+<!--                                <span class="text-indigo-400 font-bold flex items-center gap-1 group-hover:translate-x-1.5 transition-transform duration-200">-->
+<!--                                    接入工具 <i class="fa-solid fa-angle-right"></i>-->
+<!--                                </span>-->
+<!--                            </div>-->
+<!--                        </a>-->
+<!--                    `;-->
+<!--                    grid.appendChild(card);-->
+<!--                }-->
+<!--            });-->
+
+<!--            if (matchedCount === 0) {-->
+<!--                document.getElementById('no-results').classList.remove('hidden');-->
+<!--            } else {-->
+<!--                document.getElementById('no-results').classList.add('hidden');-->
+<!--            }-->
+<!--        }-->
+
+<!--        function getCategoryName(cat) {-->
+<!--            if (cat === "data") return "数据分析";-->
+<!--            if (cat === "media") return "图像/文本";-->
+<!--            if (cat === "tools") return "实用工具";-->
+<!--            return "其他";-->
+<!--        }-->
+
+<!--        function switchCategory(cat) {-->
+<!--            activeCategory = cat;-->
+<!--            document.querySelectorAll('.cat-btn').forEach(btn => {-->
+<!--                btn.className = "cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all";-->
+<!--            });-->
+<!--            const activeBtn = document.getElementById(`btn-${cat}`);-->
+<!--            if (activeBtn) {-->
+<!--                activeBtn.className = "cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all";-->
+<!--            }-->
+<!--            renderPortal();-->
+<!--        }-->
+
+<!--        function filterTools() {-->
+<!--            renderPortal();-->
+<!--        }-->
+
+<!--        function openAddModal() {-->
+<!--            document.getElementById('add-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function closeAddModal() {-->
+<!--            document.getElementById('add-modal').classList.add('hidden');-->
+<!--        }-->
+
+<!--        function openGithubModal() {-->
+<!--            document.getElementById('github-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function closeGithubModal() {-->
+<!--            document.getElementById('github-modal').classList.add('hidden');-->
+<!--        }-->
+
+<!--        // 添加卡片：Optimistic UI 乐观渲染 + 异步静默同步，实现秒级零延迟-->
+<!--        function saveNewTool() {-->
+<!--            const title = document.getElementById('new-title').value.trim();-->
+<!--            const url = document.getElementById('new-url').value.trim();-->
+<!--            const category = document.getElementById('new-category').value;-->
+<!--            const icon = document.getElementById('new-icon').value.trim() || 'fa-solid fa-microchip';-->
+<!--            const desc = document.getElementById('new-desc').value.trim() || '自研辅助工具。';-->
+
+<!--            if (!title || !url) {-->
+<!--                alert("请至少填写工具名称和链接！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            const themePalettes = [-->
+<!--                "from-purple-500 to-indigo-600",-->
+<!--                "from-teal-500 to-emerald-600",-->
+<!--                "from-orange-500 to-red-600",-->
+<!--                "from-pink-500 to-rose-600",-->
+<!--                "from-cyan-500 to-blue-600"-->
+<!--            ];-->
+<!--            const randomTheme = themePalettes[Math.floor(Math.random() * themePalettes.length)];-->
+
+<!--            const newToolItem = {-->
+<!--                title,-->
+<!--                url,-->
+<!--                category,-->
+<!--                icon,-->
+<!--                desc,-->
+<!--                theme: randomTheme,-->
+<!--                isUserCreated: true-->
+<!--            };-->
+
+<!--            // 1. 瞬间追加并修改本地缓存（Optimistic UI 瞬间更新）-->
+<!--            toolsData.push(newToolItem);-->
+<!--            localStorage.setItem('portal_full_tools_data', JSON.stringify(toolsData));-->
+
+<!--            // 2. 清理表单并快速关闭弹窗-->
+<!--            document.getElementById('new-title').value = '';-->
+<!--            document.getElementById('new-url').value = '';-->
+<!--            document.getElementById('new-icon').value = '';-->
+<!--            document.getElementById('new-desc').value = '';-->
+<!--            closeAddModal();-->
+
+<!--            // 3. 瞬间反馈：立即无感知地刷新前台网页卡片渲染-->
+<!--            renderPortal();-->
+
+<!--            // 4. 异步调用后台，无感知上传 GitHub 并防止频繁排队冲突-->
+<!--            triggerBackgroundSync();-->
+<!--        }-->
+
+<!--        // 删除卡片：Optimistic UI 乐观删除 + 异步后台同步-->
+<!--        function deleteCustomTool(index, event) {-->
+<!--            event.stopPropagation();-->
+<!--            event.preventDefault();-->
+<!--            if (!confirm("确定要删除这个卡片吗？")) return;-->
+
+<!--            // 1. 瞬间从本地内存中剔除（Optimistic UI 瞬间消失）-->
+<!--            toolsData.splice(index, 1);-->
+<!--            localStorage.setItem('portal_full_tools_data', JSON.stringify(toolsData));-->
+
+<!--            // 2. 瞬间渲染新前台（卡片在毫秒内消失）-->
+<!--            renderPortal();-->
+
+<!--            // 3. 移交后台异步排队静默同步云端，完全不阻塞交互-->
+<!--            triggerBackgroundSync();-->
+<!--        }-->
+
+<!--        // 一键无损打包导出新独立 HTML 文件算法-->
+<!--        function exportStandaloneHTML() {-->
+<!--            const baseHTML = document.documentElement.outerHTML;-->
+<!--            let exportedHTML = "<!DOCTYPE html>\n" + baseHTML;-->
+
+<!--            // 清洗所有处于弹窗开启状态的 DOM 属性-->
+<!--            exportedHTML = exportedHTML.replace(/id="add-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');-->
+<!--            exportedHTML = exportedHTML.replace(/id="github-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');-->
+
+<!--            // 转换当前的卡片库数据为格式化 JSON 字符串-->
+<!--            const currentDataStr = JSON.stringify(toolsData, null, 4);-->
+
+<!--            // 正则匹配定位数据，用最新的内存数据无缝覆写 defaultToolsData 内部的全部数据-->
+<!--            const regex = /\/\*START_DATA\*\/[\s\S]*?\/\*END_DATA\*\//;-->
+<!--            exportedHTML = exportedHTML.replace(regex, '/*START_DATA*/\nconst defaultToolsData = ' + currentDataStr + ';\n/*END_DATA*/');-->
+
+<!--            // 打包数据并触发文件下载-->
+<!--            const blob = new Blob([exportedHTML], { type: 'text/html;charset=utf-8' });-->
+<!--            const url = URL.createObjectURL(blob);-->
+<!--            const a = document.createElement("a");-->
+<!--            a.href = url;-->
+<!--            a.download = "工作台主页_更新版.html";-->
+<!--            document.body.appendChild(a);-->
+<!--            a.click();-->
+<!--            document.body.removeChild(a);-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 交互粒子背景引擎 -&#45;&#45;-->
+<!--        const canvas = document.getElementById('canvas-bg');-->
+<!--        const ctx = canvas.getContext('2d');-->
+<!--        let particles = [];-->
+<!--        let mouse = { x: null, y: null, radius: 100 };-->
+
+<!--        function resizeCanvas() {-->
+<!--            canvas.width = window.innerWidth;-->
+<!--            canvas.height = window.innerHeight;-->
+<!--            initParticles();-->
+<!--        }-->
+
+<!--        class Particle {-->
+<!--            constructor(x, y) {-->
+<!--                this.x = x;-->
+<!--                this.y = y;-->
+<!--                this.baseX = x;-->
+<!--                this.baseY = y;-->
+<!--                this.density = (Math.random() * 20) + 10;-->
+<!--                this.size = Math.random() * 1.5 + 0.5;-->
+<!--                this.color = 'rgba(99, 102, 241, ' + (Math.random() * 0.4 + 0.1) + ')';-->
+<!--            }-->
+<!--            draw() {-->
+<!--                ctx.beginPath();-->
+<!--                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);-->
+<!--                ctx.fillStyle = this.color;-->
+<!--                ctx.fill();-->
+<!--            }-->
+<!--            update() {-->
+<!--                let dx = mouse.x - this.x;-->
+<!--                let dy = mouse.y - this.y;-->
+<!--                let distance = Math.hypot(dx, dy);-->
+<!--                let forceDirectionX = dx / distance;-->
+<!--                let forceDirectionY = dy / distance;-->
+<!--                let maxDistance = mouse.radius;-->
+<!--                let force = (maxDistance - distance) / maxDistance;-->
+<!--                let directionX = forceDirectionX * force * this.density;-->
+<!--                let directionY = forceDirectionY * force * this.density;-->
+
+<!--                if (distance < mouse.radius) {-->
+<!--                    this.x -= directionX;-->
+<!--                    this.y -= directionY;-->
+<!--                } else {-->
+<!--                    if (this.x !== this.baseX) {-->
+<!--                        let dxBase = this.x - this.baseX;-->
+<!--                        this.x -= dxBase / 20;-->
+<!--                    }-->
+<!--                    if (this.y !== this.baseY) {-->
+<!--                        let dyBase = this.y - this.baseY;-->
+<!--                        this.y -= dyBase / 20;-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+<!--        }-->
+
+<!--        function initParticles() {-->
+<!--            particles = [];-->
+<!--            let numberOfParticles = (canvas.width * canvas.height) / 18000;-->
+<!--            for (let i = 0; i < numberOfParticles; i++) {-->
+<!--                let x = Math.random() * canvas.width;-->
+<!--                let y = Math.random() * canvas.height;-->
+<!--                particles.push(new Particle(x, y));-->
+<!--            }-->
+<!--        }-->
+
+<!--        function animate() {-->
+<!--            ctx.clearRect(0, 0, canvas.width, canvas.height);-->
+<!--            for (let i = 0; i < particles.length; i++) {-->
+<!--                particles[i].draw();-->
+<!--                particles[i].update();-->
+<!--            }-->
+<!--            requestAnimationFrame(animate);-->
+<!--        }-->
+
+<!--        window.addEventListener('mousemove', (e) => {-->
+<!--            mouse.x = e.x;-->
+<!--            mouse.y = e.y;-->
+<!--        });-->
+
+<!--        window.addEventListener('mouseout', () => {-->
+<!--            mouse.x = null;-->
+<!--            mouse.y = null;-->
+<!--        });-->
+
+<!--        window.addEventListener('resize', resizeCanvas);-->
+
+<!--        // 装载入口-->
+<!--        window.onload = function() {-->
+<!--            resizeCanvas();-->
+<!--            animate();-->
+<!--            loadConfig();-->
+<!--            loadFromGithub(); // 载入安全屏障-->
+<!--        };-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+<!--------------------------------------------------下面-纯本地------------------------------------------------------>
 <!--<!DOCTYPE html>-->
 <!--<html lang="zh-CN">-->
 <!--<head>-->
