@@ -115,10 +115,21 @@
                     <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
                         <div class="flex items-center gap-1.5">
                             <span class="px-1.5 py-0.2 rounded-full text-[13px] font-bold bg-indigo-50 text-indigo-600">分组 {{ idx + 1 }}</span>
-                            <h2 class="text-[13px] font-bold text-slate-800">
-                                面料: <span class="text-indigo-600">{{ group.fabric }}</span> 
+                            <h2 class="text-[13px] font-bold text-slate-800 flex flex-wrap items-center gap-y-1">
+                                <span>面料: <span class="text-indigo-600">{{ group.fabric }}</span></span>
                                 <span class="mx-1 text-slate-300">|</span> 
-                                品类: <span class="text-indigo-600">{{ group.category }}</span>
+                                <span>品类: <span class="text-indigo-600">{{ group.category }}</span></span>
+
+                                <!-- 修改：展示前8热卖色，且前3名重点色使用玫瑰红加粗高亮，后5名使用半透明字体淡化 -->
+                                <span v-if="group.top8Colors && group.top8Colors.length" class="ml-2 px-1.5 py-0.2 rounded text-[13px] bg-amber-50 text-amber-900 border border-amber-100 font-bold flex items-center flex-wrap">
+                                    <span class="text-amber-800 mr-1">🔥 前8颜色:</span>
+                                    <template v-for="(item, cIdx) in group.top8Colors" :key="item.color">
+                                        <span :class="cIdx < 3 ? 'text-rose-600 font-extrabold' : 'text-amber-900/60 font-medium'">
+                                            {{ item.color }}({{ item.sales }})
+                                        </span>
+                                        <span v-if="cIdx < group.top8Colors.length - 1" class="text-amber-850/30 mx-0.5">、</span>
+                                    </template>
+                                </span>
                             </h2>
                         </div>
                         <span class="text-[13px] text-slate-400 font-medium">当前展示 {{ group.skus.length }} 款 SKU</span>
@@ -373,7 +384,7 @@
                     return Array.from(cSet);
                 });
 
-                // 6. 多条件联动过滤 (包含面料品类销量前 6 名的过滤规则)
+                // 6. 多条件联动过滤 (包含面料品类销量前 6名的过滤规则)
                 const filteredItems = computed(() => {
                     return seasonItems.value.filter(item => {
                         // 过滤并丢弃不属于所属面料销量前 6 名的非重点品类数据
@@ -419,6 +430,28 @@
                     });
 
                     return Object.values(map).map(group => {
+                        // ================== 【修改：统计该分组下所有款式的合并 Top 8 颜色与销量】 ==================
+                        const allGroupItems = [];
+                        Object.values(group.skusMap).forEach(list => {
+                            allGroupItems.push(...list);
+                        });
+
+                        const colorSalesMap = {};
+                        allGroupItems.forEach(item => {
+                            const colorName = item.color || '无';
+                            if (!colorSalesMap[colorName]) {
+                                colorSalesMap[colorName] = 0;
+                            }
+                            colorSalesMap[colorName] += Number(item.sales || 0);
+                        });
+
+                        // 对合并颜色累计销量进行降序排列，截取前 8 名，并在前端模板配合中渲染区别
+                        const top8Colors = Object.keys(colorSalesMap)
+                            .map(color => ({ color: color, sales: colorSalesMap[color] }))
+                            .sort((a, b) => b.sales - a.sales)
+                            .slice(0, 8);
+                        // ==================================================================================
+
                         const skusList = Object.keys(group.skusMap).map(sku => {
                             const items = group.skusMap[sku];
                             const totalSales = items.reduce((sum, current) => sum + (current.sales || 0), 0);
@@ -441,7 +474,8 @@
                             key: group.key,
                             fabric: group.fabric,
                             category: group.category,
-                            skus: limitedSkusList 
+                            skus: limitedSkusList,
+                            top8Colors: top8Colors // 将计算好的 Top 8 颜色对象数组暴露给前端
                         };
                     });
                 });
