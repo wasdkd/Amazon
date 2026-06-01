@@ -35,7 +35,7 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
                 <div class="flex items-center gap-2">
                     <h1 class="text-lg font-black text-slate-900 tracking-tight">热卖色款式分析看板</h1>
-                    <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.2 rounded-full">当前结果: {{ filteredItems.length }} 条</span>
+                    <span class="text-[13px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.2 rounded-full">当前结果: {{ filteredItems.length }} 条</span>
                 </div>
                 <!-- 全局搜索框 -->
                 <div class="relative w-full md:w-64">
@@ -45,7 +45,7 @@
                         </svg>
                     </span>
                     <input type="text" v-model="searchQuery" placeholder="搜索 ASIN、SKU、颜色或材质..." 
-                           class="w-full pl-7 pr-2.5 py-1 bg-white border border-slate-300 rounded-md text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition">
+                           class="w-full pl-7 pr-2.5 py-1 bg-white border border-slate-300 rounded-md text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition">
                 </div>
             </div>
 
@@ -55,7 +55,7 @@
                 <div class="flex gap-1 flex-wrap">
                     <button v-for="season in seasons" :key="season" @click="selectSeason(season)"
                             :class="[
-                                'py-1 px-2.5 rounded font-bold text-[11px] shadow-sm transition border',
+                                'py-1 px-2.5 rounded font-bold text-[13px] shadow-sm transition border',
                                 selectedSeason === season 
                                 ? 'bg-indigo-600 text-white border-indigo-600' 
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -65,10 +65,10 @@
                 </div>
 
                 <!-- 各种筛选控件 -->
-                <div class="flex flex-wrap items-center gap-3 text-[11px]">
+                <div class="flex flex-wrap items-center gap-3 text-[13px]">
                     <div class="flex items-center gap-1">
                         <span class="font-bold text-slate-600">面料:</span>
-                        <select v-model="selectedFabric" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[11px] focus:ring-indigo-500">
+                        <select v-model="selectedFabric" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[13px] focus:ring-indigo-500">
                             <option value="全部">全部面料 ({{ fabrics.length }})</option>
                             <option v-for="f in fabrics" :key="f" :value="f">{{ f }}</option>
                         </select>
@@ -76,7 +76,7 @@
 
                     <div class="flex items-center gap-1">
                         <span class="font-bold text-slate-600">品类:</span>
-                        <select v-model="selectedCategory" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[11px] focus:ring-indigo-500">
+                        <select v-model="selectedCategory" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[13px] focus:ring-indigo-500">
                             <option value="全部">全部品类 ({{ categories.length }})</option>
                             <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
                         </select>
@@ -85,7 +85,7 @@
                     <!-- 款式展示数量动态限制 -->
                     <div class="flex items-center gap-1 border-l border-slate-200 pl-3">
                         <span class="font-bold text-slate-600">款式限制:</span>
-                        <select v-model="selectedSkuLimit" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[11px] focus:ring-indigo-500 font-bold text-indigo-600 shadow-sm">
+                        <select v-model="selectedSkuLimit" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[13px] focus:ring-indigo-500 font-bold text-indigo-600 shadow-sm">
                             <option value="10">Top 10 款</option>
                             <option value="20">Top 20 款</option>
                             <option value="all">展示全部</option>
@@ -114,14 +114,14 @@
                     <!-- 分组标题栏 -->
                     <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
                         <div class="flex items-center gap-1.5">
-                            <span class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-600">分组 {{ idx + 1 }}</span>
-                            <h2 class="text-[11px] font-bold text-slate-800">
+                            <span class="px-1.5 py-0.2 rounded-full text-[13px] font-bold bg-indigo-50 text-indigo-600">分组 {{ idx + 1 }}</span>
+                            <h2 class="text-[13px] font-bold text-slate-800">
                                 面料: <span class="text-indigo-600">{{ group.fabric }}</span> 
                                 <span class="mx-1 text-slate-300">|</span> 
                                 品类: <span class="text-indigo-600">{{ group.category }}</span>
                             </h2>
                         </div>
-                        <span class="text-[9px] text-slate-400 font-medium">当前展示 {{ group.skus.length }} 款 SKU</span>
+                        <span class="text-[13px] text-slate-400 font-medium">当前展示 {{ group.skus.length }} 款 SKU</span>
                     </div>
 
                     <!-- SKU 容器：双列网格布局，大屏幕下一行并排展示两个 SKU（共计12张图） -->
@@ -132,7 +132,7 @@
                             <div class="flex items-center justify-between mb-1 border-b border-slate-100 pb-0.5">
                                 <div class="flex items-center gap-1">
                                     <span class="text-[8px] font-bold text-white bg-slate-600 px-1 py-0.2 rounded">SKU</span>
-                                    <span class="font-extrabold text-slate-700 text-[10px] tracking-wide">{{ skuGroup.skuName }}</span>
+                                    <span class="font-extrabold text-slate-700 text-[13px] tracking-wide">{{ skuGroup.skuName }}</span>
                                     <span class="text-[8px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-1.5 py-0.2 rounded font-bold">总销量: {{ skuGroup.totalSales }}</span>
                                 </div>
                                 <span class="text-[8px] text-slate-400">热卖颜色: {{ skuGroup.items.length }}</span>
@@ -155,12 +155,12 @@
                                                 </svg>
                                             </div>
                                         </template>
-                                        <div v-else class="text-[9px] text-slate-400 font-medium">无图</div>
+                                        <div v-else class="text-[13px] text-slate-400 font-medium">无图</div>
                                     </div>
 
                                     <!-- 颜色名称 -->
                                     <a :href="item.product_url" target="_blank" 
-                                       class="mt-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-center w-full truncate block" 
+                                       class="mt-1 text-[13px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline text-center w-full truncate block" 
                                        :title="'点击前往亚马逊：' + item.color">
                                         🎨 {{ item.color }}
                                     </a>
@@ -168,7 +168,7 @@
                                     <div class="text-[8px] text-slate-400 mt-0.2">销量: {{ item.sales }}</div>
 
                                     <!-- 材质：限制高度自动折行 -->
-                                    <div class="mt-0.5 pt-0.5 border-t border-slate-100 text-[9px] text-slate-500 text-center w-full min-h-[28px] flex items-center justify-center" 
+                                    <div class="mt-0.5 pt-0.5 border-t border-slate-100 text-[13px] text-slate-500 text-center w-full min-h-[28px] flex items-center justify-center" 
                                          style="max-width: 100%; word-break: break-all;">
                                         <span class="line-clamp-2 hover:line-clamp-none transition-all duration-150 cursor-help" :title="item.material">
                                             {{ item.material }}
