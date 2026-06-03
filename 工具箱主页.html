@@ -66,9 +66,6 @@
             <button onclick="openGithubModal()" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700/50 shadow-md backdrop-blur-md transition-all">
                 <i class="fa-brands fa-github"></i> GitHub 云同步配置
             </button>
-            <button onclick="resetToDefaultData()" class="bg-red-955/40 hover:bg-red-900/60 text-red-400 border border-red-900/30 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 backdrop-blur-md transition-all" title="恢复出厂10个系统卡片布局">
-                <i class="fa-solid fa-rotate-left"></i> 恢复默认
-            </button>
         </div>
 
         <!-- 头部标题区 -->
@@ -148,6 +145,46 @@
             <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
                 <button type="button" onclick="closeAddModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
                 <button type="button" onclick="saveNewTool()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-xs">添加</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 动态修改卡片弹窗 -->
+    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-955/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden font-sans">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h3 class="text-md font-bold text-slate-100"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i> 修改应用工具卡片</h3>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">工具名称</label>
+                    <input type="text" id="edit-title" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200" placeholder="例如：自研代码生成器">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">重定向 URL 链接</label>
+                    <input type="text" id="edit-url" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200" placeholder="https://example.com">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">工具所属分类</label>
+                    <select id="edit-category" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200 text-xs">
+                        <option value="data">数据分析与处理</option>
+                        <option value="media">图像/多媒体与文本</option>
+                        <option value="tools">日常生产力辅助工具</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">FontAwesome 图标样式代码</label>
+                    <input type="text" id="edit-icon" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200" placeholder="fa-solid fa-microchip">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">卡片功能简单概述</label>
+                    <textarea id="edit-desc" rows="3" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden text-slate-200 text-xs" placeholder="请在此处提供该工具的核心作用及功能描述。"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
+                <button type="button" onclick="closeEditModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
+                <button type="button" onclick="saveEditedTool()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-xs">保存修改</button>
             </div>
         </form>
     </div>
@@ -291,6 +328,7 @@
         let isSyncing = false;
         let syncPending = false;
         let isGithubVerified = false; // 全局验证防写盾牌
+        let editingIndex = null; // 当前正在修改的卡片索引
 
         let githubConfig = {
             token: '',
@@ -509,7 +547,7 @@
             }
         }
 
-        // 彻底复原系统卡片并静默同步云端
+        // 彻底复原系统卡片并静默同步云端 (可通过 console 开发者调试调用)
         function resetToDefaultData() {
             if (!githubConfig.token || !isGithubVerified) {
                 alert("操作拦截：当前未配置或未验证通过 GitHub Token，无法对卡片进行重置。请先配置并成功验证。");
@@ -543,7 +581,12 @@
                 if (matchesCategory && matchesSearch) {
                     matchedCount++;
 
-                    // 所有人性化卡片均配备删除按钮
+                    // 所有人性化卡片均配备编辑与删除按钮
+                    const editBtnHtml = `
+                        <button onclick="openEditModal(${index}, event)" class="absolute top-4 right-12 text-slate-500 hover:text-indigo-400 z-20 text-[10px] bg-slate-950/40 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 animate-fade-in" title="编辑该应用卡片">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    `;
                     const deleteBtnHtml = `
                         <button onclick="deleteCustomTool(${index}, event)" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 z-20 text-[10px] bg-slate-950/40 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 animate-fade-in" title="彻底删除该应用卡片">
                             <i class="fa-solid fa-trash-can"></i>
@@ -554,6 +597,7 @@
                     card.className = "glass-card p-6 rounded-2xl flex flex-col justify-between group relative";
 
                     card.innerHTML = `
+                        ${editBtnHtml}
                         ${deleteBtnHtml}
                         <a href="${tool.url}" target="_blank" class="block h-full flex flex-col justify-between">
                             <div>
@@ -618,6 +662,33 @@
             document.getElementById('add-modal').classList.add('hidden');
         }
 
+        function openEditModal(index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            // 强校验：拦截无Token写权限行为
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未成功连接 GitHub，无法修改卡片。请先点击右上角「GitHub 云同步配置」成功连接后再试。");
+                return;
+            }
+
+            editingIndex = index;
+            const tool = toolsData[index];
+
+            document.getElementById('edit-title').value = tool.title || '';
+            document.getElementById('edit-url').value = tool.url || '';
+            document.getElementById('edit-category').value = tool.category || 'data';
+            document.getElementById('edit-icon').value = tool.icon || 'fa-solid fa-microchip';
+            document.getElementById('edit-desc').value = tool.desc || '';
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            editingIndex = null;
+        }
+
         function openGithubModal() {
             document.getElementById('github-modal').classList.remove('hidden');
         }
@@ -676,6 +747,41 @@
             triggerBackgroundSync();
         }
 
+        // 修改卡片：Optimistic UI 乐观渲染 + 异步静默同步
+        function saveEditedTool() {
+            if (editingIndex === null) return;
+
+            const title = document.getElementById('edit-title').value.trim();
+            const url = document.getElementById('edit-url').value.trim();
+            const category = document.getElementById('edit-category').value;
+            const icon = document.getElementById('edit-icon').value.trim() || 'fa-solid fa-microchip';
+            const desc = document.getElementById('edit-desc').value.trim() || '自研辅助工具。';
+
+            if (!title || !url) {
+                alert("请至少填写工具名称和链接！");
+                return;
+            }
+
+            // 1. 修改本地内存数据
+            toolsData[editingIndex].title = title;
+            toolsData[editingIndex].url = url;
+            toolsData[editingIndex].category = category;
+            toolsData[editingIndex].icon = icon;
+            toolsData[editingIndex].desc = desc;
+
+            // 2. 更新本地缓存
+            localStorage.setItem('portal_full_tools_data', JSON.stringify(toolsData));
+
+            // 3. 关闭修改弹窗
+            closeEditModal();
+
+            // 4. 立即渲染界面
+            renderPortal();
+
+            // 5. 异步静默同步
+            triggerBackgroundSync();
+        }
+
         // 删除卡片：Optimistic UI 乐观删除 + 异步后台同步
         function deleteCustomTool(index, event) {
             event.stopPropagation();
@@ -707,6 +813,7 @@
 
             // 清洗所有处于弹窗开启状态的 DOM 属性
             exportedHTML = exportedHTML.replace(/id="add-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
             exportedHTML = exportedHTML.replace(/id="github-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
 
             // 转换当前的卡片库数据为格式化 JSON 字符串
@@ -823,7 +930,6 @@
     </script>
 </body>
 </html>
-
 
 
 <!-----------------------------------云端--但是删除和验证没有限制------------------------------------------->
