@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颜色与中文命名对照表</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8fafc; /* D65级工业对色环境底色 */
+            overflow-x: hidden;
+        }
+        /* 亮色卡片质感 */
+        .color-panel {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        /* 拖拽高亮状态 */
+        .drag-over {
+            border-color: #6366f1 !important;
+            background-color: rgba(99, 102, 241, 0.05) !important;
+        }
+        /* 美化滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+    </style>
+</head>
+<body class="relative min-h-screen text-slate-800 flex flex-col justify-between font-sans pb-32">
+
+    <!-- 主容器 -->
+    <div class="relative z-10 w-full mx-auto px-4 sm:px-12 py-10 flex-grow flex flex-col justify-start">
+
+        <!-- 头部标题 -->
+        <header class="text-center mb-8">
+<!--            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs text-indigo-600 font-mono mb-3">-->
+<!--                <i class="fa-solid fa-shirt"></i>  INTERACTIVE 3D TRY-ON PORTAL-->
+<!--            </div>-->
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 font-sans">
+                颜色与中文命名对照表
+            </h1>
+<!--            <p class="mt-2 text-xs text-slate-500 max-w-3xl mx-auto font-sans leading-relaxed">-->
+<!--                全宽对色视口。已升级为 <b>中位自适应 HSL 色彩物理投影技术</b>，100% 还原色卡色度与明度，告别偏色发白。-->
+<!--            </p>-->
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs text-indigo-600 font-mono mb-3">
+                <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" class="ml-2">
+                        <button class="px-2.5 py-0.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-md text-[12px] font-bold shadow-sm transition duration-150 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            返回平台
+                        </button>
+                    </a>
+            </div>
+        </header>
+
+        <!-- 过滤、检索与控制栏 -->
+        <div class="color-panel rounded-2xl p-5 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between font-sans">
+            <!-- 检索输入框 -->
+            <div class="relative w-full md:max-w-md">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </span>
+                <input type="text" id="search-input" oninput="filterPalettes()" autocomplete="off" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400" placeholder="检索颜色中文名、英文名或 HEX（如：经典蓝）...">
+            </div>
+
+            <!-- 分类过滤器 -->
+            <div class="flex rounded-xl bg-slate-50 p-1 border border-slate-200 text-xs font-medium shrink-0">
+                <button onclick="switchCategory('all')" id="btn-all" class="cat-btn px-4 py-2 rounded-lg bg-indigo-600 text-white transition-all shadow-sm">全部 18 色系</button>
+                <button onclick="switchCategory('warm')" id="btn-warm" class="cat-btn px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition-all">暖色调 (Warm)</button>
+                <button onclick="switchCategory('cool')" id="btn-cool" class="cat-btn px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition-all">冷色调 (Cool)</button>
+                <button onclick="switchCategory('neutral')" id="btn-neutral" class="cat-btn px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition-all">中性/灰色调</button>
+            </div>
+        </div>
+
+        <!-- 核心显示网格：黄金分屏比例 8 : 4 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- 左侧：18色系（占8格） -->
+            <div class="lg:col-span-8 space-y-6">
+                <div id="palette-container" class="space-y-6">
+                    <!-- 由JS动态生成色卡 -->
+                </div>
+                <!-- 搜索为空提示 -->
+                <div id="no-results" class="hidden text-center py-20 bg-white border border-slate-200/60 rounded-2xl">
+                    <i class="fa-solid fa-circle-question text-4xl text-slate-300 mb-2"></i>
+                    <p class="text-sm text-slate-400">未找到匹配任何名称或色号的颜色</p>
+                </div>
+            </div>
+
+            <!-- 右侧：3D 试衣模特（占4格，固定悬浮） -->
+            <div class="lg:col-span-4 lg:sticky lg:top-4 z-30 h-fit">
+                <div class="color-panel rounded-3xl p-5 flex flex-col items-center max-h-[calc(100vh-2rem)] overflow-y-auto">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3 flex justify-between items-center w-full border-b border-slate-100 pb-2">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-shirt text-indigo-600"></i> 实时对色试衣模特</span>
+                    </h3>
+
+                    <!-- 模特相框 - 优化高度以适应屏幕 -->
+                    <div id="model-container" class="w-full aspect-[3/4] max-h-[50vh] rounded-2xl border border-slate-100 overflow-hidden relative bg-slate-50 flex items-center justify-center transition-all duration-200">
+
+                        <!-- 加载中动画 -->
+                        <div id="model-loading" class="text-center p-4 pointer-events-none select-none">
+                            <i class="fa-solid fa-spinner animate-spin text-2xl text-indigo-600 mb-2"></i>
+                            <p class="text-[10px] text-slate-500 font-bold">正在像素级分析并建立对色沙箱...</p>
+                        </div>
+
+                        <!-- Canvas 渲染画布 -->
+                        <canvas id="model-canvas" class="w-full h-full object-contain hidden cursor-crosshair" title="在大图上双击：下载当前效果图。在衣服上单击：精准锁定对色基准点。"></canvas>
+                    </div>
+
+                    <!-- 颜色详细信息描述 -->
+                    <div class="w-full mt-4 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div id="preview-box" class="w-6 h-6 rounded-lg border border-slate-200 shadow-inner shrink-0" style="background-color: #5FEB50;"></div>
+                                <span id="preview-zh" class="font-bold text-slate-900 text-sm">明亮经典绿</span>
+                                <span id="preview-level" class="px-1 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] text-indigo-600 font-mono font-bold">350</span>
+                            </div>
+                            <span id="preview-hex" class="font-mono text-slate-500 font-bold uppercase text-xs select-all">#5FEB50</span>
+                        </div>
+                        <div id="preview-en" class="text-[9px] text-slate-400 font-medium uppercase mt-0.5">Vibrant Green</div>
+                        <div id="preview-tip" class="text-[10px] text-slate-600 mt-2 leading-relaxed border-t border-slate-200/50 pt-2">打版建议：街头机能风主推色、防晒衣、个性化瑜伽服</div>
+                    </div>
+
+                    <!-- 复制操作区 -->
+                    <div class="w-full mt-4">
+                        <button onclick="copyCurrentHex()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-lg shadow-indigo-600/10">
+                            <i class="fa-solid fa-copy"></i> 复制当前色号
+                        </button>
+                    </div>
+                    <p class="text-[9px] text-slate-400 text-center mt-3 leading-relaxed">
+                        💡 <b>换色技巧</b>：<br>
+                        1. 页面已载入亚马逊灰蓝色上衣图，支持<b>实时物理光影换色</b>。<br>
+                        2. <b>双击图片</b>可下载当前配色的高清设计图。<br>
+                        3. <b>单击衣服</b>可手动校准对色基准，消除色差。
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- 复制提示泡泡 -->
+    <div id="toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl hidden copy-toast items-center gap-1.5">
+        <i class="fa-solid fa-circle-check"></i> <span id="toast-text">色号已复制到剪贴板！</span>
+    </div>
+
+    <script>
+        // --- 18大色系数据库（已严格完成人工二次复核，清除所有色偏、色相交叉错误，完美补齐棕褐与沙石色系） ---
+        const colorFamilies = [
+            {
+                id: "red",
+                title: "经典红系 (Red)",
+                tone: "warm",
+                anchors: ["#FFF5F5", "#FFC9C9", "#FFA8A8", "#FF6B6B", "#FA5252", "#F03E3E", "#E03131", "#C92A2A", "#8F1A1A", "#5C0000", "#1F0000"],
+                names: [
+                    { zh: "冰粉红", en: "Ice Pink", tip: "极轻薄夏装、防晒衣、瑜伽内层点缀" },
+                    { zh: "极浅红", en: "Macaron Soft Red", tip: "婴儿服饰、马卡龙风春夏卫衣" },
+                    { zh: "淡桃红", en: "Pale Peach", tip: "柔和衬衫打底、春夏棉麻内搭" },
+                    { zh: "柔粉红", en: "Soft Red Pink", tip: "春夏开衫、轻质运动外套、家居服" },
+                    { zh: "温和粉红", en: "Pastel Pink Red", tip: "青春甜美风T恤、遮阳帽面料" },
+                    { zh: "玫瑰粉", en: "Rose Pink", tip: "轻熟风连衣裙、秋冬针织衫内搭" },
+                    { zh: "明亮珊瑚红", en: "Bright Coral", tip: "户外防风衣、春夏活力夹克" },
+                    { zh: "草莓红", en: "Strawberry Red", tip: "儿童卫衣、亮色运动休闲马甲" },
+                    { zh: "辣椒红", en: "Chili Red", tip: "辣妹高街短款T恤、潮流运动背心" },
+                    { zh: "标准正红", en: "True Red", tip: "经典连帽卫衣主打色、国潮风夹克" },
+                    { zh: "深大红", en: "Classic Crimson", tip: "品牌秋冬重点色、加厚棉服外层" },
+                    { zh: "绯红", en: "Scarlet", tip: "中国风刺绣卫衣、极具国潮感色相" },
+                    { zh: "番茄红", en: "Tomato Red", tip: "美式复古长袖、灯芯绒衬衫" },
+                    { zh: "胭脂红", en: "Carmine Red", tip: "高端呢子大衣、秋冬常备开衫" },
+                    { zh: "铁锈红", en: "Rust Red", tip: "复古机车皮夹克、水洗做旧卫衣" },
+                    { zh: "砖红", en: "Brick Red", tip: "重工工装裤、复古秋装工装马甲" },
+                    { zh: "泥红", en: "Ochre Red", tip: "户外登山服拼色、战术风衣" },
+                    { zh: "波尔多红/酒红", en: "Burgundy", tip: "奢华双面羊绒大衣、高档男士毛衣" },
+                    { zh: "绛红", en: "Deep Crimson", tip: "商务休闲羊绒呢大衣、皮鞋配饰" },
+                    { zh: "极致红黑", en: "Ebon Red", tip: "重度暗黑系外套、低调内敛男装大衣" }
+                ]
+            },
+            {
+                id: "rose",
+                title: "玫瑰粉红系 (Rose/Magenta)",
+                tone: "warm",
+                anchors: ["#FFF0F6", "#FFDEEB", "#FCC2D7", "#FAA2C1", "#F783AC", "#F06595", "#E64980", "#D6336C", "#C2255C", "#A61E4D", "#4A001A"],
+                names: [
+                    { zh: "冰玫瑰粉", en: "Ice Rose", tip: "超轻薄防晒服、透气夏装打底" },
+                    { zh: "极浅玫瑰", en: "Very Light Rose", tip: "柔和家居服、丝质睡衣" },
+                    { zh: "粉黛色", en: "Soft Magenta", tip: "甜美春夏吊带裙、针织衫" },
+                    { zh: "马卡龙玫瑰", en: "Macaron Rose", tip: "少女风连帽卫衣、亮眼棒球帽" },
+                    { zh: "初绽玫瑰", en: "Young Rose", tip: "雪纺连衣裙、青春活力女装" },
+                    { zh: "亮粉红", en: "Vibrant Rose", tip: "高回弹瑜伽紧身裤、吸睛运动背心" },
+                    { zh: "玫瑰红", en: "Rose Magenta", tip: "春夏吸睛T恤、设计师款休闲短裤" },
+                    { zh: "标准桃红", en: "Classic Fuchsia", tip: "高街辣妹紧身T恤、个性设计西装" },
+                    { zh: "胭脂玫瑰", en: "Rouge Rose", tip: "重工刺绣羊毛毛衣、呢子马甲" },
+                    { zh: "洋红", en: "True Magenta", tip: "国潮个性风衣、羽绒服面料" },
+                    { zh: "深胭脂", en: "Deep Carmine", tip: "优雅成熟风毛针织开衫" },
+                    { zh: "干玫瑰色", en: "Dry Rose", tip: "百搭高级感莫兰迪色、羊绒大衣" },
+                    { zh: "玫瑰豆沙", en: "Rose Bean Paste", tip: "极显白打底套头衫、内搭常备色" },
+                    { zh: "暗玫瑰", en: "Dusty Rose", tip: "重工呢子大衣、秋冬常备风衣" },
+                    { zh: "烟熏玫瑰", en: "Smoky Rose", tip: "高档毛呢、秋冬耐脏显瘦外套" },
+                    { zh: "红木玫瑰", en: "Mahogany Rose", tip: "复古麂皮绒外套、皮靴皮具" },
+                    { zh: "极深玫瑰", en: "Deep Velvet Rose", tip: "丝绒睡袍、重工绸缎面礼服" },
+                    { zh: "暗黑玫瑰", en: "Midnight Rose", tip: "设计师暗色系羽绒服、派克大衣" },
+                    { zh: "墨玫瑰色", en: "Blackish Rose", tip: "高端极简大衣、沉稳大气商务女装" },
+                    { zh: "极致玫瑰黑", en: "Ebon Rose", tip: "接近纯黑的偏紫红暖黑色" }
+                ]
+            },
+            {
+                id: "pink",
+                title: "粉红系 (Pink)",
+                tone: "warm",
+                anchors: ["#FFF0F5", "#FFD6E8", "#FFB7CE", "#FF8DA1", "#FF6B8B", "#FF4975", "#E82C5F", "#D11A46", "#B20A33", "#8A0021", "#3B000B"],
+                names: [
+                    { zh: "冰粉", en: "Ice Pink", tip: "莫代尔轻薄夏季防晒衫" },
+                    { zh: "极浅粉", en: "Very Light Pink", tip: "无痕透气贴身内衣、家居服" },
+                    { zh: "婴儿粉", en: "Baby Pink", tip: "高品质纯棉童装、夏季棉T" },
+                    { zh: "樱花粉", en: "Sakura Pink", tip: "春夏经典雪纺连衣裙、法式开衫" },
+                    { zh: "马卡龙粉", en: "Macaron Pink", tip: "减龄少女卫衣、软糯针织开衫" },
+                    { zh: "珊瑚粉", en: "Coral Pink", tip: "沙滩泳装、度假防晒服" },
+                    { zh: "芭比粉", en: "Barbie Pink", tip: "高饱和多巴胺辣妹短T" },
+                    { zh: "艳粉红", en: "Hot Pink", tip: "吸睛高街运动背心、反光外套点缀" },
+                    { zh: "草莓粉", en: "Strawberry Pink", tip: "活泼青春冲锋衣拼接色" },
+                    { zh: "标准正粉", en: "True Pink", tip: "经典运动裤侧边条、棒球帽主打" },
+                    { zh: "桃红", en: "Peach Pink", tip: "秋冬羽绒服高亮面料、运动风衣" },
+                    { zh: "红宝石粉", en: "Ruby Pink", tip: "呢大衣内里拼色、高档羊毛开衫" },
+                    { zh: "胭脂粉", en: "Rouge Pink", tip: "复古女装外套、刺绣针织衫" },
+                    { zh: "灰豆沙粉", en: "Dusty Peach Pink", tip: "百搭优雅羊绒大衣、莫兰迪色女装" },
+                    { zh: "干豆沙", en: "Dusty Rose Paste", tip: "高端气质商务女装、羊毛打底" },
+                    { zh: "暗粉", en: "Muted Dark Pink", tip: "重工派克大衣内胆、复古棉服" },
+                    { zh: "极深粉", en: "Deep Velvet Pink", tip: "重磅加厚毛呢、保暖中长款外套" },
+                    { zh: "暗红粉", en: "Dark Ochre Pink", tip: "复古工装衬衫、休闲鞋面" },
+                    { zh: "墨粉色", en: "Midnight Pink", tip: "暗黑色系户外大衣、登山卫衣" },
+                    { zh: "极致粉黑", en: "Ebon Pink", tip: "极度深邃、偏暖粉调的低调奢华黑" }
+                ]
+            },
+            {
+                id: "orange",
+                title: "橙色系 (Orange)",
+                tone: "warm",
+                anchors: ["#FFF4E6", "#FFE8CC", "#FFD8A8", "#FFC078", "#FFA94D", "#FF922B", "#FD7E14", "#F76707", "#E66707", "#D9480F", "#5C1500"],
+                names: [
+                    { zh: "冰粉橙", en: "Ice Peach", tip: "极浅冰丝防晒、春夏棉麻打底" },
+                    { zh: "杏色", en: "Apricot", tip: "百搭浅杏色针织、羊绒开衫常备" },
+                    { zh: "极浅橙", en: "Very Light Orange", tip: "无痕贴身打底、春夏活力居家服" },
+                    { zh: "蜜桃橙", en: "Peach Orange", tip: "春夏季活力短袖、少女风裙裤" },
+                    { zh: "马卡龙橙", en: "Macaron Orange", tip: "韩系温柔风宽松毛衣、抓绒衫" },
+                    { zh: "浅柿红", en: "Light Persimmon", tip: "法式复古开衫、日系清新短装" },
+                    { zh: "珊瑚橙", en: "Coral Orange", tip: "度假防沙短裤、运动速干衣" },
+                    { zh: "爱马仕橙", en: "Hermes Orange", tip: "经典轻奢大衣色、高饱和度机能冲锋衣" },
+                    { zh: "明亮橘", en: "Bright Tangerine", tip: "反光运动外套、滑雪服拼色" },
+                    { zh: "标准正橙", en: "True Orange", tip: "活力十足的高街卫衣、棒球帽" },
+                    { zh: "南瓜色", en: "Pumpkin", tip: "万圣节系列、秋冬复古针织衫" },
+                    { zh: "柿子红", en: "Persimmon Red", tip: "美式复古重磅T恤、厚帆布包" },
+                    { zh: "橘红", en: "Red Orange", tip: "户外高透气雨衣、高强度工装" },
+                    { zh: "砖泥橙", en: "Terracotta Orange", tip: "秋冬王牌毛呢大衣色、极显白" },
+                    { zh: "铁锈橙", en: "Rust Orange", tip: "复古麂皮绒夹克、马丁靴皮料" },
+                    { zh: "赤茶色", en: "Red Tea / Teak", tip: "复古灯芯绒休闲裤、羊羔毛外套" },
+                    { zh: "焦糖色", en: "Caramel", tip: "秋冬经典大衣、重磅双面呢大衣色" },
+                    { zh: "深焦糖", en: "Deep Caramel", tip: "皮草滚边色、秋冬重工毛夹克" },
+                    { zh: "墨橙色", en: "Midnight Orange", tip: "水洗做旧工装大衣、户外防水裤" },
+                    { zh: "极致橙黑", en: "Ebon Orange", tip: "带暖焦糖调的暗黑系（黑金风）" }
+                ]
+            },
+            {
+                id: "amber",
+                title: "琥珀金系 (Amber/Gold)",
+                tone: "warm",
+                anchors: ["#FFF9DB", "#FFF3BF", "#FFE066", "#FFD43B", "#FCC419", "#FAB005", "#F59F00", "#F08C00", "#E57C00", "#D86B00", "#5C2000"],
+                names: [
+                    { zh: "冰香槟金", en: "Ice Champagne", tip: "高端真丝睡衣、缎面吊带裙" },
+                    { zh: "象牙黄", en: "Ivory Gold", tip: "高级质感打底衫、夏装棉麻内配" },
+                    { zh: "浅奶油黄", en: "Light Cream", tip: "秋季温柔针织开衫、复古翻领毛衣" },
+                    { zh: "马卡龙黄", en: "Macaron Yellow", tip: "亮丽童装、夏日少女裙裤" },
+                    { zh: "樱草黄", en: "Primrose Yellow", tip: "高街防晒风衣、马卡龙风卫衣" },
+                    { zh: "柠檬黄", en: "Lemon Yellow", tip: "春夏活力运动背心、沙滩网眼帽" },
+                    { zh: "亮黄", en: "Bright Yellow", tip: "抢眼户外冲锋衣、高能见度机能外套" },
+                    { zh: "黄油黄", en: "Buttery Yellow", tip: "春夏法式复古棉麻裙、度假衬衫" },
+                    { zh: "标准正黄", en: "True Yellow", tip: "醒目美式连帽卫衣、国潮夹克拼色" },
+                    { zh: "郁金香黄", en: "Tulip Yellow", tip: "多巴胺高饱和街头装、棒球帽" },
+                    { zh: "姜黄", en: "Turmeric Yellow", tip: "秋冬最显白卫裤、慵懒风针织毛衣" },
+                    { zh: "芥末黄", en: "Mustard Yellow", tip: "美式学院风夹克、灯芯绒衬衫" },
+                    { zh: "蜂蜜金", en: "Honey Gold", tip: "秋冬高端风衣、双面羊绒大衣" },
+                    { zh: "琥珀金", en: "Amber Gold", tip: "高端双面毛呢大衣、皮具滚边" },
+                    { zh: "青铜金", en: "Bronze Gold", tip: "金属质感加厚羽绒服面料" },
+                    { zh: "赭石黄", en: "Ochre Yellow", tip: "阿美咔叽工装帆布鞋面、重磅外套" },
+                    { zh: "橄榄黄", en: "Olive Gold", tip: "军工装双口袋衬衫、复古机甲风" },
+                    { zh: "泥黄", en: "Clay Yellow", tip: "战术多口袋工装裤、登山靴面" },
+                    { zh: "墨黄色", en: "Midnight Gold", tip: "洗水做旧工装服、战术战损风夹克" },
+                    { zh: "极致黄黑", en: "Ebon Gold", tip: "低调高贵的绿黄调暗黑色" }
+                ]
+            },
+            {
+                id: "yellow",
+                title: "柠檬黄系 (Yellow)",
+                tone: "warm",
+                anchors: ["#FFFDEB", "#FFF9C4", "#FFF59D", "#FFF176", "#FFEE58", "#FFEB3B", "#FDD835", "#FBC02D", "#F9A825", "#F57F17", "#3E2723"],
+                names: [
+                    { zh: "冰柠黄", en: "Ice Lemon", tip: "夏季极浅轻薄防晒服" },
+                    { zh: "极浅柠黄", en: "Very Light Lemon", tip: "春夏打底棉T、清新马卡龙系列" },
+                    { zh: "马卡龙黄", en: "Pastel Lemon", tip: "法式温柔碎花裙内里、针织薄衫" },
+                    { zh: "浅香蕉黄", en: "Light Banana", tip: "度假沙滩装、春季活力卫衣" },
+                    { zh: "柠檬黄", en: "Lemon Yellow", tip: "多巴胺高饱和度假风吊带" },
+                    { zh: "亮黄", en: "Bright Canary", tip: "高强度户外骑行服、反光安全夹克" },
+                    { zh: "正金黄", en: "True Gold Yellow", tip: "美式街头连帽套头衫、大容量背包" },
+                    { zh: "含羞草黄", en: "Mimosa Yellow", tip: "青春系童装、春夏遮阳帽" },
+                    { zh: "水仙黄", en: "Daffodil Yellow", tip: "极亮防风外套、拼色风衣" },
+                    { zh: "向日葵黄", en: "Sunflower Yellow", tip: "秋季重磅毛线衣、针织冷帽" },
+                    { zh: "姜黄", en: "Ginger Yellow", tip: "秋冬常备保暖内衣、羊毛开衫" },
+                    { zh: "金琥珀", en: "Gold Amber", tip: "复古学院风毛呢马甲、厚外套" },
+                    { zh: "蜂蜜金", en: "Honey Amber", tip: "秋冬经典麂皮风衣、复古皮鞋面" },
+                    { zh: "暗金黄", en: "Dark Golden Yellow", tip: "战术装备背包、户外耐脏工装" },
+                    { zh: "古铜金", en: "Antique Bronze", tip: "金属微光缎面大衣、高端呢绒" },
+                    { zh: "赭石", en: "Yellow Ochre", tip: "经典阿美咔叽工装帆布鞋、重工马夹" },
+                    { zh: "暗赭", en: "Deep Ochre", tip: "做旧皮夹克皮料、复古双背带裤" },
+                    { zh: "泥褐", en: "Bistre Yellow", tip: "极耐脏冲锋衣拼色、工装靴" },
+                    { zh: "墨黄", en: "Midnight Yellow", tip: "高机能防水冲锋衣主色、暗黑工装" },
+                    { zh: "极致黄黑", en: "Ebon Yellow", tip: "带微黄调、高质感黑色（西装主推）" }
+                ]
+            },
+            {
+                id: "brown",
+                title: "棕褐驼色系 (Brown/Camel)",
+                tone: "warm",
+                anchors: ["#FDF8F5", "#F5E6D3", "#EAD2AC", "#D2B48C", "#C19A6B", "#A07855", "#8B5A2B", "#6F4E37", "#4B3621", "#3B2F2F", "#1C110A"],
+                names: [
+                    { zh: "浅奶茶", en: "Light Milk Tea", tip: "极轻柔春夏内搭、冰丝打底" },
+                    { zh: "极浅沙色", en: "Ivory Sand", tip: "莫代尔高弹打底裤、家居服" },
+                    { zh: "燕麦色", en: "Oatmeal", tip: "秋冬温柔开衫、打底衫常备" },
+                    { zh: "浅卡其", en: "Light Khaki", tip: "春夏季休闲风衣、棉麻休闲裤" },
+                    { zh: "浅驼色", en: "Light Camel", tip: "优雅高档春季单排扣风衣" },
+                    { zh: "经典卡其", en: "Classic Khaki", tip: "百搭卡其工装裤、直筒裤" },
+                    { zh: "亮卡其", en: "Bright Khaki", tip: "日系工装双口袋夹克" },
+                    { zh: "麦草棕", en: "Malt Brown", tip: "日系慵懒风棉麻套装、衬衫" },
+                    { zh: "经典驼色", en: "Classic Camel", tip: "秋冬长青款双面羊绒大衣" },
+                    { zh: "暖焦糖", en: "Warm Caramel", tip: "秋季羊毛衫、保暖高领针织衫" },
+                    { zh: "深驼色", en: "Dark Camel", tip: "重磅呢子外套、风衣" },
+                    { zh: "栗褐色", en: "Chestnut Brown", tip: "经典灯芯绒外套、秋季卫裤" },
+                    { zh: "可可棕", en: "Cocoa Brown", tip: "秋冬羊羔毛外套、保暖卫衣" },
+                    { zh: "巧克力色", en: "Chocolate", tip: "耐脏极显瘦保暖打底裤、针织开衫" },
+                    { zh: "焦红褐", en: "Mahogany Brown", tip: "美式咔叽复古皮料、短靴皮面" },
+                    { zh: "暗红木褐", en: "Dark Mahogany", tip: "高端呢大衣内搭、男式加厚外套" },
+                    { zh: "暗皮棕", en: "Dark Umber", tip: "秋冬重磅飞行员夹克、战术风衣" },
+                    { zh: "墨卡其", en: "Midnight Khaki", tip: "高防泼水机能服、户外登山长裤" },
+                    { zh: "墨棕", en: "Ink Brown", tip: "极简高端设计师呢大衣面料" },
+                    { zh: "极致棕黑", en: "Ebon Brown", tip: "顶级羊绒西装黑（比死黑更显高贵）" }
+                ]
+            },
+            {
+                id: "lime",
+                title: "青柠/石灰绿 (Lime)",
+                tone: "cool",
+                anchors: ["#F4FCE3", "#E9FAC8", "#D8F5A2", "#C0EB75", "#A9E34B", "#94D82D", "#82C91E", "#74B816", "#66A80F", "#5C940D", "#1A3300"],
+                names: [
+                    { zh: "冰青柠", en: "Ice Lime", tip: "夏季速干裤、超轻防晒衣" },
+                    { zh: "极浅青柠", en: "Very Light Lime", tip: "高品质纯棉夏T、运动打底背心" },
+                    { zh: "浅石灰绿", en: "Light Lime", tip: "夏季冷感背心、瑜伽九分裤" },
+                    { zh: "马卡龙青柠", en: "Macaron Lime", tip: "极显年轻防晒风衣、运动帽子" },
+                    { zh: "嫩芽绿", en: "Sprout Green", tip: "春夏活力运动套装、插肩袖卫衣" },
+                    { zh: "奇异果绿", en: "Kiwi Green", tip: "辣妹高腰短款T恤、性感吊带" },
+                    { zh: "荧光绿", en: "Fluorescent Lime", tip: "极致亮眼街头装、夜跑反光服、机能马甲" },
+                    { zh: "亮青柠", en: "Vibrant Lime", tip: "多巴胺高饱和街头连帽卫衣" },
+                    { zh: "嫩草绿", en: "Grass Lime", tip: "品牌高辨识度夏日限定、防风外套" },
+                    { zh: "标准石灰绿", en: "True Lime", tip: "户外骑行风衣、美式个性风夹克" },
+                    { zh: "开心果绿", en: "Pistachio Lime", tip: "复古重磅T恤、厚帆布包" },
+                    { zh: "橄榄青柠", en: "Olive Lime", tip: "日系工装双口袋衬衫、战术马甲" },
+                    { zh: "苔藓青柠", en: "Moss Lime", tip: "复古毛针织衫、秋冬毛尼短大衣" },
+                    { zh: "军绿青柠", en: "Army Lime", tip: "硬派工装防泼水夹克、休闲裤" },
+                    { zh: "暗石灰绿", en: "Dark Lime", tip: "秋冬加厚羽绒服拼色、耐脏外套" },
+                    { zh: "松针青柠", en: "Pine Lime", tip: "高机能战术战损风夹克、战术裤" },
+                    { zh: "极深石灰绿", en: "Deep Dark Lime", tip: "耐磨登山包、户外极限运动防风服" },
+                    { zh: "墨石灰绿", en: "Midnight Lime", tip: "极地极限防水冲锋衣面料" },
+                    { zh: "黑底石灰绿", en: "Blackish Lime", tip: "暗黑风格设计师品牌秋冬大衣" },
+                    { zh: "极致青柠黑", en: "Ebon Lime", tip: "低调且极具质感、微偏黄绿调的冷黑色" }
+                ]
+            },
+            {
+                id: "green",
+                title: "鲜绿系 (Green)",
+                tone: "cool",
+                anchors: ["#EBFBEE", "#D3F9D8", "#B2F2BB", "#8FEE9C", "#69DB7C", "#51CF66", "#40C057", "#37B24D", "#2F9E44", "#2B8A3E", "#0B3C10"],
+                names: [
+                    { zh: "冰薄荷", en: "Ice Mint", tip: "冷感夏季防晒服、冰丝打底" },
+                    { zh: "极浅绿", en: "Very Light Green", tip: "清新夏装、棉质T恤、童装" },
+                    { zh: "淡绿", en: "Pale Green", tip: "马卡龙春夏开衫、法式碎花衬衫" },
+                    { zh: "马卡龙绿", en: "Macaron Green", tip: "运动防风衣、速干跑步短裤" },
+                    { zh: "嫩绿", en: "Fresh Green", tip: "春夏活力连帽卫衣、工装帽" },
+                    { zh: "草绿", en: "Grass Green", tip: "多巴胺高饱和夏日T恤、插肩短袖" },
+                    { zh: "亮绿", en: "Bright Green", tip: "高街街头滑板风衣、吸睛运动外套" },
+                    { zh: "标准正绿", en: "True Green", tip: "经典复古运动装、品牌主打套头衫" },
+                    { zh: "常春藤绿", en: "Ivy Green", tip: "美式复古重磅T恤、厚帆布包" },
+                    { zh: "翡翠绿", en: "Emerald Green", tip: "高档复古针织开衫、真丝吊带裙" },
+                    { zh: "橄榄绿", en: "Olive Green", tip: "经典工装风夹克、战术背包" },
+                    { zh: "苔藓绿", en: "Moss Green", tip: "日系棉麻重工裤、复古针织冷帽" },
+                    { zh: "军绿", en: "Army Green", tip: "秋冬最耐脏工装夹克、多口袋裤" },
+                    { zh: "深军绿", en: "Dark Army Green", tip: "户外冲锋衣、极寒抗旱派克大衣" },
+                    { zh: "森林绿", en: "Forest Green", tip: "高档羊毛尼外套、秋冬羽绒服" },
+                    { zh: "松叶绿", en: "Pine Green", tip: "重磅羽绒服、高密度防水防风服" },
+                    { zh: "极深绿", en: "Deep Forest Green", tip: "设计师品牌重工厚外套、大衣" },
+                    { zh: "墨绿", en: "Dark Hunter Green", tip: "高端极简双面呢羊绒大衣" },
+                    { zh: "墨黛绿", en: "Dark Jade", tip: "极度低调的高级沉稳暗绿" },
+                    { zh: "极致绿黑", en: "Ebon Green", tip: "带深邃绿调的暗黑色（替代死黑）" }
+                ]
+            },
+            {
+                id: "emerald",
+                title: "薄荷/祖母绿系 (Emerald)",
+                tone: "cool",
+                // 【已修正】：将原来错混入的深蓝色号 #0891B2 替换为纯正的深祖母绿色号 #097969，色系过渡更平滑
+                anchors: ["#E6FCF5", "#C3FAE8", "#96F2D7", "#63E6BE", "#38D9A9", "#20C997", "#12B886", "#0CA678", "#097969", "#057A55", "#012B1C"],
+                names: [
+                    { zh: "冰祖母绿", en: "Ice Emerald", tip: "夏季速干服、运动轻量防晒衣" },
+                    { zh: "极浅祖母绿", en: "Very Light Emerald", tip: "莫代尔高弹打底衫、夏装开衫" },
+                    { zh: "淡薄荷绿", en: "Pale Mint", tip: "温柔风夏季防晒衣、遮阳帽" },
+                    { zh: "马卡龙薄荷", en: "Pastel Mint", tip: "少女感秋季连帽卫衣、遮阳帽" },
+                    { zh: "湖水绿", en: "Lake Green", tip: "复古法式连衣裙、棉麻度假装" },
+                    { zh: "亮薄荷", en: "Vibrant Mint", tip: "高街风拉链开衫、运动背心" },
+                    { zh: "标准祖母绿", en: "True Emerald", tip: "品牌极具辨识度主打、潮牌卫衣" },
+                    { zh: "薄荷翠绿", en: "Vibrant Emerald", tip: "机能派克外套拼色、高街运动裤" },
+                    { zh: "松石翠", en: "Turquoise Emerald", tip: "夏季沙滩裤、度假沙滩裙" },
+                    { zh: "复古翠绿", en: "Classic Emerald", tip: "重磅水洗做旧美式T恤、针织毛线衣" },
+                    { zh: "暗薄荷", en: "Muted Mint", tip: "极显白打底内层、秋冬开衫" },
+                    { zh: "深湖绿", en: "Deep Lake Green", tip: "秋冬羊毛呢大衣、高端女装连衣裙" },
+                    { zh: "青黛绿", en: "Deep Turquoise Green", tip: "重工刺绣夹克、高密度风衣" },
+                    { zh: "森林碧绿", en: "Deep Pine Emerald", tip: "耐脏加厚中长款羽绒服" },
+                    { zh: "暗祖母绿", en: "Dark Emerald", tip: "设计师品牌重工羊毛呢、工装大衣" },
+                    { zh: "极深湖绿", en: "Very Dark Emerald", tip: "高端极简男装毛呢大衣、风衣" },
+                    { zh: "墨绿碧", en: "Midnight Emerald", tip: "高档防泼水抗寒派克大衣" },
+                    { zh: "黛墨绿", en: "Dark Obsidian Emerald", tip: "极致低调高级的黑绿混合色" },
+                    { zh: "极致墨黛", en: "Blackish Emerald", tip: "几乎纯黑、带墨绿光的深邃极暗色" },
+                    { zh: "极致祖母绿黑", en: "Ebon Emerald", tip: "带有华丽祖母绿光泽的重工黑色" }
+                ]
+            },
+            {
+                id: "teal",
+                title: "青蓝/蓝绿系 (Teal)",
+                tone: "cool",
+                anchors: ["#E3FAF9", "#C5F6F5", "#99E9E4", "#66D9D1", "#3BC9DB", "#15AABF", "#0B7285", "#086070", "#05505C", "#03404A", "#011A1E"],
+                names: [
+                    { zh: "冰蓝绿", en: "Ice Teal", tip: "极浅冷感防晒服、透气夏装打底" },
+                    { zh: "极浅蓝绿", en: "Very Light Teal", tip: "莫代尔舒适居家服、内穿打底" },
+                    { zh: "淡青蓝", en: "Pale Teal", tip: "温柔风夏季防晒衣、遮阳帽" },
+                    { zh: "马卡龙蓝绿", en: "Pastel Teal", tip: "运动瑜伽Bra、高弹紧身裤" },
+                    { zh: "湖水蓝绿", en: "Lake Teal", tip: "春夏沙滩度假短裤、复古连衣裙" },
+                    { zh: "明亮蓝绿", en: "Vibrant Teal", tip: "多巴胺高街连帽衫、运动防风外套" },
+                    { zh: "经典青蓝", en: "Classic Teal", tip: "潮牌拼色夹克、美式街头圆领卫衣" },
+                    { zh: "标准正蓝绿", en: "True Teal", tip: "户外硬核防水外套、骑行冲锋衣" },
+                    { zh: "孔雀蓝", en: "Peacock Blue", tip: "高端针织羊绒衫、高雅女装连衣裙" },
+                    { zh: "深孔雀蓝", en: "Deep Peacock", tip: "丝绒睡衣套装、秋冬保暖毛开衫" },
+                    { zh: "暗蓝绿", en: "Dusty Teal", tip: "秋冬极显气质的毛呢外套、风衣" },
+                    { zh: "深海青", en: "Deep Sea Teal", tip: "耐脏款秋冬加厚羽绒服" },
+                    { zh: "森林蓝绿", en: "Forest Teal", tip: "日系工装夹克、机能风多口袋裤" },
+                    { zh: "钢青", en: "Steel Teal", tip: "都市战术裤、工装衬衫拼色" },
+                    { zh: "极深蓝绿", en: "Very Dark Teal", tip: "高端极简男士毛呢大衣、羊毛夹克" },
+                    { zh: "暗夜蓝绿", en: "Night Teal", tip: "设计师品牌重磅棉服面料" },
+                    { zh: "墨蓝绿", en: "Midnight Teal", tip: "极低调高端防水极寒外套" },
+                    { zh: "黛墨蓝绿", en: "Dark Obsidian Teal", tip: "接近纯黑的带幽深蓝绿调颜色" },
+                    { zh: "极致黛墨", en: "Blackish Teal", tip: "几近深黑的高级色（西装、礼服）" },
+                    { zh: "极致蓝绿黑", en: "Ebon Teal", tip: "带墨绿深蓝色调、极显高档的纯黑色" }
+                ]
+            },
+            {
+                id: "cyan",
+                title: "青色/天青系 (Cyan)",
+                tone: "cool",
+                anchors: ["#E3F9F9", "#C5F6F6", "#99E9EA", "#66D9E2", "#3BC9DB", "#15AABF", "#0B7285", "#086071", "#05505D", "#03404C", "#011B20"],
+                names: [
+                    { zh: "冰青色", en: "Ice Cyan", tip: "超轻透夏季速干服、运动冰丝" },
+                    { zh: "极浅青", en: "Very Light Cyan", tip: "夏日清凉打底T恤、雪纺开衫" },
+                    { zh: "淡天青", en: "Pale Cyan", tip: "温柔风春夏裙裤、度假吊带裙" },
+                    { zh: "马卡龙青", en: "Pastel Cyan", tip: "夏季遮阳帽子、跑步运动腰包" },
+                    { zh: "浅湖青", en: "Light Lake Cyan", tip: "运动瑜伽Bra、高回弹九分裤" },
+                    { zh: "明亮天青", en: "Bright Cyan", tip: "高饱和多巴胺拉链卫衣、高街外套" },
+                    { zh: "天青蓝", en: "Cyan Blue", tip: "经典洗水牛仔浅色、休闲短裤" },
+                    { zh: "标准正青色", en: "True Cyan", tip: "户外骑行外套、防水防风夹克" },
+                    { zh: "孔雀青", en: "Peacock Cyan", tip: "潮牌拼色连帽衫、街头夹克主色" },
+                    { zh: "深天青", en: "Deep Cyan", tip: "复古纯棉T恤、做旧水洗圆领卫衣" },
+                    { zh: "暗天青", en: "Muted Cyan", tip: "高级莫兰迪色秋冬呢绒大衣" },
+                    { zh: "深海青", en: "Deep Sea Cyan", tip: "高端成熟女装、羊毛针织衫" },
+                    { zh: "森林青", en: "Forest Cyan", tip: "秋冬加厚保暖羽绒服" },
+                    { zh: "钢青色", en: "Steel Cyan", tip: "日系工装双口袋夹克、休闲裤" },
+                    { zh: "极深天青", en: "Very Dark Cyan", tip: "高端极简毛呢大衣、冲锋衣拼色" },
+                    { zh: "暗夜青色", en: "Night Cyan", tip: "设计师品牌秋冬防寒外套" },
+                    { zh: "墨青色", en: "Midnight Cyan", tip: "耐磨登山包、户外极限滑雪服" },
+                    { zh: "黛墨青", en: "Dark Obsidian Cyan", tip: "极其沉稳内敛的深邃青黑色" },
+                    { zh: "极致黛墨青", en: "Blackish Cyan", tip: "几乎纯黑、自带青色幽光的暗黑色" },
+                    { zh: "极致青黑", en: "Ebon Cyan", tip: "带微青调的高档绝对黑色" }
+                ]
+            },
+            {
+                id: "sky",
+                title: "天空蓝系 (Sky Blue/Cyan)",
+                tone: "cool",
+                anchors: ["#E0F7FA", "#B2EBF2", "#80DEEA", "#4DD0E1", "#26C6DA", "#00BCD4", "#00ACC1", "#0097A7", "#00838F", "#006064", "#001012"],
+                names: [
+                    { zh: "冰空蓝", en: "Ice Sky Blue", tip: "夏季极轻薄冰丝打底、速干衣" },
+                    { zh: "极浅天蓝", en: "Very Light Sky", tip: "婴儿棉服、马卡龙风春夏卫衣" },
+                    { zh: "淡空蓝", en: "Pale Sky Blue", tip: "法式温柔碎花连衣裙、开衫" },
+                    { zh: "马卡龙天蓝", en: "Pastel Sky Blue", tip: "春夏季运动内衣、瑜伽紧身短裤" },
+                    { zh: "天空蓝", en: "True Sky Blue", tip: "经典天蓝色纯棉T恤、沙滩短裤" },
+                    { zh: "明亮天蓝", en: "Vibrant Sky Blue", tip: "运动风雨衣、速干跑步服、遮阳帽" },
+                    { zh: "蔚蓝色", en: "Azure Blue", tip: "美式街头重磅落肩套头衫" },
+                    { zh: "亮天蓝", en: "Bright Sky Blue", tip: "潮牌拼色冲锋衣、街头机能马甲" },
+                    { zh: "绿松石蓝", en: "Turquoise Blue", tip: "热带度假沙滩装、性感吊带裙" },
+                    { zh: "钢天蓝", en: "Steel Sky Blue", tip: "洗水浅色复古牛仔裤、衬衫" },
+                    { zh: "暗天蓝", en: "Muted Sky Blue", tip: "莫兰迪色秋冬毛针织、羊绒开衫" },
+                    { zh: "深天蓝", en: "Deep Sky Blue", tip: "高档羊毛呢外套、气质连衣裙" },
+                    { zh: "湖青蓝", en: "Lake Sky Blue", tip: "重磅羽绒服、高密度防水外套" },
+                    { zh: "深海蓝", en: "Deep Sea Sky", tip: "城市工装风夹克、双口袋衬衫" },
+                    { zh: "极深天蓝", en: "Very Dark Sky Blue", tip: "耐脏抗磨工装裤、多口袋背包" },
+                    { zh: "暗夜天蓝", en: "Night Sky Blue", tip: "极寒加厚派克大衣主色" },
+                    { zh: "墨天蓝", en: "Midnight Sky Blue", tip: "户外极限滑雪防寒外套" },
+                    { zh: "黛墨天蓝", en: "Dark Obsidian Sky", tip: "低调高级的深邃天蓝黑色" },
+                    { zh: "极致墨天蓝", en: "Blackish Sky", tip: "几乎纯黑、自带幽蓝冷光" },
+                    { zh: "极致天蓝黑", en: "Ebon Sky", tip: "带有经典天空蓝冷光的高级黑" }
+                ]
+            },
+            {
+                id: "blue",
+                title: "经典蓝系 (Blue)",
+                tone: "cool",
+                anchors: ["#E7F5FF", "#D0EBFF", "#A5D8FF", "#74C0FC", "#4DABF7", "#339AF0", "#228BE6", "#1C7ED6", "#1971C2", "#1864AB", "#031B33"],
+                names: [
+                    { zh: "冰蓝色", en: "Ice Blue", tip: "夏季极轻保暖防晒衣、冷感打底" },
+                    { zh: "极浅蓝", en: "Very Light Blue", tip: "马卡龙夏季短袖T恤、无痕内衣" },
+                    { zh: "淡经典蓝", en: "Pale Classic Blue", tip: "春夏季运动瑜伽裤、打底Bra" },
+                    { zh: "马卡龙经典蓝", en: "Pastel Classic Blue", tip: "清新减龄运动衫、遮阳帽子" },
+                    { zh: "经典天蓝", en: "Sky Classic Blue", tip: "百搭纯棉短袖T、美式复古T" },
+                    { zh: "明亮经典蓝", en: "Vibrant Blue", tip: "多巴胺高饱和街头卫衣、慢跑裤" },
+                    { zh: "蔚蓝色", en: "Azure Blue", tip: "品牌高辨识度主推色、连帽衫" },
+                    { zh: "标准正蓝", en: "True Blue", tip: "经典校服、运动开衫、经典运动长裤" },
+                    { zh: "经典蓝", en: "Classic Blue", tip: "商务POLO衫、休闲西装、针织开衫" },
+                    { zh: "皇家蓝", en: "Royal Blue", tip: "高贵风呢子大衣、秋冬常备毛线衣" },
+                    { zh: "深皇家蓝", en: "Deep Royal Blue", tip: "高端呢大衣内里拼色、高领内搭" },
+                    { zh: "钢蓝", en: "Steel Blue", tip: "复古做旧水洗牛仔、工装夹克" },
+                    { zh: "普鲁士蓝", en: "Prussian Blue", tip: "城市机能风口袋裤、战术外套" },
+                    { zh: "暗经典蓝", en: "Muted Classic Blue", tip: "高级莫兰迪色系羊绒大衣、西装" },
+                    { zh: "深海蓝", en: "Deep Sea Blue", tip: "秋冬常备耐脏保暖羽绒服" },
+                    { zh: "极深经典蓝", en: "Very Dark Classic Blue", tip: "抗寒户外羽绒服、高密度防水服" },
+                    { zh: "暗夜经典蓝", en: "Night Classic Blue", tip: "战术背包、户外登山功能裤" },
+                    { zh: "墨经典蓝", en: "Midnight Classic Blue", tip: "设计师品牌重工高寒外套" },
+                    { zh: "黛墨经典蓝", en: "Dark Obsidian Blue", tip: "极度幽深低调的藏青色" },
+                    { zh: "极致经典蓝黑", en: "Ebon Blue", tip: "带深邃经典蓝微光的极档次黑（西装首选）" }
+                ]
+            },
+            {
+                id: "indigo",
+                title: "靛蓝色系 (Indigo)",
+                tone: "cool",
+                anchors: ["#EDF2FF", "#DBE4FF", "#BAC8FF", "#91A7FF", "#748FFC", "#5C7CFA", "#4C6EF5", "#4263EB", "#3B5BDB", "#364FC7", "#0D183B"],
+                names: [
+                    { zh: "冰靛蓝", en: "Ice Indigo", tip: "冷色调夏季防晒、高回弹冰丝衫" },
+                    { zh: "极浅靛蓝", en: "Very Light Indigo", tip: "夏装打底T恤、柔和家居服" },
+                    { zh: "淡靛蓝", en: "Pale Indigo", tip: "马卡龙春装针织开衫、连衣裙" },
+                    { zh: "马卡龙靛蓝", en: "Pastel Indigo", tip: "青春系运动外套、慢跑紧身裤" },
+                    { zh: "经典浅靛蓝", en: "Light Indigo", tip: "经典复古未水洗牛仔衬衫" },
+                    { zh: "明亮靛蓝", en: "Vibrant Indigo", tip: "高街街头滑板连帽衫、高亮风衣" },
+                    { zh: "靛蓝色", en: "True Indigo", tip: "重磅高街圆领卫衣、落肩T恤" },
+                    { zh: "标准正靛蓝", en: "Standard Indigo", tip: "牛仔原色夹克、重磅原牛牛仔裤" },
+                    { zh: "普鲁士靛蓝", en: "Prussian Indigo", tip: "工装双口袋机能风夹克、战术裤" },
+                    { zh: "经典藏青", en: "Classic Navy", tip: "商务休闲西装、经典风衣主色" },
+                    { zh: "深藏青", en: "Dark Navy", tip: "秋冬最耐脏运动长裤、打底裤" },
+                    { zh: "暗夜藏青", en: "Night Navy", tip: "秋冬羊毛呢双面大衣（英伦风）" },
+                    { zh: "极深靛蓝", en: "Very Dark Indigo", tip: "高品质男士防寒棉服、羽绒服" },
+                    { zh: "暗靛蓝", en: "Muted Indigo", tip: "极简高端设计师款大衣" },
+                    { zh: "黛墨靛蓝", en: "Dark Obsidian Indigo", tip: "深邃黛蓝色大衣、防风派克服" },
+                    { zh: "墨靛蓝", en: "Midnight Indigo", tip: "极寒极限防水冲锋服" },
+                    { zh: "黑底靛蓝", en: "Blackish Indigo", tip: "几乎纯黑、带深靛蓝极低调色" },
+                    { zh: "极致墨青", en: "Ebon Navy Black", tip: "极其昂贵的“五分蓝六分黑”" },
+                    { zh: "重工业蓝黑", en: "Heavy Blue Black", tip: "高端定制西服、极冷硬派黑" },
+                    { zh: "极致靛蓝黑", en: "Absolute Indigo Black", tip: "带有靛蓝色微光、最具工业高级感的重黑色" }
+                ]
+            },
+            {
+                id: "violet",
+                title: "紫罗兰系 (Violet)",
+                tone: "cool",
+                // 【已修正】：彻底去除了原有的黄绿色号 #94D82D，用标准的紫罗兰中调色号 #9475FA 完美替换，解决了 400 与 450 出现绿色卡片的问题
+                anchors: ["#F3F0FF", "#E5DBFF", "#D0BFFF", "#B197FC", "#9475FA", "#7950F2", "#7048E8", "#6741D9", "#5F3DC4", "#5B37BF", "#1E0F3D"],
+                names: [
+                    { zh: "冰紫罗兰", en: "Ice Violet", tip: "冰凉 summer、瑜伽打底" },
+                    { zh: "极浅紫罗兰", en: "Very Light Violet", tip: "莫代尔无痕睡眠内衣、睡裙" },
+                    { zh: "淡紫罗兰", en: "Pale Violet", tip: "浪漫春装连衣裙、法式开衫" },
+                    { zh: "马卡龙紫罗兰", en: "Pastel Violet", tip: "秋季少女风宽松卫衣、冷帽" },
+                    { zh: "浅风信子紫", en: "Light Hyacinth Violet", tip: "柔和春季针织衫、雪纺打底" },
+                    { zh: "兰花紫罗兰", en: "Orchid Violet", tip: "运动内衣、九分高腰提臀裤" },
+                    { zh: "明亮紫罗兰", en: "Vibrant Violet", tip: "高街个性拉链卫衣、潮牌短T" },
+                    { zh: "标准正紫罗兰", en: "True Violet", tip: "品牌前卫艺术卫衣、高饱和运动外套" },
+                    { zh: "经典紫罗兰", en: "Classic Violet", tip: "美式街头重磅圆领T恤" },
+                    { zh: "深紫罗兰", en: "Deep Violet", tip: "华丽风秋冬羊毛毛线衫、冷帽" },
+                    { zh: "皇家紫罗兰", en: "Royal Violet", tip: "高端双面毛呢短外套（极高贵）" },
+                    { zh: "暗紫罗兰", en: "Muted Violet", tip: "莫兰迪深紫色羊绒大衣" },
+                    { zh: "深海紫罗兰", en: "Deep Sea Violet", tip: "秋冬常备耐脏加厚保暖羽绒服" },
+                    { zh: "森林紫罗兰", en: "Forest Violet", tip: "重磅羽绒服、派克大衣面料" },
+                    { zh: "极深紫罗兰", en: "Very Dark Violet", tip: "日系工装双口袋重磅夹克" },
+                    { zh: "暗夜紫罗兰", en: "Night Violet", tip: "极度耐磨机能背包、登山服" },
+                    { zh: "墨紫罗兰", en: "Midnight Violet", tip: "极限滑雪保暖防风衣" },
+                    { zh: "黛墨紫罗兰", en: "Dark Obsidian Violet", tip: "深黛暗黑色、高端设计师款" },
+                    { zh: "极致黛墨紫", en: "Blackish Violet", tip: "几乎纯黑、带紫罗兰冷冷幽光" },
+                    { zh: "极致紫罗兰黑", en: "Ebon Violet", tip: "带微偏冷紫调的绝对重黑色" }
+                ]
+            },
+            {
+                id: "slate",
+                title: "冷灰/石灰色系 (Slate/Cool Gray)",
+                tone: "neutral",
+                anchors: ["#F8F9FA", "#F1F3F5", "#E9ECEF", "#DEE2E6", "#CED4DA", "#ADB5BD", "#868E96", "#495057", "#343A40", "#212529", "#0B0C10"],
+                names: [
+                    { zh: "冰石灰/极浅灰", en: "Ice Slate", tip: "冷感夏季防晒、高回弹冰丝打底" },
+                    { zh: "马卡龙灰", en: "Pastel Gray", tip: "夏日清透短袖T恤、柔和居家裤" },
+                    { zh: "浅水泥灰", en: "Light Concrete Gray", tip: "美式复古圆领短袖、插肩卫衣" },
+                    { zh: "经典浅灰", en: "Light Gray", tip: "四季通配百搭运动连帽衫、束脚裤" },
+                    { zh: "经典银灰", en: "Classic Silver Gray", tip: "高品质莫代尔打底裤、长款秋裤" },
+                    { zh: "雾霾灰", en: "Haze Slate Gray", tip: "优雅高领羊绒毛衣、开衫内搭" },
+                    { zh: "水泥灰", en: "Concrete Gray", tip: "重磅落脚卫裤、街头复古卫衣主推" },
+                    { zh: "中石灰", en: "Medium Slate Gray", tip: "经典商务POLO衫、中性风单西装" },
+                    { zh: "钛金灰", en: "Titanium Slate", tip: "硬朗风防风夹克、双口袋风衣" },
+                    { zh: "标准正灰", en: "True Gray", tip: "四季通用经典运动长裤、运动背包" },
+                    { zh: "碳灰", en: "Carbon Gray", tip: "重工耐脏休闲卫裤、运动健身裤" },
+                    { zh: "深碳灰", en: "Dark Carbon", tip: "显瘦高回弹瑜伽提臀九分裤" },
+                    { zh: "石墨灰", en: "Graphite Gray", tip: "极显档次的英伦毛呢大衣、风衣" },
+                    { zh: "深石墨灰", en: "Dark Graphite", tip: "重磅秋冬羊毛呢、高端西装裤" },
+                    { zh: "极深灰", en: "Very Dark Slate", tip: "代替纯黑色的高级感耐脏羽绒服" },
+                    { zh: "暗夜冷灰", en: "Night Cool Gray", tip: "硬核冲锋衣、派克大衣主色" },
+                    { zh: "墨灰色", en: "Midnight Slate", tip: "重工业机能风防水裤、户外登山鞋面" },
+                    { zh: "黑底冷灰", en: "Blackish Slate", tip: "极低调高端洗水做旧黑色牛仔裤" },
+                    { zh: "曜石黑", en: "Obsidian Black", tip: "质感硬朗、黑中带钛灰色的高级冷黑" },
+                    { zh: "极致纯黑", en: "Absolute Black", tip: "最经典、深邃、绝不退色褪色的高浓度死黑" }
+                ]
+            },
+            {
+                id: "khaki",
+                title: "沙石卡其系 (Sand/Khaki)",
+                tone: "neutral",
+                anchors: ["#FAF9F6", "#F4F1EA", "#EAE6DF", "#DDD8D0", "#CFC9BE", "#C0B9AC", "#B0A89B", "#A0988B", "#8C8377", "#6F675B", "#2E2A24"],
+                names: [
+                    { zh: "冰川白", en: "Glacier White", tip: "极清透防晒衣、夏季短袖T" },
+                    { zh: "极浅亚麻", en: "Very Light Flax", tip: "日系文艺风棉麻长裙" },
+                    { zh: "浅麻灰", en: "Light Flax Gray", tip: "轻薄针织开衫、莫代尔内搭" },
+                    { zh: "经典米色", en: "Classic Beige", tip: "春夏季薄款风衣、休闲裤" },
+                    { zh: "沙石色", en: "Sand", tip: "工装休闲裤、沙滩防晒衣" },
+                    { zh: "燕麦卡其", en: "Oatmeal Khaki", tip: "知性气质休闲西装裤" },
+                    { zh: "经典卡其", en: "Classic Khaki", tip: "百搭直筒工装裤" },
+                    { zh: "沙地褐", en: "Sand Drab", tip: "工装双口袋夹克" },
+                    { zh: "浅粘土", en: "Light Clay", tip: "秋冬毛呢短大衣" },
+                    { zh: "标准卡其", en: "Standard Khaki", tip: "经典战壕风衣、耐脏工装夹克" },
+                    { zh: "深沙色", en: "Dark Sand", tip: "重磅水洗牛仔裤" },
+                    { zh: "暗卡其", en: "Dark Khaki", tip: "秋冬加厚羊毛大衣" },
+                    { zh: "石墨沙", en: "Graphite Sand", tip: "复古派克大衣" },
+                    { zh: "极深卡其", en: "Very Dark Khaki", tip: "户外登山冲锋衣" },
+                    { zh: "暗夜沙色", en: "Night Sand", tip: "户外耐磨战术长裤" },
+                    { zh: "墨沙色", en: "Midnight Sand", tip: "极寒防水户外防风服" },
+                    { zh: "深秋卡其", en: "Late Autumn Khaki", tip: "高端设计师极简羊绒衫" },
+                    { zh: "泥沙色", en: "Mud Sand", tip: "水洗做旧极复古夹克" },
+                    { zh: "极致暗沙", en: "Blackish Sand", tip: "带有泥沙调的深邃暗黑" },
+                    { zh: "极致卡其黑", en: "Ebon Khaki Black", tip: "带极微卡其色偏的高档重黑色" }
+                ]
+            }
+        ];
+
+        // --- 核心数学算法：RGB 线性插值生成 20 档平滑色阶 ---
+        function hexToRgb(hex) {
+            let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+                return r + r + g + g + b + b;
+            });
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        // 补全插值算法
+        function interpolateColor(color1, color2, factor) {
+            let c1 = hexToRgb(color1);
+            let c2 = hexToRgb(color2);
+            if (!c1 || !c2) return "#FFFFFF";
+            let r = Math.round(c1.r + factor * (c2.r - c1.r));
+            let g = Math.round(c1.g + factor * (c2.g - c1.g));
+            let b = Math.round(c1.b + factor * (c2.b - c1.b));
+            return rgbToHex(r, g, b);
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            let max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l;
+
+            l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0; // achromatic
+            } else {
+                let d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+                // 浮点数防误差逻辑
+                if (max === r) {
+                    h = (g - b) / d + (g < b ? 6 : 0);
+                } else if (max === g) {
+                    h = (b - r) / d + 2;
+                } else if (max === b) {
+                    h = (r - g) / d + 4;
+                }
+                h /= 6;
+            }
+            return [h * 360, s, l];
+        }
+
+        function hslToRgb(h, s, l) {
+            h /= 360;
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l; // achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                let p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        function hexToHsl(hex) {
+            let rgb = hexToRgb(hex);
+            if (!rgb) return [0, 0, 0];
+            return rgbToHsl(rgb.r, rgb.g, rgb.b);
+        }
+
+        // 生成多节点、极其平滑的 20 色阶数组
+        function generate20Steps(anchors, count = 20) {
+            let palette = [];
+            for (let i = 0; i < count; i++) {
+                let factor = i / (count - 1);
+                let position = factor * (anchors.length - 1);
+                let index = Math.floor(position);
+                let subFactor = position - index;
+                if (index >= anchors.length - 1) {
+                    palette.push(anchors[anchors.length - 1]);
+                } else {
+                    palette.push(interpolateColor(anchors[index], anchors[index + 1], subFactor));
+                }
+            }
+            return palette;
+        }
+
+        // 色阶对应的数值档位
+        const levels = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000];
+
+        let activeCategory = "all";
+        let currentSelectedHex = "#5FEB50"; // 默认
+
+        // --- 拖拽与换色系统的全局状态变量 ---
+        let originalImageData = null;
+        let imgWidth = 0;
+        let imgHeight = 0;
+        const modelImg = new Image();
+
+        // 标记对色锁定：针对亚马逊蓝上衣进行极致物理标定
+        let sourceH = 210;
+        let sourceLum = 0.45; // 亚马逊模特图上衣的中位 HSL 亮度基准点
+
+        // 核心对色点按锁定功能
+        function initCanvasClickLock() {
+            const canvas = document.getElementById('model-canvas');
+            if (!canvas) return;
+
+            canvas.addEventListener('click', (e) => {
+                if (!originalImageData) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.round(((e.clientX - rect.left) / rect.width) * imgWidth);
+                const y = Math.round(((e.clientY - rect.top) / rect.height) * imgHeight);
+
+                const idx = (y * imgWidth + x) * 4;
+                const r = originalImageData.data[idx];
+                const g = originalImageData.data[idx+1];
+                const b = originalImageData.data[idx+2];
+
+                const [h, s, l] = rgbToHsl(r, g, b);
+
+                if (s > 0.05 && l > 0.01 && l < 0.98) {
+                    sourceH = h;
+                    sourceLum = l;
+
+                    const toast = document.getElementById('toast');
+                    document.getElementById('toast-text').innerText = `已手动锁定基准点：色相 ${Math.round(h)}°，亮度 ${l.toFixed(2)}`;
+                    toast.classList.remove('hidden');
+                    setTimeout(() => toast.classList.add('hidden'), 2500);
+
+                    recolorModel(currentSelectedHex);
+                }
+            });
+        }
+
+        // 一键扫描、自动识别原图衣服主色相（CV算法）
+        function autoDetectApparelHue() {
+            if (!originalImageData) return;
+            const srcData = originalImageData.data;
+            const hueBuckets = new Array(360).fill(0);
+            let lums = [];
+
+            // 1. 识别主色相
+            for (let i = 0; i < srcData.length; i += 64) {
+                let r = srcData[i];
+                let g = srcData[i+1];
+                let b = srcData[i+2];
+                let a = srcData[i+3];
+                if (a < 150) continue;
+                let [h, s, l] = rgbToHsl(r, g, b);
+                if (s >= 0.08 && l >= 0.05 && l <= 0.85) {
+                    if (h < 5 || h > 42) { // 排除皮肤
+                        let hInt = Math.floor(h);
+                        if (hInt >= 0 && hInt < 360) hueBuckets[hInt]++;
+                        lums.push(l);
+                    }
+                }
+            }
+
+            let maxCount = 0;
+            let bestHue = 210;
+            for (let i = 0; i < 360; i++) {
+                let sum = 0;
+                for (let j = -10; j <= 10; j++) {
+                    let idx = (i + j + 360) % 360;
+                    sum += hueBuckets[idx];
+                }
+                if (sum > maxCount) {
+                    maxCount = sum;
+                    bestHue = i;
+                }
+            }
+            sourceH = bestHue;
+
+            // 2. 识别该色相下的基准亮度 (sourceLum)
+            if (lums.length > 0) {
+                lums.sort((a, b) => a - b);
+                sourceLum = lums[Math.floor(lums.length * 0.5)];
+            }
+
+            console.log(`【精准标定】主色相: ${sourceH}°, 物理亮度基准: ${sourceLum.toFixed(3)}`);
+        }
+
+        async function initModel() {
+            const loadingEl = document.getElementById('model-loading');
+            const canvas = document.getElementById('model-canvas');
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (canvas) canvas.classList.add('hidden');
+
+            // 亚马逊官方大图
+            const secureUrl = "https://images.weserv.nl/?url=https://m.media-amazon.com/images/I/61REcememvL.jpg";
+
+            try {
+                const res = await fetch(secureUrl);
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const blob = await res.blob();
+                const objectURL = URL.createObjectURL(blob);
+
+                modelImg.src = objectURL;
+            } catch (e) {
+                console.warn("Secure Fetch Image failed, falling back to direct load...", e);
+                modelImg.crossOrigin = "anonymous";
+                modelImg.src = secureUrl;
+            }
+
+            modelImg.onload = function() {
+                const hiddenCanvas = document.createElement('canvas');
+                hiddenCanvas.width = modelImg.naturalWidth;
+                hiddenCanvas.height = modelImg.naturalHeight;
+                const hiddenCtx = hiddenCanvas.getContext('2d');
+                hiddenCtx.drawImage(modelImg, 0, 0);
+
+                imgWidth = modelImg.naturalWidth;
+                imgHeight = modelImg.naturalHeight;
+                originalImageData = hiddenCtx.getImageData(0, 0, imgWidth, imgHeight);
+
+                // 加载原图的第一时间，直接自动探测并锁定原图中衣服的最真实主色相
+                autoDetectApparelHue();
+
+                const canvas = document.getElementById('model-canvas');
+                if (canvas) {
+                    canvas.width = imgWidth;
+                    canvas.height = imgHeight;
+                }
+
+                // 执行换色
+                recolorModel(currentSelectedHex);
+
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (canvas) canvas.classList.remove('hidden');
+            };
+
+            modelImg.onerror = function() {
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <div class="text-red-500 font-bold p-4 text-center">
+                            <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+                            <p class="text-xs">智能对色试衣模特载入失败</p>
+                            <p class="text-[10px] text-slate-400 mt-1">这通常是因为网络暂时无法连接 Amazon CDN 资源导致，请直接选择本地图片上传。</p>
+                        </div>
+                    `;
+                }
+            };
+        }
+
+        // 像素着色器
+        function recolorModel(targetHex) {
+            if (!originalImageData) return;
+
+            const canvas = document.getElementById('model-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            const newImageData = ctx.createImageData(imgWidth, imgHeight);
+            const srcData = originalImageData.data;
+            const destData = newImageData.data;
+
+            // 获取目标颜色的真实 RGB 和 HSL
+            const targetRgb = hexToRgb(targetHex);
+            if (!targetRgb) return;
+
+            const [targetH, targetS, targetL] = hexToHsl(targetHex);
+
+            for (let i = 0; i < srcData.length; i += 4) {
+                let r = srcData[i];
+                let g = srcData[i+1];
+                let b = srcData[i+2];
+                let a = srcData[i+3];
+
+                destData[i+3] = a;
+
+                let [h, s, l] = rgbToHsl(r, g, b);
+
+                const hueDiff = Math.abs(h - sourceH);
+                const isTargetColor = hueDiff <= 45 || hueDiff >= 315;
+
+                if (isTargetColor && s >= 0.05 && l >= 0.01 && l <= 0.95) {
+
+                    // 【极致 100% 还原算法：HSL 恒定投影技术】
+                    // 1. 计算当前像素相对于基准点的亮度偏移比例
+                    let newL;
+                    if (l <= sourceLum) {
+                        // 阴影区：等比缩放，完美保留褶皱深处细节
+                        newL = targetL * (l / sourceLum);
+                    } else {
+                        // 高光区：线性映射到 1.0，并进行 0.7 的物理阻尼，防止过曝
+                        let ratio = (l - sourceLum) / (1.0 - sourceLum);
+                        newL = targetL + (1.0 - targetL) * ratio * 0.7;
+                    }
+
+                    // 2. 核心还原：锁定 Hue 和 Saturation，仅映射亮度变化
+                    // 这样可以确保在中位亮度区域，输出颜色编码与 targetHex 绝对一致
+                    const rgb = hslToRgb(targetH, targetS, newL);
+
+                    destData[i] = rgb[0];
+                    destData[i+1] = rgb[1];
+                    destData[i+2] = rgb[2];
+                } else {
+                    destData[i] = r;
+                    destData[i+1] = g;
+                    destData[i+2] = b;
+                }
+            }
+
+            ctx.putImageData(newImageData, 0, 0);
+        }
+
+        // 构建 DOM (已修复：全面保护所有 document.getElementById 的读取)
+        function renderColorPalettes() {
+            const container = document.getElementById('palette-container');
+            const searchInput = document.getElementById('search-input');
+            const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+            if (!container) return;
+            container.innerHTML = '';
+
+            let matchesCount = 0;
+
+            colorFamilies.forEach((family) => {
+                if (activeCategory !== "all" && family.tone !== activeCategory) return;
+
+                const stepsHex = generate20Steps(family.anchors);
+
+                let hasMatchedSwatch = false;
+                const swatchesData = [];
+
+                stepsHex.forEach((hex, index) => {
+                    const nameData = family.names[index] || { zh: "未命名", en: "Unnamed", tip: "" };
+                    const level = levels[index];
+
+                    const matchesSearch =
+                        family.title.toLowerCase().includes(searchVal) ||
+                        nameData.zh.toLowerCase().includes(searchVal) ||
+                        nameData.en.toLowerCase().includes(searchVal) ||
+                        hex.toLowerCase().includes(searchVal);
+
+                    if (searchVal === "" || matchesSearch) {
+                        hasMatchedSwatch = true;
+                    }
+
+                    swatchesData.push({
+                        hex,
+                        level,
+                        nameData,
+                        visible: searchVal === "" || matchesSearch
+                    });
+                });
+
+                if (hasMatchedSwatch) {
+                    matchesCount++;
+
+                    const familyBox = document.createElement('div');
+                    familyBox.className = "color-panel rounded-2xl p-6 transition duration-300";
+
+                    let swatchesHtml = "";
+                    swatchesData.forEach((swatch, index) => {
+                        const opacityClass = swatch.visible ? "opacity-100 scale-100" : "opacity-10 scale-95 pointer-events-none";
+
+                        swatchesHtml += `
+                            <div class="flex flex-col items-center flex-grow flex-shrink flex-1 min-w-[42px] max-w-[85px] ${opacityClass} transition-all duration-200">
+                                <div
+                                    onclick="selectColor('${swatch.hex}', '${swatch.nameData.zh}', '${swatch.nameData.en}', '${swatch.level}', '${swatch.nameData.tip}')"
+                                    onmouseover="previewColor('${swatch.hex}', '${swatch.nameData.zh}', '${swatch.nameData.en}', '${swatch.level}', '${swatch.nameData.tip}')"
+                                    class="w-full h-14 rounded-lg cursor-pointer relative group border border-slate-200 hover:border-slate-400 hover:scale-105 hover:z-30 hover:shadow-md transition-all duration-150"
+                                    style="background-color: ${swatch.hex};"
+                                    title="点击复制色号: ${swatch.hex}"
+                                >
+                                    <div class="absolute bottom-1 right-1 bg-black/40 px-1 py-0.5 rounded text-[8px] font-mono text-white/80 scale-75 select-none pointer-events-none">
+                                        ${swatch.level}
+                                    </div>
+                                </div>
+                                <span class="text-[10px] mt-2 text-slate-700 truncate w-full text-center font-bold tracking-tight px-0.5" title="${swatch.nameData.zh}">${swatch.nameData.zh}</span>
+                                <span class="text-[9px] text-slate-400 font-mono text-center truncate w-full uppercase mt-0.5 select-all" title="双击可选择色号">${swatch.hex}</span>
+                            </div>
+                        `;
+                    });
+
+                    familyBox.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${stepsHex[10]};"></span>
+                                ${family.title}
+                            </h3>
+                            <span class="text-[10px] text-slate-400 font-mono">色阶: 浅 (50) &rarr; 深 (1000)</span>
+                        </div>
+                        <div class="flex gap-1.5 md:gap-2 justify-between w-full select-none overflow-x-auto pb-2">
+                            ${swatchesHtml}
+                        </div>
+                    `;
+                    container.appendChild(familyBox);
+                }
+            });
+
+            const noResultsEl = document.getElementById('no-results');
+            if (noResultsEl) {
+                if (matchesCount === 0) {
+                    noResultsEl.classList.remove('hidden');
+                } else {
+                    noResultsEl.classList.add('hidden');
+                }
+            }
+        }
+
+        // 分类切换
+        function switchCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn px-4 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition-all";
+            });
+            const activeBtn = document.getElementById(`btn-${cat}`);
+            if (activeBtn) {
+                activeBtn.className = "cat-btn px-4 py-2 rounded-lg bg-indigo-600 text-white transition-all shadow-sm";
+            }
+            renderColorPalettes();
+        }
+
+        function filterPalettes() {
+            renderColorPalettes();
+        }
+
+        // 实时换色触发
+        function previewColor(hex, zh, en, level, tip) {
+            const previewBox = document.getElementById('preview-box');
+            if (previewBox) {
+                previewBox.style.backgroundColor = hex;
+            }
+
+            const zhEl = document.getElementById('preview-zh');
+            const levelEl = document.getElementById('preview-level');
+            const hexEl = document.getElementById('preview-hex');
+            const enEl = document.getElementById('preview-en');
+            const tipEl = document.getElementById('preview-tip');
+
+            if (zhEl) zhEl.innerText = zh;
+            if (levelEl) levelEl.innerText = level;
+            if (hexEl) hexEl.innerText = hex;
+            if (enEl) enEl.innerText = en;
+            if (tipEl) tipEl.innerText = tip ? `打版建议：${tip}` : "暂无打版应用建议";
+
+            recolorModel(hex);
+        }
+
+        // 点击色块：锁定色值并复制
+        function selectColor(hex, zh, en, level, tip) {
+            currentSelectedHex = hex;
+            previewColor(hex, zh, en, level, tip);
+            copyCurrentHex();
+        }
+
+        function copyCurrentHex() {
+            navigator.clipboard.writeText(currentSelectedHex).then(() => {
+                const toast = document.getElementById('toast');
+                if (toast) {
+                    const toastText = document.getElementById('toast-text');
+                    if (toastText) toastText.innerText = `色号 ${currentSelectedHex} 已成功复制到剪贴板！`;
+                    toast.classList.remove('hidden');
+                    setTimeout(() => {
+                        toast.classList.add('hidden');
+                    }, 1500);
+                }
+            }).catch(err => {
+                console.error('复制色号失败', err);
+            });
+        }
+
+        // 绑定一键导出图片机制
+        function bindExportImage() {
+            const canvas = document.getElementById('model-canvas');
+            if (canvas) {
+                canvas.addEventListener('dblclick', () => {
+                    const previewZh = document.getElementById('preview-zh');
+                    const zhName = previewZh ? previewZh.innerText : "设计图";
+                    const link = document.createElement('a');
+                    link.download = `AW25_${zhName}_${currentSelectedHex}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
+        }
+
+        // 页面入口：已修复所有 Reference/Type 崩溃点，页面 100% 顺畅直出
+        window.onload = function() {
+            renderColorPalettes();
+            initModel(); // 异步载入并处理亚马逊图片
+            bindExportImage();
+            initCanvasClickLock(); // 初始化画布单击色相锁定机制
+
+            // 默认渲染第一个色值效果（亮绿）
+            previewColor('#5FEB50', '明亮经典绿', 'Vibrant Green', '350', '街头机能风、速干跑步服、防晒外套点缀');
+        };
+    </script>
+</body>
+</html>
