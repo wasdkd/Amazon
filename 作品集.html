@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人数字化设计与可视化作品集</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0b0f19;
+            overflow-x: hidden;
+        }
+        /* 玻璃质感卡片与动画 */
+        .glass-card {
+            background: rgba(17, 25, 40, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
+        }
+        /* 背景模糊流光球 */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+        /* 拖拽区域高亮状态 */
+        .drag-over {
+            border-color: #6366f1 !important;
+            background-color: rgba(99, 102, 241, 0.15) !important;
+        }
+        /* 美化灯箱的原生滚动条，使其不显突兀 */
+        #lightbox-modal::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        #lightbox-modal::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        #lightbox-modal::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 4px;
+        }
+        #lightbox-modal::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.6);
+        }
+    </style>
+</head>
+<body class="relative min-h-screen text-slate-200 flex flex-col justify-between font-sans">
+
+    <!-- 交互粒子画布 -->
+    <canvas id="canvas-bg" class="absolute inset-0 w-full h-full z-0 pointer-events-auto"></canvas>
+
+    <!-- 氛围光源球 -->
+    <div class="glow-orb w-[400px] h-[400px] bg-indigo-600 top-[-100px] left-[-100px]"></div>
+    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>
+    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
+
+    <!-- 主体容器 -->
+    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 lg:px-8 flex-grow flex flex-col justify-center">
+
+        <!-- 顶部控制面板 -->
+        <div class="flex flex-wrap justify-end gap-2 mb-6 font-sans">
+            <button onclick="openAddModal()" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-indigo-500/30 shadow-md backdrop-blur-md transition-all">
+                <i class="fa-solid fa-plus-circle"></i> 添加新作品
+            </button>
+            <button onclick="exportStandaloneHTML()" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 shadow-md backdrop-blur-md transition-all" title="将当前添加的所有作品数据与图片链接硬编码进源文件，发给别人直接看">
+                <i class="fa-solid fa-file-shield"></i> 打包并导出新 HTML 文件
+            </button>
+            <button onclick="openGithubModal()" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700/50 shadow-md backdrop-blur-md transition-all">
+                <i class="fa-brands fa-github"></i> GitHub 云同步配置
+            </button>
+        </div>
+
+        <!-- 头部标题区 -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 backdrop-blur-md text-xs text-indigo-300 font-mono mb-4">
+                <i class="fa-solid fa-code-branch animate-pulse"></i> DATAZPJ PORTFOLIO ENGINE ACTIVE
+            </div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-300 font-sans">
+                个人设计与可视化作品集
+            </h1>
+            <p id="sync-status" class="mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800">
+                本地暂存模式 (未配置 GitHub 授权)
+            </p>
+        </header>
+
+        <!-- 工具过滤与搜索栏（精准匹配您的业务场景） -->
+        <div class="max-w-xl w-full mx-auto mb-10 flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-grow font-sans">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </span>
+                <input type="text" id="search-input" name="portfolio_search" autocomplete="off" oninput="filterPortfolio()" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500" placeholder="检索作品名称或介绍描述...">
+            </div>
+            <div class="flex rounded-xl bg-slate-900/80 p-1 border border-slate-700/50 text-xs font-medium shrink-0 font-sans">
+                <button onclick="switchCategory('all')" id="btn-all" class="cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all">全部</button>
+                <button onclick="switchCategory('dataviz')" id="btn-dataviz" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">数据分析看板</button>
+                <button onclick="switchCategory('apparel')" id="btn-apparel" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">服装开发/设计</button>
+                <button onclick="switchCategory('other')" id="btn-other" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">其他作品</button>
+            </div>
+        </div>
+
+        <!-- 作品网格 -->
+        <div id="portfolio-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
+            <!-- 作品卡片由JS动态载入 -->
+        </div>
+
+        <!-- 检索为空提示 -->
+        <div id="no-results" class="hidden text-center py-12">
+            <i class="fa-solid fa-circle-info text-3xl text-slate-600 mb-2"></i>
+            <p class="text-sm text-slate-400">当前分类下未找到匹配的作品卡片</p>
+        </div>
+    </div>
+
+    <!-- 动态添加新作品弹窗 -->
+    <div id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden font-sans">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h3 class="text-md font-bold text-slate-100"><i class="fa-solid fa-circle-plus text-indigo-500 mr-1"></i> 添加新作品至作品集</h3>
+                <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品名称</label>
+                    <input type="text" id="new-title" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：Tableau销售分析多维看板">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">所属作品分类</label>
+                    <select id="new-category" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs">
+                        <option value="dataviz">数据可视化分析看板</option>
+                        <option value="apparel">女装开发与版型设计</option>
+                        <option value="other">其他实用设计/技术沉淀</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">拖拽或点击上传作品截图（支持 jpg, png, gif）</label>
+                    <div id="dropzone" class="border-2 border-dashed border-slate-700 bg-slate-950/60 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all">
+                        <input type="file" id="file-input" class="hidden" accept="image/*">
+                        <div id="dropzone-prompt" class="text-center">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-xs text-slate-300 font-medium">拖拽图片文件到此区域</p>
+                            <p class="text-[10px] text-slate-500 mt-1">或者点击此处浏览文件上传</p>
+                        </div>
+                        <div id="preview-container" class="hidden w-full flex flex-col items-center">
+                            <img id="upload-preview" class="max-h-40 rounded-lg border border-slate-700 object-contain shadow-md mb-2">
+                            <p class="text-[10px] text-indigo-400 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> 图片读取就绪，点击或重新拖拽可更换</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品详细介绍/开发说明</label>
+                    <textarea id="new-desc" rows="4" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs" placeholder="请在此处详细提供该作品的核心功能或设计规避细节。"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
+                <button type="button" onclick="closeAddModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
+                <button type="button" id="save-btn" onclick="saveNewPortfolioItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">
+                    <span id="btn-text">添加作品</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 动态修改作品弹窗 -->
+    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden font-sans">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h3 class="text-md font-bold text-slate-100"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i> 编辑修改作品信息</h3>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品名称</label>
+                    <input type="text" id="edit-title" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">所属作品分类</label>
+                    <select id="edit-category" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs">
+                        <option value="dataviz">数据可视化分析看板</option>
+                        <option value="apparel">女装开发与版型设计</option>
+                        <option value="other">其他实用设计/技术沉淀</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品截图（拖拽或点击可直接更换图片，不更换则保留原图）</label>
+                    <div id="edit-dropzone" class="border-2 border-dashed border-slate-700 bg-slate-950/60 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all">
+                        <input type="file" id="edit-file-input" class="hidden" accept="image/*">
+                        <div id="edit-dropzone-prompt" class="text-center hidden">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-xs text-slate-300 font-medium">拖拽图片文件到此区域</p>
+                            <p class="text-[10px] text-slate-500 mt-1">或者点击此处浏览文件上传</p>
+                        </div>
+                        <div id="edit-preview-container" class="w-full flex flex-col items-center">
+                            <img id="edit-upload-preview" class="max-h-40 rounded-lg border border-slate-700 object-contain shadow-md mb-2">
+                            <p class="text-[10px] text-indigo-400 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> 当前作品图片（拖拽或点击可更换）</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品详细介绍/开发说明</label>
+                    <textarea id="edit-desc" rows="4" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
+                <button type="button" onclick="closeEditModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
+                <button type="button" id="edit-save-btn" onclick="saveEditedPortfolioItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">
+                    <span id="edit-btn-text">保存修改</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 高清大图灯箱预览（已优化：点击直接 1:1 无损大图呈现，用滚轮上下自然滑动） -->
+    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none">
+
+        <!-- 遮罩背景：点击图片的黑色外侧边缘可以直接关闭大图 -->
+        <div class="fixed inset-0 z-10 cursor-default" onclick="closeLightbox()"></div>
+
+        <!-- 悬浮右上角关闭按钮 -->
+        <button class="fixed top-6 right-6 text-white hover:text-indigo-400 text-4xl z-50 bg-slate-900/80 hover:bg-slate-900 w-12 h-12 rounded-full flex items-center justify-center border border-slate-700/50 shadow-lg backdrop-blur-md leading-none transition" onclick="closeLightbox()">&times;</button>
+
+        <!-- 图像展示区域（由JS动态切换居中与原生块级排版） -->
+        <div id="lightbox-wrapper" class="relative z-20 min-h-screen w-full p-4 flex justify-center items-center" onclick="closeLightbox()">
+            <!-- 图片本身：点击它执行“放大/缩小”状态切换，stopPropagation 防止关闭灯箱 -->
+            <img id="lightbox-img" class="cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg transition-all duration-200 select-none" onclick="toggleZoom(event)">
+        </div>
+
+        <!-- 底部浮动信息条：固定显示，不随图片滚动 -->
+        <div class="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-6 text-center pointer-events-none select-none">
+            <h2 id="lightbox-title" class="text-xl font-bold text-slate-100 tracking-wide drop-shadow-md"></h2>
+            <p id="lightbox-desc" class="text-xs text-slate-300 mt-2 max-w-4xl mx-auto leading-relaxed drop-shadow-sm"></p>
+        </div>
+    </div>
+
+    <!-- GitHub 配置弹窗 -->
+    <div id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in text-slate-800 font-sans">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-100">
+                <h3 class="text-md font-bold text-gray-900"><i class="fa-brands fa-github text-gray-700 mr-1"></i> GitHub 存储及中控配置</h3>
+                <button type="button" onclick="closeGithubModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">GitHub 访问令牌 (PAT Token)</label>
+                    <input type="password" id="gh-token" autocomplete="new-password" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="ghp_xxxxxxxxxxxx">
+                    <p class="text-[10px] text-gray-400 mt-1">需要包含 Repo 写入权限的访问令牌，以便自动托管图片和数据库</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库所有者 (Owner)</label>
+                    <input type="text" id="gh-owner" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="wasdkd">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库名称 (Repo)</label>
+                    <input type="text" id="gh-repo" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="Amazon">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">分支名称 (Branch)</label>
+                    <input type="text" id="gh-branch" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="main">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">作品集数据库存放路径 (自动创建)</label>
+                    <input type="text" id="gh-path" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="uploads2/datazpj.json">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-2 bg-gray-50">
+                <button type="button" onclick="closeGithubModal()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium">取消</button>
+                <button type="button" onclick="saveGithubConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-md text-xs font-medium shadow-sm font-sans">保存并载入</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="relative z-10 py-6 border-t border-slate-800 bg-slate-950/20 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            &copy; 2026 数字化个人作品集展示工作台 &middot; 高质量 · 安全规避 · 数据化展现
+        </div>
+    </footer>
+
+    <script>
+        // 标记定位宏，用于离线打包下载时硬编码覆盖，切勿删除
+        /*START_DATA*/
+        const defaultPortfolioData = [
+            {
+                "title": "女装短款连帽衫防侵权打版设计稿",
+                "category": "apparel",
+                "desc": "针对 SPANX 最新热门连帽衫的防侵权改版。在结构上彻底取消了侧缝与前片的收腰双弧线（避让 Lululemon 等大牌的外观线专利诉讼区），改用修长的垂直直缝拼接，保留了硬挺帽口漏斗领的休闲效果。",
+                "imgUrl": "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",
+                "theme": "from-indigo-500 to-blue-600"
+            },
+            {
+                "title": "亚马逊多维度销售业绩多维透视看板",
+                "category": "dataviz",
+                "desc": "基于 Tableau 实现的亚马逊销售业绩交互式分析报表。提供订单转化、毛利率与广告 ROI 的多维交叉分析，通过精细化筛选实现精准运营决策分析。",
+                "imgUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
+                "theme": "from-blue-500 to-cyan-500"
+            },
+            {
+                "title": "女装秋冬针织新品开发工艺版单",
+                "category": "apparel",
+                "desc": "针织宽松廓形毛衣的核心工艺尺寸控制图，对螺纹收边、袖口宽度以及领口圆角弧度进行精确参数记录，用于对接江浙供应链工厂实现无缝出样。",
+                "imgUrl": "https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=800&q=80",
+                "theme": "from-purple-500 to-pink-600"
+            }
+        ];
+        /*END_DATA*/
+
+        let portfolioData = [];
+        let activeCategory = "all";
+        let currentFileSha = null;
+
+        let isSyncing = false;
+        let syncPending = false;
+        let isGithubVerified = false;
+
+        let selectedFile = null;      // 新建作品选中的图片
+        let selectedEditFile = null;  // 编辑修改时选中的图片
+        let editingIndex = null;      // 当前正在修改的卡片索引
+
+        let isZoomed = false;         // 标记大图当前是否为“100%无损放大状态”
+
+        let githubConfig = {
+            token: '',
+            owner: 'wasdkd',
+            repo: 'Amazon',
+            branch: 'main',
+            path: 'uploads2/datazpj.json'
+        };
+
+        // 容错型 JSON 解析
+        function cleanAndParseJSON(str) {
+            const cleaned = str.replace(/,(\s*[\]}])/g, '$1');
+            return JSON.parse(cleaned);
+        }
+
+        function loadConfig() {
+            try {
+                const savedConfig = localStorage.getItem('portfolio_zpj_config');
+                if (savedConfig) {
+                    githubConfig = { ...githubConfig, ...JSON.parse(savedConfig) };
+                }
+            } catch (e) {
+                console.warn("读取本地缓存配置失败", e);
+            }
+            document.getElementById('gh-token').value = (githubConfig.token || '').trim();
+            document.getElementById('gh-owner').value = (githubConfig.owner || 'wasdkd').trim();
+            document.getElementById('gh-repo').value = (githubConfig.repo || 'Amazon').trim();
+            document.getElementById('gh-branch').value = (githubConfig.branch || 'main').trim();
+            document.getElementById('gh-path').value = (githubConfig.path || 'uploads2/datazpj.json').trim();
+        }
+
+        function saveGithubConfig() {
+            githubConfig.token = document.getElementById('gh-token').value.trim();
+            githubConfig.owner = document.getElementById('gh-owner').value.trim();
+            githubConfig.repo = document.getElementById('gh-repo').value.trim();
+            githubConfig.branch = document.getElementById('gh-branch').value.trim();
+            githubConfig.path = document.getElementById('gh-path').value.trim();
+
+            localStorage.setItem('portfolio_zpj_config', JSON.stringify(githubConfig));
+            closeGithubModal();
+            loadFromGithub();
+        }
+
+        // 双向同步及初始化
+        async function loadFromGithub() {
+            const statusEl = document.getElementById('sync-status');
+
+            if (!githubConfig.token) {
+                isGithubVerified = false;
+                statusEl.innerText = "本地暂存模式 (未配置 GitHub 授权)";
+                statusEl.className = "mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800";
+
+                const rawUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${githubConfig.path}?t=${Date.now()}`;
+                try {
+                    let response = await fetch(rawUrl);
+                    if (response.ok) {
+                        const rawText = await response.text();
+                        portfolioData = cleanAndParseJSON(rawText);
+                        healAndRenderData();
+                        statusEl.innerText = "已自动加载并同步 GitHub 只读云端数据";
+                        statusEl.className = "mt-3 text-xs text-blue-400 max-w-2xl mx-auto font-sans bg-blue-950/20 py-1.5 px-3 rounded-lg inline-block border border-blue-900/50";
+                    } else {
+                        initLocalDatabase();
+                    }
+                } catch (e) {
+                    initLocalDatabase();
+                }
+                renderPortfolio();
+                return;
+            }
+
+            statusEl.innerText = "正在同步 GitHub 云端数据库...";
+            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
+            try {
+                let response = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${githubConfig.token}` }
+                });
+
+                if (response.status === 401) {
+                    throw new Error("GitHub Token 已失效或过期 (401)");
+                } else if (response.status === 404) {
+                    currentFileSha = null;
+                    initLocalDatabase();
+                    isGithubVerified = true;
+                    statusEl.innerText = "已成功授权 GitHub (正在云端建立初始化 datazpj.json 文件...)";
+                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+                    triggerBackgroundSync();
+                } else if (response.ok) {
+                    const fileData = await response.json();
+                    currentFileSha = fileData.sha;
+                    const contentDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
+
+                    portfolioData = cleanAndParseJSON(contentDecoded);
+                    healAndRenderData();
+                    isGithubVerified = true;
+
+                    statusEl.innerText = "GitHub 已连接 (已成功同步云端 datazpj.json 数据库)";
+                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
+                } else {
+                    throw new Error(`连接失败 (错误码: ${response.status})`);
+                }
+            } catch (err) {
+                isGithubVerified = false;
+                initLocalDatabase();
+                statusEl.innerText = `同步失败: ${err.message || "网络请求异常"} (已降级加载本地缓存)`;
+                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
+            }
+            renderPortfolio();
+        }
+
+        function healAndRenderData() {
+            localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));
+        }
+
+        function initLocalDatabase() {
+            try {
+                const savedFull = localStorage.getItem('portfolio_full_zpj_data');
+                if (savedFull) {
+                    portfolioData = JSON.parse(savedFull);
+                } else {
+                    portfolioData = [...defaultPortfolioData];
+                }
+                healAndRenderData();
+            } catch (e) {
+                portfolioData = [...defaultPortfolioData];
+                healAndRenderData();
+            }
+        }
+
+        // 渲染页面网格
+        function renderPortfolio() {
+            const grid = document.getElementById('portfolio-grid');
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            grid.innerHTML = '';
+
+            let matchedCount = 0;
+
+            portfolioData.forEach((item, index) => {
+                const matchesCategory = activeCategory === "all" || item.category === activeCategory;
+                const matchesSearch = item.title.toLowerCase().includes(searchVal) || item.desc.toLowerCase().includes(searchVal);
+
+                if (matchesCategory && matchesSearch) {
+                    matchedCount++;
+
+                    const card = document.createElement('div');
+                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between group relative";
+
+                    card.innerHTML = `
+                        <!-- 编辑/修改按钮 (居左) -->
+                        <button onclick="openEditModal(${index}, event)" class="absolute top-4 right-12 text-slate-400 hover:text-indigo-400 z-20 text-[10px] bg-slate-950/70 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 transition-all" title="编辑/修改作品内容">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+
+                        <!-- 删除按钮 (居右) -->
+                        <button onclick="deletePortfolioItem(${index}, event)" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 z-20 text-[10px] bg-slate-950/70 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 transition-all" title="彻底删除该应用卡片">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+
+                        <div onclick="openLightbox(${index})" class="cursor-pointer flex-grow flex flex-col">
+                            <!-- 图片展示区域 -->
+                            <div class="w-full h-48 overflow-hidden bg-slate-950/60 relative">
+                                <img src="${item.imgUrl}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out">
+                                <div class="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-all"></div>
+                            </div>
+
+                            <!-- 文本内容区域 -->
+                            <div class="p-6 flex-grow flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-100 mb-2 group-hover:text-indigo-400 transition duration-150">${item.title}</h3>
+                                    <p class="text-xs text-slate-400 leading-relaxed mb-6 line-clamp-3">${item.desc}</p>
+                                </div>
+                                <div class="flex justify-between items-center text-[10px] text-slate-500 font-sans">
+                                    <span class="px-2.5 py-0.5 rounded-full bg-slate-900/60 border border-slate-800 font-medium">${getCategoryName(item.category)}</span>
+                                    <span class="text-indigo-400 font-bold flex items-center gap-1 group-hover:translate-x-1.5 transition-transform duration-200">
+                                        点击查看全屏大图 <i class="fa-solid fa-maximize"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
+            });
+
+            if (matchedCount === 0) {
+                document.getElementById('no-results').classList.remove('hidden');
+            } else {
+                document.getElementById('no-results').classList.add('hidden');
+            }
+        }
+
+        function getCategoryName(cat) {
+            if (cat === "dataviz") return "数据看板";
+            if (cat === "apparel") return "服装开发";
+            if (cat === "other") return "其他作品";
+            return "通用";
+        }
+
+        function switchCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all";
+            });
+            const activeBtn = document.getElementById(`btn-${cat}`);
+            if (activeBtn) {
+                activeBtn.className = "cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all";
+            }
+            renderPortfolio();
+        }
+
+        function filterPortfolio() {
+            renderPortfolio();
+        }
+
+        function openAddModal() {
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未成功连接 GitHub，无法添加新作品。请先点击右上角「GitHub 云同步配置」成功连接后再试。");
+                return;
+            }
+            document.getElementById('add-modal').classList.remove('hidden');
+            resetDropzone();
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        // 打开编辑窗口
+        function openEditModal(index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未成功连接 GitHub，无法编辑修改卡片。请先点击右上角「GitHub 云同步配置」成功连接后再试。");
+                return;
+            }
+
+            editingIndex = index;
+            selectedEditFile = null;
+            const item = portfolioData[index];
+
+            document.getElementById('edit-title').value = item.title || '';
+            document.getElementById('edit-category').value = item.category || 'dataviz';
+            document.getElementById('edit-desc').value = item.desc || '';
+
+            // 默认渲染出当前现有的作品原图
+            document.getElementById('edit-upload-preview').src = item.imgUrl || '';
+            document.getElementById('edit-dropzone-prompt').classList.add('hidden');
+            document.getElementById('edit-preview-container').classList.remove('hidden');
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            editingIndex = null;
+            selectedEditFile = null;
+        }
+
+        function openGithubModal() {
+            document.getElementById('github-modal').classList.remove('hidden');
+        }
+
+        function closeGithubModal() {
+            document.getElementById('github-modal').classList.add('hidden');
+        }
+
+
+        // --- 原生浏览器体验：大图灯箱缩放平移优化系统 ---
+
+        // 核心一键切换放大/缩小逻辑
+        function toggleZoom(event) {
+            if (event) {
+                event.stopPropagation(); // 阻止事件冒泡，防止点击图片本身触发关闭
+            }
+
+            isZoomed = !isZoomed;
+            const img = document.getElementById('lightbox-img');
+            const wrapper = document.getElementById('lightbox-wrapper');
+
+            if (isZoomed) {
+                // 【100%无损放大状态】
+                img.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";
+                wrapper.className = "relative z-20 min-h-screen w-full p-12 block";
+            } else {
+                // 【自适应屏幕视口状态】
+                resetZoomState();
+            }
+        }
+
+        // 重置大图至自适应屏幕大小
+        function resetZoomState() {
+            const img = document.getElementById('lightbox-img');
+            const wrapper = document.getElementById('lightbox-wrapper');
+            if (img && wrapper) {
+                img.className = "cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg";
+                wrapper.className = "relative z-20 min-h-screen w-full p-4 flex justify-center items-center";
+            }
+        }
+
+        // 打开全屏灯箱（已优化：点击后直接显示 100% 无损放大尺寸）
+        function openLightbox(index) {
+            const item = portfolioData[index];
+            const lightboxImg = document.getElementById('lightbox-img');
+            const wrapper = document.getElementById('lightbox-wrapper');
+
+            // 【核心改动】：直接将状态设置为【100%无损放大/原始像素比例】
+            isZoomed = true;
+            lightboxImg.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";
+            wrapper.className = "relative z-20 min-h-screen w-full p-12 block";
+
+            // 载入大图与说明文字
+            lightboxImg.src = item.imgUrl;
+            document.getElementById('lightbox-title').innerText = item.title;
+            document.getElementById('lightbox-desc').innerText = item.desc;
+
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+            document.body.style.overflow = "hidden"; // 锁死大网页底层
+
+            // 瞬间将灯箱滚动条滚动至最顶端，保证看图从最上方看起
+            setTimeout(() => {
+                const modal = document.getElementById('lightbox-modal');
+                modal.scrollTop = 0;
+                modal.scrollLeft = 0;
+            }, 50);
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+            document.body.style.overflow = "auto";
+        }
+
+        // --- 拖拽与上传核心实现 (新建与编辑模块) ---
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+
+        const editDropzone = document.getElementById('edit-dropzone');
+        const editFileInput = document.getElementById('edit-file-input');
+
+        // 事件监听绑定 (新建部分)
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFileSelect(e.target.files[0], false);
+        });
+        bindDragEvents(dropzone, false);
+
+        // 事件监听绑定 (编辑部分)
+        editDropzone.addEventListener('click', () => editFileInput.click());
+        editFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFileSelect(e.target.files[0], true);
+        });
+        bindDragEvents(editDropzone, true);
+
+        // 公共拖拽反馈函数
+        function bindDragEvents(element, isEdit) {
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                element.classList.add('drag-over');
+            });
+            element.addEventListener('dragleave', () => {
+                element.classList.remove('drag-over');
+            });
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                element.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileSelect(e.dataTransfer.files[0], isEdit);
+                }
+            });
+        }
+
+        // 统一处理图片读取及前端秒速预览
+        function handleFileSelect(file, isEdit) {
+            if (!file.type.startsWith('image/')) {
+                alert("请仅上传格式合规的图片文件（JPG、PNG、GIF）！");
+                return;
+            }
+
+            const previewId = isEdit ? 'edit-upload-preview' : 'upload-preview';
+            const promptId = isEdit ? 'edit-dropzone-prompt' : 'dropzone-prompt';
+            const containerId = isEdit ? 'edit-preview-container' : 'preview-container';
+
+            if (isEdit) {
+                selectedEditFile = file;
+            } else {
+                selectedFile = file;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(previewId).src = e.target.result;
+                document.getElementById(promptId).classList.add('hidden');
+                document.getElementById(containerId).classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function resetDropzone() {
+            selectedFile = null;
+            fileInput.value = '';
+            document.getElementById('upload-preview').src = '';
+            document.getElementById('dropzone-prompt').classList.remove('hidden');
+            document.getElementById('preview-container').classList.add('hidden');
+        }
+
+        // 转换为 Base64 算法
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // 异步将图片物理上传至 GitHub 仓库特定文件夹下
+        async function uploadImageToGithub(file) {
+            const ext = file.name.split('.').pop() || 'png';
+            const filename = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+            const imagePath = `uploads2/zpj_imgs/${filename}`;
+
+            const base64Content = await fileToBase64(file);
+            const cleanBase64 = base64Content.split(',')[1];
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${imagePath}`;
+
+            const payload = {
+                message: `Upload portfolio image: ${filename}`,
+                content: cleanBase64,
+                branch: githubConfig.branch
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errJson = await response.json();
+                throw new Error(errJson.message || "上传图片至 GitHub 失败");
+            }
+
+            return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${imagePath}`;
+        }
+
+        // 新建作品保存主控逻辑
+        async function saveNewPortfolioItem() {
+            const title = document.getElementById('new-title').value.trim();
+            const category = document.getElementById('new-category').value;
+            const desc = document.getElementById('new-desc').value.trim();
+
+            if (!title || !desc) {
+                alert("请完整填写作品名称与作品介绍说明！");
+                return;
+            }
+            if (!selectedFile) {
+                alert("请先拖拽或点击上传作品图！");
+                return;
+            }
+
+            setLoadingState(true, 'save');
+
+            try {
+                let imageUrl = "";
+
+                if (githubConfig.token && isGithubVerified) {
+                    imageUrl = await uploadImageToGithub(selectedFile);
+                } else {
+                    imageUrl = await fileToBase64(selectedFile);
+                }
+
+                const themePalettes = [
+                    "from-purple-500 to-indigo-600",
+                    "from-teal-500 to-emerald-600",
+                    "from-orange-500 to-red-600",
+                    "from-pink-500 to-rose-600",
+                    "from-cyan-500 to-blue-600"
+                ];
+                const randomTheme = themePalettes[Math.floor(Math.random() * themePalettes.length)];
+
+                const newItem = {
+                    title,
+                    category,
+                    desc,
+                    imgUrl: imageUrl,
+                    theme: randomTheme
+                };
+
+                portfolioData.push(newItem);
+                localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));
+
+                document.getElementById('new-title').value = '';
+                document.getElementById('new-desc').value = '';
+                resetDropzone();
+                closeAddModal();
+
+                renderPortfolio();
+                await triggerBackgroundSync();
+
+            } catch (err) {
+                alert("作品添加失败：" + err.message);
+            } finally {
+                setLoadingState(false, 'save');
+            }
+        }
+
+        // 保存修改后作品的核心逻辑
+        async function saveEditedPortfolioItem() {
+            if (editingIndex === null) return;
+
+            const title = document.getElementById('edit-title').value.trim();
+            const category = document.getElementById('edit-category').value;
+            const desc = document.getElementById('edit-desc').value.trim();
+
+            if (!title || !desc) {
+                alert("作品名称与作品介绍说明均不能为空！");
+                return;
+            }
+
+            setLoadingState(true, 'edit');
+
+            try {
+                let imageUrl = portfolioData[editingIndex].imgUrl; // 默认使用旧图
+
+                // 如果用户本次编辑中更换了图片，则触发图片物理上传
+                if (selectedEditFile) {
+                    if (githubConfig.token && isGithubVerified) {
+                        imageUrl = await uploadImageToGithub(selectedEditFile);
+                    } else {
+                        imageUrl = await fileToBase64(selectedEditFile);
+                    }
+                }
+
+                // 2. 更新内存数据
+                portfolioData[editingIndex].title = title;
+                portfolioData[editingIndex].category = category;
+                portfolioData[editingIndex].desc = desc;
+                portfolioData[editingIndex].imgUrl = imageUrl;
+
+                // 3. 更新本地浏览器缓存备份
+                localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));
+
+                // 4. 清理表单并关闭窗口
+                closeEditModal();
+
+                // 5. 瞬间响应并渲染
+                renderPortfolio();
+
+                // 6. 移交后台异步上传 datazpj.json 中控数据
+                await triggerBackgroundSync();
+
+            } catch (err) {
+                alert("修改保存失败：" + err.message);
+            } finally {
+                setLoadingState(false, 'edit');
+            }
+        }
+
+        // 修改状态控制
+        function setLoadingState(loading, type) {
+            const btnId = type === 'save' ? 'save-btn' : 'edit-save-btn';
+            const textId = type === 'save' ? 'btn-text' : 'edit-btn-text';
+            const defaultText = type === 'save' ? '添加作品' : '保存修改';
+
+            const btn = document.getElementById(btnId);
+            const txt = document.getElementById(textId);
+
+            if (loading) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                txt.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 正在安全传输云数据中...`;
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                txt.innerHTML = defaultText;
+            }
+        }
+
+        // 异步不阻塞后台同步队列
+        async function triggerBackgroundSync() {
+            if (isSyncing) {
+                syncPending = true;
+                return;
+            }
+            isSyncing = true;
+            syncPending = false;
+
+            await saveAllDataSilent();
+
+            isSyncing = false;
+            if (syncPending) {
+                triggerBackgroundSync();
+            }
+        }
+
+        // 静默保存中控 datazpj.json 至 GitHub 仓库
+        async function saveAllDataSilent() {
+            const statusEl = document.getElementById('sync-status');
+            healAndRenderData();
+
+            if (!githubConfig.token) return;
+
+            statusEl.innerText = "云端数据同步中...";
+            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
+            try {
+                let sha = null;
+                const getFileRes = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${githubConfig.token}` }
+                });
+                if (getFileRes.ok) {
+                    const fileData = await getFileRes.json();
+                    sha = fileData.sha;
+                } else if (getFileRes.status === 404) {
+                    sha = null;
+                }
+
+                const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(portfolioData, null, 2))));
+                const payload = {
+                    message: "Sync portfolio datazpj.json (automatic metadata sync)",
+                    content: contentBase64,
+                    branch: githubConfig.branch
+                };
+                if (sha) {
+                    payload.sha = sha;
+                }
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (putRes.ok) {
+                    const resData = await putRes.json();
+                    currentFileSha = resData.content.sha;
+                    statusEl.innerText = "GitHub 已连接 (已成功同步云端数据库)";
+                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
+                } else {
+                    const errPayload = await putRes.json();
+                    throw new Error(errPayload.message || "上传写入中控失败");
+                }
+            } catch (e) {
+                console.error("同步云端失败:", e);
+                statusEl.innerText = `数据同步失败: ${e.message || "接口故障"} (建议刷新页面重新握手)`;
+                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
+            }
+        }
+
+        // 删除卡片：乐观渲染 + 静默后台一键擦除
+        async function deletePortfolioItem(index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("操作拦截：当前未配置或未成功连接 GitHub，无法执行删除。请先点击右上角「GitHub 云同步配置」成功连接后再试。");
+                return;
+            }
+
+            if (!confirm("确定要永久从作品集中移除该作品吗？")) return;
+
+            portfolioData.splice(index, 1);
+            localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));
+
+            renderPortfolio();
+            await triggerBackgroundSync();
+        }
+
+        // 一键打包并导出新 HTML 文件
+        function exportStandaloneHTML() {
+            const baseHTML = document.documentElement.outerHTML;
+            let exportedHTML = "<!DOCTYPE html>\n" + baseHTML;
+
+            // 清理所有可能在导出时开启的模态框样式
+            exportedHTML = exportedHTML.replace(/id="add-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="github-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="lightbox-modal" class="fixed inset-0 z-50 bg-black\/98 hidden overflow-auto select-none(?! hidden)/, 'id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none hidden');
+
+            const currentDataStr = JSON.stringify(portfolioData, null, 4);
+
+            const regex = /\/\*START_DATA\*\/[\s\S]*?\/\*END_DATA\*\//;
+            exportedHTML = exportedHTML.replace(regex, '/*START_DATA*/\nconst defaultPortfolioData = ' + currentDataStr + ';\n/*END_DATA*/');
+
+            const blob = new Blob([exportedHTML], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "作品集门户_最新版.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- 交互粒子背景引擎 ---
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 100 };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.density = (Math.random() * 20) + 10;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.color = 'rgba(99, 102, 241, ' + (Math.random() * 0.4 + 0.1) + ')';
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.hypot(dx, dy);
+                let forceDirectionX = dx / distance;
+                let forceDirectionY = dy / distance;
+                let maxDistance = mouse.radius;
+                let force = (maxDistance - distance) / maxDistance;
+                let directionX = forceDirectionX * force * this.density;
+                let directionY = forceDirectionY * force * this.density;
+
+                if (distance < mouse.radius) {
+                    this.x -= directionX;
+                    this.y -= directionY;
+                } else {
+                    if (this.x !== this.baseX) {
+                        let dxBase = this.x - this.baseX;
+                        this.x -= dxBase / 20;
+                    }
+                    if (this.y !== this.baseY) {
+                        let dyBase = this.y - this.baseY;
+                        this.y -= dyBase / 20;
+                    }
+                }
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 18000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                particles.push(new Particle(x, y));
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].draw();
+                particles[i].update();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function() {
+            resizeCanvas();
+            animate();
+            loadConfig();
+            loadFromGithub();
+        };
+    </script>
+</body>
+</html>
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>个人数字化设计与可视化作品集</title>-->
+<!--    &lt;!&ndash; Tailwind CSS CDN &ndash;&gt;-->
+<!--    <script src="https://cdn.tailwindcss.com"></script>-->
+<!--    &lt;!&ndash; FontAwesome 图标 &ndash;&gt;-->
+<!--    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">-->
+<!--    <style>-->
+<!--        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');-->
+<!--        body {-->
+<!--            font-family: 'Noto Sans SC', sans-serif;-->
+<!--            background-color: #0b0f19;-->
+<!--            overflow-x: hidden;-->
+<!--        }-->
+<!--        /* 玻璃质感卡片与动画 */-->
+<!--        .glass-card {-->
+<!--            background: rgba(17, 25, 40, 0.65);-->
+<!--            backdrop-filter: blur(16px);-->
+<!--            -webkit-backdrop-filter: blur(16px);-->
+<!--            border: 1px solid rgba(255, 255, 255, 0.08);-->
+<!--            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);-->
+<!--        }-->
+<!--        .glass-card:hover {-->
+<!--            transform: translateY(-6px);-->
+<!--            border-color: rgba(99, 102, 241, 0.4);-->
+<!--            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);-->
+<!--        }-->
+<!--        /* 背景模糊流光球 */-->
+<!--        .glow-orb {-->
+<!--            position: absolute;-->
+<!--            border-radius: 50%;-->
+<!--            filter: blur(120px);-->
+<!--            z-index: 0;-->
+<!--            pointer-events: none;-->
+<!--            opacity: 0.35;-->
+<!--        }-->
+<!--        /* 拖拽区域高亮状态 */-->
+<!--        .drag-over {-->
+<!--            border-color: #6366f1 !important;-->
+<!--            background-color: rgba(99, 102, 241, 0.15) !important;-->
+<!--        }-->
+<!--        /* 美化灯箱的原生滚动条，使其不显突兀 */-->
+<!--        #lightbox-modal::-webkit-scrollbar {-->
+<!--            width: 8px;-->
+<!--            height: 8px;-->
+<!--        }-->
+<!--        #lightbox-modal::-webkit-scrollbar-track {-->
+<!--            background: rgba(0, 0, 0, 0.3);-->
+<!--        }-->
+<!--        #lightbox-modal::-webkit-scrollbar-thumb {-->
+<!--            background: rgba(99, 102, 241, 0.4);-->
+<!--            border-radius: 4px;-->
+<!--        }-->
+<!--        #lightbox-modal::-webkit-scrollbar-thumb:hover {-->
+<!--            background: rgba(99, 102, 241, 0.6);-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body class="relative min-h-screen text-slate-200 flex flex-col justify-between font-sans">-->
+
+<!--    &lt;!&ndash; 交互粒子画布 &ndash;&gt;-->
+<!--    <canvas id="canvas-bg" class="absolute inset-0 w-full h-full z-0 pointer-events-auto"></canvas>-->
+
+<!--    &lt;!&ndash; 氛围光源球 &ndash;&gt;-->
+<!--    <div class="glow-orb w-[400px] h-[400px] bg-indigo-600 top-[-100px] left-[-100px]"></div>-->
+<!--    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>-->
+<!--    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>-->
+
+<!--    &lt;!&ndash; 主体容器 &ndash;&gt;-->
+<!--    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 lg:px-8 flex-grow flex flex-col justify-center">-->
+
+<!--        &lt;!&ndash; 顶部控制面板 &ndash;&gt;-->
+<!--        <div class="flex flex-wrap justify-end gap-2 mb-6 font-sans">-->
+<!--            <button onclick="openAddModal()" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-indigo-500/30 shadow-md backdrop-blur-md transition-all">-->
+<!--                <i class="fa-solid fa-plus-circle"></i> 添加新作品-->
+<!--            </button>-->
+<!--            <button onclick="exportStandaloneHTML()" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 shadow-md backdrop-blur-md transition-all" title="将当前添加的所有作品数据与图片链接硬编码进源文件，发给别人直接看">-->
+<!--                <i class="fa-solid fa-file-shield"></i> 打包并导出新 HTML 文件-->
+<!--            </button>-->
+<!--            <button onclick="openGithubModal()" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700/50 shadow-md backdrop-blur-md transition-all">-->
+<!--                <i class="fa-brands fa-github"></i> GitHub 云同步配置-->
+<!--            </button>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 头部标题区 &ndash;&gt;-->
+<!--        <header class="text-center mb-12">-->
+<!--            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 backdrop-blur-md text-xs text-indigo-300 font-mono mb-4">-->
+<!--                <i class="fa-solid fa-code-branch animate-pulse"></i> DATAZPJ PORTFOLIO ENGINE ACTIVE-->
+<!--            </div>-->
+<!--            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-300 font-sans">-->
+<!--                个人设计与可视化作品集-->
+<!--            </h1>-->
+<!--            <p id="sync-status" class="mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800">-->
+<!--                本地暂存模式 (未配置 GitHub 授权)-->
+<!--            </p>-->
+<!--        </header>-->
+
+<!--        &lt;!&ndash; 工具过滤与搜索栏（精准匹配您的业务场景） &ndash;&gt;-->
+<!--        <div class="max-w-xl w-full mx-auto mb-10 flex flex-col sm:flex-row gap-3">-->
+<!--            <div class="relative flex-grow font-sans">-->
+<!--                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">-->
+<!--                    <i class="fa-solid fa-magnifying-glass text-sm"></i>-->
+<!--                </span>-->
+<!--                <input type="text" id="search-input" name="portfolio_search" autocomplete="off" oninput="filterPortfolio()" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500" placeholder="检索作品名称或介绍描述...">-->
+<!--            </div>-->
+<!--            <div class="flex rounded-xl bg-slate-900/80 p-1 border border-slate-700/50 text-xs font-medium shrink-0 font-sans">-->
+<!--                <button onclick="switchCategory('all')" id="btn-all" class="cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all">全部</button>-->
+<!--                <button onclick="switchCategory('dataviz')" id="btn-dataviz" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">数据分析看板</button>-->
+<!--                <button onclick="switchCategory('apparel')" id="btn-apparel" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">服装开发/设计</button>-->
+<!--                <button onclick="switchCategory('other')" id="btn-other" class="cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all">其他作品</button>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 作品网格 &ndash;&gt;-->
+<!--        <div id="portfolio-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">-->
+<!--            &lt;!&ndash; 作品卡片由JS动态载入 &ndash;&gt;-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 检索为空提示 &ndash;&gt;-->
+<!--        <div id="no-results" class="hidden text-center py-12">-->
+<!--            <i class="fa-solid fa-circle-info text-3xl text-slate-600 mb-2"></i>-->
+<!--            <p class="text-sm text-slate-400">当前分类下未找到匹配的作品卡片</p>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 动态添加新作品弹窗 &ndash;&gt;-->
+<!--    <div id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">-->
+<!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden font-sans">-->
+<!--            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">-->
+<!--                <h3 class="text-md font-bold text-slate-100"><i class="fa-solid fa-circle-plus text-indigo-500 mr-1"></i> 添加新作品至作品集</h3>-->
+<!--                <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>-->
+<!--            </div>-->
+<!--            <div class="p-6 space-y-4 text-xs">-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品名称</label>-->
+<!--                    <input type="text" id="new-title" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：Tableau销售分析多维看板">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">所属作品分类</label>-->
+<!--                    <select id="new-category" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs">-->
+<!--                        <option value="dataviz">数据可视化分析看板</option>-->
+<!--                        <option value="apparel">女装开发与版型设计</option>-->
+<!--                        <option value="other">其他实用设计/技术沉淀</option>-->
+<!--                    </select>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">拖拽或点击上传作品截图（支持 jpg, png, gif）</label>-->
+<!--                    <div id="dropzone" class="border-2 border-dashed border-slate-700 bg-slate-950/60 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all">-->
+<!--                        <input type="file" id="file-input" class="hidden" accept="image/*">-->
+<!--                        <div id="dropzone-prompt" class="text-center">-->
+<!--                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>-->
+<!--                            <p class="text-xs text-slate-300 font-medium">拖拽图片文件到此区域</p>-->
+<!--                            <p class="text-[10px] text-slate-500 mt-1">或者点击此处浏览文件上传</p>-->
+<!--                        </div>-->
+<!--                        <div id="preview-container" class="hidden w-full flex flex-col items-center">-->
+<!--                            <img id="upload-preview" class="max-h-40 rounded-lg border border-slate-700 object-contain shadow-md mb-2">-->
+<!--                            <p class="text-[10px] text-indigo-400 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> 图片读取就绪，点击或重新拖拽可更换</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品详细介绍/开发说明</label>-->
+<!--                    <textarea id="new-desc" rows="4" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs" placeholder="请在此处详细提供该作品的核心功能或设计规避细节。"></textarea>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">-->
+<!--                <button type="button" onclick="closeAddModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>-->
+<!--                <button type="button" id="save-btn" onclick="saveNewPortfolioItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">-->
+<!--                    <span id="btn-text">添加作品</span>-->
+<!--                </button>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 动态修改作品弹窗 &ndash;&gt;-->
+<!--    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">-->
+<!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden font-sans">-->
+<!--            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">-->
+<!--                <h3 class="text-md font-bold text-slate-100"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i> 编辑修改作品信息</h3>-->
+<!--                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>-->
+<!--            </div>-->
+<!--            <div class="p-6 space-y-4 text-xs">-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品名称</label>-->
+<!--                    <input type="text" id="edit-title" autocomplete="off" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">所属作品分类</label>-->
+<!--                    <select id="edit-category" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs">-->
+<!--                        <option value="dataviz">数据可视化分析看板</option>-->
+<!--                        <option value="apparel">女装开发与版型设计</option>-->
+<!--                        <option value="other">其他实用设计/技术沉淀</option>-->
+<!--                    </select>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品截图（拖拽或点击可直接更换图片，不更换则保留原图）</label>-->
+<!--                    <div id="edit-dropzone" class="border-2 border-dashed border-slate-700 bg-slate-950/60 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all">-->
+<!--                        <input type="file" id="edit-file-input" class="hidden" accept="image/*">-->
+<!--                        <div id="edit-dropzone-prompt" class="text-center hidden">-->
+<!--                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>-->
+<!--                            <p class="text-xs text-slate-300 font-medium">拖拽图片文件到此区域</p>-->
+<!--                            <p class="text-[10px] text-slate-500 mt-1">或者点击此处浏览文件上传</p>-->
+<!--                        </div>-->
+<!--                        <div id="edit-preview-container" class="w-full flex flex-col items-center">-->
+<!--                            <img id="edit-upload-preview" class="max-h-40 rounded-lg border border-slate-700 object-contain shadow-md mb-2">-->
+<!--                            <p class="text-[10px] text-indigo-400 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> 当前作品图片（拖拽或点击可更换）</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">作品详细介绍/开发说明</label>-->
+<!--                    <textarea id="edit-desc" rows="4" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs"></textarea>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">-->
+<!--                <button type="button" onclick="closeEditModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>-->
+<!--                <button type="button" id="edit-save-btn" onclick="saveEditedPortfolioItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">-->
+<!--                    <span id="edit-btn-text">保存修改</span>-->
+<!--                </button>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 高清大图灯箱预览（已优化：深度模拟浏览器原生大图体验，支持点击 1:1 无损放大，用滚轮上下自然滑动） &ndash;&gt;-->
+<!--    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none">-->
+
+<!--        &lt;!&ndash; 遮罩背景：点击图片的黑色外侧边缘可以直接关闭大图 &ndash;&gt;-->
+<!--        <div class="fixed inset-0 z-10 cursor-default" onclick="closeLightbox()"></div>-->
+
+<!--        &lt;!&ndash; 悬浮右上角关闭按钮 &ndash;&gt;-->
+<!--        <button class="fixed top-6 right-6 text-white hover:text-indigo-400 text-4xl z-50 bg-slate-900/80 hover:bg-slate-900 w-12 h-12 rounded-full flex items-center justify-center border border-slate-700/50 shadow-lg backdrop-blur-md leading-none transition" onclick="closeLightbox()">&times;</button>-->
+
+<!--        &lt;!&ndash; 图像展示区域（由JS动态切换居中与原生块级排版） &ndash;&gt;-->
+<!--        <div id="lightbox-wrapper" class="relative z-20 min-h-screen w-full p-4 flex justify-center items-center" onclick="closeLightbox()">-->
+<!--            &lt;!&ndash; 图片本身：点击它执行“放大/缩小”状态切换，stopPropagation 防止关闭灯箱 &ndash;&gt;-->
+<!--            <img id="lightbox-img" class="cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg transition-all duration-200 select-none" onclick="toggleZoom(event)">-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 底部浮动信息条：固定显示，不随图片滚动 &ndash;&gt;-->
+<!--        <div class="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-6 text-center pointer-events-none select-none">-->
+<!--            <h2 id="lightbox-title" class="text-xl font-bold text-slate-100 tracking-wide drop-shadow-md"></h2>-->
+<!--            <p id="lightbox-desc" class="text-xs text-slate-300 mt-2 max-w-4xl mx-auto leading-relaxed drop-shadow-sm"></p>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; GitHub 配置弹窗 &ndash;&gt;-->
+<!--    <div id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">-->
+<!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in text-slate-800 font-sans">-->
+<!--            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-100">-->
+<!--                <h3 class="text-md font-bold text-gray-900"><i class="fa-brands fa-github text-gray-700 mr-1"></i> GitHub 存储及中控配置</h3>-->
+<!--                <button type="button" onclick="closeGithubModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>-->
+<!--            </div>-->
+<!--            <div class="p-6 space-y-4 text-xs">-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">GitHub 访问令牌 (PAT Token)</label>-->
+<!--                    <input type="password" id="gh-token" autocomplete="new-password" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="ghp_xxxxxxxxxxxx">-->
+<!--                    <p class="text-[10px] text-gray-400 mt-1">需要包含 Repo 写入权限的访问令牌，以便自动托管图片和数据库</p>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库所有者 (Owner)</label>-->
+<!--                    <input type="text" id="gh-owner" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="wasdkd">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库名称 (Repo)</label>-->
+<!--                    <input type="text" id="gh-repo" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="Amazon">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">分支名称 (Branch)</label>-->
+<!--                    <input type="text" id="gh-branch" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="main">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-700 mb-1">作品集数据库存放路径 (自动创建)</label>-->
+<!--                    <input type="text" id="gh-path" autocomplete="off" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="uploads2/datazpj.json">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-2 bg-gray-50">-->
+<!--                <button type="button" onclick="closeGithubModal()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium">取消</button>-->
+<!--                <button type="button" onclick="saveGithubConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-md text-xs font-medium shadow-sm font-sans">保存并载入</button>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 页脚 &ndash;&gt;-->
+<!--    <footer class="relative z-10 py-6 border-t border-slate-800 bg-slate-950/20 backdrop-blur-md">-->
+<!--        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">-->
+<!--            &copy; 2026 数字化个人作品集展示工作台 &middot; 高质量 · 安全规避 · 数据化展现-->
+<!--        </div>-->
+<!--    </footer>-->
+
+<!--    <script>-->
+<!--        // 标记定位宏，用于离线打包下载时硬编码覆盖，切勿删除-->
+<!--        /*START_DATA*/-->
+<!--        const defaultPortfolioData = [-->
+<!--            {-->
+<!--                "title": "女装短款连帽衫防侵权打版设计稿",-->
+<!--                "category": "apparel",-->
+<!--                "desc": "针对 SPANX 最新热门连帽衫的防侵权改版。在结构上彻底取消了侧缝与前片的收腰双弧线（避让 Lululemon 等大牌的外观线专利诉讼区），改用修长的垂直直缝拼接，保留了硬挺帽口漏斗领的休闲效果。",-->
+<!--                "imgUrl": "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",-->
+<!--                "theme": "from-indigo-500 to-blue-600"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "亚马逊多维度销售业绩多维透视看板",-->
+<!--                "category": "dataviz",-->
+<!--                "desc": "基于 Tableau 实现的亚马逊销售业绩交互式分析报表。提供订单转化、毛利率与广告 ROI 的多维交叉分析，通过精细化筛选实现精准运营决策分析。",-->
+<!--                "imgUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",-->
+<!--                "theme": "from-blue-500 to-cyan-500"-->
+<!--            },-->
+<!--            {-->
+<!--                "title": "女装秋冬针织新品开发工艺版单",-->
+<!--                "category": "apparel",-->
+<!--                "desc": "针织宽松廓形毛衣的核心工艺尺寸控制图，对螺纹收边、袖口宽度以及领口圆角弧度进行精确参数记录，用于对接江浙供应链工厂实现无缝出样。",-->
+<!--                "imgUrl": "https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=800&q=80",-->
+<!--                "theme": "from-purple-500 to-pink-600"-->
+<!--            }-->
+<!--        ];-->
+<!--        /*END_DATA*/-->
+
+<!--        let portfolioData = [];-->
+<!--        let activeCategory = "all";-->
+<!--        let currentFileSha = null;-->
+
+<!--        let isSyncing = false;-->
+<!--        let syncPending = false;-->
+<!--        let isGithubVerified = false;-->
+
+<!--        let selectedFile = null;      // 新建作品选中的图片-->
+<!--        let selectedEditFile = null;  // 编辑修改时选中的图片-->
+<!--        let editingIndex = null;      // 当前正在修改的卡片索引-->
+
+<!--        let isZoomed = false;         // 标记大图当前是否为“100%无损放大状态”-->
+
+<!--        let githubConfig = {-->
+<!--            token: '',-->
+<!--            owner: 'wasdkd',-->
+<!--            repo: 'Amazon',-->
+<!--            branch: 'main',-->
+<!--            path: 'uploads2/datazpj.json'-->
+<!--        };-->
+
+<!--        // 容错型 JSON 解析-->
+<!--        function cleanAndParseJSON(str) {-->
+<!--            const cleaned = str.replace(/,(\s*[\]}])/g, '$1');-->
+<!--            return JSON.parse(cleaned);-->
+<!--        }-->
+
+<!--        function loadConfig() {-->
+<!--            try {-->
+<!--                const savedConfig = localStorage.getItem('portfolio_zpj_config');-->
+<!--                if (savedConfig) {-->
+<!--                    githubConfig = { ...githubConfig, ...JSON.parse(savedConfig) };-->
+<!--                }-->
+<!--            } catch (e) {-->
+<!--                console.warn("读取本地缓存配置失败", e);-->
+<!--            }-->
+<!--            document.getElementById('gh-token').value = (githubConfig.token || '').trim();-->
+<!--            document.getElementById('gh-owner').value = (githubConfig.owner || 'wasdkd').trim();-->
+<!--            document.getElementById('gh-repo').value = (githubConfig.repo || 'Amazon').trim();-->
+<!--            document.getElementById('gh-branch').value = (githubConfig.branch || 'main').trim();-->
+<!--            document.getElementById('gh-path').value = (githubConfig.path || 'uploads2/datazpj.json').trim();-->
+<!--        }-->
+
+<!--        function saveGithubConfig() {-->
+<!--            githubConfig.token = document.getElementById('gh-token').value.trim();-->
+<!--            githubConfig.owner = document.getElementById('gh-owner').value.trim();-->
+<!--            githubConfig.repo = document.getElementById('gh-repo').value.trim();-->
+<!--            githubConfig.branch = document.getElementById('gh-branch').value.trim();-->
+<!--            githubConfig.path = document.getElementById('gh-path').value.trim();-->
+
+<!--            localStorage.setItem('portfolio_zpj_config', JSON.stringify(githubConfig));-->
+<!--            closeGithubModal();-->
+<!--            loadFromGithub();-->
+<!--        }-->
+
+<!--        // 双向同步及初始化-->
+<!--        async function loadFromGithub() {-->
+<!--            const statusEl = document.getElementById('sync-status');-->
+
+<!--            if (!githubConfig.token) {-->
+<!--                isGithubVerified = false;-->
+<!--                statusEl.innerText = "本地暂存模式 (未配置 GitHub 授权)";-->
+<!--                statusEl.className = "mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800";-->
+
+<!--                const rawUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${githubConfig.path}?t=${Date.now()}`;-->
+<!--                try {-->
+<!--                    let response = await fetch(rawUrl);-->
+<!--                    if (response.ok) {-->
+<!--                        const rawText = await response.text();-->
+<!--                        portfolioData = cleanAndParseJSON(rawText);-->
+<!--                        healAndRenderData();-->
+<!--                        statusEl.innerText = "已自动加载并同步 GitHub 只读云端数据";-->
+<!--                        statusEl.className = "mt-3 text-xs text-blue-400 max-w-2xl mx-auto font-sans bg-blue-950/20 py-1.5 px-3 rounded-lg inline-block border border-blue-900/50";-->
+<!--                    } else {-->
+<!--                        initLocalDatabase();-->
+<!--                    }-->
+<!--                } catch (e) {-->
+<!--                    initLocalDatabase();-->
+<!--                }-->
+<!--                renderPortfolio();-->
+<!--                return;-->
+<!--            }-->
+
+<!--            statusEl.innerText = "正在同步 GitHub 云端数据库...";-->
+<!--            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";-->
+
+<!--            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;-->
+<!--            try {-->
+<!--                let response = await fetch(apiUrl, {-->
+<!--                    headers: { 'Authorization': `token ${githubConfig.token}` }-->
+<!--                });-->
+
+<!--                if (response.status === 401) {-->
+<!--                    throw new Error("GitHub Token 已失效或过期 (401)");-->
+<!--                } else if (response.status === 404) {-->
+<!--                    currentFileSha = null;-->
+<!--                    initLocalDatabase();-->
+<!--                    isGithubVerified = true;-->
+<!--                    statusEl.innerText = "已成功授权 GitHub (正在云端建立初始化 datazpj.json 文件...)";-->
+<!--                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";-->
+<!--                    triggerBackgroundSync();-->
+<!--                } else if (response.ok) {-->
+<!--                    const fileData = await response.json();-->
+<!--                    currentFileSha = fileData.sha;-->
+<!--                    const contentDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));-->
+
+<!--                    portfolioData = cleanAndParseJSON(contentDecoded);-->
+<!--                    healAndRenderData();-->
+<!--                    isGithubVerified = true;-->
+
+<!--                    statusEl.innerText = "GitHub 已连接 (已成功同步云端 datazpj.json 数据库)";-->
+<!--                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";-->
+<!--                } else {-->
+<!--                    throw new Error(`连接失败 (错误码: ${response.status})`);-->
+<!--                }-->
+<!--            } catch (err) {-->
+<!--                isGithubVerified = false;-->
+<!--                initLocalDatabase();-->
+<!--                statusEl.innerText = `同步失败: ${err.message || "网络请求异常"} (已降级加载本地缓存)`;-->
+<!--                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";-->
+<!--            }-->
+<!--            renderPortfolio();-->
+<!--        }-->
+
+<!--        function healAndRenderData() {-->
+<!--            localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));-->
+<!--        }-->
+
+<!--        function initLocalDatabase() {-->
+<!--            try {-->
+<!--                const savedFull = localStorage.getItem('portfolio_full_zpj_data');-->
+<!--                if (savedFull) {-->
+<!--                    portfolioData = JSON.parse(savedFull);-->
+<!--                } else {-->
+<!--                    portfolioData = [...defaultPortfolioData];-->
+<!--                }-->
+<!--                healAndRenderData();-->
+<!--            } catch (e) {-->
+<!--                portfolioData = [...defaultPortfolioData];-->
+<!--                healAndRenderData();-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 渲染页面网格-->
+<!--        function renderPortfolio() {-->
+<!--            const grid = document.getElementById('portfolio-grid');-->
+<!--            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();-->
+<!--            grid.innerHTML = '';-->
+
+<!--            let matchedCount = 0;-->
+
+<!--            portfolioData.forEach((item, index) => {-->
+<!--                const matchesCategory = activeCategory === "all" || item.category === activeCategory;-->
+<!--                const matchesSearch = item.title.toLowerCase().includes(searchVal) || item.desc.toLowerCase().includes(searchVal);-->
+
+<!--                if (matchesCategory && matchesSearch) {-->
+<!--                    matchedCount++;-->
+
+<!--                    const card = document.createElement('div');-->
+<!--                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between group relative";-->
+
+<!--                    card.innerHTML = `-->
+<!--                        &lt;!&ndash; 编辑/修改按钮 (居左) &ndash;&gt;-->
+<!--                        <button onclick="openEditModal(${index}, event)" class="absolute top-4 right-12 text-slate-400 hover:text-indigo-400 z-20 text-[10px] bg-slate-950/70 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 transition-all" title="编辑/修改作品内容">-->
+<!--                            <i class="fa-solid fa-pen-to-square"></i>-->
+<!--                        </button>-->
+
+<!--                        &lt;!&ndash; 删除按钮 (居右) &ndash;&gt;-->
+<!--                        <button onclick="deletePortfolioItem(${index}, event)" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 z-20 text-[10px] bg-slate-950/70 hover:bg-slate-950 p-1.5 rounded-lg border border-slate-800 transition-all" title="彻底删除该应用卡片">-->
+<!--                            <i class="fa-solid fa-trash-can"></i>-->
+<!--                        </button>-->
+
+<!--                        <div onclick="openLightbox(${index})" class="cursor-pointer flex-grow flex flex-col">-->
+<!--                            &lt;!&ndash; 图片展示区域 &ndash;&gt;-->
+<!--                            <div class="w-full h-48 overflow-hidden bg-slate-950/60 relative">-->
+<!--                                <img src="${item.imgUrl}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out">-->
+<!--                                <div class="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-all"></div>-->
+<!--                            </div>-->
+
+<!--                            &lt;!&ndash; 文本内容区域 &ndash;&gt;-->
+<!--                            <div class="p-6 flex-grow flex flex-col justify-between">-->
+<!--                                <div>-->
+<!--                                    <h3 class="text-base font-bold text-slate-100 mb-2 group-hover:text-indigo-400 transition duration-150">${item.title}</h3>-->
+<!--                                    <p class="text-xs text-slate-400 leading-relaxed mb-6 line-clamp-3">${item.desc}</p>-->
+<!--                                </div>-->
+<!--                                <div class="flex justify-between items-center text-[10px] text-slate-500 font-sans">-->
+<!--                                    <span class="px-2.5 py-0.5 rounded-full bg-slate-900/60 border border-slate-800 font-medium">${getCategoryName(item.category)}</span>-->
+<!--                                    <span class="text-indigo-400 font-bold flex items-center gap-1 group-hover:translate-x-1.5 transition-transform duration-200">-->
+<!--                                        点击查看全屏大图 <i class="fa-solid fa-maximize"></i>-->
+<!--                                    </span>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    `;-->
+<!--                    grid.appendChild(card);-->
+<!--                }-->
+<!--            });-->
+
+<!--            if (matchedCount === 0) {-->
+<!--                document.getElementById('no-results').classList.remove('hidden');-->
+<!--            } else {-->
+<!--                document.getElementById('no-results').classList.add('hidden');-->
+<!--            }-->
+<!--        }-->
+
+<!--        function getCategoryName(cat) {-->
+<!--            if (cat === "dataviz") return "数据看板";-->
+<!--            if (cat === "apparel") return "服装开发";-->
+<!--            if (cat === "other") return "其他作品";-->
+<!--            return "通用";-->
+<!--        }-->
+
+<!--        function switchCategory(cat) {-->
+<!--            activeCategory = cat;-->
+<!--            document.querySelectorAll('.cat-btn').forEach(btn => {-->
+<!--                btn.className = "cat-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all";-->
+<!--            });-->
+<!--            const activeBtn = document.getElementById(`btn-${cat}`);-->
+<!--            if (activeBtn) {-->
+<!--                activeBtn.className = "cat-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-all";-->
+<!--            }-->
+<!--            renderPortfolio();-->
+<!--        }-->
+
+<!--        function filterPortfolio() {-->
+<!--            renderPortfolio();-->
+<!--        }-->
+
+<!--        function openAddModal() {-->
+<!--            if (!githubConfig.token || !isGithubVerified) {-->
+<!--                alert("操作拦截：当前未配置或未成功连接 GitHub，无法添加新作品。请先点击右上角「GitHub 云同步配置」成功连接后再试。");-->
+<!--                return;-->
+<!--            }-->
+<!--            document.getElementById('add-modal').classList.remove('hidden');-->
+<!--            resetDropzone();-->
+<!--        }-->
+
+<!--        function closeAddModal() {-->
+<!--            document.getElementById('add-modal').classList.add('hidden');-->
+<!--        }-->
+
+<!--        // 打开编辑窗口-->
+<!--        function openEditModal(index, event) {-->
+<!--            event.stopPropagation();-->
+<!--            event.preventDefault();-->
+
+<!--            if (!githubConfig.token || !isGithubVerified) {-->
+<!--                alert("操作拦截：当前未配置或未成功连接 GitHub，无法编辑修改卡片。请先点击右上角「GitHub 云同步配置」成功连接后再试。");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            editingIndex = index;-->
+<!--            selectedEditFile = null;-->
+<!--            const item = portfolioData[index];-->
+
+<!--            document.getElementById('edit-title').value = item.title || '';-->
+<!--            document.getElementById('edit-category').value = item.category || 'dataviz';-->
+<!--            document.getElementById('edit-desc').value = item.desc || '';-->
+
+<!--            // 默认渲染出当前现有的作品原图-->
+<!--            document.getElementById('edit-upload-preview').src = item.imgUrl || '';-->
+<!--            document.getElementById('edit-dropzone-prompt').classList.add('hidden');-->
+<!--            document.getElementById('edit-preview-container').classList.remove('hidden');-->
+
+<!--            document.getElementById('edit-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function closeEditModal() {-->
+<!--            document.getElementById('edit-modal').classList.add('hidden');-->
+<!--            editingIndex = null;-->
+<!--            selectedEditFile = null;-->
+<!--        }-->
+
+<!--        function openGithubModal() {-->
+<!--            document.getElementById('github-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function closeGithubModal() {-->
+<!--            document.getElementById('github-modal').classList.add('hidden');-->
+<!--        }-->
+
+
+<!--        // -&#45;&#45; 原生浏览器体验：大图灯箱缩放平移优化系统 -&#45;&#45;-->
+
+<!--        // 核心一键切换放大/缩小逻辑-->
+<!--        function toggleZoom(event) {-->
+<!--            if (event) {-->
+<!--                event.stopPropagation(); // 阻止事件冒泡，防止点击图片本身触发关闭-->
+<!--            }-->
+
+<!--            isZoomed = !isZoomed;-->
+<!--            const img = document.getElementById('lightbox-img');-->
+<!--            const wrapper = document.getElementById('lightbox-wrapper');-->
+
+<!--            if (isZoomed) {-->
+<!--                // 【100%无损放大状态】-->
+<!--                // 1. 去除 max-w-full 和 max-h-full 限制，允许以其原图真实像素比例渲染-->
+<!--                img.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";-->
+<!--                // 2. 将容器从弹性布局（Flex）转换为块级排列（Block），这样浏览器才会产生自然的垂直滚动，保证滚动到底部-->
+<!--                wrapper.className = "relative z-20 min-h-screen w-full p-12 block";-->
+<!--            } else {-->
+<!--                // 【自适应屏幕视口状态】-->
+<!--                resetZoomState();-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 重置大图至自适应屏幕大小-->
+<!--        function resetZoomState() {-->
+<!--            const img = document.getElementById('lightbox-img');-->
+<!--            const wrapper = document.getElementById('lightbox-wrapper');-->
+<!--            if (img && wrapper) {-->
+<!--                img.className = "cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg";-->
+<!--                wrapper.className = "relative z-20 min-h-screen w-full p-4 flex justify-center items-center";-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 打开全屏灯箱-->
+<!--        function openLightbox(index) {-->
+<!--            const item = portfolioData[index];-->
+<!--            const lightboxImg = document.getElementById('lightbox-img');-->
+
+<!--            // 每次新打开大图，强行回归初始“自适应”比例-->
+<!--            isZoomed = false;-->
+<!--            resetZoomState();-->
+
+<!--            // 载入大图与说明文字-->
+<!--            lightboxImg.src = item.imgUrl;-->
+<!--            document.getElementById('lightbox-title').innerText = item.title;-->
+<!--            document.getElementById('lightbox-desc').innerText = item.desc;-->
+
+<!--            document.getElementById('lightbox-modal').classList.remove('hidden');-->
+<!--            document.body.style.overflow = "hidden"; // 锁死大网页底层，确保滚动条只对大图有效-->
+
+<!--            // 滚动到最顶部-->
+<!--            document.getElementById('lightbox-modal').scrollTop = 0;-->
+<!--        }-->
+
+<!--        function closeLightbox() {-->
+<!--            document.getElementById('lightbox-modal').classList.add('hidden');-->
+<!--            document.body.style.overflow = "auto";-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 拖拽与上传核心实现 (新建与编辑模块) -&#45;&#45;-->
+<!--        const dropzone = document.getElementById('dropzone');-->
+<!--        const fileInput = document.getElementById('file-input');-->
+
+<!--        const editDropzone = document.getElementById('edit-dropzone');-->
+<!--        const editFileInput = document.getElementById('edit-file-input');-->
+
+<!--        // 事件监听绑定 (新建部分)-->
+<!--        dropzone.addEventListener('click', () => fileInput.click());-->
+<!--        fileInput.addEventListener('change', (e) => {-->
+<!--            if (e.target.files.length > 0) handleFileSelect(e.target.files[0], false);-->
+<!--        });-->
+<!--        bindDragEvents(dropzone, false);-->
+
+<!--        // 事件监听绑定 (编辑部分)-->
+<!--        editDropzone.addEventListener('click', () => editFileInput.click());-->
+<!--        editFileInput.addEventListener('change', (e) => {-->
+<!--            if (e.target.files.length > 0) handleFileSelect(e.target.files[0], true);-->
+<!--        });-->
+<!--        bindDragEvents(editDropzone, true);-->
+
+<!--        // 公共拖拽反馈函数-->
+<!--        function bindDragEvents(element, isEdit) {-->
+<!--            element.addEventListener('dragover', (e) => {-->
+<!--                e.preventDefault();-->
+<!--                element.classList.add('drag-over');-->
+<!--            });-->
+<!--            element.addEventListener('dragleave', () => {-->
+<!--                element.classList.remove('drag-over');-->
+<!--            });-->
+<!--            element.addEventListener('drop', (e) => {-->
+<!--                e.preventDefault();-->
+<!--                element.classList.remove('drag-over');-->
+<!--                if (e.dataTransfer.files.length > 0) {-->
+<!--                    handleFileSelect(e.dataTransfer.files[0], isEdit);-->
+<!--                }-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 统一处理图片读取及前端秒速预览-->
+<!--        function handleFileSelect(file, isEdit) {-->
+<!--            if (!file.type.startsWith('image/')) {-->
+<!--                alert("请仅上传格式合规的图片文件（JPG、PNG、GIF）！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            const previewId = isEdit ? 'edit-upload-preview' : 'upload-preview';-->
+<!--            const promptId = isEdit ? 'edit-dropzone-prompt' : 'dropzone-prompt';-->
+<!--            const containerId = isEdit ? 'edit-preview-container' : 'preview-container';-->
+
+<!--            if (isEdit) {-->
+<!--                selectedEditFile = file;-->
+<!--            } else {-->
+<!--                selectedFile = file;-->
+<!--            }-->
+
+<!--            const reader = new FileReader();-->
+<!--            reader.onload = function(e) {-->
+<!--                document.getElementById(previewId).src = e.target.result;-->
+<!--                document.getElementById(promptId).classList.add('hidden');-->
+<!--                document.getElementById(containerId).classList.remove('hidden');-->
+<!--            }-->
+<!--            reader.readAsDataURL(file);-->
+<!--        }-->
+
+<!--        function resetDropzone() {-->
+<!--            selectedFile = null;-->
+<!--            fileInput.value = '';-->
+<!--            document.getElementById('upload-preview').src = '';-->
+<!--            document.getElementById('dropzone-prompt').classList.remove('hidden');-->
+<!--            document.getElementById('preview-container').classList.add('hidden');-->
+<!--        }-->
+
+<!--        // 转换为 Base64 算法-->
+<!--        function fileToBase64(file) {-->
+<!--            return new Promise((resolve, reject) => {-->
+<!--                const reader = new FileReader();-->
+<!--                reader.readAsDataURL(file);-->
+<!--                reader.onload = () => resolve(reader.result);-->
+<!--                reader.onerror = error => reject(error);-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 异步将图片物理上传至 GitHub 仓库特定文件夹下-->
+<!--        async function uploadImageToGithub(file) {-->
+<!--            const ext = file.name.split('.').pop() || 'png';-->
+<!--            const filename = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;-->
+<!--            const imagePath = `uploads2/zpj_imgs/${filename}`;-->
+
+<!--            const base64Content = await fileToBase64(file);-->
+<!--            const cleanBase64 = base64Content.split(',')[1];-->
+
+<!--            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${imagePath}`;-->
+
+<!--            const payload = {-->
+<!--                message: `Upload portfolio image: ${filename}`,-->
+<!--                content: cleanBase64,-->
+<!--                branch: githubConfig.branch-->
+<!--            };-->
+
+<!--            const response = await fetch(apiUrl, {-->
+<!--                method: 'PUT',-->
+<!--                headers: {-->
+<!--                    'Authorization': `token ${githubConfig.token}`,-->
+<!--                    'Content-Type': 'application/json'-->
+<!--                },-->
+<!--                body: JSON.stringify(payload)-->
+<!--            });-->
+
+<!--            if (!response.ok) {-->
+<!--                const errJson = await response.json();-->
+<!--                throw new Error(errJson.message || "上传图片至 GitHub 失败");-->
+<!--            }-->
+
+<!--            return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${imagePath}`;-->
+<!--        }-->
+
+<!--        // 新建作品保存主控逻辑-->
+<!--        async function saveNewPortfolioItem() {-->
+<!--            const title = document.getElementById('new-title').value.trim();-->
+<!--            const category = document.getElementById('new-category').value;-->
+<!--            const desc = document.getElementById('new-desc').value.trim();-->
+
+<!--            if (!title || !desc) {-->
+<!--                alert("请完整填写作品名称与作品介绍说明！");-->
+<!--                return;-->
+<!--            }-->
+<!--            if (!selectedFile) {-->
+<!--                alert("请先拖拽或点击上传作品图！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            setLoadingState(true, 'save');-->
+
+<!--            try {-->
+<!--                let imageUrl = "";-->
+
+<!--                if (githubConfig.token && isGithubVerified) {-->
+<!--                    imageUrl = await uploadImageToGithub(selectedFile);-->
+<!--                } else {-->
+<!--                    imageUrl = await fileToBase64(selectedFile);-->
+<!--                }-->
+
+<!--                const themePalettes = [-->
+<!--                    "from-purple-500 to-indigo-600",-->
+<!--                    "from-teal-500 to-emerald-600",-->
+<!--                    "from-orange-500 to-red-600",-->
+<!--                    "from-pink-500 to-rose-600",-->
+<!--                    "from-cyan-500 to-blue-600"-->
+<!--                ];-->
+<!--                const randomTheme = themePalettes[Math.floor(Math.random() * themePalettes.length)];-->
+
+<!--                const newItem = {-->
+<!--                    title,-->
+<!--                    category,-->
+<!--                    desc,-->
+<!--                    imgUrl: imageUrl,-->
+<!--                    theme: randomTheme-->
+<!--                };-->
+
+<!--                portfolioData.push(newItem);-->
+<!--                localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));-->
+
+<!--                document.getElementById('new-title').value = '';-->
+<!--                document.getElementById('new-desc').value = '';-->
+<!--                resetDropzone();-->
+<!--                closeAddModal();-->
+
+<!--                renderPortfolio();-->
+<!--                await triggerBackgroundSync();-->
+
+<!--            } catch (err) {-->
+<!--                alert("作品添加失败：" + err.message);-->
+<!--            } finally {-->
+<!--                setLoadingState(false, 'save');-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 保存修改后作品的核心逻辑-->
+<!--        async function saveEditedPortfolioItem() {-->
+<!--            if (editingIndex === null) return;-->
+
+<!--            const title = document.getElementById('edit-title').value.trim();-->
+<!--            const category = document.getElementById('edit-category').value;-->
+<!--            const desc = document.getElementById('edit-desc').value.trim();-->
+
+<!--            if (!title || !desc) {-->
+<!--                alert("作品名称与作品介绍说明均不能为空！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            setLoadingState(true, 'edit');-->
+
+<!--            try {-->
+<!--                let imageUrl = portfolioData[editingIndex].imgUrl; // 默认使用旧图-->
+
+<!--                // 如果用户本次编辑中更换了图片，则触发图片物理上传-->
+<!--                if (selectedEditFile) {-->
+<!--                    if (githubConfig.token && isGithubVerified) {-->
+<!--                        imageUrl = await uploadImageToGithub(selectedEditFile);-->
+<!--                    } else {-->
+<!--                        imageUrl = await fileToBase64(selectedEditFile);-->
+<!--                    }-->
+<!--                }-->
+
+<!--                // 2. 更新内存数据-->
+<!--                portfolioData[editingIndex].title = title;-->
+<!--                portfolioData[editingIndex].category = category;-->
+<!--                portfolioData[editingIndex].desc = desc;-->
+<!--                portfolioData[editingIndex].imgUrl = imageUrl;-->
+
+<!--                // 3. 更新本地浏览器缓存备份-->
+<!--                localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));-->
+
+<!--                // 4. 清理表单并关闭窗口-->
+<!--                closeEditModal();-->
+
+<!--                // 5. 瞬间响应并渲染-->
+<!--                renderPortfolio();-->
+
+<!--                // 6. 移交后台异步上传 datazpj.json 中控数据-->
+<!--                await triggerBackgroundSync();-->
+
+<!--            } catch (err) {-->
+<!--                alert("修改保存失败：" + err.message);-->
+<!--            } finally {-->
+<!--                setLoadingState(false, 'edit');-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 修改状态控制-->
+<!--        function setLoadingState(loading, type) {-->
+<!--            const btnId = type === 'save' ? 'save-btn' : 'edit-save-btn';-->
+<!--            const textId = type === 'save' ? 'btn-text' : 'edit-btn-text';-->
+<!--            const defaultText = type === 'save' ? '添加作品' : '保存修改';-->
+
+<!--            const btn = document.getElementById(btnId);-->
+<!--            const txt = document.getElementById(textId);-->
+
+<!--            if (loading) {-->
+<!--                btn.disabled = true;-->
+<!--                btn.classList.add('opacity-50', 'cursor-not-allowed');-->
+<!--                txt.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 正在安全传输云数据中...`;-->
+<!--            } else {-->
+<!--                btn.disabled = false;-->
+<!--                btn.classList.remove('opacity-50', 'cursor-not-allowed');-->
+<!--                txt.innerHTML = defaultText;-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 异步不阻塞后台同步队列-->
+<!--        async function triggerBackgroundSync() {-->
+<!--            if (isSyncing) {-->
+<!--                syncPending = true;-->
+<!--                return;-->
+<!--            }-->
+<!--            isSyncing = true;-->
+<!--            syncPending = false;-->
+
+<!--            await saveAllDataSilent();-->
+
+<!--            isSyncing = false;-->
+<!--            if (syncPending) {-->
+<!--                triggerBackgroundSync();-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 静默保存中控 datazpj.json 至 GitHub 仓库-->
+<!--        async function saveAllDataSilent() {-->
+<!--            const statusEl = document.getElementById('sync-status');-->
+<!--            healAndRenderData();-->
+
+<!--            if (!githubConfig.token) return;-->
+
+<!--            statusEl.innerText = "云端数据同步中...";-->
+<!--            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";-->
+
+<!--            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;-->
+<!--            try {-->
+<!--                let sha = null;-->
+<!--                const getFileRes = await fetch(apiUrl, {-->
+<!--                    headers: { 'Authorization': `token ${githubConfig.token}` }-->
+<!--                });-->
+<!--                if (getFileRes.ok) {-->
+<!--                    const fileData = await getFileRes.json();-->
+<!--                    sha = fileData.sha;-->
+<!--                } else if (getFileRes.status === 404) {-->
+<!--                    sha = null;-->
+<!--                }-->
+
+<!--                const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(portfolioData, null, 2))));-->
+<!--                const payload = {-->
+<!--                    message: "Sync portfolio datazpj.json (automatic metadata sync)",-->
+<!--                    content: contentBase64,-->
+<!--                    branch: githubConfig.branch-->
+<!--                };-->
+<!--                if (sha) {-->
+<!--                    payload.sha = sha;-->
+<!--                }-->
+
+<!--                const putRes = await fetch(apiUrl, {-->
+<!--                    method: 'PUT',-->
+<!--                    headers: {-->
+<!--                        'Authorization': `token ${githubConfig.token}`,-->
+<!--                        'Content-Type': 'application/json'-->
+<!--                    },-->
+<!--                    body: JSON.stringify(payload)-->
+<!--                });-->
+
+<!--                if (putRes.ok) {-->
+<!--                    const resData = await putRes.json();-->
+<!--                    currentFileSha = resData.content.sha;-->
+<!--                    statusEl.innerText = "GitHub 已连接 (已成功同步云端数据库)";-->
+<!--                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";-->
+<!--                } else {-->
+<!--                    const errPayload = await putRes.json();-->
+<!--                    throw new Error(errPayload.message || "上传写入中控失败");-->
+<!--                }-->
+<!--            } catch (e) {-->
+<!--                console.error("同步云端失败:", e);-->
+<!--                statusEl.innerText = `数据同步失败: ${e.message || "接口故障"} (建议刷新页面重新握手)`;-->
+<!--                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 删除卡片：乐观渲染 + 静默后台一键擦除-->
+<!--        async function deletePortfolioItem(index, event) {-->
+<!--            event.stopPropagation();-->
+<!--            event.preventDefault();-->
+
+<!--            if (!githubConfig.token || !isGithubVerified) {-->
+<!--                alert("操作拦截：当前未配置或未成功连接 GitHub，无法执行删除。请先点击右上角「GitHub 云同步配置」成功连接后再试。");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            if (!confirm("确定要永久从作品集中移除该作品吗？")) return;-->
+
+<!--            portfolioData.splice(index, 1);-->
+<!--            localStorage.setItem('portfolio_full_zpj_data', JSON.stringify(portfolioData));-->
+
+<!--            renderPortfolio();-->
+<!--            await triggerBackgroundSync();-->
+<!--        }-->
+
+<!--        // 一键打包并导出新 HTML 文件-->
+<!--        function exportStandaloneHTML() {-->
+<!--            const baseHTML = document.documentElement.outerHTML;-->
+<!--            let exportedHTML = "<!DOCTYPE html>\n" + baseHTML;-->
+
+<!--            // 清理所有可能在导出时开启的模态框样式-->
+<!--            exportedHTML = exportedHTML.replace(/id="add-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');-->
+<!--            exportedHTML = exportedHTML.replace(/id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');-->
+<!--            exportedHTML = exportedHTML.replace(/id="github-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');-->
+<!--            exportedHTML = exportedHTML.replace(/id="lightbox-modal" class="fixed inset-0 z-50 bg-black\/98 hidden overflow-auto select-none(?! hidden)/, 'id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none hidden');-->
+
+<!--            const currentDataStr = JSON.stringify(portfolioData, null, 4);-->
+
+<!--            const regex = /\/\*START_DATA\*\/[\s\S]*?\/\*END_DATA\*\//;-->
+<!--            exportedHTML = exportedHTML.replace(regex, '/*START_DATA*/\nconst defaultPortfolioData = ' + currentDataStr + ';\n/*END_DATA*/');-->
+
+<!--            const blob = new Blob([exportedHTML], { type: 'text/html;charset=utf-8' });-->
+<!--            const url = URL.createObjectURL(blob);-->
+<!--            const a = document.createElement("a");-->
+<!--            a.href = url;-->
+<!--            a.download = "作品集门户_最新版.html";-->
+<!--            document.body.appendChild(a);-->
+<!--            a.click();-->
+<!--            document.body.removeChild(a);-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 交互粒子背景引擎 -&#45;&#45;-->
+<!--        const canvas = document.getElementById('canvas-bg');-->
+<!--        const ctx = canvas.getContext('2d');-->
+<!--        let particles = [];-->
+<!--        let mouse = { x: null, y: null, radius: 100 };-->
+
+<!--        function resizeCanvas() {-->
+<!--            canvas.width = window.innerWidth;-->
+<!--            canvas.height = window.innerHeight;-->
+<!--            initParticles();-->
+<!--        }-->
+
+<!--        class Particle {-->
+<!--            constructor(x, y) {-->
+<!--                this.x = x;-->
+<!--                this.y = y;-->
+<!--                this.baseX = x;-->
+<!--                this.baseY = y;-->
+<!--                this.density = (Math.random() * 20) + 10;-->
+<!--                this.size = Math.random() * 1.5 + 0.5;-->
+<!--                this.color = 'rgba(99, 102, 241, ' + (Math.random() * 0.4 + 0.1) + ')';-->
+<!--            }-->
+<!--            draw() {-->
+<!--                ctx.beginPath();-->
+<!--                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);-->
+<!--                ctx.fillStyle = this.color;-->
+<!--                ctx.fill();-->
+<!--            }-->
+<!--            update() {-->
+<!--                let dx = mouse.x - this.x;-->
+<!--                let dy = mouse.y - this.y;-->
+<!--                let distance = Math.hypot(dx, dy);-->
+<!--                let forceDirectionX = dx / distance;-->
+<!--                let forceDirectionY = dy / distance;-->
+<!--                let maxDistance = mouse.radius;-->
+<!--                let force = (maxDistance - distance) / maxDistance;-->
+<!--                let directionX = forceDirectionX * force * this.density;-->
+<!--                let directionY = forceDirectionY * force * this.density;-->
+
+<!--                if (distance < mouse.radius) {-->
+<!--                    this.x -= directionX;-->
+<!--                    this.y -= directionY;-->
+<!--                } else {-->
+<!--                    if (this.x !== this.baseX) {-->
+<!--                        let dxBase = this.x - this.baseX;-->
+<!--                        this.x -= dxBase / 20;-->
+<!--                    }-->
+<!--                    if (this.y !== this.baseY) {-->
+<!--                        let dyBase = this.y - this.baseY;-->
+<!--                        this.y -= dyBase / 20;-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+<!--        }-->
+
+<!--        function initParticles() {-->
+<!--            particles = [];-->
+<!--            let numberOfParticles = (canvas.width * canvas.height) / 18000;-->
+<!--            for (let i = 0; i < numberOfParticles; i++) {-->
+<!--                let x = Math.random() * canvas.width;-->
+<!--                let y = Math.random() * canvas.height;-->
+<!--                particles.push(new Particle(x, y));-->
+<!--            }-->
+<!--        }-->
+
+<!--        function animate() {-->
+<!--            ctx.clearRect(0, 0, canvas.width, canvas.height);-->
+<!--            for (let i = 0; i < particles.length; i++) {-->
+<!--                particles[i].draw();-->
+<!--                particles[i].update();-->
+<!--            }-->
+<!--            requestAnimationFrame(animate);-->
+<!--        }-->
+
+<!--        window.addEventListener('mousemove', (e) => {-->
+<!--            mouse.x = e.x;-->
+<!--            mouse.y = e.y;-->
+<!--        });-->
+
+<!--        window.addEventListener('mouseout', () => {-->
+<!--            mouse.x = null;-->
+<!--            mouse.y = null;-->
+<!--        });-->
+
+<!--        window.addEventListener('resize', resizeCanvas);-->
+
+<!--        window.onload = function() {-->
+<!--            resizeCanvas();-->
+<!--            animate();-->
+<!--            loadConfig();-->
+<!--            loadFromGithub();-->
+<!--        };-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
