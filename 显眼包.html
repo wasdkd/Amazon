@@ -1,3 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conspicuous Product - 显眼包产品选品工作台</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS Excel 解析/导出库 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0b0f19;
+            overflow-x: hidden;
+        }
+        /* 玻璃质感卡片与动画 */
+        .glass-card {
+            background: rgba(17, 25, 40, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
+        }
+        /* 背景模糊流光球 */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+        /* 拖拽区域高亮状态 */
+        .drag-over {
+            border-color: #6366f1 !important;
+            background-color: rgba(99, 102, 241, 0.15) !important;
+        }
+        /* 美化灯箱的原生滚动条 */
+        #lightbox-modal::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        #lightbox-modal::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        #lightbox-modal::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 4px;
+        }
+        #lightbox-modal::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.6);
+        }
+    </style>
+</head>
+<body class="relative min-h-screen text-slate-200 flex flex-col justify-between font-sans">
+
+    <!-- 交互粒子画布 -->
+    <canvas id="canvas-bg" class="absolute inset-0 w-full h-full z-0 pointer-events-auto"></canvas>
+
+    <!-- 氛围光源球 -->
+    <div class="glow-orb w-[400px] h-[400px] bg-indigo-600 top-[-100px] left-[-100px]"></div>
+    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>
+    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
+
+    <!-- 主体容器 (已调整为 96vw 超宽排版，边缘离两侧更近) -->
+    <div class="relative z-10 w-full mx-auto px-2 sm:px-4 lg:px-6 py-12 flex-grow flex flex-col justify-center max-w-[96vw]">
+
+        <!-- 顶部控制面板 -->
+        <div class="flex flex-wrap justify-end gap-2 mb-6 font-sans">
+            <!-- 批量操作组合 -->
+            <button onclick="downloadExcelTemplate()" class="bg-blue-600/80 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-blue-500/30 shadow-md backdrop-blur-md transition-all">
+                <i class="fa-solid fa-file-excel"></i> 下载 Excel 模板
+            </button>
+            <button onclick="triggerBulkUpload()" class="bg-purple-600/80 hover:bg-purple-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-purple-500/30 shadow-md backdrop-blur-md transition-all">
+                <i class="fa-solid fa-file-import"></i> 批量上传 Excel
+            </button>
+            <input type="file" id="bulk-excel-input" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleBulkExcelUpload(event)">
+
+            <!-- 基础操作组合 -->
+            <button onclick="openAddModal()" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-indigo-500/30 shadow-md backdrop-blur-md transition-all">
+                <i class="fa-solid fa-plus-circle"></i> 添加选品
+            </button>
+            <button onclick="exportStandaloneHTML()" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 shadow-md backdrop-blur-md transition-all" title="将当前添加的所有选品数据硬编码进源文件独立保存">
+                <i class="fa-solid fa-file-shield"></i> 备份打包导出 HTML
+            </button>
+            <button onclick="openGithubModal()" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700/50 shadow-md backdrop-blur-md transition-all">
+                <i class="fa-brands fa-github"></i> GitHub 云同步配置
+            </button>
+        </div>
+
+        <!-- 头部标题区 -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 backdrop-blur-md text-xs text-indigo-300 font-mono mb-4">
+                <i class="fa-solid fa-fire animate-pulse"></i> CONSPICUOUS PRODUCT ANALYSIS ENGINE ACTIVE
+            </div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-300 font-sans">
+                显眼包产品库 / 选品工作台
+            </h1>
+            <p id="sync-status" class="mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800">
+                本地暂存模式 (未配置 GitHub 授权)
+            </p>
+        </header>
+
+        <!-- 精准单输入检索栏 -->
+        <div class="max-w-xl w-full mx-auto mb-10">
+            <div class="relative flex-grow font-sans">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </span>
+                <input type="text" id="search-input" name="portfolio_search" autocomplete="off" oninput="filterProducts()" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500" placeholder="直接在此检索序号、ASIN、对接日期或面料成分...">
+            </div>
+        </div>
+
+        <!-- 产品展示网格 (已调整为 lg:grid-cols-3 一行显示 3 个卡片) -->
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
+            <!-- 卡片由JS动态载入 -->
+        </div>
+
+        <!-- 检索为空提示 -->
+        <div id="no-results" class="hidden text-center py-12">
+            <i class="fa-solid fa-circle-info text-3xl text-slate-600 mb-2"></i>
+            <p class="text-sm text-slate-400">当前未找到任何匹配的产品选品卡片</p>
+        </div>
+    </div>
+
+    <!-- 动态添加新产品弹窗 (系统自动编号) -->
+    <div id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden font-sans">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h3 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-plus text-indigo-500 mr-1"></i> 新增产品至 dataxyb 数据库 (系统自动编号)</h3>
+                <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>
+                    <input type="text" id="new-date" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：3月12日">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品名称/ASIN备注 (若不填将自动从链接中截取ASIN)</label>
+                    <input type="text" id="new-title" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：高弹防走光短裤裙">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品详情页链接</label>
+                    <input type="text" id="new-amazon-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="https://www.amazon.com/dp/...">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">面料/成分组成</label>
+                    <textarea id="new-composition" rows="2" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs" placeholder="例如：Body: 86% Polyester, 14% Elastane ; Lining: 89% Polyester"></textarea>
+                </div>
+
+                <!-- 双图配置模块 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- 左侧主图区域 -->
+                    <div>
+                        <label class="block text-[11px] text-slate-300 font-bold mb-1"><i class="fa-solid fa-shirt"></i> 1. 产品主图</label>
+                        <input type="text" id="new-main-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入主图 URL 链接 (可选)">
+                        <div id="dropzone-main" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
+                            <input type="file" id="file-main" class="hidden" accept="image/*">
+                            <div id="prompt-main">
+                                <i class="fa-solid fa-upload text-slate-500 text-lg mb-1"></i>
+                                <p class="text-[10px] text-slate-400">本地主图拖拽至此上传</p>
+                            </div>
+                            <img id="preview-main" class="hidden max-h-24 rounded border border-slate-700 object-contain shadow-md">
+                        </div>
+                    </div>
+                    <!-- 右侧Keepa区域 -->
+                    <div>
+                        <label class="block text-[11px] text-slate-300 font-bold mb-1"><i class="fa-solid fa-chart-line"></i> 2. Keepa 折线图</label>
+                        <input type="text" id="new-keepa-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入 Keepa 折线图 URL (可选)">
+                        <div id="dropzone-keepa" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
+                            <input type="file" id="file-keepa" class="hidden" accept="image/*">
+                            <div id="prompt-keepa">
+                                <i class="fa-solid fa-upload text-slate-500 text-lg mb-1"></i>
+                                <p class="text-[10px] text-slate-400">本地 Keepa 图拖拽至此</p>
+                            </div>
+                            <img id="preview-keepa" class="hidden max-h-24 rounded border border-slate-700 object-contain shadow-md">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
+                <button type="button" onclick="closeAddModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
+                <button type="button" id="save-btn" onclick="saveNewProduct()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">
+                    <span id="btn-text">添加产品</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 动态修改选品弹窗 (序号设为只读以防错乱) -->
+    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden font-sans">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                <h3 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i> 编辑修改选品卡片</h3>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] text-slate-400 font-bold mb-1">序号 (系统内定无法更改)</label>
+                        <input type="number" id="edit-seq-id" readonly class="w-full border border-slate-800 bg-slate-950/80 rounded-md p-2 focus:outline-none text-slate-500 cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>
+                        <input type="text" id="edit-date" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品名称/ASIN备注</label>
+                    <input type="text" id="edit-title" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品详情页链接</label>
+                    <input type="text" id="edit-amazon-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-slate-400 font-bold mb-1">面料/成分组成</label>
+                    <textarea id="edit-composition" rows="2" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs"></textarea>
+                </div>
+
+                <!-- 双图修改 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] text-slate-300 font-bold mb-1">1. 产品主图</label>
+                        <input type="text" id="edit-main-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入主图链接 (若使用本地上传则留空)">
+                        <div id="edit-dropzone-main" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
+                            <input type="file" id="edit-file-main" class="hidden" accept="image/*">
+                            <img id="edit-preview-main" class="max-h-24 rounded border border-slate-700 object-contain shadow-md">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-300 font-bold mb-1">2. Keepa 折线图</label>
+                        <input type="text" id="edit-keepa-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入 Keepa 图片链接 (若使用本地上传则留空)">
+                        <div id="edit-dropzone-keepa" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
+                            <input type="file" id="edit-file-keepa" class="hidden" accept="image/*">
+                            <img id="edit-preview-keepa" class="max-h-24 rounded border border-slate-700 object-contain shadow-md">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
+                <button type="button" onclick="closeEditModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
+                <button type="button" id="edit-save-btn" onclick="saveEditedProduct()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">
+                    <span id="edit-btn-text">保存修改</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 高清大图灯箱预览（支持点击 1:1 无损放大，用滚轮上下自然滑动） -->
+    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none">
+        <!-- 遮罩背景：点击图片的黑色外侧边缘可以直接关闭大图 -->
+        <div class="fixed inset-0 z-10 cursor-default" onclick="closeLightbox()"></div>
+
+        <!-- 悬浮右上角关闭按钮 -->
+        <button class="fixed top-6 right-6 text-white hover:text-indigo-400 text-4xl z-50 bg-slate-900/80 hover:bg-slate-900 w-12 h-12 rounded-full flex items-center justify-center border border-slate-700/50 shadow-lg backdrop-blur-md leading-none transition" onclick="closeLightbox()">&times;</button>
+
+        <!-- 图像展示区域（点击大图可自适应/1:1切换，支持大图无损滚动展示） -->
+        <div id="lightbox-wrapper" class="relative z-20 min-h-screen w-full p-4 flex justify-center items-center" onclick="closeLightbox()">
+            <!-- 图片本身：点击它执行“自适应/原始高清”状态双向切换 -->
+            <img id="lightbox-img" class="cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg transition-all duration-200 select-none" onclick="toggleZoom(event)">
+        </div>
+
+        <!-- 底部浮动信息条 -->
+        <div class="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-6 text-center pointer-events-none select-none">
+            <h2 id="lightbox-title" class="text-xl font-bold text-slate-100 tracking-wide drop-shadow-md"></h2>
+            <p id="lightbox-desc" class="text-xs text-slate-300 mt-2 max-w-4xl mx-auto leading-relaxed drop-shadow-sm"></p>
+        </div>
+    </div>
+
+    <!-- GitHub 配置弹窗 -->
+    <div id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden text-slate-800 font-sans">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-100">
+                <h3 class="text-sm font-bold text-gray-900"><i class="fa-brands fa-github text-gray-700 mr-1"></i> GitHub 云端 dataxyb 中控同步</h3>
+                <button type="button" onclick="closeGithubModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">GitHub 访问令牌 (PAT Token)</label>
+                    <input type="password" id="gh-token" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="ghp_xxxxxxxxxxxx">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库所有者 (Owner)</label>
+                    <input type="text" id="gh-owner" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="wasdkd">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库名称 (Repo)</label>
+                    <input type="text" id="gh-repo" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="Amazon">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">分支名称 (Branch)</label>
+                    <input type="text" id="gh-branch" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="main">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">选品数据库存放路径 (系统自动创建文件)</label>
+                    <input type="text" id="gh-path" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="uploads2/dataxyb.json">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-2 bg-gray-50">
+                <button type="button" onclick="closeGithubModal()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium">取消</button>
+                <button type="button" onclick="saveGithubConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-md text-xs font-medium shadow-sm font-sans">保存并载入</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 浮动通知容器 -->
+    <div class="notification" id="notification"></div>
+
+    <!-- 页脚 -->
+    <footer class="relative z-10 py-6 border-t border-slate-800 bg-slate-950/20 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            &copy; 2026 显眼包选品数据看板支撑舱 · 精密打样 · 风险规避 · 销售走势可视化
+        </div>
+    </footer>
+
+    <script>
+        // 初始演示数据，定位宏
+        /*START_DATA*/
+        const defaultPortfolioData = [
+            {
+                "id": "19",
+                "title": "直筒运动修身微喇裤",
+                "amazonUrl": "https://www.amazon.com/dp/B0D2RGDLFG?th=1&psc=1",
+                "keepaImg": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
+                "mainImg": "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",
+                "date": "3月12日",
+                "composition": "成分： 86% Polyester, 14% Elastane"
+            },
+            {
+                "id": "20",
+                "title": "运动速干半身裙",
+                "amazonUrl": "https://www.amazon.com/dp/B0C6TB28RD?th=1&psc=1",
+                "keepaImg": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
+                "mainImg": "https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=800&q=80",
+                "date": "3月12日",
+                "composition": "成分： Body: 86% Polyester, 14% Elastane ; Lining: 89% Polyester, 11% Lycra"
+            }
+        ];
+        /*END_DATA*/
+
+        let productData = [];
+        let activeCategory = "all";
+        let currentFileSha = null;
+
+        let isSyncing = false;
+        let syncPending = false;
+        let isGithubVerified = false;
+
+        let selectedMainFile = null;
+        let selectedKeepaFile = null;
+        let selectedEditMainFile = null;
+        let selectedEditKeepaFile = null;
+        let editingIndex = null;
+        let isZoomed = false; // 大图高清单模态标志位
+
+        let githubConfig = {
+            token: '',
+            owner: 'wasdkd',
+            repo: 'Amazon',
+            branch: 'main',
+            path: 'uploads2/dataxyb.json'
+        };
+
+        // 强健的 JSON 解构
+        function cleanAndParseJSON(str) {
+            const cleaned = str.replace(/,(\s*[\]}])/g, '$1');
+            return JSON.parse(cleaned);
+        }
+
+        // 智能提取 ASIN 机制
+        function extractASIN(url) {
+            if (!url) return '';
+            const match = url.match(/\/dp\/([A-Z0-9]{10})/i) || url.match(/\/gp\/product\/([A-Z0-9]{10})/i);
+            return match ? match[1] : '';
+        }
+
+        // 弹窗提示器
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            if (!notification) return;
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+
+        // 智能时间解析器：支持“3月12日”、“2026-03-12”等多种常见时间格式
+        function parseDateToNum(dateStr) {
+            if (!dateStr) return 0;
+            let str = dateStr.trim();
+
+            // 1. 标准横杠/斜杠年月日格式
+            let matchYMD = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (matchYMD) {
+                return new Date(parseInt(matchYMD[1]), parseInt(matchYMD[2]) - 1, parseInt(matchYMD[3])).getTime();
+            }
+
+            // 2. 中文包含年份格式
+            let matchCN_Y = str.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日/);
+            if (matchCN_Y) {
+                return new Date(parseInt(matchCN_Y[1]), parseInt(matchCN_Y[2]) - 1, parseInt(matchCN_Y[3])).getTime();
+            }
+
+            // 3. 中文月日格式（默认补充当前年份）
+            let matchCN = str.match(/^(\d{1,2})月(\d{1,2})日/);
+            if (matchCN) {
+                const year = new Date().getFullYear();
+                return new Date(year, parseInt(matchCN[1]) - 1, parseInt(matchCN[2])).getTime();
+            }
+
+            // 4. 月日简写格式
+            let matchMD = str.match(/^(\d{1,2})[-/](\d{1,2})/);
+            if (matchMD) {
+                const year = new Date().getFullYear();
+                return new Date(year, parseInt(matchMD[1]) - 1, parseInt(matchMD[2])).getTime();
+            }
+
+            // 5. 默认回滚机制
+            let num = Date.parse(str);
+            if (!isNaN(num)) return num;
+
+            return 0;
+        }
+
+        // 全局重排序核心：时间最新排在最前；若时间一致则序号最大（最新录入）排在最前
+        function sortProductData() {
+            productData.sort((a, b) => {
+                const dateA = parseDateToNum(a.date);
+                const dateB = parseDateToNum(b.date);
+
+                if (dateB !== dateA) {
+                    return dateB - dateA;
+                }
+                // 同一天对接，则将序号最大的排在最前
+                return parseInt(b.id) - parseInt(a.id);
+            });
+        }
+
+        function loadConfig() {
+            try {
+                const savedConfig = localStorage.getItem('xyb_portfolio_config');
+                if (savedConfig) {
+                    githubConfig = { ...githubConfig, ...JSON.parse(savedConfig) };
+                }
+            } catch (e) {
+                console.warn("未读取到本地 GitHub 缓存配置", e);
+            }
+            document.getElementById('gh-token').value = (githubConfig.token || '').trim();
+            document.getElementById('gh-owner').value = (githubConfig.owner || 'wasdkd').trim();
+            document.getElementById('gh-repo').value = (githubConfig.repo || 'Amazon').trim();
+            document.getElementById('gh-branch').value = (githubConfig.branch || 'main').trim();
+            document.getElementById('gh-path').value = (githubConfig.path || 'uploads2/dataxyb.json').trim();
+        }
+
+        function saveGithubConfig() {
+            githubConfig.token = document.getElementById('gh-token').value.trim();
+            githubConfig.owner = document.getElementById('gh-owner').value.trim();
+            githubConfig.repo = document.getElementById('gh-repo').value.trim();
+            githubConfig.branch = document.getElementById('gh-branch').value.trim();
+            githubConfig.path = document.getElementById('gh-path').value.trim();
+
+            localStorage.setItem('xyb_portfolio_config', JSON.stringify(githubConfig));
+            closeGithubModal();
+            loadFromGithub();
+        }
+
+        // 双向拉取
+        async function loadFromGithub() {
+            const statusEl = document.getElementById('sync-status');
+
+            if (!githubConfig.token) {
+                isGithubVerified = false;
+                statusEl.innerText = "本地暂存模式 (未配置 GitHub 授权)";
+                statusEl.className = "mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800";
+
+                const rawUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${githubConfig.path}?t=${Date.now()}`;
+                try {
+                    let response = await fetch(rawUrl);
+                    if (response.ok) {
+                        const rawText = await response.text();
+                        productData = cleanAndParseJSON(rawText);
+                        sortProductData(); // 拉取后自动按最新时间重新排序
+                        saveLocalBackup();
+                        statusEl.innerText = "已自动加载并同步 GitHub 只读云端数据";
+                        statusEl.className = "mt-3 text-xs text-blue-400 max-w-2xl mx-auto font-sans bg-blue-950/20 py-1.5 px-3 rounded-lg inline-block border border-blue-900/50";
+                    } else {
+                        initLocalDatabase();
+                    }
+                } catch (e) {
+                    initLocalDatabase();
+                }
+                renderProducts();
+                return;
+            }
+
+            statusEl.innerText = "正在同步 GitHub 选品云端数据库...";
+            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
+            try {
+                let response = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${githubConfig.token}` }
+                });
+
+                if (response.status === 401) {
+                    throw new Error("GitHub Token 无效或已失效 (401)");
+                } else if (response.status === 404) {
+                    currentFileSha = null;
+                    initLocalDatabase();
+                    isGithubVerified = true;
+                    statusEl.innerText = "已授权成功 (云端正在为您建立初始化 dataxyb.json 文件...)";
+                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+                    triggerBackgroundSync();
+                } else if (response.ok) {
+                    const fileData = await response.json();
+                    currentFileSha = fileData.sha;
+                    const contentDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
+
+                    productData = cleanAndParseJSON(contentDecoded);
+                    sortProductData(); // 拉取后自动按最新时间重新排序
+                    saveLocalBackup();
+                    isGithubVerified = true;
+
+                    statusEl.innerText = "GitHub 已正常连接 (云端 dataxyb.json 数据已成功获取)";
+                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
+                } else {
+                    throw new Error(`连接失败 (错误码: ${response.status})`);
+                }
+            } catch (err) {
+                isGithubVerified = false;
+                initLocalDatabase();
+                statusEl.innerText = `同步失败: ${err.message || "网络请求阻断"} (已自动读取本地缓存备份)`;
+                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
+            }
+            renderProducts();
+        }
+
+        function saveLocalBackup() {
+            localStorage.setItem('xyb_full_products_data', JSON.stringify(productData));
+        }
+
+        function initLocalDatabase() {
+            try {
+                const savedFull = localStorage.getItem('xyb_full_products_data');
+                if (savedFull) {
+                    productData = JSON.parse(savedFull);
+                } else {
+                    productData = [...defaultPortfolioData];
+                }
+                sortProductData();
+                saveLocalBackup();
+            } catch (e) {
+                productData = [...defaultPortfolioData];
+                sortProductData();
+                saveLocalBackup();
+            }
+        }
+
+        // 无缝滚动定位的核心渲染
+        function renderProducts() {
+            const grid = document.getElementById('product-grid');
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            grid.innerHTML = '';
+
+            let matchedCount = 0;
+
+            productData.forEach((item, index) => {
+                const asin = extractASIN(item.amazonUrl);
+                const matchesSearch = item.id.includes(searchVal) ||
+                                      item.title.toLowerCase().includes(searchVal) ||
+                                      asin.toLowerCase().includes(searchVal) ||
+                                      item.composition.toLowerCase().includes(searchVal) ||
+                                      item.date.toLowerCase().includes(searchVal);
+
+                if (matchesSearch) {
+                    matchedCount++;
+
+                    const card = document.createElement('div');
+                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col group relative p-4";
+
+                    // 左右双舱核心布局构建（主图及Keepa图均改为 object-contain 且增加保护内板，确保小图也是100%全景展示不切除边缘）
+                    card.innerHTML = `
+                        <!-- 左上角序号标签 -->
+                        <span class="absolute top-2 left-2 z-20 px-2 py-0.5 rounded bg-indigo-600 text-[10px] font-bold text-white shadow-md">
+                            No. ${item.id}
+                        </span>
+
+                        <!-- 操作工具组 -->
+                        <div class="absolute top-2 right-2 z-20 flex gap-1">
+                            <button onclick="openEditModal(${index}, event)" class="text-slate-400 hover:text-indigo-400 text-[10px] bg-slate-950/75 hover:bg-slate-950 px-2 py-1 rounded-md border border-slate-800 transition-all">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteProduct(${index}, event)" class="text-slate-400 hover:text-red-500 text-[10px] bg-slate-950/75 hover:bg-slate-950 px-2 py-1 rounded-md border border-slate-800 transition-all">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+
+                        <!-- 左右双舱分镜大图 -->
+                        <div class="grid grid-cols-12 gap-3 w-full h-56 mb-4">
+                            <!-- 左半幅：产品主图 -->
+                            <div onclick="openLightbox('${item.mainImg}', '${item.title}', '${item.composition}')" class="col-span-5 h-full bg-slate-950/80 rounded-xl overflow-hidden cursor-zoom-in border border-slate-800 relative group flex items-center justify-center p-1">
+                                <img src="${item.mainImg}" alt="主图" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-all duration-300" onerror="this.src='https://placehold.co/250x250?text=No+Image'">
+                                <div class="absolute bottom-1 left-1.5 text-[9px] text-slate-400 bg-slate-950/80 px-1 rounded">产品主图</div>
+                            </div>
+                            <!-- 右半幅：Keepa 走势图 -->
+                            <div onclick="openLightbox('${item.keepaImg}', '${item.title}', '${item.composition}')" class="col-span-7 h-full bg-white rounded-xl overflow-hidden cursor-zoom-in border border-slate-200 relative group p-1 flex items-center justify-center">
+                                <img src="${item.keepaImg}" alt="Keepa折线" class="max-w-full max-h-full object-contain group-hover:scale-102 transition-all duration-300" onerror="this.src='https://placehold.co/250x250?text=No+Image'">
+                                <div class="absolute bottom-1 left-1.5 text-[9px] text-slate-500 bg-slate-100/90 px-1 rounded border border-slate-200">Keepa折线图</div>
+                            </div>
+                        </div>
+
+                        <!-- 字段描述信息 -->
+                        <div class="flex-grow flex flex-col justify-between pt-1">
+                            <div>
+                                <div class="flex justify-between items-start gap-2 mb-2">
+                                    <h3 class="text-sm font-bold text-slate-100 line-clamp-1">${item.title || '未命名产品'}</h3>
+                                    ${asin ? `<span class="text-[10px] text-indigo-400 font-mono bg-indigo-950/50 border border-indigo-900/40 px-1.5 rounded shrink-0">${asin}</span>` : ''}
+                                </div>
+                                <div class="space-y-1.5 text-xs text-slate-400 border-t border-slate-800/60 pt-2 mb-3">
+                                    <p class="flex items-center gap-1.5"><i class="fa-solid fa-calendar text-[10px] text-emerald-500"></i> 对接日期：<span class="text-slate-200">${item.date}</span></p>
+                                    <p class="leading-relaxed bg-slate-950/30 p-2 rounded border border-slate-900 text-[11px]"><strong class="text-slate-300">成分：</strong>${item.composition}</p>
+                                </div>
+                            </div>
+                            <!-- 详情跳转按钮 -->
+                            <a href="${item.amazonUrl}" target="_blank" class="w-full bg-[#ff9900]/10 hover:bg-[#ff9900]/20 text-[#ff9900] py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 border border-[#ff9900]/30 transition-all">
+                                <i class="fa-brands fa-amazon"></i> 访问亚马逊详情页 <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                            </a>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
+            });
+
+            if (matchedCount === 0) {
+                document.getElementById('no-results').classList.remove('hidden');
+            } else {
+                document.getElementById('no-results').classList.add('hidden');
+            }
+        }
+
+        // 过滤检索
+        function filterProducts() {
+            renderProducts();
+        }
+
+        function openAddModal() {
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("当前未连接 GitHub 授权，无法添加产品。请点击右上方「GitHub 云同步配置」进行连接。");
+                return;
+            }
+            document.getElementById('add-modal').classList.remove('hidden');
+            resetUploadArea('main');
+            resetUploadArea('keepa');
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        // 打开编辑面板并渲染已有内容
+        function openEditModal(index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("未连接 GitHub 授权，无法编辑。请先完成 GitHub 配置连通。");
+                return;
+            }
+
+            editingIndex = index;
+            selectedEditMainFile = null;
+            selectedEditKeepaFile = null;
+            const item = productData[index];
+
+            document.getElementById('edit-seq-id').value = item.id || '';
+            document.getElementById('edit-date').value = item.date || '3月12日';
+            document.getElementById('edit-title').value = item.title || '';
+            document.getElementById('edit-amazon-url').value = item.amazonUrl || '';
+            document.getElementById('edit-composition').value = item.composition || '';
+
+            // 直接读取原数据并填充图片框
+            document.getElementById('edit-main-img-url').value = item.mainImg.startsWith('data:') ? '' : item.mainImg;
+            document.getElementById('edit-keepa-img-url').value = item.keepaImg.startsWith('data:') ? '' : item.keepaImg;
+
+            document.getElementById('edit-preview-main').src = item.mainImg || '';
+            document.getElementById('edit-preview-keepa').src = item.keepaImg || '';
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            editingIndex = null;
+        }
+
+        function openGithubModal() {
+            document.getElementById('github-modal').classList.remove('hidden');
+        }
+
+        function closeGithubModal() {
+            document.getElementById('github-modal').classList.add('hidden');
+        }
+
+
+        // --- 原生高清大图无损缩放系统（对齐作品集） ---
+
+        function toggleZoom(event) {
+            if (event) {
+                event.stopPropagation(); // 防止点击大图本身触发关闭
+            }
+
+            isZoomed = !isZoomed;
+            const img = document.getElementById('lightbox-img');
+            const wrapper = document.getElementById('lightbox-wrapper');
+
+            if (isZoomed) {
+                // 还原100%无损原图大小，使用 block 产生自然的纵向滚动
+                img.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";
+                wrapper.className = "relative z-20 min-h-screen w-full p-12 block";
+            } else {
+                // 自适应屏幕大小模式
+                resetZoomState();
+            }
+        }
+
+        function resetZoomState() {
+            const img = document.getElementById('lightbox-img');
+            const wrapper = document.getElementById('lightbox-wrapper');
+            if (img && wrapper) {
+                img.className = "cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg";
+                wrapper.className = "relative z-20 min-h-screen w-full p-4 flex justify-center items-center";
+            }
+        }
+
+        // 打开灯箱全画幅高清展示
+        function openLightbox(imgUrl, title, desc = "") {
+            if (!imgUrl) return;
+            const lightboxImg = document.getElementById('lightbox-img');
+            const wrapper = document.getElementById('lightbox-wrapper');
+
+            // 【核心对齐】：点击卡片直接切入【100%无损放大/原始像素比例模式】，使大图直接呈高清大比例铺满展现
+            isZoomed = true;
+            lightboxImg.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";
+            wrapper.className = "relative z-20 min-h-screen w-full p-12 block";
+
+            lightboxImg.src = imgUrl;
+            document.getElementById('lightbox-title').innerText = title || '大图预览';
+            document.getElementById('lightbox-desc').innerText = desc || '';
+
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+            document.body.style.overflow = "hidden"; // 锁死大网页底部，确保滚动条不抖动
+
+            // 瞬间滚动回最上方
+            document.getElementById('lightbox-modal').scrollTop = 0;
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+            document.body.style.overflow = "auto";
+        }
+
+
+        // --- Excel 批量操作模块实现（SheetJS - 已重构去除“序号”列由系统自动编号） ---
+
+        // 一键生成并下载本地模板
+        function downloadExcelTemplate() {
+            if (typeof XLSX === 'undefined') {
+                alert("正在拉取 SheetJS 核心解析库，请等候 1-2 秒再点下载！");
+                return;
+            }
+            const wb = XLSX.utils.book_new();
+            const wsData = [
+                ['产品详情页链接', 'Keepa插件价格-BSR折线图', '产品主图', '对接日期', '成分'], // 移除了序号，由系统自动生成
+                ['https://www.amazon.com/dp/B0D2RGDLFG?th=1&psc=1', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', '3月12日', '成分：86% Polyester, 14% Elastane'], // 示例数据
+                ['[示例数据-请删除]', '', '', '', ''] // 用户提示行
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, '批量开款选品导入模板');
+            XLSX.writeFile(wb, '选品批量导入模板.xlsx');
+        }
+
+        function triggerBulkUpload() {
+            if (typeof XLSX === 'undefined') {
+                alert("SheetJS 文件解析器尚未加载就绪，请等候一秒再点击上传！");
+                return;
+            }
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("未连接 GitHub 云数据库，无法批量同步数据。请先完成 GitHub 云配置。");
+                return;
+            }
+            document.getElementById('bulk-excel-input').click();
+        }
+
+        // 异步解析并静默同步上传 Excel 列表数据 (自动编号且合并排序)
+        async function handleBulkExcelUpload(event) {
+            if (typeof XLSX === 'undefined') {
+                alert("解析库加载中，请稍后上传。");
+                return;
+            }
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('sync-status');
+            statusEl.innerText = "正在解构解析 Excel 选品数据中...";
+            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+
+                    // 解构成 JS 数组
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+
+                    if (jsonData.length === 0) {
+                        throw new Error("工作表中没有解析到任何有效行数据！");
+                    }
+
+                    // 计算当前数据库内可安全递增的基准序号
+                    let nextId = productData.length > 0 ? Math.max(...productData.map(p => parseInt(p.id) || 0)) + 1 : 1;
+
+                    const tempImported = [];
+                    jsonData.forEach((row, index) => {
+                        if (row['产品详情页链接'] === '[示例数据-请删除]') return;
+
+                        const amazonUrl = String(row['产品详情页链接'] || '').trim();
+                        // 兼容多种列名拼写
+                        const keepaImg = String(row['Keepa插件价格-BSR折线图'] || row['Keepa折线图'] || '').trim();
+                        const mainImg = String(row['产品主图'] || '').trim();
+                        const date = String(row['对接日期'] || '3月12日').trim();
+                        const composition = String(row['成分'] || '').trim();
+
+                        if (!amazonUrl) return; // 跳过不合规空行
+
+                        const id = String(nextId++); // 由系统自动有序分配唯一序号
+                        const extracted = extractASIN(amazonUrl);
+                        const title = extracted ? `产品 ${extracted}` : `产品 ${id}`;
+
+                        tempImported.push({
+                            id,
+                            title,
+                            amazonUrl,
+                            keepaImg: keepaImg || 'https://placehold.co/600x400?text=No+Keepa+Image',
+                            mainImg: mainImg || 'https://placehold.co/400x600?text=No+Main+Image',
+                            date,
+                            composition
+                        });
+                    });
+
+                    if (tempImported.length === 0) {
+                        throw new Error("Excel 模版列头匹配失败，请检查包含以下核心头：产品详情页链接");
+                    }
+
+                    // 合并并自动本地去重
+                    productData = [...productData, ...tempImported];
+                    const uniqueMap = {};
+                    productData.forEach(p => {
+                        uniqueMap[p.id] = p; // 后面导入的覆盖旧有序号
+                    });
+                    productData = Object.values(uniqueMap);
+
+                    sortProductData(); // 合并完自动重排序
+
+                    saveLocalBackup();
+                    renderProducts();
+
+                    statusEl.innerText = "Excel 数据加载就绪，正在无缝上行推送至 GitHub 中...";
+                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+
+                    await triggerBackgroundSync();
+                    showNotification(`成功批量导入并同步了 ${tempImported.length} 条选品记录！`, "success");
+
+                } catch (err) {
+                    alert("导入解析失败：" + err.message);
+                    loadFromGithub(); // 出现错误，重新拉取云端回滚
+                } finally {
+                    document.getElementById('bulk-excel-input').value = '';
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+
+        // --- 双图拖拽上传解析区 ---
+        const dropzoneMain = document.getElementById('dropzone-main');
+        const fileMain = document.getElementById('file-main');
+        const dropzoneKeepa = document.getElementById('dropzone-keepa');
+        const fileKeepa = document.getElementById('file-keepa');
+
+        const editDropzoneMain = document.getElementById('edit-dropzone-main');
+        const editFileMain = document.getElementById('edit-file-main');
+        const editDropzoneKeepa = document.getElementById('edit-dropzone-keepa');
+        const editFileKeepa = document.getElementById('edit-file-keepa');
+
+        // 单击触发绑定
+        dropzoneMain.addEventListener('click', () => fileMain.click());
+        dropzoneKeepa.addEventListener('click', () => fileKeepa.click());
+        editDropzoneMain.addEventListener('click', () => editFileMain.click());
+        editDropzoneKeepa.addEventListener('click', () => editFileKeepa.click());
+
+        // 双向修改变更捕获
+        fileMain.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'main', false));
+        fileKeepa.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'keepa', false));
+        editFileMain.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'main', true));
+        editFileKeepa.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'keepa', true));
+
+        bindDragEvents(dropzoneMain, 'main', false);
+        bindDragEvents(dropzoneKeepa, 'keepa', false);
+        bindDragEvents(editDropzoneMain, 'main', true);
+        bindDragEvents(editDropzoneKeepa, 'keepa', true);
+
+        function bindDragEvents(element, type, isEdit) {
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                element.classList.add('drag-over');
+            });
+            element.addEventListener('dragleave', () => {
+                element.classList.remove('drag-over');
+            });
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                element.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) {
+                    handleImageSelect(e.dataTransfer.files[0], type, isEdit);
+                }
+            });
+        }
+
+        function handleImageSelect(file, type, isEdit) {
+            if (!file.type.startsWith('image/')) {
+                alert("请选择格式规范的图片文件！");
+                return;
+            }
+
+            const prefix = isEdit ? 'edit-' : '';
+            const previewId = `${prefix}preview-${type}`;
+            const promptId = isEdit ? null : `${prefix}prompt-${type}`;
+
+            if (isEdit) {
+                if (type === 'main') selectedEditMainFile = file;
+                if (type === 'keepa') selectedEditKeepaFile = file;
+            } else {
+                if (type === 'main') selectedMainFile = file;
+                if (type === 'keepa') selectedKeepaFile = file;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(previewId).src = e.target.result;
+                document.getElementById(previewId).classList.remove('hidden');
+                if (promptId) {
+                    document.getElementById(promptId).classList.add('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUploadArea(type) {
+            if (type === 'main') {
+                selectedMainFile = null;
+                fileMain.value = '';
+                document.getElementById('new-main-img-url').value = '';
+                document.getElementById('preview-main').classList.add('hidden');
+                document.getElementById('prompt-main').classList.remove('hidden');
+            } else if (type === 'keepa') {
+                selectedKeepaFile = null;
+                fileKeepa.value = '';
+                document.getElementById('new-keepa-img-url').value = '';
+                document.getElementById('preview-keepa').classList.add('hidden');
+                document.getElementById('prompt-keepa').classList.remove('hidden');
+            }
+        }
+
+        // --- 核心图片处理函数 ---
+
+        // 异步转换文件为 Base64 原始数据流
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // 异步将图片物理上传至 GitHub 仓库 zpj_imgs 文件夹下
+        async function uploadImageToGithub(file) {
+            const ext = file.name.split('.').pop() || 'png';
+            const filename = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+            const imagePath = `uploads2/zpj_imgs/${filename}`;
+
+            const base64Content = await fileToBase64(file);
+            const cleanBase64 = base64Content.split(',')[1];
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${imagePath}`;
+
+            const payload = {
+                message: `Upload conspicuous product image: ${filename}`,
+                content: cleanBase64,
+                branch: githubConfig.branch
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errJson = await response.json();
+                throw new Error(errJson.message || "上传图片至 GitHub 失败");
+            }
+
+            return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${imagePath}`;
+        }
+
+        // 新建产品保存逻辑 (自适应序号逻辑且自动按时间排序)
+        async function saveNewProduct() {
+            const date = document.getElementById('new-date').value.trim() || '3月12日';
+            let title = document.getElementById('new-title').value.trim();
+            const amazonUrl = document.getElementById('new-amazon-url').value.trim();
+            const composition = document.getElementById('new-composition').value.trim();
+
+            const inputMainUrl = document.getElementById('new-main-img-url').value.trim();
+            const inputKeepaUrl = document.getElementById('new-keepa-img-url').value.trim();
+
+            if (!amazonUrl || !composition) {
+                alert("请完整填写亚马逊链接与产品面料成分！");
+                return;
+            }
+
+            // 智能自动计算唯一递增的新序号
+            const nextId = productData.length > 0 ? Math.max(...productData.map(p => parseInt(p.id) || 0)) + 1 : 1;
+            const id = String(nextId);
+
+            // 智能 ASIN 抓取
+            const extracted = extractASIN(amazonUrl);
+            if (!title) {
+                title = extracted ? `产品 ${extracted}` : `产品 ${id}`;
+            }
+
+            setLoadingState(true, 'save');
+
+            try {
+                let mainImgUrl = inputMainUrl;
+                let keepaImgUrl = inputKeepaUrl;
+
+                // 如果存在拖拽上传的主图，优先进行 GitHub 物理托管
+                if (selectedMainFile) {
+                    mainImgUrl = await uploadImageToGithub(selectedMainFile);
+                }
+                // 托管 Keepa
+                if (selectedKeepaFile) {
+                    keepaImgUrl = await uploadImageToGithub(selectedKeepaFile);
+                }
+
+                if (!mainImgUrl || !keepaImgUrl) {
+                    throw new Error("产品主图与 Keepa 走势图均不可为空，请拖拽本地图片或粘贴有效 URL 地址！");
+                }
+
+                const newProduct = {
+                    id,
+                    title,
+                    amazonUrl,
+                    keepaImg: keepaImgUrl,
+                    mainImg: mainImgUrl,
+                    date,
+                    composition
+                };
+
+                productData.push(newProduct);
+
+                sortProductData(); // 新增产品后自动全局重排
+
+                saveLocalBackup();
+
+                // 重置表单 (移除了序号重置)
+                document.getElementById('new-date').value = '';
+                document.getElementById('new-title').value = '';
+                document.getElementById('new-amazon-url').value = '';
+                document.getElementById('new-composition').value = '';
+                resetUploadArea('main');
+                resetUploadArea('keepa');
+                closeAddModal();
+
+                // 乐观渲染
+                renderProducts();
+                await triggerBackgroundSync();
+
+            } catch (err) {
+                alert("添加失败：" + err.message);
+            } finally {
+                setLoadingState(false, 'save');
+            }
+        }
+
+        // 修改保存逻辑 (自动按时间重排)
+        async function saveEditedProduct() {
+            if (editingIndex === null) return;
+
+            const id = document.getElementById('edit-seq-id').value.trim();
+            const date = document.getElementById('edit-date').value.trim();
+            const title = document.getElementById('edit-title').value.trim();
+            const amazonUrl = document.getElementById('edit-amazon-url').value.trim();
+            const composition = document.getElementById('edit-composition').value.trim();
+
+            const inputMainUrl = document.getElementById('edit-main-img-url').value.trim();
+            const inputKeepaUrl = document.getElementById('edit-keepa-img-url').value.trim();
+
+            if (!id || !amazonUrl || !composition) {
+                alert("序号、亚马逊链接与产品成分均不可为空！");
+                return;
+            }
+
+            setLoadingState(true, 'edit');
+
+            try {
+                let mainImgUrl = inputMainUrl || productData[editingIndex].mainImg;
+                let keepaImgUrl = inputKeepaUrl || productData[editingIndex].keepaImg;
+
+                if (selectedEditMainFile) {
+                    mainImgUrl = await uploadImageToGithub(selectedEditMainFile);
+                }
+                if (selectedEditKeepaFile) {
+                    keepaImgUrl = await uploadImageToGithub(selectedEditKeepaFile);
+                }
+
+                productData[editingIndex].id = id;
+                productData[editingIndex].date = date;
+                productData[editingIndex].title = title || `产品 ${id}`;
+                productData[editingIndex].amazonUrl = amazonUrl;
+                productData[editingIndex].composition = composition;
+                productData[editingIndex].mainImg = mainImgUrl;
+                productData[editingIndex].keepaImg = keepaImgUrl;
+
+                sortProductData(); // 修改产品后自动全局重排
+
+                saveLocalBackup();
+
+                closeEditModal();
+                renderProducts();
+                await triggerBackgroundSync();
+
+            } catch (err) {
+                alert("修改保存失败：" + err.message);
+            } finally {
+                setLoadingState(false, 'edit');
+            }
+        }
+
+        // 状态转子
+        function setLoadingState(loading, type) {
+            const btnId = type === 'save' ? 'save-btn' : 'edit-save-btn';
+            const textId = type === 'save' ? 'btn-text' : 'edit-btn-text';
+            const defaultText = type === 'save' ? '添加产品' : '保存修改';
+
+            const btn = document.getElementById(btnId);
+            const txt = document.getElementById(textId);
+
+            if (loading) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                txt.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 数据安全传输中...`;
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                txt.innerHTML = defaultText;
+            }
+        }
+
+        // 并发同步守护
+        async function triggerBackgroundSync() {
+            if (isSyncing) {
+                syncPending = true;
+                return;
+            }
+            isSyncing = true;
+            syncPending = false;
+
+            await saveAllDataSilent();
+
+            isSyncing = false;
+            if (syncPending) {
+                triggerBackgroundSync();
+            }
+        }
+
+        // 静默上传 dataxyb.json 至 GitHub 仓库
+        async function saveAllDataSilent() {
+            const statusEl = document.getElementById('sync-status');
+            saveLocalBackup();
+
+            if (!githubConfig.token) return;
+
+            statusEl.innerText = "正在无缝上行数据中...";
+            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
+            try {
+                let sha = null;
+                const getFileRes = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${githubConfig.token}` }
+                });
+                if (getFileRes.ok) {
+                    const fileData = await getFileRes.json();
+                    sha = fileData.sha;
+                } else if (getFileRes.status === 404) {
+                    sha = null;
+                }
+
+                const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(productData, null, 2))));
+                const payload = {
+                    message: "Sync conspicuous product database (dataxyb.json automatic metadata update)",
+                    content: contentBase64,
+                    branch: githubConfig.branch
+                };
+                if (sha) {
+                    payload.sha = sha;
+                }
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (putRes.ok) {
+                    const resData = await putRes.json();
+                    currentFileSha = resData.content.sha;
+                    statusEl.innerText = "GitHub 同步正常 (云端 dataxyb.json 已更新成功)";
+                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
+                } else {
+                    const errPayload = await putRes.json();
+                    throw new Error(errPayload.message || "上传写入 dataxyb 失败");
+                }
+            } catch (e) {
+                console.error("中控同步失败:", e);
+                statusEl.innerText = `数据同步失败: ${e.message || "接口抖动"} (已自动缓存在本地)`;
+                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
+            }
+        }
+
+        // 删除卡片
+        async function deleteProduct(index, event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            if (!githubConfig.token || !isGithubVerified) {
+                alert("未连接 GitHub 授权，无法执行删除操作。请先完成 GitHub 云配置。");
+                return;
+            }
+
+            if (!confirm("确定要永久从选品库中移出该显眼包产品吗？")) return;
+
+            productData.splice(index, 1);
+            saveLocalBackup();
+
+            renderProducts();
+            await triggerBackgroundSync();
+        }
+
+        // 极速硬编码 HTML 下载备份
+        function exportStandaloneHTML() {
+            const baseHTML = document.documentElement.outerHTML;
+            let exportedHTML = "<!DOCTYPE html>\n" + baseHTML;
+
+            exportedHTML = exportedHTML.replace(/id="add-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="github-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
+            exportedHTML = exportedHTML.replace(/id="lightbox-modal" class="fixed inset-0 z-50 bg-black\/98 hidden overflow-auto select-none(?! hidden)/, 'id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none hidden');
+
+            const currentDataStr = JSON.stringify(productData, null, 4);
+
+            const regex = /\/\*START_DATA\*\/[\s\S]*?\/\*END_DATA\*\//;
+            exportedHTML = exportedHTML.replace(regex, '/*START_DATA*/\nconst defaultPortfolioData = ' + currentDataStr + ';\n/*END_DATA*/');
+
+            const blob = new Blob([exportedHTML], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "显眼包产品库_选品同步舱.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- 交互背景引擎 ---
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 100 };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x;
+                this.baseY = y;
+                this.density = (Math.random() * 20) + 10;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.color = 'rgba(99, 102, 241, ' + (Math.random() * 0.4 + 0.1) + ')';
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.hypot(dx, dy);
+                let forceDirectionX = dx / distance;
+                let forceDirectionY = dy / distance;
+                let maxDistance = mouse.radius;
+                let force = (maxDistance - distance) / maxDistance;
+                let directionX = forceDirectionX * force * this.density;
+                let directionY = forceDirectionY * force * this.density;
+
+                if (distance < mouse.radius) {
+                    this.x -= directionX;
+                    this.y -= directionY;
+                } else {
+                    if (this.x !== this.baseX) {
+                        let dxBase = this.x - this.baseX;
+                        this.x -= dxBase / 20;
+                    }
+                    if (this.y !== this.baseY) {
+                        let dyBase = this.y - this.baseY;
+                        this.y -= dyBase / 20;
+                    }
+                }
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 18000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                particles.push(new Particle(x, y));
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].draw();
+                particles[i].update();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function() {
+            resizeCanvas();
+            animate();
+            loadConfig();
+            loadFromGithub();
+        };
+    </script>
+</body>
+</html>
+
+
 <!--<!DOCTYPE html>-->
 <!--<html lang="zh-CN">-->
 <!--<head>-->
@@ -71,8 +1474,8 @@
 <!--    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>-->
 <!--    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>-->
 
-<!--    &lt;!&ndash; 主体容器 &ndash;&gt;-->
-<!--    <div class="relative z-10 max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 lg:px-8 flex-grow flex flex-col justify-center">-->
+<!--    &lt;!&ndash; 主体容器 (已调整为 96vw 超宽排版，边缘离两侧更近) &ndash;&gt;-->
+<!--    <div class="relative z-10 w-full mx-auto px-2 sm:px-4 lg:px-6 py-12 flex-grow flex flex-col justify-center max-w-[96vw]">-->
 
 <!--        &lt;!&ndash; 顶部控制面板 &ndash;&gt;-->
 <!--        <div class="flex flex-wrap justify-end gap-2 mb-6 font-sans">-->
@@ -110,7 +1513,7 @@
 <!--            </p>-->
 <!--        </header>-->
 
-<!--        &lt;!&ndash; 精准单输入检索栏（直接全部呈现，简单高效） &ndash;&gt;-->
+<!--        &lt;!&ndash; 精准单输入检索栏 &ndash;&gt;-->
 <!--        <div class="max-w-xl w-full mx-auto mb-10">-->
 <!--            <div class="relative flex-grow font-sans">-->
 <!--                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">-->
@@ -120,8 +1523,8 @@
 <!--            </div>-->
 <!--        </div>-->
 
-<!--        &lt;!&ndash; 产品展示网格 &ndash;&gt;-->
-<!--        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">-->
+<!--        &lt;!&ndash; 产品展示网格 (已调整为 lg:grid-cols-3 一行显示 3 个卡片) &ndash;&gt;-->
+<!--        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">-->
 <!--            &lt;!&ndash; 卡片由JS动态载入 &ndash;&gt;-->
 <!--        </div>-->
 
@@ -132,23 +1535,17 @@
 <!--        </div>-->
 <!--    </div>-->
 
-<!--    &lt;!&ndash; 动态添加新产品弹窗 &ndash;&gt;-->
+<!--    &lt;!&ndash; 动态添加新产品弹窗 (已移除手动序号输入，对接日期改独占行) &ndash;&gt;-->
 <!--    <div id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">-->
 <!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden font-sans">-->
 <!--            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">-->
-<!--                <h3 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-plus text-indigo-500 mr-1"></i> 新增产品至 dataxyb 数据库</h3>-->
+<!--                <h3 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-plus text-indigo-500 mr-1"></i> 新增产品至 dataxyb 数据库 (系统自动编号)</h3>-->
 <!--                <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>-->
 <!--            </div>-->
 <!--            <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">-->
-<!--                <div class="grid grid-cols-2 gap-4">-->
-<!--                    <div>-->
-<!--                        <label class="block text-[11px] text-slate-400 font-bold mb-1">序号 (必须为数字)</label>-->
-<!--                        <input type="number" id="new-seq-id" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">-->
-<!--                    </div>-->
-<!--                    <div>-->
-<!--                        <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>-->
-<!--                        <input type="text" id="new-date" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：3月12日">-->
-<!--                    </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>-->
+<!--                    <input type="text" id="new-date" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：3月12日">-->
 <!--                </div>-->
 <!--                <div>-->
 <!--                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品名称/ASIN备注 (若不填将自动从链接中截取ASIN)</label>-->
@@ -202,7 +1599,7 @@
 <!--        </form>-->
 <!--    </div>-->
 
-<!--    &lt;!&ndash; 动态修改选品弹窗 &ndash;&gt;-->
+<!--    &lt;!&ndash; 动态修改选品弹窗 (序号设为只读以防错乱) &ndash;&gt;-->
 <!--    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">-->
 <!--        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden font-sans">-->
 <!--            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">-->
@@ -212,8 +1609,8 @@
 <!--            <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">-->
 <!--                <div class="grid grid-cols-2 gap-4">-->
 <!--                    <div>-->
-<!--                        <label class="block text-[11px] text-slate-400 font-bold mb-1">序号 (必须为数字)</label>-->
-<!--                        <input type="number" id="edit-seq-id" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">-->
+<!--                        <label class="block text-[11px] text-slate-400 font-bold mb-1">序号 (系统内定无法更改)</label>-->
+<!--                        <input type="number" id="edit-seq-id" readonly class="w-full border border-slate-800 bg-slate-950/80 rounded-md p-2 focus:outline-none text-slate-500 cursor-not-allowed">-->
 <!--                    </div>-->
 <!--                    <div>-->
 <!--                        <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>-->
@@ -262,7 +1659,7 @@
 <!--        </form>-->
 <!--    </div>-->
 
-<!--    &lt;!&ndash; 高清大图灯箱预览（已对齐作品集：点击直接 1:1 无损，不限制最大高宽，支持流畅大图滚动） &ndash;&gt;-->
+<!--    &lt;!&ndash; 高清大图灯箱预览（支持点击 1:1 无损放大，用滚轮上下自然滑动） &ndash;&gt;-->
 <!--    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none">-->
 <!--        &lt;!&ndash; 遮罩背景：点击图片的黑色外侧边缘可以直接关闭大图 &ndash;&gt;-->
 <!--        <div class="fixed inset-0 z-10 cursor-default" onclick="closeLightbox()"></div>-->
@@ -722,7 +2119,7 @@
 <!--        }-->
 
 
-<!--        // -&#45;&#45; Excel 批量操作模块实现（SheetJS） -&#45;&#45;-->
+<!--        // -&#45;&#45; Excel 批量操作模块实现（SheetJS - 已重构去除“序号”列由系统自动编号） -&#45;&#45;-->
 
 <!--        // 一键生成并下载本地模板-->
 <!--        function downloadExcelTemplate() {-->
@@ -732,9 +2129,9 @@
 <!--            }-->
 <!--            const wb = XLSX.utils.book_new();-->
 <!--            const wsData = [-->
-<!--                ['序号', '产品详情页链接', 'Keepa插件价格-BSR折线图', '产品主图', '对接日期', '成分'], // 标题行，对齐您的Excel列名-->
-<!--                ['19', 'https://www.amazon.com/dp/B0D2RGDLFG?th=1&psc=1', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', '3月12日', '成分：86% Polyester, 14% Elastane'], // 示例数据-->
-<!--                ['[示例数据-请删除]', '', '', '', '', ''] // 用户提示行-->
+<!--                ['产品详情页链接', 'Keepa插件价格-BSR折线图', '产品主图', '对接日期', '成分'], // 移除了序号，由系统自动生成-->
+<!--                ['https://www.amazon.com/dp/B0D2RGDLFG?th=1&psc=1', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', '3月12日', '成分：86% Polyester, 14% Elastane'], // 示例数据-->
+<!--                ['[示例数据-请删除]', '', '', '', ''] // 用户提示行-->
 <!--            ];-->
 <!--            const ws = XLSX.utils.aoa_to_sheet(wsData);-->
 <!--            XLSX.utils.book_append_sheet(wb, ws, '批量开款选品导入模板');-->
@@ -753,7 +2150,7 @@
 <!--            document.getElementById('bulk-excel-input').click();-->
 <!--        }-->
 
-<!--        // 异步解析并静默同步上传 Excel 列表数据-->
+<!--        // 异步解析并静默同步上传 Excel 列表数据 (自动编号)-->
 <!--        async function handleBulkExcelUpload(event) {-->
 <!--            if (typeof XLSX === 'undefined') {-->
 <!--                alert("解析库加载中，请稍后上传。");-->
@@ -781,11 +2178,13 @@
 <!--                        throw new Error("工作表中没有解析到任何有效行数据！");-->
 <!--                    }-->
 
+<!--                    // 计算当前数据库内可安全递增的基准序号-->
+<!--                    let nextId = productData.length > 0 ? Math.max(...productData.map(p => parseInt(p.id) || 0)) + 1 : 1;-->
+
 <!--                    const tempImported = [];-->
 <!--                    jsonData.forEach((row, index) => {-->
-<!--                        if (row['序号'] === '[示例数据-请删除]') return;-->
+<!--                        if (row['产品详情页链接'] === '[示例数据-请删除]') return;-->
 
-<!--                        const id = String(row['序号'] || '').trim();-->
 <!--                        const amazonUrl = String(row['产品详情页链接'] || '').trim();-->
 <!--                        // 兼容多种列名拼写-->
 <!--                        const keepaImg = String(row['Keepa插件价格-BSR折线图'] || row['Keepa折线图'] || '').trim();-->
@@ -793,8 +2192,9 @@
 <!--                        const date = String(row['对接日期'] || '3月12日').trim();-->
 <!--                        const composition = String(row['成分'] || '').trim();-->
 
-<!--                        if (!id || !amazonUrl) return; // 跳过不合规空行-->
+<!--                        if (!amazonUrl) return; // 跳过不合规空行-->
 
+<!--                        const id = String(nextId++); // 由系统自动有序分配唯一序号-->
 <!--                        const extracted = extractASIN(amazonUrl);-->
 <!--                        const title = extracted ? `产品 ${extracted}` : `产品 ${id}`;-->
 
@@ -810,7 +2210,7 @@
 <!--                    });-->
 
 <!--                    if (tempImported.length === 0) {-->
-<!--                        throw new Error("Excel 模版列头匹配失败，请检查包含以下核心头：序号、产品详情页链接");-->
+<!--                        throw new Error("Excel 模版列头匹配失败，请检查包含以下核心头：产品详情页链接");-->
 <!--                    }-->
 
 <!--                    // 合并并自动本地去重-->
@@ -933,7 +2333,7 @@
 <!--            }-->
 <!--        }-->
 
-<!--        // -&#45;&#45; 核心图片处理函数（已彻底补全，修复未定义报错） -&#45;&#45;-->
+<!--        // -&#45;&#45; 核心图片处理函数 -&#45;&#45;-->
 
 <!--        // 异步转换文件为 Base64 原始数据流-->
 <!--        function fileToBase64(file) {-->
@@ -979,9 +2379,8 @@
 <!--            return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${imagePath}`;-->
 <!--        }-->
 
-<!--        // 新建产品保存逻辑-->
+<!--        // 新建产品保存逻辑 (自适应序号逻辑，杜绝冲突)-->
 <!--        async function saveNewProduct() {-->
-<!--            const id = document.getElementById('new-seq-id').value.trim();-->
 <!--            const date = document.getElementById('new-date').value.trim() || '3月12日';-->
 <!--            let title = document.getElementById('new-title').value.trim();-->
 <!--            const amazonUrl = document.getElementById('new-amazon-url').value.trim();-->
@@ -990,10 +2389,14 @@
 <!--            const inputMainUrl = document.getElementById('new-main-img-url').value.trim();-->
 <!--            const inputKeepaUrl = document.getElementById('new-keepa-img-url').value.trim();-->
 
-<!--            if (!id || !amazonUrl || !composition) {-->
-<!--                alert("请完整填写序号、亚马逊链接与产品面料成分！");-->
+<!--            if (!amazonUrl || !composition) {-->
+<!--                alert("请完整填写亚马逊链接与产品面料成分！");-->
 <!--                return;-->
 <!--            }-->
+
+<!--            // 智能自动计算唯一递增的新序号-->
+<!--            const nextId = productData.length > 0 ? Math.max(...productData.map(p => parseInt(p.id) || 0)) + 1 : 1;-->
+<!--            const id = String(nextId);-->
 
 <!--            // 智能 ASIN 抓取-->
 <!--            const extracted = extractASIN(amazonUrl);-->
@@ -1036,8 +2439,8 @@
 
 <!--                saveLocalBackup();-->
 
-<!--                // 重置表单-->
-<!--                document.getElementById('new-seq-id').value = '';-->
+<!--                // 重置表单 (移除了序号重置)-->
+<!--                document.getElementById('new-date').value = '';-->
 <!--                document.getElementById('new-title').value = '';-->
 <!--                document.getElementById('new-amazon-url').value = '';-->
 <!--                document.getElementById('new-composition').value = '';-->
@@ -1341,1348 +2744,3 @@
 <!--    </script>-->
 <!--</body>-->
 <!--</html>-->
-
-
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conspicuous Product - 显眼包产品选品工作台</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS Excel 解析/导出库 -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- FontAwesome 图标 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
-        body {
-            font-family: 'Noto Sans SC', sans-serif;
-            background-color: #0b0f19;
-            overflow-x: hidden;
-        }
-        /* 玻璃质感卡片与动画 */
-        .glass-card {
-            background: rgba(17, 25, 40, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        }
-        .glass-card:hover {
-            transform: translateY(-6px);
-            border-color: rgba(99, 102, 241, 0.4);
-            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
-        }
-        /* 背景模糊流光球 */
-        .glow-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(120px);
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0.35;
-        }
-        /* 拖拽区域高亮状态 */
-        .drag-over {
-            border-color: #6366f1 !important;
-            background-color: rgba(99, 102, 241, 0.15) !important;
-        }
-        /* 美化灯箱的原生滚动条 */
-        #lightbox-modal::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        #lightbox-modal::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
-        }
-        #lightbox-modal::-webkit-scrollbar-thumb {
-            background: rgba(99, 102, 241, 0.4);
-            border-radius: 4px;
-        }
-        #lightbox-modal::-webkit-scrollbar-thumb:hover {
-            background: rgba(99, 102, 241, 0.6);
-        }
-    </style>
-</head>
-<body class="relative min-h-screen text-slate-200 flex flex-col justify-between font-sans">
-
-    <!-- 交互粒子画布 -->
-    <canvas id="canvas-bg" class="absolute inset-0 w-full h-full z-0 pointer-events-auto"></canvas>
-
-    <!-- 氛围光源球 -->
-    <div class="glow-orb w-[400px] h-[400px] bg-indigo-600 top-[-100px] left-[-100px]"></div>
-    <div class="glow-orb w-[400px] h-[400px] bg-emerald-600 bottom-[-100px] right-[-100px]"></div>
-    <div class="glow-orb w-[300px] h-[300px] bg-purple-600 top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
-
-    <!-- 主体容器 (已调整为 96vw 超宽排版，边缘离两侧更近) -->
-    <div class="relative z-10 w-full mx-auto px-2 sm:px-4 lg:px-6 py-12 flex-grow flex flex-col justify-center max-w-[96vw]">
-
-        <!-- 顶部控制面板 -->
-        <div class="flex flex-wrap justify-end gap-2 mb-6 font-sans">
-            <!-- 批量操作组合 -->
-            <button onclick="downloadExcelTemplate()" class="bg-blue-600/80 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-blue-500/30 shadow-md backdrop-blur-md transition-all">
-                <i class="fa-solid fa-file-excel"></i> 下载 Excel 模板
-            </button>
-            <button onclick="triggerBulkUpload()" class="bg-purple-600/80 hover:bg-purple-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-purple-500/30 shadow-md backdrop-blur-md transition-all">
-                <i class="fa-solid fa-file-import"></i> 批量上传 Excel
-            </button>
-            <input type="file" id="bulk-excel-input" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleBulkExcelUpload(event)">
-
-            <!-- 基础操作组合 -->
-            <button onclick="openAddModal()" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-indigo-500/30 shadow-md backdrop-blur-md transition-all">
-                <i class="fa-solid fa-plus-circle"></i> 添加选品
-            </button>
-            <button onclick="exportStandaloneHTML()" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-emerald-500/30 shadow-md backdrop-blur-md transition-all" title="将当前添加的所有选品数据硬编码进源文件独立保存">
-                <i class="fa-solid fa-file-shield"></i> 备份打包导出 HTML
-            </button>
-            <button onclick="openGithubModal()" class="bg-gray-800 text-white hover:bg-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700/50 shadow-md backdrop-blur-md transition-all">
-                <i class="fa-brands fa-github"></i> GitHub 云同步配置
-            </button>
-        </div>
-
-        <!-- 头部标题区 -->
-        <header class="text-center mb-12">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/60 border border-slate-700/50 backdrop-blur-md text-xs text-indigo-300 font-mono mb-4">
-                <i class="fa-solid fa-fire animate-pulse"></i> CONSPICUOUS PRODUCT ANALYSIS ENGINE ACTIVE
-            </div>
-            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-300 font-sans">
-                显眼包产品库 / 选品工作台
-            </h1>
-            <p id="sync-status" class="mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800">
-                本地暂存模式 (未配置 GitHub 授权)
-            </p>
-        </header>
-
-        <!-- 精准单输入检索栏 -->
-        <div class="max-w-xl w-full mx-auto mb-10">
-            <div class="relative flex-grow font-sans">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                </span>
-                <input type="text" id="search-input" name="portfolio_search" autocomplete="off" oninput="filterProducts()" class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/80 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500" placeholder="直接在此检索序号、ASIN、对接日期或面料成分...">
-            </div>
-        </div>
-
-        <!-- 产品展示网格 (已调整为 lg:grid-cols-3 一行显示 3 个卡片) -->
-        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-sans">
-            <!-- 卡片由JS动态载入 -->
-        </div>
-
-        <!-- 检索为空提示 -->
-        <div id="no-results" class="hidden text-center py-12">
-            <i class="fa-solid fa-circle-info text-3xl text-slate-600 mb-2"></i>
-            <p class="text-sm text-slate-400">当前未找到任何匹配的产品选品卡片</p>
-        </div>
-    </div>
-
-    <!-- 动态添加新产品弹窗 (已移除手动序号输入，对接日期改独占行) -->
-    <div id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden font-sans">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h3 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-plus text-indigo-500 mr-1"></i> 新增产品至 dataxyb 数据库 (系统自动编号)</h3>
-                <button type="button" onclick="closeAddModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>
-                    <input type="text" id="new-date" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：3月12日">
-                </div>
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品名称/ASIN备注 (若不填将自动从链接中截取ASIN)</label>
-                    <input type="text" id="new-title" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="例如：高弹防走光短裤裙">
-                </div>
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品详情页链接</label>
-                    <input type="text" id="new-amazon-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200" placeholder="https://www.amazon.com/dp/...">
-                </div>
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">面料/成分组成</label>
-                    <textarea id="new-composition" rows="2" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs" placeholder="例如：Body: 86% Polyester, 14% Elastane ; Lining: 89% Polyester"></textarea>
-                </div>
-
-                <!-- 双图配置模块 -->
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- 左侧主图区域 -->
-                    <div>
-                        <label class="block text-[11px] text-slate-300 font-bold mb-1"><i class="fa-solid fa-shirt"></i> 1. 产品主图</label>
-                        <input type="text" id="new-main-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入主图 URL 链接 (可选)">
-                        <div id="dropzone-main" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
-                            <input type="file" id="file-main" class="hidden" accept="image/*">
-                            <div id="prompt-main">
-                                <i class="fa-solid fa-upload text-slate-500 text-lg mb-1"></i>
-                                <p class="text-[10px] text-slate-400">本地主图拖拽至此上传</p>
-                            </div>
-                            <img id="preview-main" class="hidden max-h-24 rounded border border-slate-700 object-contain shadow-md">
-                        </div>
-                    </div>
-                    <!-- 右侧Keepa区域 -->
-                    <div>
-                        <label class="block text-[11px] text-slate-300 font-bold mb-1"><i class="fa-solid fa-chart-line"></i> 2. Keepa 折线图</label>
-                        <input type="text" id="new-keepa-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入 Keepa 折线图 URL (可选)">
-                        <div id="dropzone-keepa" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
-                            <input type="file" id="file-keepa" class="hidden" accept="image/*">
-                            <div id="prompt-keepa">
-                                <i class="fa-solid fa-upload text-slate-500 text-lg mb-1"></i>
-                                <p class="text-[10px] text-slate-400">本地 Keepa 图拖拽至此</p>
-                            </div>
-                            <img id="preview-keepa" class="hidden max-h-24 rounded border border-slate-700 object-contain shadow-md">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
-                <button type="button" onclick="closeAddModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
-                <button type="button" id="save-btn" onclick="saveNewProduct()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">
-                    <span id="btn-text">添加产品</span>
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- 动态修改选品弹窗 (序号设为只读以防错乱) -->
-    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-[#111928] border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden font-sans">
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h3 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1"></i> 编辑修改选品卡片</h3>
-                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[11px] text-slate-400 font-bold mb-1">序号 (系统内定无法更改)</label>
-                        <input type="number" id="edit-seq-id" readonly class="w-full border border-slate-800 bg-slate-950/80 rounded-md p-2 focus:outline-none text-slate-500 cursor-not-allowed">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-400 font-bold mb-1">对接日期</label>
-                        <input type="text" id="edit-date" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品名称/ASIN备注</label>
-                    <input type="text" id="edit-title" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">产品详情页链接</label>
-                    <input type="text" id="edit-amazon-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-[11px] text-slate-400 font-bold mb-1">面料/成分组成</label>
-                    <textarea id="edit-composition" rows="2" class="w-full border border-slate-700 bg-slate-900 rounded-md p-2 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 text-xs"></textarea>
-                </div>
-
-                <!-- 双图修改 -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[11px] text-slate-300 font-bold mb-1">1. 产品主图</label>
-                        <input type="text" id="edit-main-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入主图链接 (若使用本地上传则留空)">
-                        <div id="edit-dropzone-main" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
-                            <input type="file" id="edit-file-main" class="hidden" accept="image/*">
-                            <img id="edit-preview-main" class="max-h-24 rounded border border-slate-700 object-contain shadow-md">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] text-slate-300 font-bold mb-1">2. Keepa 折线图</label>
-                        <input type="text" id="edit-keepa-img-url" class="w-full border border-slate-700 bg-slate-900 rounded-md p-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-200 mb-2" placeholder="输入 Keepa 图片链接 (若使用本地上传则留空)">
-                        <div id="edit-dropzone-keepa" class="border border-dashed border-slate-700 bg-slate-950/60 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-all text-center">
-                            <input type="file" id="edit-file-keepa" class="hidden" accept="image/*">
-                            <img id="edit-preview-keepa" class="max-h-24 rounded border border-slate-700 object-contain shadow-md">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="px-6 py-4 border-t border-slate-800 flex justify-end space-x-2 bg-slate-900/30">
-                <button type="button" onclick="closeEditModal()" class="bg-transparent hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-medium">取消</button>
-                <button type="button" id="edit-save-btn" onclick="saveEditedProduct()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center gap-1">
-                    <span id="edit-btn-text">保存修改</span>
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- 高清大图灯箱预览（支持点击 1:1 无损放大，用滚轮上下自然滑动） -->
-    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none">
-        <!-- 遮罩背景：点击图片的黑色外侧边缘可以直接关闭大图 -->
-        <div class="fixed inset-0 z-10 cursor-default" onclick="closeLightbox()"></div>
-
-        <!-- 悬浮右上角关闭按钮 -->
-        <button class="fixed top-6 right-6 text-white hover:text-indigo-400 text-4xl z-50 bg-slate-900/80 hover:bg-slate-900 w-12 h-12 rounded-full flex items-center justify-center border border-slate-700/50 shadow-lg backdrop-blur-md leading-none transition" onclick="closeLightbox()">&times;</button>
-
-        <!-- 图像展示区域（点击大图可自适应/1:1切换，支持大图无损滚动展示） -->
-        <div id="lightbox-wrapper" class="relative z-20 min-h-screen w-full p-4 flex justify-center items-center" onclick="closeLightbox()">
-            <!-- 图片本身：点击它执行“自适应/原始高清”状态双向切换 -->
-            <img id="lightbox-img" class="cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg transition-all duration-200 select-none" onclick="toggleZoom(event)">
-        </div>
-
-        <!-- 底部浮动信息条 -->
-        <div class="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-6 text-center pointer-events-none select-none">
-            <h2 id="lightbox-title" class="text-xl font-bold text-slate-100 tracking-wide drop-shadow-md"></h2>
-            <p id="lightbox-desc" class="text-xs text-slate-300 mt-2 max-w-4xl mx-auto leading-relaxed drop-shadow-sm"></p>
-        </div>
-    </div>
-
-    <!-- GitHub 配置弹窗 -->
-    <div id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <form autocomplete="off" onsubmit="event.preventDefault();" class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden text-slate-800 font-sans">
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-100">
-                <h3 class="text-sm font-bold text-gray-900"><i class="fa-brands fa-github text-gray-700 mr-1"></i> GitHub 云端 dataxyb 中控同步</h3>
-                <button type="button" onclick="closeGithubModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-6 space-y-4 text-xs">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">GitHub 访问令牌 (PAT Token)</label>
-                    <input type="password" id="gh-token" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="ghp_xxxxxxxxxxxx">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库所有者 (Owner)</label>
-                    <input type="text" id="gh-owner" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="wasdkd">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">仓库名称 (Repo)</label>
-                    <input type="text" id="gh-repo" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="Amazon">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">分支名称 (Branch)</label>
-                    <input type="text" id="gh-branch" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="main">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">选品数据库存放路径 (系统自动创建文件)</label>
-                    <input type="text" id="gh-path" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none text-slate-800" placeholder="uploads2/dataxyb.json">
-                </div>
-            </div>
-            <div class="px-6 py-4 border-t border-gray-100 flex justify-end space-x-2 bg-gray-50">
-                <button type="button" onclick="closeGithubModal()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium">取消</button>
-                <button type="button" onclick="saveGithubConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-md text-xs font-medium shadow-sm font-sans">保存并载入</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- 浮动通知容器 -->
-    <div class="notification" id="notification"></div>
-
-    <!-- 页脚 -->
-    <footer class="relative z-10 py-6 border-t border-slate-800 bg-slate-950/20 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-            &copy; 2026 显眼包选品数据看板支撑舱 · 精密打样 · 风险规避 · 销售走势可视化
-        </div>
-    </footer>
-
-    <script>
-        // 初始演示数据，定位宏
-        /*START_DATA*/
-        const defaultPortfolioData = [
-            {
-                "id": "19",
-                "title": "直筒运动修身微喇裤",
-                "amazonUrl": "https://www.amazon.com/dp/B0D2RGDLFG?th=1&psc=1",
-                "keepaImg": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
-                "mainImg": "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",
-                "date": "3月12日",
-                "composition": "成分： 86% Polyester, 14% Elastane"
-            },
-            {
-                "id": "20",
-                "title": "运动速干半身裙",
-                "amazonUrl": "https://www.amazon.com/dp/B0C6TB28RD?th=1&psc=1",
-                "keepaImg": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
-                "mainImg": "https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=800&q=80",
-                "date": "3月12日",
-                "composition": "成分： Body: 86% Polyester, 14% Elastane ; Lining: 89% Polyester, 11% Lycra"
-            }
-        ];
-        /*END_DATA*/
-
-        let productData = [];
-        let activeCategory = "all";
-        let currentFileSha = null;
-
-        let isSyncing = false;
-        let syncPending = false;
-        let isGithubVerified = false;
-
-        let selectedMainFile = null;
-        let selectedKeepaFile = null;
-        let selectedEditMainFile = null;
-        let selectedEditKeepaFile = null;
-        let editingIndex = null;
-        let isZoomed = false; // 大图高清单模态标志位
-
-        let githubConfig = {
-            token: '',
-            owner: 'wasdkd',
-            repo: 'Amazon',
-            branch: 'main',
-            path: 'uploads2/dataxyb.json'
-        };
-
-        // 强健的 JSON 解构
-        function cleanAndParseJSON(str) {
-            const cleaned = str.replace(/,(\s*[\]}])/g, '$1');
-            return JSON.parse(cleaned);
-        }
-
-        // 智能提取 ASIN 机制
-        function extractASIN(url) {
-            if (!url) return '';
-            const match = url.match(/\/dp\/([A-Z0-9]{10})/i) || url.match(/\/gp\/product\/([A-Z0-9]{10})/i);
-            return match ? match[1] : '';
-        }
-
-        // 弹窗提示器
-        function showNotification(message, type) {
-            const notification = document.getElementById('notification');
-            if (!notification) return;
-            notification.textContent = message;
-            notification.className = `notification ${type}`;
-
-            setTimeout(() => {
-                notification.className = 'notification';
-            }, 3000);
-        }
-
-        function loadConfig() {
-            try {
-                const savedConfig = localStorage.getItem('xyb_portfolio_config');
-                if (savedConfig) {
-                    githubConfig = { ...githubConfig, ...JSON.parse(savedConfig) };
-                }
-            } catch (e) {
-                console.warn("未读取到本地 GitHub 缓存配置", e);
-            }
-            document.getElementById('gh-token').value = (githubConfig.token || '').trim();
-            document.getElementById('gh-owner').value = (githubConfig.owner || 'wasdkd').trim();
-            document.getElementById('gh-repo').value = (githubConfig.repo || 'Amazon').trim();
-            document.getElementById('gh-branch').value = (githubConfig.branch || 'main').trim();
-            document.getElementById('gh-path').value = (githubConfig.path || 'uploads2/dataxyb.json').trim();
-        }
-
-        function saveGithubConfig() {
-            githubConfig.token = document.getElementById('gh-token').value.trim();
-            githubConfig.owner = document.getElementById('gh-owner').value.trim();
-            githubConfig.repo = document.getElementById('gh-repo').value.trim();
-            githubConfig.branch = document.getElementById('gh-branch').value.trim();
-            githubConfig.path = document.getElementById('gh-path').value.trim();
-
-            localStorage.setItem('xyb_portfolio_config', JSON.stringify(githubConfig));
-            closeGithubModal();
-            loadFromGithub();
-        }
-
-        // 双向拉取
-        async function loadFromGithub() {
-            const statusEl = document.getElementById('sync-status');
-
-            if (!githubConfig.token) {
-                isGithubVerified = false;
-                statusEl.innerText = "本地暂存模式 (未配置 GitHub 授权)";
-                statusEl.className = "mt-3 text-xs text-slate-400 max-w-2xl mx-auto font-sans bg-slate-900/40 py-1.5 px-3 rounded-lg inline-block border border-slate-800";
-
-                const rawUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${githubConfig.path}?t=${Date.now()}`;
-                try {
-                    let response = await fetch(rawUrl);
-                    if (response.ok) {
-                        const rawText = await response.text();
-                        productData = cleanAndParseJSON(rawText);
-                        saveLocalBackup();
-                        statusEl.innerText = "已自动加载并同步 GitHub 只读云端数据";
-                        statusEl.className = "mt-3 text-xs text-blue-400 max-w-2xl mx-auto font-sans bg-blue-950/20 py-1.5 px-3 rounded-lg inline-block border border-blue-900/50";
-                    } else {
-                        initLocalDatabase();
-                    }
-                } catch (e) {
-                    initLocalDatabase();
-                }
-                renderProducts();
-                return;
-            }
-
-            statusEl.innerText = "正在同步 GitHub 选品云端数据库...";
-            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
-
-            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
-            try {
-                let response = await fetch(apiUrl, {
-                    headers: { 'Authorization': `token ${githubConfig.token}` }
-                });
-
-                if (response.status === 401) {
-                    throw new Error("GitHub Token 无效或已失效 (401)");
-                } else if (response.status === 404) {
-                    currentFileSha = null;
-                    initLocalDatabase();
-                    isGithubVerified = true;
-                    statusEl.innerText = "已授权成功 (云端正在为您建立初始化 dataxyb.json 文件...)";
-                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
-                    triggerBackgroundSync();
-                } else if (response.ok) {
-                    const fileData = await response.json();
-                    currentFileSha = fileData.sha;
-                    const contentDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
-
-                    productData = cleanAndParseJSON(contentDecoded);
-                    saveLocalBackup();
-                    isGithubVerified = true;
-
-                    statusEl.innerText = "GitHub 已正常连接 (云端 dataxyb.json 数据已成功获取)";
-                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
-                } else {
-                    throw new Error(`连接失败 (错误码: ${response.status})`);
-                }
-            } catch (err) {
-                isGithubVerified = false;
-                initLocalDatabase();
-                statusEl.innerText = `同步失败: ${err.message || "网络请求阻断"} (已自动读取本地缓存备份)`;
-                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
-            }
-            renderProducts();
-        }
-
-        function saveLocalBackup() {
-            localStorage.setItem('xyb_full_products_data', JSON.stringify(productData));
-        }
-
-        function initLocalDatabase() {
-            try {
-                const savedFull = localStorage.getItem('xyb_full_products_data');
-                if (savedFull) {
-                    productData = JSON.parse(savedFull);
-                } else {
-                    productData = [...defaultPortfolioData];
-                }
-                saveLocalBackup();
-            } catch (e) {
-                productData = [...defaultPortfolioData];
-                saveLocalBackup();
-            }
-        }
-
-        // 无缝滚动定位的核心渲染
-        function renderProducts() {
-            const grid = document.getElementById('product-grid');
-            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
-            grid.innerHTML = '';
-
-            let matchedCount = 0;
-
-            productData.forEach((item, index) => {
-                const asin = extractASIN(item.amazonUrl);
-                const matchesSearch = item.id.includes(searchVal) ||
-                                      item.title.toLowerCase().includes(searchVal) ||
-                                      asin.toLowerCase().includes(searchVal) ||
-                                      item.composition.toLowerCase().includes(searchVal) ||
-                                      item.date.toLowerCase().includes(searchVal);
-
-                if (matchesSearch) {
-                    matchedCount++;
-
-                    const card = document.createElement('div');
-                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col group relative p-4";
-
-                    // 左右双舱核心布局构建（主图及Keepa图均改为 object-contain 且增加保护内板，确保小图也是100%全景展示不切除边缘）
-                    card.innerHTML = `
-                        <!-- 左上角序号标签 -->
-                        <span class="absolute top-2 left-2 z-20 px-2 py-0.5 rounded bg-indigo-600 text-[10px] font-bold text-white shadow-md">
-                            No. ${item.id}
-                        </span>
-
-                        <!-- 操作工具组 -->
-                        <div class="absolute top-2 right-2 z-20 flex gap-1">
-                            <button onclick="openEditModal(${index}, event)" class="text-slate-400 hover:text-indigo-400 text-[10px] bg-slate-950/75 hover:bg-slate-950 px-2 py-1 rounded-md border border-slate-800 transition-all">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button onclick="deleteProduct(${index}, event)" class="text-slate-400 hover:text-red-500 text-[10px] bg-slate-950/75 hover:bg-slate-950 px-2 py-1 rounded-md border border-slate-800 transition-all">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-
-                        <!-- 左右双舱分镜大图 -->
-                        <div class="grid grid-cols-12 gap-3 w-full h-56 mb-4">
-                            <!-- 左半幅：产品主图 -->
-                            <div onclick="openLightbox('${item.mainImg}', '${item.title}', '${item.composition}')" class="col-span-5 h-full bg-slate-950/80 rounded-xl overflow-hidden cursor-zoom-in border border-slate-800 relative group flex items-center justify-center p-1">
-                                <img src="${item.mainImg}" alt="主图" class="max-w-full max-h-full object-contain group-hover:scale-105 transition-all duration-300" onerror="this.src='https://placehold.co/250x250?text=No+Image'">
-                                <div class="absolute bottom-1 left-1.5 text-[9px] text-slate-400 bg-slate-950/80 px-1 rounded">产品主图</div>
-                            </div>
-                            <!-- 右半幅：Keepa 走势图 -->
-                            <div onclick="openLightbox('${item.keepaImg}', '${item.title}', '${item.composition}')" class="col-span-7 h-full bg-white rounded-xl overflow-hidden cursor-zoom-in border border-slate-200 relative group p-1 flex items-center justify-center">
-                                <img src="${item.keepaImg}" alt="Keepa折线" class="max-w-full max-h-full object-contain group-hover:scale-102 transition-all duration-300" onerror="this.src='https://placehold.co/250x250?text=No+Image'">
-                                <div class="absolute bottom-1 left-1.5 text-[9px] text-slate-500 bg-slate-100/90 px-1 rounded border border-slate-200">Keepa折线图</div>
-                            </div>
-                        </div>
-
-                        <!-- 字段描述信息 -->
-                        <div class="flex-grow flex flex-col justify-between pt-1">
-                            <div>
-                                <div class="flex justify-between items-start gap-2 mb-2">
-                                    <h3 class="text-sm font-bold text-slate-100 line-clamp-1">${item.title || '未命名产品'}</h3>
-                                    ${asin ? `<span class="text-[10px] text-indigo-400 font-mono bg-indigo-950/50 border border-indigo-900/40 px-1.5 rounded shrink-0">${asin}</span>` : ''}
-                                </div>
-                                <div class="space-y-1.5 text-xs text-slate-400 border-t border-slate-800/60 pt-2 mb-3">
-                                    <p class="flex items-center gap-1.5"><i class="fa-solid fa-calendar text-[10px] text-emerald-500"></i> 对接日期：<span class="text-slate-200">${item.date}</span></p>
-                                    <p class="leading-relaxed bg-slate-950/30 p-2 rounded border border-slate-900 text-[11px]"><strong class="text-slate-300">成分：</strong>${item.composition}</p>
-                                </div>
-                            </div>
-                            <!-- 详情跳转按钮 -->
-                            <a href="${item.amazonUrl}" target="_blank" class="w-full bg-[#ff9900]/10 hover:bg-[#ff9900]/20 text-[#ff9900] py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 border border-[#ff9900]/30 transition-all">
-                                <i class="fa-brands fa-amazon"></i> 访问亚马逊详情页 <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
-                            </a>
-                        </div>
-                    `;
-                    grid.appendChild(card);
-                }
-            });
-
-            if (matchedCount === 0) {
-                document.getElementById('no-results').classList.remove('hidden');
-            } else {
-                document.getElementById('no-results').classList.add('hidden');
-            }
-        }
-
-        // 过滤检索
-        function filterProducts() {
-            renderProducts();
-        }
-
-        function openAddModal() {
-            if (!githubConfig.token || !isGithubVerified) {
-                alert("当前未连接 GitHub 授权，无法添加产品。请点击右上方「GitHub 云同步配置」进行连接。");
-                return;
-            }
-            document.getElementById('add-modal').classList.remove('hidden');
-            resetUploadArea('main');
-            resetUploadArea('keepa');
-        }
-
-        function closeAddModal() {
-            document.getElementById('add-modal').classList.add('hidden');
-        }
-
-        // 打开编辑面板并渲染已有内容
-        function openEditModal(index, event) {
-            event.stopPropagation();
-            event.preventDefault();
-
-            if (!githubConfig.token || !isGithubVerified) {
-                alert("未连接 GitHub 授权，无法编辑。请先完成 GitHub 配置连通。");
-                return;
-            }
-
-            editingIndex = index;
-            selectedEditMainFile = null;
-            selectedEditKeepaFile = null;
-            const item = productData[index];
-
-            document.getElementById('edit-seq-id').value = item.id || '';
-            document.getElementById('edit-date').value = item.date || '3月12日';
-            document.getElementById('edit-title').value = item.title || '';
-            document.getElementById('edit-amazon-url').value = item.amazonUrl || '';
-            document.getElementById('edit-composition').value = item.composition || '';
-
-            // 直接读取原数据并填充图片框
-            document.getElementById('edit-main-img-url').value = item.mainImg.startsWith('data:') ? '' : item.mainImg;
-            document.getElementById('edit-keepa-img-url').value = item.keepaImg.startsWith('data:') ? '' : item.keepaImg;
-
-            document.getElementById('edit-preview-main').src = item.mainImg || '';
-            document.getElementById('edit-preview-keepa').src = item.keepaImg || '';
-
-            document.getElementById('edit-modal').classList.remove('hidden');
-        }
-
-        function closeEditModal() {
-            document.getElementById('edit-modal').classList.add('hidden');
-            editingIndex = null;
-        }
-
-        function openGithubModal() {
-            document.getElementById('github-modal').classList.remove('hidden');
-        }
-
-        function closeGithubModal() {
-            document.getElementById('github-modal').classList.add('hidden');
-        }
-
-
-        // --- 原生高清大图无损缩放系统（对齐作品集） ---
-
-        function toggleZoom(event) {
-            if (event) {
-                event.stopPropagation(); // 防止点击大图本身触发关闭
-            }
-
-            isZoomed = !isZoomed;
-            const img = document.getElementById('lightbox-img');
-            const wrapper = document.getElementById('lightbox-wrapper');
-
-            if (isZoomed) {
-                // 还原100%无损原图大小，使用 block 产生自然的纵向滚动
-                img.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";
-                wrapper.className = "relative z-20 min-h-screen w-full p-12 block";
-            } else {
-                // 自适应屏幕大小模式
-                resetZoomState();
-            }
-        }
-
-        function resetZoomState() {
-            const img = document.getElementById('lightbox-img');
-            const wrapper = document.getElementById('lightbox-wrapper');
-            if (img && wrapper) {
-                img.className = "cursor-zoom-in max-w-full max-h-[82vh] object-contain block mx-auto shadow-2xl rounded-lg";
-                wrapper.className = "relative z-20 min-h-screen w-full p-4 flex justify-center items-center";
-            }
-        }
-
-        // 打开灯箱全画幅高清展示
-        function openLightbox(imgUrl, title, desc = "") {
-            if (!imgUrl) return;
-            const lightboxImg = document.getElementById('lightbox-img');
-            const wrapper = document.getElementById('lightbox-wrapper');
-
-            // 【核心对齐】：点击卡片直接切入【100%无损放大/原始像素比例模式】，使大图直接呈高清大比例铺满展现
-            isZoomed = true;
-            lightboxImg.className = "cursor-zoom-out block mx-auto max-w-none max-h-none w-auto h-auto shadow-2xl rounded-lg";
-            wrapper.className = "relative z-20 min-h-screen w-full p-12 block";
-
-            lightboxImg.src = imgUrl;
-            document.getElementById('lightbox-title').innerText = title || '大图预览';
-            document.getElementById('lightbox-desc').innerText = desc || '';
-
-            document.getElementById('lightbox-modal').classList.remove('hidden');
-            document.body.style.overflow = "hidden"; // 锁死大网页底部，确保滚动条不抖动
-
-            // 瞬间滚动回最上方
-            document.getElementById('lightbox-modal').scrollTop = 0;
-        }
-
-        function closeLightbox() {
-            document.getElementById('lightbox-modal').classList.add('hidden');
-            document.body.style.overflow = "auto";
-        }
-
-
-        // --- Excel 批量操作模块实现（SheetJS - 已重构去除“序号”列由系统自动编号） ---
-
-        // 一键生成并下载本地模板
-        function downloadExcelTemplate() {
-            if (typeof XLSX === 'undefined') {
-                alert("正在拉取 SheetJS 核心解析库，请等候 1-2 秒再点下载！");
-                return;
-            }
-            const wb = XLSX.utils.book_new();
-            const wsData = [
-                ['产品详情页链接', 'Keepa插件价格-BSR折线图', '产品主图', '对接日期', '成分'], // 移除了序号，由系统自动生成
-                ['https://www.amazon.com/dp/B0D2RGDLFG?th=1&psc=1', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', 'https://m.media-amazon.com/images/I/61ojqqrlT4L._AC_US600_.jpg', '3月12日', '成分：86% Polyester, 14% Elastane'], // 示例数据
-                ['[示例数据-请删除]', '', '', '', ''] // 用户提示行
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            XLSX.utils.book_append_sheet(wb, ws, '批量开款选品导入模板');
-            XLSX.writeFile(wb, '选品批量导入模板.xlsx');
-        }
-
-        function triggerBulkUpload() {
-            if (typeof XLSX === 'undefined') {
-                alert("SheetJS 文件解析器尚未加载就绪，请等候一秒再点击上传！");
-                return;
-            }
-            if (!githubConfig.token || !isGithubVerified) {
-                alert("未连接 GitHub 云数据库，无法批量同步数据。请先完成 GitHub 云配置。");
-                return;
-            }
-            document.getElementById('bulk-excel-input').click();
-        }
-
-        // 异步解析并静默同步上传 Excel 列表数据 (自动编号)
-        async function handleBulkExcelUpload(event) {
-            if (typeof XLSX === 'undefined') {
-                alert("解析库加载中，请稍后上传。");
-                return;
-            }
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const statusEl = document.getElementById('sync-status');
-            statusEl.innerText = "正在解构解析 Excel 选品数据中...";
-            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-
-                    // 解构成 JS 数组
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: false});
-
-                    if (jsonData.length === 0) {
-                        throw new Error("工作表中没有解析到任何有效行数据！");
-                    }
-
-                    // 计算当前数据库内可安全递增的基准序号
-                    let nextId = productData.length > 0 ? Math.max(...productData.map(p => parseInt(p.id) || 0)) + 1 : 1;
-
-                    const tempImported = [];
-                    jsonData.forEach((row, index) => {
-                        if (row['产品详情页链接'] === '[示例数据-请删除]') return;
-
-                        const amazonUrl = String(row['产品详情页链接'] || '').trim();
-                        // 兼容多种列名拼写
-                        const keepaImg = String(row['Keepa插件价格-BSR折线图'] || row['Keepa折线图'] || '').trim();
-                        const mainImg = String(row['产品主图'] || '').trim();
-                        const date = String(row['对接日期'] || '3月12日').trim();
-                        const composition = String(row['成分'] || '').trim();
-
-                        if (!amazonUrl) return; // 跳过不合规空行
-
-                        const id = String(nextId++); // 由系统自动有序分配唯一序号
-                        const extracted = extractASIN(amazonUrl);
-                        const title = extracted ? `产品 ${extracted}` : `产品 ${id}`;
-
-                        tempImported.push({
-                            id,
-                            title,
-                            amazonUrl,
-                            keepaImg: keepaImg || 'https://placehold.co/600x400?text=No+Keepa+Image',
-                            mainImg: mainImg || 'https://placehold.co/400x600?text=No+Main+Image',
-                            date,
-                            composition
-                        });
-                    });
-
-                    if (tempImported.length === 0) {
-                        throw new Error("Excel 模版列头匹配失败，请检查包含以下核心头：产品详情页链接");
-                    }
-
-                    // 合并并自动本地去重
-                    productData = [...productData, ...tempImported];
-                    const uniqueMap = {};
-                    productData.forEach(p => {
-                        uniqueMap[p.id] = p; // 后面导入的覆盖旧有序号
-                    });
-                    productData = Object.values(uniqueMap);
-                    productData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-
-                    saveLocalBackup();
-                    renderProducts();
-
-                    statusEl.innerText = "Excel 数据加载就绪，正在无缝上行推送至 GitHub 中...";
-                    statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
-
-                    await triggerBackgroundSync();
-                    showNotification(`成功批量导入并同步了 ${tempImported.length} 条选品记录！`, "success");
-
-                } catch (err) {
-                    alert("导入解析失败：" + err.message);
-                    loadFromGithub(); // 出现错误，重新拉取云端回滚
-                } finally {
-                    document.getElementById('bulk-excel-input').value = '';
-                }
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-
-        // --- 双图拖拽上传解析区 ---
-        const dropzoneMain = document.getElementById('dropzone-main');
-        const fileMain = document.getElementById('file-main');
-        const dropzoneKeepa = document.getElementById('dropzone-keepa');
-        const fileKeepa = document.getElementById('file-keepa');
-
-        const editDropzoneMain = document.getElementById('edit-dropzone-main');
-        const editFileMain = document.getElementById('edit-file-main');
-        const editDropzoneKeepa = document.getElementById('edit-dropzone-keepa');
-        const editFileKeepa = document.getElementById('edit-file-keepa');
-
-        // 单击触发绑定
-        dropzoneMain.addEventListener('click', () => fileMain.click());
-        dropzoneKeepa.addEventListener('click', () => fileKeepa.click());
-        editDropzoneMain.addEventListener('click', () => editFileMain.click());
-        editDropzoneKeepa.addEventListener('click', () => editFileKeepa.click());
-
-        // 双向修改变更捕获
-        fileMain.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'main', false));
-        fileKeepa.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'keepa', false));
-        editFileMain.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'main', true));
-        editFileKeepa.addEventListener('change', (e) => handleImageSelect(e.target.files[0], 'keepa', true));
-
-        bindDragEvents(dropzoneMain, 'main', false);
-        bindDragEvents(dropzoneKeepa, 'keepa', false);
-        bindDragEvents(editDropzoneMain, 'main', true);
-        bindDragEvents(editDropzoneKeepa, 'keepa', true);
-
-        function bindDragEvents(element, type, isEdit) {
-            element.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                element.classList.add('drag-over');
-            });
-            element.addEventListener('dragleave', () => {
-                element.classList.remove('drag-over');
-            });
-            element.addEventListener('drop', (e) => {
-                e.preventDefault();
-                element.classList.remove('drag-over');
-                if (e.dataTransfer.files.length > 0) {
-                    handleImageSelect(e.dataTransfer.files[0], type, isEdit);
-                }
-            });
-        }
-
-        function handleImageSelect(file, type, isEdit) {
-            if (!file.type.startsWith('image/')) {
-                alert("请选择格式规范的图片文件！");
-                return;
-            }
-
-            const prefix = isEdit ? 'edit-' : '';
-            const previewId = `${prefix}preview-${type}`;
-            const promptId = isEdit ? null : `${prefix}prompt-${type}`;
-
-            if (isEdit) {
-                if (type === 'main') selectedEditMainFile = file;
-                if (type === 'keepa') selectedEditKeepaFile = file;
-            } else {
-                if (type === 'main') selectedMainFile = file;
-                if (type === 'keepa') selectedKeepaFile = file;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById(previewId).src = e.target.result;
-                document.getElementById(previewId).classList.remove('hidden');
-                if (promptId) {
-                    document.getElementById(promptId).classList.add('hidden');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function resetUploadArea(type) {
-            if (type === 'main') {
-                selectedMainFile = null;
-                fileMain.value = '';
-                document.getElementById('new-main-img-url').value = '';
-                document.getElementById('preview-main').classList.add('hidden');
-                document.getElementById('prompt-main').classList.remove('hidden');
-            } else if (type === 'keepa') {
-                selectedKeepaFile = null;
-                fileKeepa.value = '';
-                document.getElementById('new-keepa-img-url').value = '';
-                document.getElementById('preview-keepa').classList.add('hidden');
-                document.getElementById('prompt-keepa').classList.remove('hidden');
-            }
-        }
-
-        // --- 核心图片处理函数 ---
-
-        // 异步转换文件为 Base64 原始数据流
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        // 异步将图片物理上传至 GitHub 仓库 zpj_imgs 文件夹下
-        async function uploadImageToGithub(file) {
-            const ext = file.name.split('.').pop() || 'png';
-            const filename = `img_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
-            const imagePath = `uploads2/zpj_imgs/${filename}`;
-
-            const base64Content = await fileToBase64(file);
-            const cleanBase64 = base64Content.split(',')[1];
-
-            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${imagePath}`;
-
-            const payload = {
-                message: `Upload conspicuous product image: ${filename}`,
-                content: cleanBase64,
-                branch: githubConfig.branch
-            };
-
-            const response = await fetch(apiUrl, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${githubConfig.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errJson = await response.json();
-                throw new Error(errJson.message || "上传图片至 GitHub 失败");
-            }
-
-            return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${imagePath}`;
-        }
-
-        // 新建产品保存逻辑 (自适应序号逻辑，杜绝冲突)
-        async function saveNewProduct() {
-            const date = document.getElementById('new-date').value.trim() || '3月12日';
-            let title = document.getElementById('new-title').value.trim();
-            const amazonUrl = document.getElementById('new-amazon-url').value.trim();
-            const composition = document.getElementById('new-composition').value.trim();
-
-            const inputMainUrl = document.getElementById('new-main-img-url').value.trim();
-            const inputKeepaUrl = document.getElementById('new-keepa-img-url').value.trim();
-
-            if (!amazonUrl || !composition) {
-                alert("请完整填写亚马逊链接与产品面料成分！");
-                return;
-            }
-
-            // 智能自动计算唯一递增的新序号
-            const nextId = productData.length > 0 ? Math.max(...productData.map(p => parseInt(p.id) || 0)) + 1 : 1;
-            const id = String(nextId);
-
-            // 智能 ASIN 抓取
-            const extracted = extractASIN(amazonUrl);
-            if (!title) {
-                title = extracted ? `产品 ${extracted}` : `产品 ${id}`;
-            }
-
-            setLoadingState(true, 'save');
-
-            try {
-                let mainImgUrl = inputMainUrl;
-                let keepaImgUrl = inputKeepaUrl;
-
-                // 如果存在拖拽上传的主图，优先进行 GitHub 物理托管
-                if (selectedMainFile) {
-                    mainImgUrl = await uploadImageToGithub(selectedMainFile);
-                }
-                // 托管 Keepa
-                if (selectedKeepaFile) {
-                    keepaImgUrl = await uploadImageToGithub(selectedKeepaFile);
-                }
-
-                if (!mainImgUrl || !keepaImgUrl) {
-                    throw new Error("产品主图与 Keepa 走势图均不可为空，请拖拽本地图片或粘贴有效 URL 地址！");
-                }
-
-                const newProduct = {
-                    id,
-                    title,
-                    amazonUrl,
-                    keepaImg: keepaImgUrl,
-                    mainImg: mainImgUrl,
-                    date,
-                    composition
-                };
-
-                productData.push(newProduct);
-                // 排序以保持整洁
-                productData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-
-                saveLocalBackup();
-
-                // 重置表单 (移除了序号重置)
-                document.getElementById('new-date').value = '';
-                document.getElementById('new-title').value = '';
-                document.getElementById('new-amazon-url').value = '';
-                document.getElementById('new-composition').value = '';
-                resetUploadArea('main');
-                resetUploadArea('keepa');
-                closeAddModal();
-
-                // 乐观渲染
-                renderProducts();
-                await triggerBackgroundSync();
-
-            } catch (err) {
-                alert("添加失败：" + err.message);
-            } finally {
-                setLoadingState(false, 'save');
-            }
-        }
-
-        // 修改保存逻辑
-        async function saveEditedProduct() {
-            if (editingIndex === null) return;
-
-            const id = document.getElementById('edit-seq-id').value.trim();
-            const date = document.getElementById('edit-date').value.trim();
-            const title = document.getElementById('edit-title').value.trim();
-            const amazonUrl = document.getElementById('edit-amazon-url').value.trim();
-            const composition = document.getElementById('edit-composition').value.trim();
-
-            const inputMainUrl = document.getElementById('edit-main-img-url').value.trim();
-            const inputKeepaUrl = document.getElementById('edit-keepa-img-url').value.trim();
-
-            if (!id || !amazonUrl || !composition) {
-                alert("序号、亚马逊链接与产品成分均不可为空！");
-                return;
-            }
-
-            setLoadingState(true, 'edit');
-
-            try {
-                let mainImgUrl = inputMainUrl || productData[editingIndex].mainImg;
-                let keepaImgUrl = inputKeepaUrl || productData[editingIndex].keepaImg;
-
-                if (selectedEditMainFile) {
-                    mainImgUrl = await uploadImageToGithub(selectedEditMainFile);
-                }
-                if (selectedEditKeepaFile) {
-                    keepaImgUrl = await uploadImageToGithub(selectedEditKeepaFile);
-                }
-
-                productData[editingIndex].id = id;
-                productData[editingIndex].date = date;
-                productData[editingIndex].title = title || `产品 ${id}`;
-                productData[editingIndex].amazonUrl = amazonUrl;
-                productData[editingIndex].composition = composition;
-                productData[editingIndex].mainImg = mainImgUrl;
-                productData[editingIndex].keepaImg = keepaImgUrl;
-
-                productData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-                saveLocalBackup();
-
-                closeEditModal();
-                renderProducts();
-                await triggerBackgroundSync();
-
-            } catch (err) {
-                alert("修改保存失败：" + err.message);
-            } finally {
-                setLoadingState(false, 'edit');
-            }
-        }
-
-        // 状态转子
-        function setLoadingState(loading, type) {
-            const btnId = type === 'save' ? 'save-btn' : 'edit-save-btn';
-            const textId = type === 'save' ? 'btn-text' : 'edit-btn-text';
-            const defaultText = type === 'save' ? '添加产品' : '保存修改';
-
-            const btn = document.getElementById(btnId);
-            const txt = document.getElementById(textId);
-
-            if (loading) {
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-                txt.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 数据安全传输中...`;
-            } else {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                txt.innerHTML = defaultText;
-            }
-        }
-
-        // 并发同步守护
-        async function triggerBackgroundSync() {
-            if (isSyncing) {
-                syncPending = true;
-                return;
-            }
-            isSyncing = true;
-            syncPending = false;
-
-            await saveAllDataSilent();
-
-            isSyncing = false;
-            if (syncPending) {
-                triggerBackgroundSync();
-            }
-        }
-
-        // 静默上传 dataxyb.json 至 GitHub 仓库
-        async function saveAllDataSilent() {
-            const statusEl = document.getElementById('sync-status');
-            saveLocalBackup();
-
-            if (!githubConfig.token) return;
-
-            statusEl.innerText = "正在无缝上行数据中...";
-            statusEl.className = "mt-3 text-xs text-amber-400 max-w-2xl mx-auto font-sans bg-amber-950/20 py-1.5 px-3 rounded-lg inline-block border border-amber-900/50";
-
-            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.path}`;
-            try {
-                let sha = null;
-                const getFileRes = await fetch(apiUrl, {
-                    headers: { 'Authorization': `token ${githubConfig.token}` }
-                });
-                if (getFileRes.ok) {
-                    const fileData = await getFileRes.json();
-                    sha = fileData.sha;
-                } else if (getFileRes.status === 404) {
-                    sha = null;
-                }
-
-                const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(productData, null, 2))));
-                const payload = {
-                    message: "Sync conspicuous product database (dataxyb.json automatic metadata update)",
-                    content: contentBase64,
-                    branch: githubConfig.branch
-                };
-                if (sha) {
-                    payload.sha = sha;
-                }
-
-                const putRes = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${githubConfig.token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (putRes.ok) {
-                    const resData = await putRes.json();
-                    currentFileSha = resData.content.sha;
-                    statusEl.innerText = "GitHub 同步正常 (云端 dataxyb.json 已更新成功)";
-                    statusEl.className = "mt-3 text-xs text-emerald-400 max-w-2xl mx-auto font-sans bg-emerald-950/20 py-1.5 px-3 rounded-lg inline-block border border-emerald-900/50";
-                } else {
-                    const errPayload = await putRes.json();
-                    throw new Error(errPayload.message || "上传写入 dataxyb 失败");
-                }
-            } catch (e) {
-                console.error("中控同步失败:", e);
-                statusEl.innerText = `数据同步失败: ${e.message || "接口抖动"} (已自动缓存在本地)`;
-                statusEl.className = "mt-3 text-xs text-red-400 max-w-2xl mx-auto font-sans bg-red-950/20 py-1.5 px-3 rounded-lg inline-block border border-red-900/50";
-            }
-        }
-
-        // 删除卡片
-        async function deleteProduct(index, event) {
-            event.stopPropagation();
-            event.preventDefault();
-
-            if (!githubConfig.token || !isGithubVerified) {
-                alert("未连接 GitHub 授权，无法执行删除操作。请先完成 GitHub 云配置。");
-                return;
-            }
-
-            if (!confirm("确定要永久从选品库中移出该显眼包产品吗？")) return;
-
-            productData.splice(index, 1);
-            saveLocalBackup();
-
-            renderProducts();
-            await triggerBackgroundSync();
-        }
-
-        // 极速硬编码 HTML 下载备份
-        function exportStandaloneHTML() {
-            const baseHTML = document.documentElement.outerHTML;
-            let exportedHTML = "<!DOCTYPE html>\n" + baseHTML;
-
-            exportedHTML = exportedHTML.replace(/id="add-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="add-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
-            exportedHTML = exportedHTML.replace(/id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
-            exportedHTML = exportedHTML.replace(/id="github-modal" class="fixed inset-0 z-50 overflow-y-auto(?! hidden)/, 'id="github-modal" class="fixed inset-0 z-50 overflow-y-auto hidden');
-            exportedHTML = exportedHTML.replace(/id="lightbox-modal" class="fixed inset-0 z-50 bg-black\/98 hidden overflow-auto select-none(?! hidden)/, 'id="lightbox-modal" class="fixed inset-0 z-50 bg-black/98 hidden overflow-auto select-none hidden');
-
-            const currentDataStr = JSON.stringify(productData, null, 4);
-
-            const regex = /\/\*START_DATA\*\/[\s\S]*?\/\*END_DATA\*\//;
-            exportedHTML = exportedHTML.replace(regex, '/*START_DATA*/\nconst defaultPortfolioData = ' + currentDataStr + ';\n/*END_DATA*/');
-
-            const blob = new Blob([exportedHTML], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "显眼包产品库_选品同步舱.html";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // --- 交互背景引擎 ---
-        const canvas = document.getElementById('canvas-bg');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        let mouse = { x: null, y: null, radius: 100 };
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            initParticles();
-        }
-
-        class Particle {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.baseX = x;
-                this.baseY = y;
-                this.density = (Math.random() * 20) + 10;
-                this.size = Math.random() * 1.5 + 0.5;
-                this.color = 'rgba(99, 102, 241, ' + (Math.random() * 0.4 + 0.1) + ')';
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-            }
-            update() {
-                let dx = mouse.x - this.x;
-                let dy = mouse.y - this.y;
-                let distance = Math.hypot(dx, dy);
-                let forceDirectionX = dx / distance;
-                let forceDirectionY = dy / distance;
-                let maxDistance = mouse.radius;
-                let force = (maxDistance - distance) / maxDistance;
-                let directionX = forceDirectionX * force * this.density;
-                let directionY = forceDirectionY * force * this.density;
-
-                if (distance < mouse.radius) {
-                    this.x -= directionX;
-                    this.y -= directionY;
-                } else {
-                    if (this.x !== this.baseX) {
-                        let dxBase = this.x - this.baseX;
-                        this.x -= dxBase / 20;
-                    }
-                    if (this.y !== this.baseY) {
-                        let dyBase = this.y - this.baseY;
-                        this.y -= dyBase / 20;
-                    }
-                }
-            }
-        }
-
-        function initParticles() {
-            particles = [];
-            let numberOfParticles = (canvas.width * canvas.height) / 18000;
-            for (let i = 0; i < numberOfParticles; i++) {
-                let x = Math.random() * canvas.width;
-                let y = Math.random() * canvas.height;
-                particles.push(new Particle(x, y));
-            }
-        }
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].draw();
-                particles[i].update();
-            }
-            requestAnimationFrame(animate);
-        }
-
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.x;
-            mouse.y = e.y;
-        });
-        window.addEventListener('mouseout', () => {
-            mouse.x = null;
-            mouse.y = null;
-        });
-        window.addEventListener('resize', resizeCanvas);
-
-        window.onload = function() {
-            resizeCanvas();
-            animate();
-            loadConfig();
-            loadFromGithub();
-        };
-    </script>
-</body>
-</html>
