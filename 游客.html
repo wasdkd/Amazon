@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORA STUDIO | Premium Apparel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #faf9f6; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-gray-900 flex flex-col min-h-screen">
+    <div id="announcement-bar" class="bg-black text-white text-[10px] tracking-widest text-center py-2.5 uppercase"></div>
+    <header class="sticky top-0 backdrop-blur-md z-40 border-b border-gray-100" style="background-color: rgba(250, 249, 246, 0.9);">
+        <div class="mx-auto py-4 flex justify-between items-center" style="max-width: 1500px; width: 94%;">
+            <a href="#" id="nav-brand-name" class="text-xl font-bold tracking-[0.2em] uppercase">SORA STUDIO</a>
+            <nav class="flex items-center space-x-6 text-xs uppercase tracking-wider">
+                <a href="#shop" class="hover:text-gray-500 transition">Shop</a>
+                <a href="#contact" class="hover:text-gray-500 transition">Contact</a>
+            </nav>
+        </div>
+    </header>
+    <main id="shop" class="mx-auto py-12 flex-grow" style="max-width: 1500px; width: 94%;">
+        <div class="text-center mb-12 border-b pb-4 border-gray-100">
+            <h1 id="shop-title" class="text-2xl font-light tracking-[0.3em] uppercase">COLLECTION 2026</h1>
+        </div>
+        <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12"></div>
+    </main>
+
+    <div id="detail-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-4xl rounded-lg overflow-hidden shadow-2xl flex flex-col md:flex-row relative" style="height: auto; max-height: 90vh;">
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-gray-800 p-1.5 rounded-full shadow transition">&times;</button>
+            <div class="w-full md:w-1/2 bg-gray-50 p-6 flex flex-col justify-between overflow-y-auto no-scrollbar">
+                <div>
+                    <div id="modal-media-container" class="w-full overflow-hidden rounded-md bg-white border border-gray-100 flex items-center justify-center" style="aspect-ratio: 3/4;">
+                        <img id="modal-main-img" src="" class="w-full h-full object-cover">
+                    </div>
+                    <div id="modal-thumbnails" class="flex gap-2.5 mt-3 overflow-x-auto py-1"></div>
+                </div>
+            </div>
+            <div class="w-full md:w-1/2 p-8 flex flex-col justify-between overflow-y-auto border-t md:border-t-0 md:border-l border-gray-100">
+                <div class="space-y-6">
+                    <div>
+                        <h2 id="modal-title" class="text-xl font-medium tracking-wide">Product Title</h2>
+                        <p id="modal-price" class="text-lg text-gray-600 mt-1.5">$0.00 USD</p>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold block">Select Color</span>
+                        <div id="modal-colors" class="flex flex-wrap gap-2.5 mt-2"></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Select Size</span>
+                            <button onclick="openSizeGuide()" class="text-[10px] uppercase tracking-wider text-gray-400 underline font-semibold">Size Guide</button>
+                        </div>
+                        <div id="modal-sizes" class="flex space-x-2 mt-2"></div>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-gray-400 font-semibold">Details</span>
+                        <p id="modal-desc" class="text-xs text-gray-600 leading-relaxed mt-2"></p>
+                    </div>
+                </div>
+                <div class="mt-8 pt-4 border-t border-gray-100 space-y-2">
+                    <a id="modal-wa-btn" href="#" target="_blank" class="block w-full text-center bg-black hover:bg-gray-800 text-white text-xs uppercase tracking-widest py-3.5 transition">Order on WhatsApp</a>
+                    <a id="modal-ig-btn" href="#" target="_blank" class="block w-full text-center border border-black hover:bg-black hover:text-white text-black text-xs uppercase tracking-widest py-3 transition">Inquire on IG DM</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sizeguide-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-md shadow-2xl max-w-lg w-full relative overflow-y-auto" style="max-height: 85vh;">
+            <button onclick="closeSizeGuide()" class="absolute top-2 right-3 text-gray-500 font-bold text-xl">&times;</button>
+            <h3 class="text-xs font-bold uppercase mb-4 text-center">Size Guide</h3>
+            <div id="sizeguide-image-container" class="hidden mb-4">
+                <img id="sizeguide-custom-img" class="w-full h-auto rounded border">
+            </div>
+            <div id="sizeguide-default-table">
+                <table class="w-full text-xs text-center border">
+                    <tr class="bg-gray-100 border-b"><th class="p-2">Size</th><th class="p-2">Chest (cm)</th><th class="p-2">Waist (cm)</th></tr>
+                    <tr class="border-b"><td class="p-2">S</td><td class="p-2">84-88</td><td class="p-2">66-70</td></tr>
+                    <tr class="border-b"><td class="p-2">M</td><td class="p-2">88-92</td><td class="p-2">70-74</td></tr>
+                    <tr class="border-b"><td class="p-2">L</td><td class="p-2">92-96</td><td class="p-2">74-78</td></tr>
+                    <tr><td class="p-2">XL</td><td class="p-2">96-100</td><td class="p-2">78-82</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <section id="contact" class="max-w-2xl mx-auto px-6 py-16 w-full">
+        <h2 class="text-xl font-light tracking-[0.2em] uppercase text-center mb-4">Contact Us</h2>
+        <form id="contact-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <input type="text" name="name" placeholder="Your Name" required class="border border-gray-200 bg-white p-3 text-xs rounded-sm focus:outline-none">
+                <input type="email" name="email" placeholder="Your Email" required class="border border-gray-200 bg-white p-3 text-xs rounded-sm focus:outline-none">
+            </div>
+            <textarea name="message" rows="4" placeholder="Your Message..." required class="w-full border border-gray-200 bg-white p-3 text-xs rounded-sm focus:outline-none"></textarea>
+            <button type="submit" class="w-full bg-black text-white text-xs uppercase tracking-widest py-3.5 hover:bg-gray-800 transition">Send Message</button>
+        </form>
+    </section>
+
+    <footer class="bg-black text-gray-500 py-8 text-xs border-t border-gray-900 mt-auto">
+        <div class="mx-auto text-center uppercase tracking-widest space-y-2" style="max-width: 1500px; width: 94%;">
+            <div id="footer-copy"></div>
+        </div>
+    </footer>
+
+    <script>
+        const defaultConfig = {
+            shopName: "SORA STUDIO",
+            announcement: "Worldwide Shipping • Inquire & Order via WhatsApp / DM",
+            whatsapp: "8613812345678",
+            instagram: "sora_apparel",
+            githubRepo: "wasdkd/Amazon",
+            githubBranch: "main"
+        };
+
+        let appConfig = defaultConfig;
+        let products = [];
+        let currentActiveProduct = null;
+
+        async function fetchProductsFromGitHub() {
+            try {
+                const response = await fetch(`https://cdn.jsdelivr.net/gh/${appConfig.githubRepo}@${appConfig.githubBranch}/uploads2/products.js`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                const text = await response.text();
+                const jsonStr = text.replace('window.soraProducts = ', '').replace(/;$/, '');
+                return JSON.parse(jsonStr);
+            } catch (e) {
+                console.log('Using local fallback data');
+                return [];
+            }
+        }
+
+        async function initApp() {
+            const githubProducts = await fetchProductsFromGitHub();
+            if (githubProducts && githubProducts.length > 0) {
+                products = githubProducts;
+            } else if (window.soraProducts) {
+                products = window.soraProducts;
+            }
+            applyConfig();
+            renderProducts();
+        }
+
+        function applyConfig() {
+            document.title = appConfig.shopName + " | Premium Apparel";
+            document.getElementById('nav-brand-name').innerText = appConfig.shopName;
+            document.getElementById('announcement-bar').innerText = appConfig.announcement;
+            document.getElementById('footer-copy').innerHTML = `© 2026 ${appConfig.shopName}. All rights reserved.`;
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "flex flex-col bg-white p-4 rounded-lg shadow-sm border border-gray-100 relative group cursor-pointer";
+                card.onclick = () => openProduct(p.id);
+
+                card.innerHTML = `
+                    <div class="relative overflow-hidden bg-gray-50 mb-4 rounded-md" style="aspect-ratio: 3/4;">
+                        <img src="${p.img1}" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0" onerror="this.src='https://via.placeholder.com/400x600?text=Image'">
+                        <img src="${p.img2}" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100" onerror="this.src='https://via.placeholder.com/400x600?text=Image'">
+                    </div>
+                    <div class="flex justify-between items-start mt-2">
+                        <div>
+                            <h3 class="font-medium text-xs md:text-sm tracking-wide text-gray-800 line-clamp-1">${p.title}</h3>
+                            <p class="text-gray-500 text-xs mt-1">$${p.price.toFixed(2)} USD</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openProduct(id) {
+            const p = products.find(prod => prod.id === id);
+            if (!p) return;
+            currentActiveProduct = p;
+
+            document.getElementById('modal-title').innerText = p.title;
+            document.getElementById('modal-price').innerText = `$${p.price.toFixed(2)} USD`;
+            document.getElementById('modal-desc').innerText = p.desc || '';
+
+            document.getElementById('modal-wa-btn').href = `https://wa.me/${appConfig.whatsapp}?text=Hi!%20I%20want%20to%20order%20the%20${encodeURIComponent(p.title)}`;
+            document.getElementById('modal-ig-btn').href = `https://instagram.com/${appConfig.instagram}`;
+
+            renderModalMedia(p);
+
+            const colorsDiv = document.getElementById('modal-colors');
+            colorsDiv.innerHTML = '';
+            if (p.colors && p.colors.length > 0) {
+                p.colors.forEach((col, idx) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = `flex items-center space-x-1.5 border px-2.5 py-1.5 rounded bg-white text-[10px] cursor-pointer transition ${idx === 0 ? 'border-black' : 'border-gray-200'}`;
+                    const dot = document.createElement('span');
+                    dot.className = "w-3 h-3 rounded-full border border-gray-300 flex-shrink-0";
+                    dot.style.backgroundColor = col.hex;
+                    const label = document.createElement('span');
+                    label.className = "font-medium text-gray-700";
+                    label.innerText = col.name;
+                    wrap.appendChild(dot);
+                    wrap.appendChild(label);
+                    wrap.onclick = () => {
+                        document.querySelectorAll('#modal-colors > div').forEach(div => div.classList.replace('border-black', 'border-gray-200'));
+                        wrap.classList.replace('border-gray-200', 'border-black');
+                        if (col.img) {
+                            document.getElementById('modal-main-img').src = col.img;
+                        }
+                    };
+                    colorsDiv.appendChild(wrap);
+                });
+            } else {
+                colorsDiv.innerHTML = `<span class="text-xs text-gray-400">Standard Color</span>`;
+            }
+
+            const sizesDiv = document.getElementById('modal-sizes');
+            sizesDiv.innerHTML = '';
+            p.sizes.forEach((size, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `border px-3 py-1.5 text-[10px] uppercase font-medium hover:border-black transition ${idx === 0 ? 'bg-black text-white border-black' : 'bg-white text-gray-800 border-gray-200'}`;
+                btn.innerText = size;
+                btn.onclick = () => {
+                    document.querySelectorAll('#modal-sizes button').forEach(b => {
+                        b.className = "border border-gray-200 px-3 py-1.5 text-[10px] uppercase font-medium bg-white text-gray-800 hover:border-black transition";
+                    });
+                    btn.className = "border border-black px-3 py-1.5 text-[10px] uppercase font-medium bg-black text-white transition";
+                };
+                sizesDiv.appendChild(btn);
+            });
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function renderModalMedia(p) {
+            const container = document.getElementById('modal-media-container');
+            const thumbsDiv = document.getElementById('modal-thumbnails');
+            container.innerHTML = `<img id="modal-main-img" src="${p.img1}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400x600'">`;
+            thumbsDiv.innerHTML = '';
+            const mediaList = [{ type: 'image', url: p.img1 }];
+            if (p.img2) mediaList.push({ type: 'image', url: p.img2 });
+            if (p.img3) mediaList.push({ type: 'image', url: p.img3 });
+            if (p.img4) mediaList.push({ type: 'image', url: p.img4 });
+            if (p.video) mediaList.push({ type: 'video', url: p.video });
+
+            mediaList.forEach((media) => {
+                const btn = document.createElement('div');
+                btn.className = "w-12 h-16 border rounded overflow-hidden cursor-pointer flex-shrink-0 hover:border-black transition border-gray-200";
+                if (media.type === 'image') {
+                    btn.innerHTML = `<img src="${media.url}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/48x64'">`;
+                    btn.onclick = () => {
+                        container.innerHTML = `<img id="modal-main-img" src="${media.url}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400x600'">`;
+                    };
+                } else if (media.type === 'video') {
+                    btn.innerHTML = `<div class="w-full h-full bg-gray-900 flex items-center justify-center text-white text-[9px] font-bold">VID</div>`;
+                    btn.onclick = () => {
+                        container.innerHTML = `<video class="w-full h-full object-cover" controls autoplay loop muted><source src="${media.url}" type="video/mp4"></video>`;
+                    };
+                }
+                thumbsDiv.appendChild(btn);
+            });
+        }
+
+        function openSizeGuide() {
+            const table = document.getElementById('sizeguide-default-table');
+            const imgContainer = document.getElementById('sizeguide-image-container');
+            const customImg = document.getElementById('sizeguide-custom-img');
+            if (currentActiveProduct && currentActiveProduct.sizeChartImg) {
+                customImg.src = currentActiveProduct.sizeChartImg;
+                imgContainer.classList.remove('hidden');
+                table.classList.add('hidden');
+            } else {
+                imgContainer.classList.add('hidden');
+                table.classList.remove('hidden');
+            }
+            document.getElementById('sizeguide-modal').classList.remove('hidden');
+        }
+
+        function closeSizeGuide() {
+            document.getElementById('sizeguide-modal').classList.add('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        window.onload = initApp;
+    </script>
+    <script src="products.js"></script>
+</body>
+</html>

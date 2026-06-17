@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORA STUDIO | 商家后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background-color: #faf9f6; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-gray-900 flex flex-col min-h-screen relative">
+
+    <div id="login-screen" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full space-y-6 text-center">
+            <h1 class="text-lg font-bold tracking-widest text-red-600 uppercase">★ SORA ADMIN PORTAL</h1>
+            <p class="text-xs text-gray-500 leading-relaxed">请输入管理员密码解锁后台</p>
+            
+            <div class="space-y-4">
+                <input id="admin-pwd-input" type="password" placeholder="管理员密码" class="w-full border p-3 text-sm text-center rounded focus:outline-none focus:border-red-600 font-bold">
+            </div>
+            
+            <button onclick="verifyAdminPassword()" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs uppercase tracking-widest py-3.5 rounded font-bold transition">
+                登录后台
+            </button>
+        </div>
+    </div>
+
+    <div id="main-admin-layout" class="hidden flex flex-col flex-grow">
+        <div class="bg-red-600 text-white text-[11px] tracking-widest text-center py-2 uppercase font-bold relative z-30">
+            ★ 数据将直接同步到 GitHub 仓库 ★
+        </div>
+
+        <header class="sticky top-0 z-40 border-b border-gray-100 shadow-sm" style="background-color: rgba(250, 249, 246, 0.9);">
+            <div class="mx-auto py-4 flex justify-between items-center" style="max-width: 1500px; width: 94%;">
+                <div class="flex items-center space-x-3">
+                    <span id="nav-brand-name" class="text-xl font-bold tracking-[0.2em] uppercase">SORA STUDIO</span>
+                    <span class="bg-red-100 text-red-600 text-[9px] font-bold uppercase px-2 py-0.5 rounded">Admin Mode</span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button onclick="syncToGitHub()" class="text-xs uppercase font-bold tracking-wider text-purple-700 hover:text-purple-900 transition flex items-center gap-1">
+                        <span id="sync-status">🔄 同步到 GitHub</span>
+                    </button>
+                    <button onclick="openConfigModal()" class="text-xs uppercase font-bold tracking-wider text-gray-700 hover:text-red-600 transition flex items-center space-x-1">
+                        <span>⚙️ 设置</span>
+                    </button>
+                    <button onclick="logoutAdmin()" class="text-xs uppercase font-bold tracking-wider text-red-600 hover:underline">退出</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="mx-auto py-12 flex-grow" style="max-width: 1500px; width: 94%;">
+            <div class="text-center mb-12 border-b pb-4 border-gray-100 flex justify-between items-end">
+                <h1 class="text-2xl font-light tracking-[0.3em] uppercase">产品管理</h1>
+                <p class="text-[10px] text-gray-400 uppercase tracking-wider">双击产品卡片进行编辑</p>
+            </div>
+
+            <div id="admin-product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12">
+            </div>
+        </main>
+    </div>
+
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-5xl rounded-lg overflow-hidden shadow-2xl flex flex-col md:flex-row relative" style="height: 90vh;">
+            <button onclick="closeEditModal()" class="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-gray-800 p-1.5 rounded-full shadow transition">&times;</button>
+
+            <div class="w-full md:w-1/2 bg-gray-50 p-6 flex flex-col justify-between overflow-y-auto no-scrollbar">
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-red-600 border-b pb-2">产品图片</h3>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">封面图</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:border-red-600 transition bg-white relative" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img1')">
+                            <p class="text-[11px] text-gray-500">拖拽或点击上传</p>
+                            <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img1')">
+                            <input id="edit-img1" type="text" class="w-full border p-2 text-[10px] rounded mt-2 bg-gray-50" placeholder="图片URL">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">悬停图</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:border-red-600 transition bg-white relative" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img2')">
+                            <p class="text-[11px] text-gray-500">拖拽或点击上传</p>
+                            <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img2')">
+                            <input id="edit-img2" type="text" class="w-full border p-2 text-[10px] rounded mt-2 bg-gray-50" placeholder="图片URL">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">细节图 3</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:border-red-600 transition bg-white relative" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img3')">
+                            <p class="text-[11px] text-gray-500">拖拽或点击上传</p>
+                            <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img3')">
+                            <input id="edit-img3" type="text" class="w-full border p-2 text-[10px] rounded mt-2 bg-gray-50" placeholder="图片URL">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">细节图 4</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:border-red-600 transition bg-white relative" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img4')">
+                            <p class="text-[11px] text-gray-500">拖拽或点击上传</p>
+                            <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img4')">
+                            <input id="edit-img4" type="text" class="w-full border p-2 text-[10px] rounded mt-2 bg-gray-50" placeholder="图片URL">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">视频 URL</label>
+                        <input id="edit-video" type="text" class="w-full border p-2 text-xs rounded bg-white" placeholder="视频链接">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">尺码表图</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center cursor-pointer hover:border-red-600 transition bg-white relative" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-sizechart')">
+                            <p class="text-[11px] text-gray-500">拖拽或点击上传</p>
+                            <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-sizechart')">
+                            <input id="edit-sizechart" type="text" class="w-full border p-2 text-[10px] rounded mt-2 bg-gray-50" placeholder="图片URL">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full md:w-1/2 p-8 flex flex-col justify-between overflow-y-auto border-t md:border-t-0 md:border-l border-gray-100">
+                <div class="space-y-5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-red-600 border-b pb-2">产品信息</h3>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">产品名称</label>
+                        <input id="edit-title" type="text" class="w-full border p-2.5 text-xs rounded mt-1 font-medium border-gray-200">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">价格 (USD)</label>
+                        <input id="edit-price" type="number" class="w-full border p-2.5 text-xs rounded mt-1 font-medium border-gray-200">
+                    </div>
+                    <div>
+                        <span class="text-[9px] uppercase font-bold text-gray-400 block">颜色</span>
+                        <div id="edit-colors-list" class="space-y-3 mt-2"></div>
+                        <button onclick="addNewColorRow()" class="mt-2 text-[10px] uppercase font-bold text-blue-600 hover:underline">+ 添加颜色</button>
+                    </div>
+                    <div>
+                        <span class="text-[9px] uppercase font-bold text-gray-400 block">可选尺码</span>
+                        <div class="flex space-x-4 mt-2">
+                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="S" class="size-cb mr-1">S</label>
+                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="M" class="size-cb mr-1">M</label>
+                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="L" class="size-cb mr-1">L</label>
+                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="XL" class="size-cb mr-1">XL</label>
+                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="XXL" class="size-cb mr-1">XXL</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">产品描述</label>
+                        <textarea id="edit-desc" class="w-full border p-2 text-xs rounded mt-1 h-20 border-gray-200"></textarea>
+                    </div>
+                </div>
+                <div class="mt-8 pt-4 border-t border-gray-100 flex gap-2">
+                    <button onclick="closeEditModal()" class="w-1/3 border border-gray-200 text-xs uppercase py-3 rounded text-gray-500 hover:bg-gray-50">取消</button>
+                    <button onclick="saveProductEdits()" class="w-2/3 bg-red-600 text-white text-xs uppercase py-3 rounded font-bold hover:bg-red-700">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="config-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full space-y-5">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-red-600 border-b pb-2">系统设置</h3>
+            <div class="space-y-4">
+                <div class="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-gray-600">GitHub 配置</h4>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">仓库</label>
+                        <input id="cfg-repo" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200" placeholder="owner/repo">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">分支</label>
+                        <input id="cfg-branch" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200" placeholder="main">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-400">Personal Access Token</label>
+                        <input id="cfg-github-token" type="password" class="w-full border p-2 text-xs rounded mt-1 border-gray-200" placeholder="ghp_...">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[9px] uppercase font-bold text-gray-400">店铺名称</label>
+                    <input id="cfg-shop-name" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-[9px] uppercase font-bold text-gray-400">公告栏</label>
+                    <input id="cfg-announcement" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-[9px] uppercase font-bold text-gray-400">WhatsApp</label>
+                    <input id="cfg-whatsapp" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-[9px] uppercase font-bold text-gray-400">Instagram</label>
+                    <input id="cfg-instagram" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-[9px] uppercase font-bold text-red-600">管理员密码</label>
+                    <input id="cfg-password" type="text" class="w-full border p-2 text-xs rounded mt-1 font-bold text-red-600 border-gray-200">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-4 border-t border-gray-100">
+                <button onclick="closeConfigModal()" class="px-4 py-2 text-xs uppercase bg-gray-100 rounded text-gray-600">取消</button>
+                <button onclick="saveGlobalConfig()" class="px-5 py-2 text-xs uppercase bg-red-600 text-white rounded font-bold hover:bg-red-700">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-toast" class="fixed bottom-4 right-4 z-50 hidden">
+        <div class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <span id="status-icon">✓</span>
+            <span id="status-text">操作成功</span>
+        </div>
+    </div>
+
+    <script src="products.js"></script>
+    <script>
+        const defaultConfig = {
+            github: {
+                repo: "wasdkd/Amazon",
+                branch: "main",
+                token: ""
+            },
+            shop: {
+                name: "SORA STUDIO",
+                announcement: "Worldwide Shipping • Inquire & Order via WhatsApp / DM",
+                whatsapp: "8613812345678",
+                instagram: "sora_apparel",
+                adminPassword: "admin123"
+            }
+        };
+        
+        let appConfig = JSON.parse(JSON.stringify(defaultConfig));
+        let products = [];
+        let currentlyEditingId = null;
+        let pendingImages = [];
+
+        const GITHUB_API = "https://api.github.com";
+
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById('status-toast');
+            const icon = document.getElementById('status-icon');
+            const text = document.getElementById('status-text');
+            text.innerText = message;
+            icon.innerText = isSuccess ? '✓' : '✗';
+            toast.querySelector('div').className = isSuccess ? 
+                'bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2' :
+                'bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2';
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function loadLocalData() {
+            const savedConfig = localStorage.getItem('sora_config');
+            if (savedConfig) {
+                try {
+                    const loadedConfig = JSON.parse(savedConfig);
+                    appConfig.github = { ...defaultConfig.github, ...loadedConfig.github };
+                    appConfig.shop = { ...defaultConfig.shop, ...loadedConfig.shop };
+                } catch (e) {
+                    console.error('Failed to parse config, using default');
+                }
+            }
+            
+            const savedProducts = localStorage.getItem('sora_products');
+            if (savedProducts) {
+                products = JSON.parse(savedProducts);
+            } else {
+                products = window.soraProducts || [];
+            }
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('sora_config', JSON.stringify(appConfig));
+            localStorage.setItem('sora_products', JSON.stringify(products));
+        }
+
+        async function fetchFromGitHub(path) {
+            if (!appConfig.github.token) {
+                console.log('No GitHub token, skipping fetch');
+                return null;
+            }
+            
+            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}?ref=${appConfig.github.branch}`;
+            const headers = { 
+                'Accept': 'application/vnd.github.v3+json',
+                'Authorization': `token ${appConfig.github.token}`
+            };
+            
+            try {
+                const response = await fetch(url, { headers });
+                if (!response.ok) return null;
+                const data = await response.json();
+                const content = atob(data.content);
+                return { content, sha: data.sha };
+            } catch (e) {
+                console.error('GitHub fetch error:', e);
+                return null;
+            }
+        }
+
+        async function pushToGitHub(path, content, message = "Update") {
+            if (!appConfig.github.token) {
+                showToast('请先在设置中配置 GitHub Token', false);
+                return false;
+            }
+            
+            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;
+            const headers = { 
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+                'Authorization': `token ${appConfig.github.token}`
+            };
+
+            const body = {
+                message,
+                content: btoa(unescape(encodeURIComponent(content))),
+                branch: appConfig.github.branch
+            };
+
+            const existing = await fetchFromGitHub(path);
+            if (existing && existing.sha) {
+                body.sha = existing.sha;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(body)
+                });
+                return response.ok;
+            } catch (e) {
+                console.error('GitHub push error:', e);
+                return false;
+            }
+        }
+
+        async function uploadImageToGitHub(base64Data, filename) {
+            if (!appConfig.github.token) {
+                showToast('请先在设置中配置 GitHub Token', false);
+                return null;
+            }
+
+            const path = `uploads2/images/${filename}`;
+            const base64Content = base64Data.split(',')[1];
+            const message = `Upload image: ${filename}`;
+            
+            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;
+            const headers = { 
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+                'Authorization': `token ${appConfig.github.token}`
+            };
+
+            const body = {
+                message,
+                content: base64Content,
+                branch: appConfig.github.branch
+            };
+
+            const existing = await fetchFromGitHub(path);
+            if (existing && existing.sha) {
+                body.sha = existing.sha;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(body)
+                });
+                
+                if (response.ok) {
+                    const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/${path}`;
+                    return rawUrl;
+                }
+                return null;
+            } catch (e) {
+                console.error('Image upload error:', e);
+                return null;
+            }
+        }
+
+        function verifyAdminPassword() {
+            loadLocalData();
+            const pwd = document.getElementById('admin-pwd-input').value.trim();
+            
+            if (pwd === appConfig.shop.adminPassword) {
+                saveLocalData();
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-admin-layout').classList.remove('hidden');
+                initAdmin();
+            } else {
+                showToast('密码错误', false);
+            }
+        }
+
+        async function initAdmin() {
+            const data = await fetchFromGitHub('uploads2/products.js');
+            if (data) {
+                try {
+                    const jsContent = data.content;
+                    const jsonStr = jsContent.replace('window.soraProducts = ', '').replace(/;$/, '');
+                    products = JSON.parse(jsonStr);
+                    saveLocalData();
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            }
+            
+            renderAdminProducts();
+            syncConfigFields();
+        }
+
+        function logoutAdmin() {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('main-admin-layout').classList.add('hidden');
+            document.getElementById('admin-pwd-input').value = '';
+        }
+
+        function renderAdminProducts() {
+            const grid = document.getElementById('admin-product-grid');
+            grid.innerHTML = '';
+
+            const addCard = document.createElement('div');
+            addCard.className = "flex flex-col items-center justify-center border-2 border-dashed border-red-300 p-6 rounded-lg hover:border-red-600 transition cursor-pointer bg-white group";
+            addCard.style.aspectRatio = "3/4.5";
+            addCard.onclick = () => openEditModal(null);
+            addCard.innerHTML = `
+                <div class="text-center space-y-2">
+                    <span class="text-4xl text-red-300 group-hover:text-red-600 transition">+</span>
+                    <p class="text-xs font-bold uppercase tracking-widest text-red-300 group-hover:text-red-600 transition">添加产品</p>
+                </div>
+            `;
+            grid.appendChild(addCard);
+
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "flex flex-col bg-white p-4 rounded-lg shadow-sm border border-gray-100 relative group cursor-pointer hover:shadow-md transition duration-300";
+                card.ondblclick = () => openEditModal(p.id);
+
+                card.innerHTML = `
+                    <button onclick="deleteProduct(event, ${p.id})" class="absolute top-5 left-5 z-20 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow transition">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                    </button>
+                    <div class="absolute inset-x-4 top-1/3 z-20 bg-black/60 text-white text-[10px] py-1.5 rounded uppercase tracking-wider text-center opacity-0 group-hover:opacity-100 transition duration-300">
+                        双击编辑
+                    </div>
+                    <div class="relative overflow-hidden bg-gray-50 mb-4 rounded-md" style="aspect-ratio: 3/4;">
+                        <img src="${p.img1}" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0" onerror="this.src='https://via.placeholder.com/400x600'">
+                        <img src="${p.img2}" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100" onerror="this.src='https://via.placeholder.com/400x600'">
+                    </div>
+                    <div class="flex justify-between items-start mt-2">
+                        <div>
+                            <h3 class="font-bold text-xs md:text-sm tracking-wide text-gray-800 line-clamp-1">${p.title}</h3>
+                            <p class="text-gray-500 text-xs mt-1">$${p.price.toFixed(2)} USD</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openEditModal(id = null) {
+            currentlyEditingId = id;
+            document.querySelectorAll('.size-cb').forEach(cb => cb.checked = false);
+            document.getElementById('edit-colors-list').innerHTML = '';
+
+            if (id === null) {
+                document.getElementById('edit-title').value = '';
+                document.getElementById('edit-price').value = '';
+                document.getElementById('edit-img1').value = '';
+                document.getElementById('edit-img2').value = '';
+                document.getElementById('edit-img3').value = '';
+                document.getElementById('edit-img4').value = '';
+                document.getElementById('edit-video').value = '';
+                document.getElementById('edit-sizechart').value = '';
+                document.getElementById('edit-desc').value = '';
+                addNewColorRow();
+            } else {
+                const p = products.find(prod => prod.id === id);
+                if (!p) return;
+
+                document.getElementById('edit-title').value = p.title;
+                document.getElementById('edit-price').value = p.price;
+                document.getElementById('edit-img1').value = p.img1;
+                document.getElementById('edit-img2').value = p.img2;
+                document.getElementById('edit-img3').value = p.img3 || '';
+                document.getElementById('edit-img4').value = p.img4 || '';
+                document.getElementById('edit-video').value = p.video || '';
+                document.getElementById('edit-sizechart').value = p.sizeChartImg || '';
+                document.getElementById('edit-desc').value = p.desc || '';
+
+                p.sizes.forEach(sz => {
+                    const cb = document.querySelector(`.size-cb[value="${sz}"]`);
+                    if (cb) cb.checked = true;
+                });
+
+                if (p.colors && p.colors.length > 0) {
+                    p.colors.forEach(col => {
+                        addNewColorRow(col.hex, col.name, col.img);
+                    });
+                } else {
+                    addNewColorRow();
+                }
+            }
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        function addNewColorRow(hex = "#000000", name = "", img = "") {
+            const list = document.getElementById('edit-colors-list');
+            const rowId = 'color-row-' + Date.now() + Math.floor(Math.random()*1000);
+            const row = document.createElement('div');
+            row.id = rowId;
+            row.className = "color-edit-row flex flex-col space-y-1 border p-2.5 rounded bg-white border-gray-200 relative";
+            row.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-1 right-2 text-red-500 font-bold hover:scale-110 transition">&times;</button>
+                <div class="flex items-center space-x-2">
+                    <input type="color" value="${hex}" class="color-hex-input w-8 h-8 rounded border-0 cursor-pointer">
+                    <input type="text" value="${name}" placeholder="颜色名称" class="color-name-input border p-1 text-xs rounded w-1/3 border-gray-200">
+                </div>
+                <input id="${rowId}-img-input" type="text" value="${img}" class="color-img-input w-full border p-1 text-[9px] rounded mt-1 bg-gray-50 border-gray-200" placeholder="颜色图片URL">
+            `;
+            list.appendChild(row);
+        }
+
+        function processLocalImage(file, targetInputId) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    const max_size = 1200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > max_size) {
+                            height *= max_size / width;
+                            width = max_size;
+                        }
+                    } else {
+                        if (height > max_size) {
+                            width *= max_size / height;
+                            height = max_size;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                    
+                    const targetInput = document.getElementById(targetInputId);
+                    if (targetInput) {
+                        targetInput.value = compressedBase64;
+                        targetInput.dataset.isLocal = "true";
+                        showToast('图片已加载，保存时会自动上传到 GitHub');
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleImageDrop(event, targetInputId) {
+            event.preventDefault();
+            const file = event.dataTransfer.files[0];
+            processLocalImage(file, targetInputId);
+        }
+
+        function handleImageFile(event, targetInputId) {
+            const file = event.target.files[0];
+            processLocalImage(file, targetInputId);
+        }
+
+        async function uploadAllImages(productData) {
+            const imageFields = ['img1', 'img2', 'img3', 'img4', 'sizeChartImg'];
+            
+            for (const field of imageFields) {
+                const value = productData[field];
+                if (value && value.startsWith('data:')) {
+                    showToast(`正在上传 ${field}...`);
+                    const filename = `product_${productData.id}_${field}_${Date.now()}.jpg`;
+                    const url = await uploadImageToGitHub(value, filename);
+                    if (url) {
+                        productData[field] = url;
+                    }
+                }
+            }
+
+            if (productData.colors) {
+                for (const color of productData.colors) {
+                    if (color.img && color.img.startsWith('data:')) {
+                        showToast('正在上传颜色图片...');
+                        const filename = `product_${productData.id}_color_${color.name}_${Date.now()}.jpg`;
+                        const url = await uploadImageToGitHub(color.img, filename);
+                        if (url) {
+                            color.img = url;
+                        }
+                    }
+                }
+            }
+
+            return productData;
+        }
+
+        async function saveProductEdits() {
+            const title = document.getElementById('edit-title').value.trim();
+            const price = parseFloat(document.getElementById('edit-price').value);
+            const img1 = document.getElementById('edit-img1').value.trim();
+            const img2 = document.getElementById('edit-img2').value.trim();
+            const img3 = document.getElementById('edit-img3').value.trim();
+            const img4 = document.getElementById('edit-img4').value.trim();
+            const video = document.getElementById('edit-video').value.trim();
+            const sizeChartImg = document.getElementById('edit-sizechart').value.trim();
+            const desc = document.getElementById('edit-desc').value.trim();
+
+            if (!title || !price || !img1 || !img2) {
+                showToast('请填写必填项', false);
+                return;
+            }
+
+            const sizes = [];
+            document.querySelectorAll('.size-cb:checked').forEach(cb => sizes.push(cb.value));
+
+            const colors = [];
+            const rows = document.querySelectorAll('.color-edit-row');
+            rows.forEach(row => {
+                const hex = row.querySelector('.color-hex-input').value;
+                const name = row.querySelector('.color-name-input').value.trim();
+                const img = row.querySelector('.color-img-input').value.trim();
+                if (hex && name) {
+                    colors.push({ hex, name, img: img || img1 });
+                }
+            });
+
+            let productData = {
+                id: currentlyEditingId === null ? Date.now() : currentlyEditingId,
+                title, price, img1, img2, img3, img4, video, sizeChartImg, desc, colors, sizes
+            };
+
+            productData = await uploadAllImages(productData);
+
+            if (currentlyEditingId === null) {
+                products.unshift(productData);
+            } else {
+                const index = products.findIndex(p => p.id === currentlyEditingId);
+                if (index !== -1) {
+                    products[index] = productData;
+                }
+            }
+
+            saveLocalData();
+            closeEditModal();
+            renderAdminProducts();
+            showToast('产品已保存！点击「同步到 GitHub」上传');
+        }
+
+        function deleteProduct(event, id) {
+            event.stopPropagation();
+            if (confirm('确定删除此产品？')) {
+                products = products.filter(p => p.id !== id);
+                saveLocalData();
+                renderAdminProducts();
+            }
+        }
+
+        function openConfigModal() {
+            syncConfigFields();
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function syncConfigFields() {
+            document.getElementById('nav-brand-name').innerText = appConfig.shop.name;
+            document.getElementById('cfg-shop-name').value = appConfig.shop.name;
+            document.getElementById('cfg-announcement').value = appConfig.shop.announcement;
+            document.getElementById('cfg-whatsapp').value = appConfig.shop.whatsapp;
+            document.getElementById('cfg-instagram').value = appConfig.shop.instagram;
+            document.getElementById('cfg-password').value = appConfig.shop.adminPassword;
+            document.getElementById('cfg-repo').value = appConfig.github.repo;
+            document.getElementById('cfg-branch').value = appConfig.github.branch;
+            document.getElementById('cfg-github-token').value = appConfig.github.token || '';
+        }
+
+        function saveGlobalConfig() {
+            appConfig.shop.name = document.getElementById('cfg-shop-name').value.trim();
+            appConfig.shop.announcement = document.getElementById('cfg-announcement').value.trim();
+            appConfig.shop.whatsapp = document.getElementById('cfg-whatsapp').value.trim();
+            appConfig.shop.instagram = document.getElementById('cfg-instagram').value.trim();
+            appConfig.shop.adminPassword = document.getElementById('cfg-password').value.trim();
+            appConfig.github.repo = document.getElementById('cfg-repo').value.trim();
+            appConfig.github.branch = document.getElementById('cfg-branch').value.trim();
+            appConfig.github.token = document.getElementById('cfg-github-token').value.trim();
+
+            saveLocalData();
+            closeConfigModal();
+            syncConfigFields();
+            showToast('设置已保存');
+        }
+
+        async function syncToGitHub() {
+            document.getElementById('sync-status').innerHTML = '⏳ 同步中...';
+            
+            const jsContent = `window.soraProducts = ${JSON.stringify(products, null, 2)};`;
+            const success = await pushToGitHub('uploads2/products.js', jsContent, 'Update products');
+            
+            if (success) {
+                showToast('✅ 已同步到 GitHub！');
+            } else {
+                showToast('❌ 同步失败，请检查 Token', false);
+            }
+            
+            document.getElementById('sync-status').innerHTML = '🔄 同步到 GitHub';
+        }
+
+        loadLocalData();
+    </script>
+</body>
+</html>
