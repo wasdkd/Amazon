@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>上新产品可视化监控平台</title>
+    <!-- 引入 Chart.js 用于绘制趋势图表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 0;
+            margin: 0;
+            font-size: 16px;
+        }
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background-color: #232f3e;
+            color: white;
+            padding: 6px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .header .btn {
+            padding: 4px 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background-color 0.3s ease;
+        }
+        .header .btn:hover { background-color: #0056b3; }
+
+        /* 筛选器区域 */
+        .filter-container {
+            position: sticky;
+            top: 40px;
+            z-index: 999;
+            background-color: #f8f8f8;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 12px;
+            padding: 10px 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+        .filter-box {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+        }
+        .filter-box label {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+        .filter-box input[type="text"], .filter-box input[type="number"], .filter-box select {
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        .range-box {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .range-box input { width: 60px; }
+
+        /* 特殊快捷筛选框组合 */
+        .special-filter-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: #fff3cd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ffeba2;
+            font-size: 13px;
+        }
+        .special-filter-box label {
+            cursor: pointer;
+            color: #856404;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .filter-dropdown-btn {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            min-width: 100px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .filter-dropdown-btn::after { content: '▼'; font-size: 10px; color: #666; }
+        .filter-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            z-index: 1001;
+            max-height: 280px;
+            overflow-y: auto;
+            min-width: 170px;
+            margin-top: 2px;
+        }
+        .filter-checkbox { 
+            margin: 4px 0; 
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+        .filter-checkbox label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
+        /* 当前筛选条件展示框 */
+        .filter-info-display {
+            width: 100%;
+            background-color: #e3f2fd;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+            box-sizing: border-box;
+            margin-top: 6px;
+        }
+        .filter-label { color: #e53935; font-weight: bold; }
+        .filter-value { color: #2e7d32; font-weight: bold; }
+        .filter-title { color: #1565c0; font-weight: bold; }
+
+        /* 网格及卡片 */
+        .container { padding: 10px; }
+        .products-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: flex-start;
+        }
+        .chart-block {
+            flex: 0 0 calc(14.2857% - 12px); /* 1行7列比例 */
+            max-width: calc(14.2857% - 12px);
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            box-sizing: border-box;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .chart-block:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        /* 预警高亮 */
+        .chart-block.low-rating-card {
+            border: 2px solid #ff4d4f;
+            background-color: #fff1f0;
+        }
+        .warning-tag {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background-color: #ff4d4f;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        /* BSR 优秀标签 */
+        .bsr-excellent-tag {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            background-color: #2e7d32;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 主图限制高度且等比例展示 */
+        .product-image {
+            width: 100%;
+            object-fit: contain;
+            background-color: #f8f8f8;
+            cursor: pointer;
+            margin-bottom: 6px;
+            border-radius: 4px;
+        }
+
+        /* 居中展示文字 */
+        .chart-info {
+            margin-top: 4px;
+            font-size: 16px; 
+            color: #333;
+            line-height: 1.4;
+            word-break: break-all;
+            text-align: center;
+        }
+        .chart-info span.value {
+            font-weight: bold;
+            color: #111;
+        }
+        .chart-info a {
+            color: #0066c0;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 17px;
+            display: inline-block;
+            max-width: 100%;
+        }
+        .chart-info a:hover { text-decoration: underline; }
+
+        .category-color {
+            width: 12px;
+            height: 12px;
+            display: inline-block;
+            margin-right: 4px;
+            border-radius: 3px;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 1600px) { .chart-block { flex: 0 0 calc(20% - 12px); max-width: calc(20% - 12px); } }
+        @media (max-width: 1200px) { .chart-block { flex: 0 0 calc(25% - 12px); max-width: calc(25% - 12px); } }
+        @media (max-width: 900px) { .chart-block { flex: 0 0 calc(33.333% - 12px); max-width: calc(33.333% - 12px); } }
+
+        /* 分页 */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+        .pagination-container button {
+            padding: 4px 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .pagination-container button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* 弹窗样式 */
+        #imageOverlay, #chartOverlay {
+            display: none;
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background-color: rgba(0,0,0,0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        #imageOverlay img {
+            max-width: 92vw;
+            max-height: 92vh;
+            object-fit: contain;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>上新产品数据监控平台 (共 <span id="productCount">0</span> 款)</h1>
+        <div>
+            <!-- 返回平台按钮 (同窗口页面内跳转) -->
+            <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" style="text-decoration:none;">
+                <button class="btn" style="background-color:#007BFF;">返回平台</button>
+            </a>
+            <span style="font-size: 13px; color: #ccc; margin-right: 10px; margin-left: 5px;">更新于: 2026年07月23日</span>
+            <button class="btn" style="background-color:#28a745;" onclick="downloadOriginalData()">下载数据</button>
+            <button class="btn" style="background-color:#17a2b8;" onclick="window.scrollTo({top:0, behavior:'smooth'})">↑ 顶</button>
+            <button class="btn" style="background-color:#17a2b8;" onclick="window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'})">↓ 底</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 筛选控制栏 -->
+        <div class="filter-container">
+            <div class="filter-box">
+                <label>全局搜索:</label>
+                <input type="text" id="globalSearch" placeholder="搜索..." style="width: 100px;">
+            </div>
+
+            <div class="filter-box">
+                <label style="color:#d32f2f;">评分预警(<):</label>
+                <input type="number" id="ratingThreshold" value="4.2" step="0.1" min="0" max="5" style="width:70px; border-color:#d32f2f; font-weight:bold;">
+            </div>
+
+            <!-- BSR 达标优秀标准（找到小于等于该阈值的优秀产品） -->
+            <div class="filter-box">
+                <label style="color:#2e7d32;">BSR标准(≤):</label>
+                <input type="number" id="bsrThreshold" value="30000" step="500" min="0" style="width:80px; border-color:#2e7d32; font-weight:bold;">
+            </div>
+
+            <!-- 专属快捷筛选区域 (看空值/趋势) -->
+            <div class="filter-box">
+                <label style="color:#856404;">快捷定位数据:</label>
+                <div class="special-filter-box">
+                    <label><input type="checkbox" id="onlyNoRating"> 评分为空</label>
+                    <label><input type="checkbox" id="onlyNoBsr"> BSR为空</label>
+                    <label><input type="checkbox" id="onlyHasTrend"> 有BSR趋势</label>
+                </div>
+            </div>
+
+            <div class="filter-box">
+                <label>排序方式:</label>
+                <select id="sortBy">
+                    <option value="default">默认顺序</option>
+                    <option value="sales_desc">月销量降序</option>
+                    <option value="rating_asc">评分升序 (低分在前)</option>
+                    <option value="reviews_desc">评分数降序</option>
+                    <option value="bsr_asc">大类BSR升序 (小在前)</option>
+                </select>
+            </div>
+
+            <div class="filter-box">
+                <label>商品波段:</label>
+                <div class="filter-dropdown-btn" onclick="toggleDropdown('waveDropdown')">选择波段</div>
+                <div class="filter-dropdown" id="waveDropdown">
+                    <div class="filter-checkbox"><label><input type="checkbox" name="wave" value="all" checked> 全部波段</label></div>
+                    
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='wave' value='秋冬B1'>
+                    秋冬B1 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='wave' value='秋冬B2'>
+                    秋冬B2 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='wave' value='规划外'>
+                    规划外 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+                </div>
+            </div>
+
+            <div class="filter-box">
+                <label>品类筛选:</label>
+                <div class="filter-dropdown-btn" onclick="toggleDropdown('categoryDropdown')">选择品类</div>
+                <div class="filter-dropdown" id="categoryDropdown">
+                    <div class="filter-checkbox"><label><input type="checkbox" name="category" value="all" checked> 全部品类</label></div>
+                    
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='T 恤衫'>
+                    T 恤衫 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='休闲裤'>
+                    休闲裤 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='保暖内衣'>
+                    保暖内衣 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='套头毛衣'>
+                    套头毛衣 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='帽衫、卫衣'>
+                    帽衫、卫衣 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='开衫'>
+                    开衫 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='束腰宽松外衣'>
+                    束腰宽松外衣 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='正装长裤'>
+                    正装长裤 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='牛仔长裤'>
+                    牛仔长裤 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='皮草和人造皮草'>
+                    皮草和人造皮草 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='睡衣、家居服'>
+                    睡衣、家居服 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='紧身衣'>
+                    紧身衣 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='衬衫和系扣衬衫'>
+                    衬衫和系扣衬衫 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='运动套装'>
+                    运动套装 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='运动衫'>
+                    运动衫 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='运动长裤'>
+                    运动长裤 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='category' value='长裤套装'>
+                    长裤套装 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+                </div>
+            </div>
+
+            <div class="filter-box">
+                <label>期望面料:</label>
+                <div class="filter-dropdown-btn" onclick="toggleDropdown('fabricDropdown')">选择面料</div>
+                <div class="filter-dropdown" id="fabricDropdown">
+                    <div class="filter-checkbox"><label><input type="checkbox" name="fabric" value="all" checked> 全部面料</label></div>
+                    
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='1*1仿莫代尔'>
+                    1*1仿莫代尔 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='世博绒'>
+                    世博绒 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='人棉坑条'>
+                    人棉坑条 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='仿牛绒'>
+                    仿牛绒 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='仿貂毛'>
+                    仿貂毛 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='卫衣抓毛'>
+                    卫衣抓毛 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='密根日本棉'>
+                    密根日本棉 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='尼龙莱卡'>
+                    尼龙莱卡 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='梭织牛仔'>
+                    梭织牛仔 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='棉氨平纹'>
+                    棉氨平纹 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='涤罗马'>
+                    涤罗马 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='绉布'>
+                    绉布 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='羊毛拉架坑条'>
+                    羊毛拉架坑条 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='羊毛拉架磨毛'>
+                    羊毛拉架磨毛 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='膨体腈棉'>
+                    膨体腈棉 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='莫代尔空气层'>
+                    莫代尔空气层 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='针织间条'>
+                    针织间条 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+            <div class='filter-checkbox'>
+                <label>
+                    <input type='checkbox' name='fabric' value='锦高弹'>
+                    锦高弹 <span class='count' style='color:#666; font-size:0.85em; margin-left:3px;'></span>
+                </label>
+            </div>
+            
+                </div>
+            </div>
+
+            <div class="filter-box">
+                <label>月销量:</label>
+                <div class="range-box">
+                    <input type="number" id="minSales" placeholder="最低"> - <input type="number" id="maxSales" placeholder="最高">
+                </div>
+            </div>
+
+            <div class="filter-box">
+                <label>大类BSR:</label>
+                <div class="range-box">
+                    <input type="number" id="minBsr" placeholder="最低"> - <input type="number" id="maxBsr" placeholder="最高">
+                </div>
+            </div>
+
+            <div class="filter-box">
+              <label>评分范围:</label>
+                <div class="range-box">
+                    <input type="number" id="minRating" placeholder="0" step="0.1" min="0" max="5"> - 
+                    <input type="number" id="maxRating" placeholder="5" step="0.1" min="0" max="5">
+                </div> 
+            </div>
+
+            <div class="filter-box">
+                <label>评分数:</label>
+                <div class="range-box">
+                    <input type="number" id="minReviews" placeholder="最低"> - <input type="number" id="maxReviews" placeholder="最高">
+                </div>
+            </div>
+
+            <div class="filter-box">
+                <button class="btn" style="background-color:#28a745;" onclick="resetFilters()">重置筛选</button>
+            </div>
+
+            <!-- 当前筛选条件实时展示框 -->
+            <div class="filter-info-display" id="filterInfoDisplay">当前筛选条件: 全部数据 (无筛选)</div>
+        </div>
+
+        <!-- 产品网格 -->
+        <div class="products-grid" id="productsContainer"></div>
+
+        <!-- 分页 (每页200个) -->
+        <div class="pagination-container">
+            <button id="prevBtn" onclick="changePage(-1)">上一页</button>
+            <span>第 <span id="currentPage">1</span> 页 / 共 <span id="totalPages">1</span> 页</span>
+            <button id="nextBtn" onclick="changePage(1)">下一页</button>
+        </div>
+    </div>
+
+    <!-- 大图预览蒙层 -->
+    <div id="imageOverlay" onclick="this.style.display='none'">
+        <img id="overlayImg" src="" alt="放大图">
+    </div>
+
+    <!-- BSR 趋势图表弹窗蒙层 -->
+    <div id="chartOverlay">
+        <div style="width: 85vw; max-width: 900px; height: 520px; background: white; border-radius: 10px; padding: 20px; position: relative; margin: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
+            <span onclick="closeChartModal()" style="position: absolute; top: 10px; right: 15px; font-size: 32px; cursor: pointer; color: #666; line-height:1;">&times;</span>
+            <h3 id="chartModalTitle" style="text-align: center; margin-top: 0; color: #232f3e;">大类 BSR 历史趋势</h3>
+            <div style="width: 100%; height: calc(100% - 40px);">
+                <canvas id="bsrChartCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const allProducts = [{"sku": "AW26AT03_TRD1990", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0GYD97787", "url": "https://www.amazon.com/dp/B0GYD97787", "imgSrc": "https://m.media-amazon.com/images/I/31KThyEbphL.jpg", "bsr": 172666, "bsrNum": 172666, "sales": 532, "salesNum": 532, "reviews": 29, "reviewsNum": 29, "rating": 4.4, "ratingNum": 4.4, "price": 12.99, "priceNum": 12.99, "bsrTrend": {"2026-07-22": 307098, "2026-07-23": 172666}}, {"sku": "AW26WF01_TRD1984", "wave": "\u79cb\u51acB1", "category": "\u5e3d\u886b\u3001\u536b\u8863", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0GY97RVS7", "url": "https://www.amazon.com/dp/B0GY97RVS7", "imgSrc": "https://m.media-amazon.com/images/I/31DayC4fGYL.jpg", "bsr": 98380, "bsrNum": 98380, "sales": 211, "salesNum": 211, "reviews": 20, "reviewsNum": 20, "rating": 4.7, "ratingNum": 4.7, "price": 29.99, "priceNum": 29.99, "bsrTrend": {"2026-07-22": 98380, "2026-07-23": 98380}}, {"sku": "AW26WK02_TRD1982", "wave": "\u79cb\u51acB1", "category": "\u7761\u8863\u3001\u5bb6\u5c45\u670d", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0GYCJS6WC", "url": "https://www.amazon.com/dp/B0GYCJS6WC", "imgSrc": "https://m.media-amazon.com/images/I/31tnF4aFCmL.jpg", "bsr": 41685, "bsrNum": 41685, "sales": 455, "salesNum": 455, "reviews": 17, "reviewsNum": 17, "rating": 4.5, "ratingNum": 4.5, "price": 32.99, "priceNum": 32.99, "bsrTrend": {"2026-07-22": 41685, "2026-07-23": 41685}}, {"sku": "AW26WC01_TRD1979", "wave": "\u79cb\u51acB1", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0GYCBHXFC", "url": "https://www.amazon.com/dp/B0GYCBHXFC", "imgSrc": "https://m.media-amazon.com/images/I/61QeXhr6y3L.jpg", "bsr": 186529, "bsrNum": 186529, "sales": 429, "salesNum": 429, "reviews": 6, "reviewsNum": 6, "rating": 5.0, "ratingNum": 5.0, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 172743, "2026-07-23": 186529}}, {"sku": "AW26WT03_TRD1983", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u5c3c\u9f99\u83b1\u5361", "asin": "B0GYR1R9RK", "url": "https://www.amazon.com/dp/B0GYR1R9RK", "imgSrc": "https://m.media-amazon.com/images/I/31J+iL-rg7L.jpg", "bsr": 964124, "bsrNum": 964124, "sales": 9, "salesNum": 9, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 964124, "2026-07-23": 964124}}, {"sku": "AW26WL01_TRD1978", "wave": "\u79cb\u51acB1", "category": "\u4f11\u95f2\u88e4", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0GYD2PM2S", "url": "https://www.amazon.com/dp/B0GYD2PM2S", "imgSrc": "https://m.media-amazon.com/images/I/51tsB91jodL.jpg", "bsr": 608008, "bsrNum": 608008, "sales": 210, "salesNum": 210, "reviews": 21, "reviewsNum": 21, "rating": 4.6, "ratingNum": 4.6, "price": 29.99, "priceNum": 29.99, "bsrTrend": {"2026-07-22": 508757, "2026-07-23": 608008}}, {"sku": "AW26WT03_TRD1992", "wave": "\u79cb\u51acB1", "category": "\u4fdd\u6696\u5185\u8863", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0GYD916KD", "url": "https://www.amazon.com/dp/B0GYD916KD", "imgSrc": "https://m.media-amazon.com/images/I/41sJYN3EIBL.jpg", "bsr": 497534, "bsrNum": 497534, "sales": 164, "salesNum": 164, "reviews": 21, "reviewsNum": 21, "rating": 4.7, "ratingNum": 4.7, "price": 11.99, "priceNum": 11.99, "bsrTrend": {"2026-07-22": 373006, "2026-07-23": 497534}}, {"sku": "AW26WF02_TRD1991", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u886b", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0GZ44GGT1", "url": "https://www.amazon.com/dp/B0GZ44GGT1", "imgSrc": "https://m.media-amazon.com/images/I/61BPpWisycL.jpg", "bsr": 24716, "bsrNum": 24716, "sales": 911, "salesNum": 911, "reviews": 29, "reviewsNum": 29, "rating": 4.7, "ratingNum": 4.7, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 23745, "2026-07-23": 24716}}, {"sku": "AW26WF02_TRD1993", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u886b", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0GYSDCNW7", "url": "https://www.amazon.com/dp/B0GYSDCNW7", "imgSrc": "https://m.media-amazon.com/images/I/31QM68VF-SL.jpg", "bsr": 16646, "bsrNum": 16646, "sales": 871, "salesNum": 871, "reviews": 22, "reviewsNum": 22, "rating": 4.7, "ratingNum": 4.7, "price": 19.98, "priceNum": 19.98, "bsrTrend": {"2026-07-22": 15783, "2026-07-23": 16646}}, {"sku": "AW26YG01_TRD2013", "wave": "\u79cb\u51acB1", "category": "\u725b\u4ed4\u957f\u88e4", "fabric": "\u68ad\u7ec7\u725b\u4ed4", "asin": "B0H1MGFXD4", "url": "https://www.amazon.com/dp/B0H1MGFXD4", "imgSrc": "https://m.media-amazon.com/images/I/31jLPkr+StL.jpg", "bsr": 564352, "bsrNum": 564352, "sales": 42, "salesNum": 42, "reviews": 19, "reviewsNum": 19, "rating": 4.9, "ratingNum": 4.9, "price": 36.99, "priceNum": 36.99, "bsrTrend": {"2026-07-22": 611995, "2026-07-23": 564352}}, {"sku": "AW26WC01_TRD2003", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H1C8D3YZ", "url": "https://www.amazon.com/dp/B0H1C8D3YZ", "imgSrc": "https://m.media-amazon.com/images/I/31+Ej97rAnL.jpg", "bsr": 54247, "bsrNum": 54247, "sales": 263, "salesNum": 263, "reviews": 22, "reviewsNum": 22, "rating": 4.5, "ratingNum": 4.5, "price": 35.99, "priceNum": 35.99, "bsrTrend": {"2026-07-22": 54247, "2026-07-23": 54247}}, {"sku": "AW26WA12_TRD2001", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H1MK21T1", "url": "https://www.amazon.com/dp/B0H1MK21T1", "imgSrc": "https://m.media-amazon.com/images/I/31shKsVYQBL.jpg", "bsr": 45905, "bsrNum": 45905, "sales": 524, "salesNum": 524, "reviews": 15, "reviewsNum": 15, "rating": 4.5, "ratingNum": 4.5, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 44889, "2026-07-23": 45905}}, {"sku": "AW26WC01_TRD2002", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H1WCG4DY", "url": "https://www.amazon.com/dp/B0H1WCG4DY", "imgSrc": "https://m.media-amazon.com/images/I/51AzsgtrIwL.jpg", "bsr": 131359, "bsrNum": 131359, "sales": 64, "salesNum": 64, "reviews": 14, "reviewsNum": 14, "rating": 4.4, "ratingNum": 4.4, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 122835, "2026-07-23": 131359}}, {"sku": "AW26YL03_LS1883_R", "wave": "\u79cb\u51acB1", "category": "\u6b63\u88c5\u957f\u88e4", "fabric": "\u6da4\u7f57\u9a6c", "asin": "B0H2GLD1ZB", "url": "https://www.amazon.com/dp/B0H2GLD1ZB", "imgSrc": "https://m.media-amazon.com/images/I/513+OjmgT2L.jpg", "bsr": 26766, "bsrNum": 26766, "sales": 332, "salesNum": 332, "reviews": 12, "reviewsNum": 12, "rating": 4.4, "ratingNum": 4.4, "price": 29.99, "priceNum": 29.99, "bsrTrend": {"2026-07-22": 24892, "2026-07-23": 26766}}, {"sku": "AW26WR02_TRD1981", "wave": "\u79cb\u51acB1", "category": "\u5957\u5934\u6bdb\u8863", "fabric": "\u81a8\u4f53\u8148\u68c9", "asin": "B0H2TYH5FP", "url": "https://www.amazon.com/dp/B0H2TYH5FP", "imgSrc": "https://m.media-amazon.com/images/I/71hbVX3bb+L.jpg", "bsr": 212473, "bsrNum": 212473, "sales": 64, "salesNum": 64, "reviews": 14, "reviewsNum": 14, "rating": 4.9, "ratingNum": 4.9, "price": 29.98, "priceNum": 29.98, "bsrTrend": {"2026-07-22": 694849, "2026-07-23": 212473}}, {"sku": "AW26WC01_TRD2018", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H29LNDB7", "url": "https://www.amazon.com/dp/B0H29LNDB7", "imgSrc": "https://m.media-amazon.com/images/I/51he5K6GGwL.jpg", "bsr": 115041, "bsrNum": 115041, "sales": 55, "salesNum": 55, "reviews": 10, "reviewsNum": 10, "rating": 4.7, "ratingNum": 4.7, "price": 53.99, "priceNum": 53.99, "bsrTrend": {"2026-07-22": 115041, "2026-07-23": 115041}}, {"sku": "AW26WT03_EF2006", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u5c3c\u9f99\u83b1\u5361", "asin": "B0H1MR992H", "url": "https://www.amazon.com/dp/B0H1MR992H", "imgSrc": "https://m.media-amazon.com/images/I/51O-kx8a-BL.jpg", "bsr": 576347, "bsrNum": 576347, "sales": 35, "salesNum": 35, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 576347, "2026-07-23": 576347}}, {"sku": "AW26WC01_TRD2014", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H2LSNRCL", "url": "https://www.amazon.com/dp/B0H2LSNRCL", "imgSrc": "https://m.media-amazon.com/images/I/31S09l+s1RL.jpg", "bsr": 304004, "bsrNum": 304004, "sales": 9, "salesNum": 9, "reviews": 11, "reviewsNum": 11, "rating": 4.8, "ratingNum": 4.8, "price": 49.99, "priceNum": 49.99, "bsrTrend": {"2026-07-22": 304004, "2026-07-23": 304004}}, {"sku": "AW26WT03_AU2078", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H1LRC7PL", "url": "https://www.amazon.com/dp/B0H1LRC7PL", "imgSrc": "https://m.media-amazon.com/images/I/413+xzrdCLL.jpg", "bsr": 64387, "bsrNum": 64387, "sales": 153, "salesNum": 153, "reviews": 19, "reviewsNum": 19, "rating": 4.6, "ratingNum": 4.6, "price": 36.99, "priceNum": 36.99, "bsrTrend": {"2026-07-22": 64387, "2026-07-23": 64387}}, {"sku": "AW26WT03_AU2084", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H1LRCXZ3", "url": "https://www.amazon.com/dp/B0H1LRCXZ3", "imgSrc": "https://m.media-amazon.com/images/I/41K9pHvOr+L.jpg", "bsr": 638118, "bsrNum": 638118, "sales": 61, "salesNum": 61, "reviews": 15, "reviewsNum": 15, "rating": 4.9, "ratingNum": 4.9, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 638118, "2026-07-23": 638118}}, {"sku": "AW26WT03_AU2080", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H1M4KDM3", "url": "https://www.amazon.com/dp/B0H1M4KDM3", "imgSrc": "https://m.media-amazon.com/images/I/41bu1c8tb2L.jpg", "bsr": 325863, "bsrNum": 325863, "sales": 85, "salesNum": 85, "reviews": 18, "reviewsNum": 18, "rating": 4.8, "ratingNum": 4.8, "price": 22.99, "priceNum": 22.99, "bsrTrend": {"2026-07-22": 339208, "2026-07-23": 325863}}, {"sku": "AW26WT03_AU2083", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u5bc6\u6839\u65e5\u672c\u68c9", "asin": "B0H1LYYPYZ", "url": "https://www.amazon.com/dp/B0H1LYYPYZ", "imgSrc": "https://m.media-amazon.com/images/I/41Qr--7pdEL.jpg", "bsr": 43078, "bsrNum": 43078, "sales": 421, "salesNum": 421, "reviews": 22, "reviewsNum": 22, "rating": 4.6, "ratingNum": 4.6, "price": 34.99, "priceNum": 34.99, "bsrTrend": {"2026-07-22": 41577, "2026-07-23": 43078}}, {"sku": "AW26WC01_EF1977", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u83ab\u4ee3\u5c14\u7a7a\u6c14\u5c42", "asin": "B0H36D4DXC", "url": "https://www.amazon.com/dp/B0H36D4DXC", "imgSrc": "https://m.media-amazon.com/images/I/31Am3ridZ5L.jpg", "bsr": 665377, "bsrNum": 665377, "sales": 18, "salesNum": 18, "reviews": 2, "reviewsNum": 2, "rating": 5.0, "ratingNum": 5.0, "price": 52.99, "priceNum": 52.99, "bsrTrend": {"2026-07-22": 665377, "2026-07-23": 665377}}, {"sku": "AW26WC01_EF2096", "wave": "\u79cb\u51acB1", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u83ab\u4ee3\u5c14\u7a7a\u6c14\u5c42", "asin": "B0H3BRM4W4", "url": "https://www.amazon.com/dp/B0H3BRM4W4", "imgSrc": "https://m.media-amazon.com/images/I/31+sADQnQ0L.jpg", "bsr": 1000266, "bsrNum": 1000266, "sales": 13, "salesNum": 13, "reviews": 1, "reviewsNum": 1, "rating": 5.0, "ratingNum": 5.0, "price": 52.99, "priceNum": 52.99, "bsrTrend": {"2026-07-22": 1000266, "2026-07-23": 1000266}}, {"sku": "AW26WF02_TRD2030", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u886b", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H36RWPHM", "url": "https://www.amazon.com/dp/B0H36RWPHM", "imgSrc": "https://m.media-amazon.com/images/I/31ERNGeQOtL.jpg", "bsr": 1140689, "bsrNum": 1140689, "sales": 16, "salesNum": 16, "reviews": 1, "reviewsNum": 1, "rating": 5.0, "ratingNum": 5.0, "price": 29.99, "priceNum": 29.99, "bsrTrend": {"2026-07-22": 1140689, "2026-07-23": 1140689}}, {"sku": "AW26WC01_TRD2031", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H36DX98P", "url": "https://www.amazon.com/dp/B0H36DX98P", "imgSrc": "https://m.media-amazon.com/images/I/31qWv7lJsKL.jpg", "bsr": 1195725, "bsrNum": 1195725, "sales": 3, "salesNum": 3, "reviews": 7, "reviewsNum": 7, "rating": 4.3, "ratingNum": 4.3, "price": 45.99, "priceNum": 45.99, "bsrTrend": {"2026-07-22": 895217, "2026-07-23": 1195725}}, {"sku": "AW26WA03_TRD2032", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u957f\u88e4", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H2MKMW6Z", "url": "https://www.amazon.com/dp/B0H2MKMW6Z", "imgSrc": "https://m.media-amazon.com/images/I/31s+QKmq0+L.jpg", "bsr": 243628, "bsrNum": 243628, "sales": 56, "salesNum": 56, "reviews": 12, "reviewsNum": 12, "rating": 4.7, "ratingNum": 4.7, "price": 27.99, "priceNum": 27.99, "bsrTrend": {"2026-07-22": 174063, "2026-07-23": 243628}}, {"sku": "AW26WT03_LS2034", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u5751\u6761", "asin": "B0H2MV8ZYZ", "url": "https://www.amazon.com/dp/B0H2MV8ZYZ", "imgSrc": "https://m.media-amazon.com/images/I/71e3rUfdscL.jpg", "bsr": 431479, "bsrNum": 431479, "sales": 3, "salesNum": 3, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 431479, "2026-07-23": 431479}}, {"sku": "AW26WT03_EF2037", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u5c3c\u9f99\u83b1\u5361", "asin": "B0H2VBPF94", "url": "https://www.amazon.com/dp/B0H2VBPF94", "imgSrc": "https://m.media-amazon.com/images/I/415SwR22N4L.jpg", "bsr": 223307, "bsrNum": 223307, "sales": 36, "salesNum": 36, "reviews": 13, "reviewsNum": 13, "rating": 4.8, "ratingNum": 4.8, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 203644, "2026-07-23": 223307}}, {"sku": "AW26WC01_EF2038", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u83ab\u4ee3\u5c14\u7a7a\u6c14\u5c42", "asin": "B0H2YT3SQ5", "url": "https://www.amazon.com/dp/B0H2YT3SQ5", "imgSrc": "https://m.media-amazon.com/images/I/31Ot4AM4B3L.jpg", "bsr": 928223, "bsrNum": 928223, "sales": 5, "salesNum": 5, "reviews": 3, "reviewsNum": 3, "rating": 5.0, "ratingNum": 5.0, "price": 58.99, "priceNum": 58.99, "bsrTrend": {"2026-07-22": 928223, "2026-07-23": 928223}}, {"sku": "AW26WT03_LS2039", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u5751\u6761", "asin": "B0H2VFJMHV", "url": "https://www.amazon.com/dp/B0H2VFJMHV", "imgSrc": "https://m.media-amazon.com/images/I/41Jh8EjQodL.jpg", "bsr": 192062, "bsrNum": 192062, "sales": 94, "salesNum": 94, "reviews": 16, "reviewsNum": 16, "rating": 4.6, "ratingNum": 4.6, "price": 13.99, "priceNum": 13.99, "bsrTrend": {"2026-07-23": 192062}}, {"sku": "AW26WC01_TRD2040", "wave": "\u79cb\u51acB1", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u5751\u6761", "asin": "B0H2TSBB62", "url": "https://www.amazon.com/dp/B0H2TSBB62", "imgSrc": "https://m.media-amazon.com/images/I/31UGK3YOGpL.jpg", "bsr": 91239, "bsrNum": 91239, "sales": 103, "salesNum": 103, "reviews": 6, "reviewsNum": 6, "rating": 5.0, "ratingNum": 5.0, "price": 25.99, "priceNum": 25.99, "bsrTrend": {"2026-07-23": 91239}}, {"sku": "AW26WT03_EF2071", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u5c3c\u9f99\u83b1\u5361", "asin": "B0H2D7SYG6", "url": "https://www.amazon.com/dp/B0H2D7SYG6", "imgSrc": "https://m.media-amazon.com/images/I/41qTFrap5zL.jpg", "bsr": 670789, "bsrNum": 670789, "sales": "N/A", "salesNum": null, "reviews": 7, "reviewsNum": 7, "rating": 4.8, "ratingNum": 4.8, "price": 17.99, "priceNum": 17.99, "bsrTrend": {"2026-07-23": 670789}}, {"sku": "AW26WT05_LS2042", "wave": "\u79cb\u51acB1", "category": "\u675f\u8170\u5bbd\u677e\u5916\u8863", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H2M886TG", "url": "https://www.amazon.com/dp/B0H2M886TG", "imgSrc": "https://m.media-amazon.com/images/I/41Ibc-GnbyL.jpg", "bsr": 199832, "bsrNum": 199832, "sales": 35, "salesNum": 35, "reviews": 12, "reviewsNum": 12, "rating": 4.7, "ratingNum": 4.7, "price": 13.99, "priceNum": 13.99, "bsrTrend": {"2026-07-22": 716179, "2026-07-23": 199832}}, {"sku": "AW26WT01_LS2070", "wave": "\u79cb\u51acB1", "category": "\u886c\u886b\u548c\u7cfb\u6263\u886c\u886b", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H29ML7DB", "url": "https://www.amazon.com/dp/B0H29ML7DB", "imgSrc": "https://m.media-amazon.com/images/I/31Fqvv1iQgL.jpg", "bsr": 246986, "bsrNum": 246986, "sales": 39, "salesNum": 39, "reviews": 9, "reviewsNum": 9, "rating": 5.0, "ratingNum": 5.0, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 981179, "2026-07-23": 246986}}, {"sku": "AW26WC01_EF2066", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u83ab\u4ee3\u5c14\u7a7a\u6c14\u5c42", "asin": "B0H366NJHS", "url": "https://www.amazon.com/dp/B0H366NJHS", "imgSrc": "https://m.media-amazon.com/images/I/31FzbOyQvzL.jpg", "bsr": 228390, "bsrNum": 228390, "sales": 20, "salesNum": 20, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 58.99, "priceNum": 58.99, "bsrTrend": {"2026-07-22": 228390, "2026-07-23": 228390}}, {"sku": "AW26WT03_EF2043", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u5c3c\u9f99\u83b1\u5361", "asin": "B0H2VMJQGN", "url": "https://www.amazon.com/dp/B0H2VMJQGN", "imgSrc": "https://m.media-amazon.com/images/I/41L7PQteQQL.jpg", "bsr": 1204279, "bsrNum": 1204279, "sales": 16, "salesNum": 16, "reviews": 13, "reviewsNum": 13, "rating": 4.2, "ratingNum": 4.2, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 1204279, "2026-07-23": 1204279}}, {"sku": "AW26WT03_TRD2017", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H2YJS1KJ", "url": "https://www.amazon.com/dp/B0H2YJS1KJ", "imgSrc": "https://m.media-amazon.com/images/I/41x6OhsOEML.jpg", "bsr": 103383, "bsrNum": 103383, "sales": 88, "salesNum": 88, "reviews": 14, "reviewsNum": 14, "rating": 4.9, "ratingNum": 4.9, "price": 11.99, "priceNum": 11.99, "bsrTrend": {"2026-07-22": 563696, "2026-07-23": 103383}}, {"sku": "AW26WL01_TRD2047", "wave": "\u79cb\u51acB1", "category": "\u4f11\u95f2\u88e4", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H2H1JHBL", "url": "https://www.amazon.com/dp/B0H2H1JHBL", "imgSrc": "https://m.media-amazon.com/images/I/31lTGy0BTgL.jpg", "bsr": 338770, "bsrNum": 338770, "sales": 37, "salesNum": 37, "reviews": 20, "reviewsNum": 20, "rating": 4.5, "ratingNum": 4.5, "price": 27.99, "priceNum": 27.99, "bsrTrend": {"2026-07-22": 311547, "2026-07-23": 338770}}, {"sku": "AW26WL01_TRD2048", "wave": "\u79cb\u51acB1", "category": "\u4f11\u95f2\u88e4", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H2LXCPD3", "url": "https://www.amazon.com/dp/B0H2LXCPD3", "imgSrc": "https://m.media-amazon.com/images/I/31FH3sC3e7L.jpg", "bsr": 87442, "bsrNum": 87442, "sales": "N/A", "salesNum": null, "reviews": 17, "reviewsNum": 17, "rating": 4.5, "ratingNum": 4.5, "price": 25.19, "priceNum": 25.19, "bsrTrend": {"2026-07-23": 87442}}, {"sku": "AW26WC01_TRD2060", "wave": "\u79cb\u51acB1", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H2DCTS45", "url": "https://www.amazon.com/dp/B0H2DCTS45", "imgSrc": "https://m.media-amazon.com/images/I/31z+vmCD1AL.jpg", "bsr": 29065, "bsrNum": 29065, "sales": 289, "salesNum": 289, "reviews": 19, "reviewsNum": 19, "rating": 4.7, "ratingNum": 4.7, "price": 36.99, "priceNum": 36.99, "bsrTrend": {"2026-07-22": 27281, "2026-07-23": 29065}}, {"sku": "AW26WT03_AU2085", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u4eba\u68c9\u5751\u6761", "asin": "B0H2DY4CF8", "url": "https://www.amazon.com/dp/B0H2DY4CF8", "imgSrc": "https://m.media-amazon.com/images/I/419OizwoWyL.jpg", "bsr": 703542, "bsrNum": 703542, "sales": 27, "salesNum": 27, "reviews": 1, "reviewsNum": 1, "rating": 5.0, "ratingNum": 5.0, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 384889, "2026-07-23": 703542}}, {"sku": "AW26WT03_AU2087", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u4eba\u68c9\u5751\u6761", "asin": "B0H2F2VLCL", "url": "https://www.amazon.com/dp/B0H2F2VLCL", "imgSrc": "https://m.media-amazon.com/images/I/41ECQ5W+D0L.jpg", "bsr": 491963, "bsrNum": 491963, "sales": 3, "salesNum": 3, "reviews": 2, "reviewsNum": 2, "rating": 5.0, "ratingNum": 5.0, "price": 42.99, "priceNum": 42.99, "bsrTrend": {"2026-07-23": 491963}}, {"sku": "AW26WT03_AU2086", "wave": "\u79cb\u51acB1", "category": "T \u6064\u886b", "fabric": "\u4eba\u68c9\u5751\u6761", "asin": "B0H2D8X1NJ", "url": "https://www.amazon.com/dp/B0H2D8X1NJ", "imgSrc": "https://m.media-amazon.com/images/I/41EeUScsaYL.jpg", "bsr": 557241, "bsrNum": 557241, "sales": 27, "salesNum": 27, "reviews": 15, "reviewsNum": 15, "rating": 4.8, "ratingNum": 4.8, "price": 42.99, "priceNum": 42.99, "bsrTrend": {"2026-07-22": 557241, "2026-07-23": 557241}}, {"sku": "AW26WD05_TRD1996", "wave": "\u79cb\u51acB2", "category": "\u76ae\u8349\u548c\u4eba\u9020\u76ae\u8349", "fabric": "\u4eff\u8c82\u6bdb", "asin": "B0H36X6GNX", "url": "https://www.amazon.com/dp/B0H36X6GNX", "imgSrc": "https://m.media-amazon.com/images/I/41FLgE26+TL.jpg", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 65.99, "priceNum": 65.99, "bsrTrend": {}}, {"sku": "AW26WT03_TRD2035", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H362LKYD", "url": "https://www.amazon.com/dp/B0H362LKYD", "imgSrc": "https://m.media-amazon.com/images/I/41tZsueQQpL.jpg", "bsr": 1201100, "bsrNum": 1201100, "sales": 12, "salesNum": 12, "reviews": 7, "reviewsNum": 7, "rating": 4.4, "ratingNum": 4.4, "price": 13.99, "priceNum": 13.99, "bsrTrend": {"2026-07-22": 1178368, "2026-07-23": 1201100}}, {"sku": "AW26WC01_TRD2045", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H39468Y9", "url": "https://www.amazon.com/dp/B0H39468Y9", "imgSrc": "https://m.media-amazon.com/images/I/315yKvQYoYL.jpg", "bsr": 106087, "bsrNum": 106087, "sales": 124, "salesNum": 124, "reviews": 3, "reviewsNum": 3, "rating": 4.3, "ratingNum": 4.3, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 106087, "2026-07-23": 106087}}, {"sku": "AW26WT03_LS2033", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u5751\u6761", "asin": "B0H2M7HHNW", "url": "https://www.amazon.com/dp/B0H2M7HHNW", "imgSrc": "https://m.media-amazon.com/images/I/41E4fGan5FL.jpg", "bsr": 818156, "bsrNum": 818156, "sales": 15, "salesNum": 15, "reviews": 10, "reviewsNum": 10, "rating": 4.6, "ratingNum": 4.6, "price": 16.99, "priceNum": 16.99, "bsrTrend": {"2026-07-22": 818156, "2026-07-23": 818156}}, {"sku": "AW26WT05_LS2097", "wave": "\u79cb\u51acB2", "category": "\u675f\u8170\u5bbd\u677e\u5916\u8863", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H3BK2YHJ", "url": "https://www.amazon.com/dp/B0H3BK2YHJ", "imgSrc": "https://m.media-amazon.com/images/I/414P3O32N6L.jpg", "bsr": 764106, "bsrNum": 764106, "sales": 14, "salesNum": 14, "reviews": 1, "reviewsNum": 1, "rating": 4.0, "ratingNum": 4.0, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 395328, "2026-07-23": 764106}}, {"sku": "AW26WT03_TRD2064", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H2YXKHG1", "url": "https://www.amazon.com/dp/B0H2YXKHG1", "imgSrc": "https://m.media-amazon.com/images/I/41yqWdSt1fL.jpg", "bsr": 144163, "bsrNum": 144163, "sales": 110, "salesNum": 110, "reviews": 18, "reviewsNum": 18, "rating": 4.6, "ratingNum": 4.6, "price": 11.99, "priceNum": 11.99, "bsrTrend": {"2026-07-22": 172333, "2026-07-23": 144163}}, {"sku": "AW26WC01_TRD2044", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u5751\u6761", "asin": "B0H3BVF5WR", "url": "https://www.amazon.com/dp/B0H3BVF5WR", "imgSrc": "https://m.media-amazon.com/images/I/312r212DyhL.jpg", "bsr": 414800, "bsrNum": 414800, "sales": 17, "salesNum": 17, "reviews": 12, "reviewsNum": 12, "rating": 4.6, "ratingNum": 4.6, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 414800, "2026-07-23": 414800}}, {"sku": "AW26WC01_TRD2046", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H3BM8C2F", "url": "https://www.amazon.com/dp/B0H3BM8C2F", "imgSrc": "https://m.media-amazon.com/images/I/31mVXcB+K8L.jpg", "bsr": 47015, "bsrNum": 47015, "sales": 161, "salesNum": 161, "reviews": 17, "reviewsNum": 17, "rating": 4.6, "ratingNum": 4.6, "price": 52.99, "priceNum": 52.99, "bsrTrend": {"2026-07-22": 47015, "2026-07-23": 47015}}, {"sku": "AW26WC01_TRD2100", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H3P76QXX", "url": "https://www.amazon.com/dp/B0H3P76QXX", "imgSrc": "https://m.media-amazon.com/images/I/31mqVtV3BBL.jpg", "bsr": 320579, "bsrNum": 320579, "sales": 28, "salesNum": 28, "reviews": 6, "reviewsNum": 6, "rating": 4.3, "ratingNum": 4.3, "price": 34.99, "priceNum": 34.99, "bsrTrend": {"2026-07-22": 521115, "2026-07-23": 320579}}, {"sku": "AW26WC01_TRD2049", "wave": "\u79cb\u51acB2", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H36CL1YV", "url": "https://www.amazon.com/dp/B0H36CL1YV", "imgSrc": "https://m.media-amazon.com/images/I/31dr1BgqKTL.jpg", "bsr": 349887, "bsrNum": 349887, "sales": 17, "salesNum": 17, "reviews": 13, "reviewsNum": 13, "rating": 4.4, "ratingNum": 4.4, "price": 56.99, "priceNum": 56.99, "bsrTrend": {"2026-07-22": 349887, "2026-07-23": 349887}}, {"sku": "AW26WT03_EF2051", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0H3BVVVFV", "url": "https://www.amazon.com/dp/B0H3BVVVFV", "imgSrc": "https://m.media-amazon.com/images/I/41OC+UZMkPL.jpg", "bsr": 518999, "bsrNum": 518999, "sales": 16, "salesNum": 16, "reviews": 9, "reviewsNum": 9, "rating": 3.8, "ratingNum": 3.8, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 518999, "2026-07-23": 518999}}, {"sku": "AW26WT03_EF2091", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0H2VRSKXH", "url": "https://www.amazon.com/dp/B0H2VRSKXH", "imgSrc": "https://m.media-amazon.com/images/I/41eYJK1wJeL.jpg", "bsr": 271471, "bsrNum": 271471, "sales": 46, "salesNum": 46, "reviews": 11, "reviewsNum": 11, "rating": 4.6, "ratingNum": 4.6, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-23": 271471}}, {"sku": "AW26WC01_TRD2058", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H2MHXPQY", "url": "https://www.amazon.com/dp/B0H2MHXPQY", "imgSrc": "https://m.media-amazon.com/images/I/31EXNrXsj3L.jpg", "bsr": 97117, "bsrNum": 97117, "sales": 119, "salesNum": 119, "reviews": 15, "reviewsNum": 15, "rating": 4.5, "ratingNum": 4.5, "price": 29.69, "priceNum": 29.69, "bsrTrend": {"2026-07-22": 110097, "2026-07-23": 97117}}, {"sku": "AW26WL01_TRD2053", "wave": "\u79cb\u51acB2", "category": "\u4f11\u95f2\u88e4", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H2MDS1BZ", "url": "https://www.amazon.com/dp/B0H2MDS1BZ", "imgSrc": "https://m.media-amazon.com/images/I/31laBO9na9L.jpg", "bsr": 298036, "bsrNum": 298036, "sales": 36, "salesNum": 36, "reviews": 7, "reviewsNum": 7, "rating": 4.6, "ratingNum": 4.6, "price": 32.99, "priceNum": 32.99, "bsrTrend": {"2026-07-22": 298036, "2026-07-23": 298036}}, {"sku": "AW26WT05_LS2089", "wave": "\u79cb\u51acB2", "category": "\u675f\u8170\u5bbd\u677e\u5916\u8863", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H3JGTHTR", "url": "https://www.amazon.com/dp/B0H3JGTHTR", "imgSrc": "https://m.media-amazon.com/images/I/31DtKKEICoL.jpg", "bsr": 323972, "bsrNum": 323972, "sales": 29, "salesNum": 29, "reviews": 10, "reviewsNum": 10, "rating": 4.9, "ratingNum": 4.9, "price": 13.99, "priceNum": 13.99, "bsrTrend": {"2026-07-22": 334651, "2026-07-23": 323972}}, {"sku": "AW26WT03_EF2057", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0H367Z1G7", "url": "https://www.amazon.com/dp/B0H367Z1G7", "imgSrc": "https://m.media-amazon.com/images/I/31LxfdHAoUL.jpg", "bsr": 535674, "bsrNum": 535674, "sales": 36, "salesNum": 36, "reviews": 15, "reviewsNum": 15, "rating": 4.8, "ratingNum": 4.8, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 564709, "2026-07-23": 535674}}, {"sku": "AW26WT03_EF2062", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0H32KFW6W", "url": "https://www.amazon.com/dp/B0H32KFW6W", "imgSrc": "https://m.media-amazon.com/images/I/71OLYeEhjJL.jpg", "bsr": 763188, "bsrNum": 763188, "sales": 12, "salesNum": 12, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 19.99, "priceNum": 19.99, "bsrTrend": {"2026-07-22": 763188, "2026-07-23": 763188}}, {"sku": "AW26WT03_EF2063", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0H35RB8Y9", "url": "https://www.amazon.com/dp/B0H35RB8Y9", "imgSrc": "https://m.media-amazon.com/images/I/41Nb31V9wrL.jpg", "bsr": 1213192, "bsrNum": 1213192, "sales": 26, "salesNum": 26, "reviews": 11, "reviewsNum": 11, "rating": 4.5, "ratingNum": 4.5, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 396353, "2026-07-23": 1213192}}, {"sku": "AW26WT05_LS2090", "wave": "\u79cb\u51acB2", "category": "\u675f\u8170\u5bbd\u677e\u5916\u8863", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H4GGVTTN", "url": "https://www.amazon.com/dp/B0H4GGVTTN", "imgSrc": "https://m.media-amazon.com/images/I/41B0iOWaGWL.jpg", "bsr": 415121, "bsrNum": 415121, "sales": 3, "salesNum": 3, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 415121, "2026-07-23": 415121}}, {"sku": "AW26WT03_TRD2056", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H3Z9WP22", "url": "https://www.amazon.com/dp/B0H3Z9WP22", "imgSrc": "https://m.media-amazon.com/images/I/41EBQmMxQtL.jpg", "bsr": 285595, "bsrNum": 285595, "sales": 37, "salesNum": 37, "reviews": 5, "reviewsNum": 5, "rating": 5.0, "ratingNum": 5.0, "price": 11.99, "priceNum": 11.99, "bsrTrend": {"2026-07-22": 423305, "2026-07-23": 285595}}, {"sku": "AW26WR01_TRD2025", "wave": "\u79cb\u51acB2", "category": "\u5f00\u886b", "fabric": "\u4eff\u725b\u7ed2", "asin": "B0H4QJYB7H", "url": "https://www.amazon.com/dp/B0H4QJYB7H", "imgSrc": "https://m.media-amazon.com/images/I/41mP8tMGlCL.jpg", "bsr": 957477, "bsrNum": 957477, "sales": 18, "salesNum": 18, "reviews": 4, "reviewsNum": 4, "rating": 4.4, "ratingNum": 4.4, "price": 34.99, "priceNum": 34.99, "bsrTrend": {"2026-07-22": 954620, "2026-07-23": 957477}}, {"sku": "AW26WR02_TRD2023", "wave": "\u79cb\u51acB2", "category": "\u5957\u5934\u6bdb\u8863", "fabric": "\u81a8\u4f53\u8148\u68c9", "asin": "B0H413Q8PX", "url": "https://www.amazon.com/dp/B0H413Q8PX", "imgSrc": "https://m.media-amazon.com/images/I/31S8vAkauYL.jpg", "bsr": 1016968, "bsrNum": 1016968, "sales": 21, "salesNum": 21, "reviews": 7, "reviewsNum": 7, "rating": 4.4, "ratingNum": 4.4, "price": 29.99, "priceNum": 29.99, "bsrTrend": {"2026-07-22": 923437, "2026-07-23": 1016968}}, {"sku": "AW26WT03_AU2134", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H4ZFSSN9", "url": "https://www.amazon.com/dp/B0H4ZFSSN9", "imgSrc": "https://m.media-amazon.com/images/I/31HGrYQFWrL.jpg", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 16.99, "priceNum": 16.99, "bsrTrend": {}}, {"sku": "AW26WF01_TRD2123", "wave": "\u79cb\u51acB2", "category": "\u5e3d\u886b\u3001\u536b\u8863", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H4Z6M3RF", "url": "https://www.amazon.com/dp/B0H4Z6M3RF", "imgSrc": "https://m.media-amazon.com/images/I/31G4VLvQ1zL.jpg", "bsr": 179140, "bsrNum": 179140, "sales": 8, "salesNum": 8, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 27.99, "priceNum": 27.99, "bsrTrend": {"2026-07-22": 179140, "2026-07-23": 179140}}, {"sku": "AW26WC01_TRD2142", "wave": "\u79cb\u51acB2", "category": "\u8fd0\u52a8\u5957\u88c5", "fabric": "\u4e16\u535a\u7ed2", "asin": "B0H5B5LS54", "url": "https://www.amazon.com/dp/B0H5B5LS54", "imgSrc": "https://m.media-amazon.com/images/I/31ydcsTslTL.jpg", "bsr": 326489, "bsrNum": 326489, "sales": 13, "salesNum": 13, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 49.99, "priceNum": 49.99, "bsrTrend": {"2026-07-23": 326489}}, {"sku": "AW26WT03_TRD2125", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u9526\u9ad8\u5f39", "asin": "B0H4KCS9HZ", "url": "https://www.amazon.com/dp/B0H4KCS9HZ", "imgSrc": "https://m.media-amazon.com/images/I/413K88TZu6L.jpg", "bsr": 435079, "bsrNum": 435079, "sales": 6, "salesNum": 6, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 923192, "2026-07-23": 435079}}, {"sku": "AW26WT03_EF2101", "wave": "\u79cb\u51acB2", "category": "T \u6064\u886b", "fabric": "\u68c9\u6c28\u5e73\u7eb9", "asin": "B0H5JNZWSD", "url": "https://www.amazon.com/dp/B0H5JNZWSD", "imgSrc": "https://m.media-amazon.com/images/I/31+YWiUCt-L.jpg", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 17.99, "priceNum": 17.99, "bsrTrend": {}}, {"sku": "AW26WC01_AU2141", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H4ZNL7RL", "url": "https://www.amazon.com/dp/B0H4ZNL7RL", "imgSrc": "https://m.media-amazon.com/images/I/31g0MkHfI+L.jpg", "bsr": 283655, "bsrNum": 283655, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 34.99, "priceNum": 34.99, "bsrTrend": {"2026-07-23": 283655}}, {"sku": "AW26WK03_AU2140", "wave": "\u79cb\u51acB2", "category": "\u4fdd\u6696\u5185\u8863", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H5KDRHPY", "url": "https://www.amazon.com/dp/B0H5KDRHPY", "imgSrc": "https://m.media-amazon.com/images/I/31zo--Yg5jL.jpg", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 14.99, "priceNum": 14.99, "bsrTrend": {}}, {"sku": "AW26WC01_TRD2157", "wave": "\u79cb\u51acB2", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H74VV871", "url": "https://www.amazon.com/dp/B0H74VV871", "imgSrc": "https://m.media-amazon.com/images/I/01RmK+J4pJL.gif", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": "N/A", "priceNum": null, "bsrTrend": {}}, {"sku": "AW26AR01_LS1701", "wave": "\u89c4\u5212\u5916", "category": "\u5f00\u886b", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H28DPZSQ", "url": "https://www.amazon.com/dp/B0H28DPZSQ", "imgSrc": "https://m.media-amazon.com/images/I/612wL71q6HL.jpg", "bsr": 32297, "bsrNum": 32297, "sales": 259, "salesNum": 259, "reviews": 14, "reviewsNum": 14, "rating": 4.7, "ratingNum": 4.7, "price": 14.99, "priceNum": 14.99, "bsrTrend": {"2026-07-22": 32297, "2026-07-23": 32297}}, {"sku": "AW26YR01_LS1702", "wave": "\u89c4\u5212\u5916", "category": "\u5f00\u886b", "fabric": "\u7f8a\u6bdb\u62c9\u67b6\u78e8\u6bdb", "asin": "B0H2MH1WDK", "url": "https://www.amazon.com/dp/B0H2MH1WDK", "imgSrc": "https://m.media-amazon.com/images/I/41vKTaEPcgL.jpg", "bsr": 38637, "bsrNum": 38637, "sales": 298, "salesNum": 298, "reviews": 18, "reviewsNum": 18, "rating": 4.6, "ratingNum": 4.6, "price": 24.99, "priceNum": 24.99, "bsrTrend": {"2026-07-22": 36341, "2026-07-23": 38637}}, {"sku": "AW26WF01_LS2005", "wave": "\u89c4\u5212\u5916", "category": "\u5e3d\u886b\u3001\u536b\u8863", "fabric": "\u536b\u8863\u6293\u6bdb", "asin": "B0H2VSBYM4", "url": "https://www.amazon.com/dp/B0H2VSBYM4", "imgSrc": "https://m.media-amazon.com/images/I/610gLFpZWfL.jpg", "bsr": 686620, "bsrNum": 686620, "sales": 6, "salesNum": 6, "reviews": 2, "reviewsNum": 2, "rating": 5.0, "ratingNum": 5.0, "price": 39.99, "priceNum": 39.99, "bsrTrend": {"2026-07-22": 686620, "2026-07-23": 686620}}, {"sku": "AW26WB01_TRD2072", "wave": "\u89c4\u5212\u5916", "category": "\u7d27\u8eab\u8863", "fabric": "1*1\u4eff\u83ab\u4ee3\u5c14", "asin": "B0H2YN7JV9", "url": "https://www.amazon.com/dp/B0H2YN7JV9", "imgSrc": "https://m.media-amazon.com/images/I/31+dbLdWhPL.jpg", "bsr": 218241, "bsrNum": 218241, "sales": 57, "salesNum": 57, "reviews": 9, "reviewsNum": 9, "rating": 4.7, "ratingNum": 4.7, "price": 12.99, "priceNum": 12.99, "bsrTrend": {"2026-07-22": 166638, "2026-07-23": 218241}}, {"sku": "AW26WC01_LS2118", "wave": "\u89c4\u5212\u5916", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u7ec9\u5e03", "asin": "B0H4FKDSBR", "url": "https://www.amazon.com/dp/B0H4FKDSBR", "imgSrc": "https://m.media-amazon.com/images/I/31dNGYVKyWL.jpg", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 49.99, "priceNum": 49.99, "bsrTrend": {}}, {"sku": "AW26WC01_TRD2050", "wave": "\u89c4\u5212\u5916", "category": "\u957f\u88e4\u5957\u88c5", "fabric": "\u9488\u7ec7\u95f4\u6761", "asin": "B0H6B4SQLX", "url": "https://www.amazon.com/dp/B0H6B4SQLX", "imgSrc": "https://m.media-amazon.com/images/I/41nzFJqResL.jpg", "bsr": "N/A", "bsrNum": null, "sales": "N/A", "salesNum": null, "reviews": "N/A", "reviewsNum": null, "rating": "N/A", "ratingNum": null, "price": 45.99, "priceNum": 45.99, "bsrTrend": {}}];
+        const excelBase64 = "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";
+
+        let currentPage = 1;
+        const itemsPerPage = 200; // 每页展示 200 个产品
+        let filteredProducts = [...allProducts];
+        let bsrChartInstance = null;
+
+        // 调色盘算法
+        const COLOR_PALETTE = [
+            "#d97706", "#2563eb", "#7c3aed", "#db2777", "#059669",
+            "#dc2626", "#0284c7", "#4f46e5", "#9333ea", "#c026d3",
+            "#0d9488", "#16a34a", "#ca8a04", "#ea580c", "#b91c1c"
+        ];
+
+        function getColorForText(text) {
+            if (!text || text === "N/A" || text === "未知波段" || text === "未填面料" || text === "其他品类") {
+                return "#888888";
+            }
+            let hash = 0;
+            for (let i = 0; i < text.length; i++) {
+                hash = text.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const index = Math.abs(hash) % COLOR_PALETTE.length;
+            return COLOR_PALETTE[index];
+        }
+
+        // 获取女装大类 BSR 颜色 (三层划分)
+        function getBsrColor(bsr) {
+            if (bsr === "N/A" || bsr === null || bsr <= 0) return "#888888";
+            const num = parseInt(bsr);
+            if (num <= 5000) return "#d32f2f";  // 头部爆款
+            if (num <= 30000) return "#ff9800"; // 腰部热销
+            return "#4caf50";                    // 尾部/普通
+        }
+
+        // 弹窗展示 BSR 柱状图+折线图趋势
+        function showBsrTrendChart(sku, asin, trendData) {
+            if (!trendData || Object.keys(trendData).length === 0) {
+                alert("暂无该产品的历史 BSR 趋势数据");
+                return;
+            }
+
+            const dates = Object.keys(trendData).sort();
+            const bsrValues = dates.map(d => trendData[d]);
+
+            document.getElementById('chartModalTitle').textContent = `产品 [${sku}] (ASIN: ${asin}) 大类 BSR 历史趋势`;
+            document.getElementById('chartOverlay').style.display = "flex";
+
+            const ctx = document.getElementById('bsrChartCanvas').getContext('2d');
+            if (bsrChartInstance) {
+                bsrChartInstance.destroy();
+            }
+
+            bsrChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'BSR 排名',
+                            data: bsrValues,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            barPercentage: 0.5
+                        },
+                        {
+                            type: 'line',
+                            label: '趋势走势',
+                            data: bsrValues,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` BSR 排名: ${context.parsed.y.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: 'BSR 排名 (数值越小排名越高)' }
+                        },
+                        x: {
+                            title: { display: true, text: '日期' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartOverlay').style.display = "none";
+        }
+
+        function getCheckedValues(name) {
+            const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function restoreCheckboxState(name, values) {
+            const cbs = document.querySelectorAll(`input[name="${name}"]`);
+            cbs.forEach(cb => cb.checked = false);
+            if (!values || values.length === 0 || values.includes('all')) {
+                const allCb = document.querySelector(`input[name="${name}"][value="all"]`);
+                if (allCb) allCb.checked = true;
+            } else {
+                values.forEach(val => {
+                    const cb = document.querySelector(`input[name="${name}"][value="${val}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+        }
+
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id);
+            const isVisible = dropdown.style.display === 'block';
+            document.querySelectorAll('.filter-dropdown').forEach(d => d.style.display = 'none');
+            dropdown.style.display = isVisible ? 'none' : 'block';
+        }
+
+        document.querySelectorAll('.filter-dropdown').forEach(d => d.addEventListener('click', e => e.stopPropagation()));
+        document.addEventListener('click', e => {
+            if (!e.target.classList.contains('filter-dropdown-btn')) {
+                document.querySelectorAll('.filter-dropdown').forEach(d => d.style.display = 'none');
+            }
+        });
+
+        function setupCheckboxLogic(name) {
+            document.addEventListener('change', function(e) {
+                if (e.target.name === name) {
+                    const allCb = document.querySelector(`input[name="${name}"][value="all"]`);
+                    const otherCbs = document.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
+                    if (e.target.value === 'all') {
+                        otherCbs.forEach(cb => cb.checked = false);
+                        allCb.checked = true;
+                    } else {
+                        allCb.checked = !Array.from(otherCbs).some(cb => cb.checked);
+                    }
+                    updateAllFilters();
+                    filterProducts();
+                }
+            });
+        }
+        setupCheckboxLogic('wave');
+        setupCheckboxLogic('category');
+        setupCheckboxLogic('fabric');
+
+        // ================== 级联/互相关联筛选与数量统计 ==================
+        function getActiveFilterRanges() {
+            const searchStr = document.getElementById('globalSearch').value.toLowerCase().trim();
+            const selectedWaves = getCheckedValues('wave');
+            const selectedCategories = getCheckedValues('category');
+            const selectedFabrics = getCheckedValues('fabric');
+
+            const onlyNoRating = document.getElementById('onlyNoRating').checked;
+            const onlyNoBsr = document.getElementById('onlyNoBsr').checked;
+            const onlyHasTrend = document.getElementById('onlyHasTrend').checked;
+
+            const minSalesVal = document.getElementById('minSales').value;
+            const maxSalesVal = document.getElementById('maxSales').value;
+            const minBsrVal = document.getElementById('minBsr').value;
+            const maxBsrVal = document.getElementById('maxBsr').value;
+            const minRatingVal = document.getElementById('minRating').value;
+            const maxRatingVal = document.getElementById('maxRating').value;
+            const minReviewsVal = document.getElementById('minReviews').value;
+            const maxReviewsVal = document.getElementById('maxReviews').value;
+
+            return {
+                searchStr,
+                selectedWaves,
+                selectedCategories,
+                selectedFabrics,
+                onlyNoRating,
+                onlyNoBsr,
+                onlyHasTrend,
+                minSales: minSalesVal !== "" ? parseFloat(minSalesVal) : null,
+                maxSales: maxSalesVal !== "" ? parseFloat(maxSalesVal) : null,
+                minBsr: minBsrVal !== "" ? parseFloat(minBsrVal) : null,
+                maxBsr: maxBsrVal !== "" ? parseFloat(maxBsrVal) : null,
+                minRating: minRatingVal !== "" ? parseFloat(minRatingVal) : null,
+                maxRating: maxRatingVal !== "" ? parseFloat(maxRatingVal) : null,
+                minReviews: minReviewsVal !== "" ? parseFloat(minReviewsVal) : null,
+                maxReviews: maxReviewsVal !== "" ? parseFloat(maxReviewsVal) : null
+            };
+        }
+
+        function matchProductFilters(p, ignoreField, filters) {
+            if (filters.searchStr) {
+                const fullText = `${p.sku} ${p.wave} ${p.category} ${p.fabric} ${p.asin}`.toLowerCase();
+                if (!fullText.includes(filters.searchStr)) return false;
+            }
+
+            if (ignoreField !== 'wave' && filters.selectedWaves.length > 0 && !filters.selectedWaves.includes('all') && !filters.selectedWaves.includes(p.wave)) return false;
+            if (ignoreField !== 'category' && filters.selectedCategories.length > 0 && !filters.selectedCategories.includes('all') && !filters.selectedCategories.includes(p.category)) return false;
+            if (ignoreField !== 'fabric' && filters.selectedFabrics.length > 0 && !filters.selectedFabrics.includes('all') && !filters.selectedFabrics.includes(p.fabric)) return false;
+
+            if (filters.onlyNoRating && (p.ratingNum !== null && p.ratingNum > 0 && p.rating !== "N/A")) return false;
+            if (filters.onlyNoBsr && (p.bsrNum !== null && p.bsrNum > 0 && p.bsr !== "N/A")) return false;
+            if (filters.onlyHasTrend && (!p.bsrTrend || Object.keys(p.bsrTrend).length === 0)) return false;
+
+            if (!filters.onlyNoRating && (filters.minRating !== null || filters.maxRating !== null)) {
+                if (p.ratingNum === null || p.ratingNum <= 0 || p.rating === "N/A") return false;
+                if (filters.minRating !== null && p.ratingNum < filters.minRating) return false;
+                if (filters.maxRating !== null && p.ratingNum > filters.maxRating) return false;
+            }
+
+            if (!filters.onlyNoBsr && (filters.minBsr !== null || filters.maxBsr !== null)) {
+                if (p.bsrNum === null || p.bsrNum <= 0 || p.bsr === "N/A") return false;
+                if (filters.minBsr !== null && p.bsrNum < filters.minBsr) return false;
+                if (filters.maxBsr !== null && p.bsrNum > filters.maxBsr) return false;
+            }
+
+            if (filters.minSales !== null || filters.maxSales !== null) {
+                if (p.salesNum === null || p.salesNum <= 0 || p.sales === "N/A") return false;
+                if (filters.minSales !== null && p.salesNum < filters.minSales) return false;
+                if (filters.maxSales !== null && p.salesNum > filters.maxSales) return false;
+            }
+
+            if (filters.minReviews !== null || filters.maxReviews !== null) {
+                if (p.reviewsNum === null || p.reviewsNum < 0 || p.reviews === "N/A") return false;
+                if (filters.minReviews !== null && p.reviewsNum < filters.minReviews) return false;
+                if (filters.maxReviews !== null && p.reviewsNum > filters.maxReviews) return false;
+            }
+
+            return true;
+        }
+
+        function updateDropdownOptions(name, fieldName) {
+            const filters = getActiveFilterRanges();
+            const counts = {};
+
+            allProducts.forEach(p => {
+                if (matchProductFilters(p, fieldName, filters)) {
+                    const val = p[fieldName];
+                    if (val) counts[val] = (counts[val] || 0) + 1;
+                }
+            });
+
+            const dropdown = document.getElementById(`${fieldName}Dropdown`);
+            if (!dropdown) return;
+
+            const checkboxes = dropdown.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
+            checkboxes.forEach(cb => {
+                const val = cb.value;
+                const count = counts[val] || 0;
+                const label = cb.closest('label');
+                let countSpan = label.querySelector('.count');
+                if (countSpan) {
+                    countSpan.textContent = `(${count})`;
+                }
+
+                const itemDiv = cb.closest('.filter-checkbox');
+                if (itemDiv) {
+                    itemDiv.style.display = count > 0 ? 'flex' : 'none';
+                }
+            });
+        }
+
+        function updateAllFilters() {
+            updateDropdownOptions('wave', 'wave');
+            updateDropdownOptions('category', 'category');
+            updateDropdownOptions('fabric', 'fabric');
+        }
+
+        // 展示当前筛选条件框
+        function updateFilterInfoDisplay(filters) {
+            const info = [];
+
+            if (filters.searchStr) {
+                info.push(`<span class='filter-label'>搜索:</span> <span class='filter-value'>${filters.searchStr}</span>`);
+            }
+            if (filters.selectedWaves.length > 0 && !filters.selectedWaves.includes('all')) {
+                info.push(`<span class='filter-label'>波段:</span> <span class='filter-value'>${filters.selectedWaves.join(", ")}</span>`);
+            }
+            if (filters.selectedCategories.length > 0 && !filters.selectedCategories.includes('all')) {
+                info.push(`<span class='filter-label'>品类:</span> <span class='filter-value'>${filters.selectedCategories.join(", ")}</span>`);
+            }
+            if (filters.selectedFabrics.length > 0 && !filters.selectedFabrics.includes('all')) {
+                info.push(`<span class='filter-label'>面料:</span> <span class='filter-value'>${filters.selectedFabrics.join(", ")}</span>`);
+            }
+            if (filters.onlyNoRating) info.push(`<span class='filter-label'>评分为空:</span> <span class='filter-value'>是</span>`);
+            if (filters.onlyNoBsr) info.push(`<span class='filter-label'>BSR为0/空:</span> <span class='filter-value'>是</span>`);
+            if (filters.onlyHasTrend) info.push(`<span class='filter-label'>仅看有趋势产品:</span> <span class='filter-value'>是</span>`);
+
+            if (filters.minSales !== null || filters.maxSales !== null) {
+                const min = filters.minSales !== null ? filters.minSales : '不限';
+                const max = filters.maxSales !== null ? filters.maxSales : '不限';
+                info.push(`<span class='filter-label'>销量:</span> <span class='filter-value'>${min} ~ ${max}</span>`);
+            }
+            if (filters.minBsr !== null || filters.maxBsr !== null) {
+                const min = filters.minBsr !== null ? filters.minBsr : '不限';
+                const max = filters.maxBsr !== null ? filters.maxBsr : '不限';
+                info.push(`<span class='filter-label'>BSR:</span> <span class='filter-value'>${min} ~ ${max}</span>`);
+            }
+            if (filters.minRating !== null || filters.maxRating !== null) {
+                const min = filters.minRating !== null ? filters.minRating : '0';
+                const max = filters.maxRating !== null ? filters.maxRating : '5';
+                info.push(`<span class='filter-label'>评分:</span> <span class='filter-value'>${min} ~ ${max}</span>`);
+            }
+            if (filters.minReviews !== null || filters.maxReviews !== null) {
+                const min = filters.minReviews !== null ? filters.minReviews : '不限';
+                const max = filters.maxReviews !== null ? filters.maxReviews : '不限';
+                info.push(`<span class='filter-label'>评分数:</span> <span class='filter-value'>${min} ~ ${max}</span>`);
+            }
+
+            const sortByMap = {
+                'sales_desc': '月销量降序',
+                'rating_asc': '评分升序',
+                'reviews_desc': '评分数降序',
+                'bsr_asc': '大类BSR升序'
+            };
+            const sortBy = document.getElementById('sortBy').value;
+            if (sortBy !== 'default' && sortByMap[sortBy]) {
+                info.push(`<span class='filter-label'>排序:</span> <span class='filter-value'>${sortByMap[sortBy]}</span>`);
+            }
+
+            const el = document.getElementById('filterInfoDisplay');
+            if (el) {
+                el.innerHTML = info.length > 0 
+                    ? "<span class='filter-title'>当前筛选条件:</span> " + info.join(" &nbsp; | &nbsp; ") 
+                    : "<span class='filter-title'>当前筛选条件:</span> <span class='filter-value'>全部数据 (无筛选)</span>";
+            }
+        }
+
+        // ================== 状态记忆保存与恢复 ==================
+        function saveFilterState() {
+            const state = {
+                globalSearch: document.getElementById('globalSearch').value,
+                ratingThreshold: document.getElementById('ratingThreshold').value,
+                bsrThreshold: document.getElementById('bsrThreshold').value,
+                sortBy: document.getElementById('sortBy').value,
+                selectedWaves: getCheckedValues('wave'),
+                selectedCategories: getCheckedValues('category'),
+                selectedFabrics: getCheckedValues('fabric'),
+                minSales: document.getElementById('minSales').value,
+                maxSales: document.getElementById('maxSales').value,
+                minBsr: document.getElementById('minBsr').value,
+                maxBsr: document.getElementById('maxBsr').value,
+                minRating: document.getElementById('minRating').value,
+                maxRating: document.getElementById('maxRating').value,
+                minReviews: document.getElementById('minReviews').value,
+                maxReviews: document.getElementById('maxReviews').value,
+                onlyNoRating: document.getElementById('onlyNoRating').checked,
+                onlyNoBsr: document.getElementById('onlyNoBsr').checked,
+                onlyHasTrend: document.getElementById('onlyHasTrend').checked,
+                currentPage: currentPage,
+                scrollY: window.scrollY
+            };
+            localStorage.setItem('productFilterState_track', JSON.stringify(state));
+        }
+
+        function restoreFilterState() {
+            const saved = localStorage.getItem('productFilterState_track');
+            if (!saved) return null;
+            try {
+                const state = JSON.parse(saved);
+                document.getElementById('globalSearch').value = state.globalSearch || '';
+                document.getElementById('ratingThreshold').value = state.ratingThreshold || '4.2';
+                document.getElementById('bsrThreshold').value = state.bsrThreshold || '10000';
+                document.getElementById('sortBy').value = state.sortBy || 'default';
+
+                restoreCheckboxState('wave', state.selectedWaves);
+                restoreCheckboxState('category', state.selectedCategories);
+                restoreCheckboxState('fabric', state.selectedFabrics);
+
+                document.getElementById('minSales').value = state.minSales || '';
+                document.getElementById('maxSales').value = state.maxSales || '';
+                document.getElementById('minBsr').value = state.minBsr || '';
+                document.getElementById('maxBsr').value = state.maxBsr || '';
+                document.getElementById('minRating').value = state.minRating || '';
+                document.getElementById('maxRating').value = state.maxRating || '';
+                document.getElementById('minReviews').value = state.minReviews || '';
+                document.getElementById('maxReviews').value = state.maxReviews || '';
+
+                document.getElementById('onlyNoRating').checked = !!state.onlyNoRating;
+                document.getElementById('onlyNoBsr').checked = !!state.onlyNoBsr;
+                document.getElementById('onlyHasTrend').checked = !!state.onlyHasTrend;
+
+                currentPage = state.currentPage || 1;
+                return state;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        // 核心筛选逻辑
+        function filterProducts() {
+            const filters = getActiveFilterRanges();
+
+            filteredProducts = allProducts.filter(p => {
+                return matchProductFilters(p, null, filters);
+            });
+
+            // 排序逻辑
+            const sortBy = document.getElementById('sortBy').value;
+            if (sortBy === 'sales_desc') {
+                filteredProducts.sort((a,b) => (b.salesNum || 0) - (a.salesNum || 0));
+            } else if (sortBy === 'rating_asc') {
+                filteredProducts.sort((a,b) => (a.ratingNum || 99) - (b.ratingNum || 99));
+            } else if (sortBy === 'reviews_desc') {
+                filteredProducts.sort((a,b) => (b.reviewsNum || 0) - (a.reviewsNum || 0));
+            } else if (sortBy === 'bsr_asc') {
+                filteredProducts.sort((a,b) => (a.bsrNum || 999999) - (b.bsrNum || 999999));
+            }
+
+            updateFilterInfoDisplay(filters);
+            renderGrid();
+            saveFilterState();
+        }
+
+        // 渲染列表
+        function renderGrid() {
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = '';
+
+            document.getElementById('productCount').textContent = filteredProducts.length;
+
+            const threshold = parseFloat(document.getElementById('ratingThreshold').value) || 0;
+            const bsrThreshold = parseFloat(document.getElementById('bsrThreshold').value) || 0;
+
+            const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('currentPage').textContent = currentPage;
+
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const pageData = filteredProducts.slice(start, start + itemsPerPage);
+
+            pageData.forEach(p => {
+                // 评分低预警判断
+                const isLowRating = p.ratingNum !== null && p.ratingNum < threshold;
+                // BSR 优异标准判断 (≤ 设定阈值且大于0)
+                const isBsrExcellent = p.bsrNum !== null && p.bsrNum > 0 && p.bsrNum <= bsrThreshold;
+
+                const catColor = getColorForText(p.category);
+                const waveColor = getColorForText(p.wave);
+                const fabricColor = getColorForText(p.fabric);
+
+                const priceStr = p.priceNum !== null ? `$${p.priceNum.toFixed(2)}` : 'N/A';
+                const hasTrend = p.bsrTrend && Object.keys(p.bsrTrend).length > 0;
+
+                const block = document.createElement('div');
+                block.className = `chart-block ${isLowRating ? 'low-rating-card' : ''}`;
+
+                block.innerHTML = `
+                    ${isLowRating ? `<div class="warning-tag">⚠️ 评分未达标 (<${threshold})</div>` : ''}
+                    ${isBsrExcellent ? `<div class="bsr-excellent-tag">🔥 BSR优异 (≤${bsrThreshold})</div>` : ''}
+
+                    <div style="position: relative; border-left: 5px solid ${catColor}; padding-left: 4px; text-align: center;">
+
+                        <img class="product-image" 
+                             src="${p.imgSrc || 'https://via.placeholder.com/300x480?text=No+Image+Available'}" 
+                             loading="lazy" 
+                             onclick="zoomImage('${p.imgSrc}')" 
+                             alt="商品主图">
+
+                        <!-- 1. SKU 链接 (单独一行完整展示) -->
+                        <div class="chart-info" style="word-break: break-all; padding: 2px 0;">
+                            <a href="${p.url}" target="_blank" title="点击跳转商品详情页">${p.sku}</a>
+                        </div>
+
+                        <!-- 2. BSR 趋势按钮 (单独放在 SKU 下方) -->
+                        ${hasTrend ? `
+                            <div class="chart-info" style="margin-bottom: 4px;">
+                                <button onclick='showBsrTrendChart("${p.sku}", "${p.asin}", ${JSON.stringify(p.bsrTrend)})' 
+                                        style="background-color: #28a745; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight:bold;">
+                                    📈 BSR趋势
+                                </button>
+                            </div>
+                        ` : ''}
+
+                        <!-- 3. 月销量 ； 价格 合并为一行 -->
+                        <div class="chart-info">
+                            <span>月销量: </span><span class="value" style="color:#d32f2f;">${p.sales}</span>
+                            <span> ；价格: </span><span class="value" style="color:#2e7d32;">${priceStr}</span>
+                        </div>
+
+                        <!-- 4. 评分数 ； 评分 合并为一行 -->
+                        <div class="chart-info">
+                            <span>评分数: </span><span class="value">${p.reviews}</span>
+                            <span> ；评分: </span><span class="value" style="${isLowRating ? 'color:#d32f2f; font-size:18px;' : ''}">${p.rating} ⭐</span>
+                        </div>
+
+                        <!-- 5. 大类BSR -->
+                        <div class="chart-info">
+                            <span>大类BSR: </span>
+                            <span class="value" style="background-color:${getBsrColor(p.bsrNum)}; color:white; padding:1px 6px; border-radius:4px; font-size:15px;">
+                                ${p.bsr}
+                            </span>
+                        </div>
+
+                        <!-- 6. 商品波段 -->
+                        <div class="chart-info">
+                            <span>商品波段: </span>
+                            <span class="value" style="color:${waveColor}; font-weight:bold;">${p.wave}</span>
+                        </div>
+
+                        <!-- 7. 品类 -->
+                        <div class="chart-info">
+                            <span>品类: </span>
+                            <span class="value" style="color:${catColor}; font-weight:bold;">
+                                <span class="category-color" style="background-color:${catColor};"></span>
+                                ${p.category}
+                            </span>
+                        </div>
+
+                        <!-- 8. 期望面料 -->
+                        <div class="chart-info">
+                            <span>面料: </span>
+                            <span class="value" style="color:${fabricColor}; font-weight:bold;">${p.fabric}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(block);
+            });
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderGrid();
+            saveFilterState();
+            window.scrollTo({top: 0, behavior:'smooth'});
+        }
+
+        function resetFilters() {
+            localStorage.removeItem('productFilterState_track');
+            document.getElementById('globalSearch').value = '';
+            document.getElementById('sortBy').value = 'default';
+            document.getElementById('minSales').value = '';
+            document.getElementById('maxSales').value = '';
+            document.getElementById('minBsr').value = '';
+            document.getElementById('maxBsr').value = '';
+            document.getElementById('minRating').value = '';
+            document.getElementById('maxRating').value = '';
+            document.getElementById('minReviews').value = '';
+            document.getElementById('maxReviews').value = '';
+            document.getElementById('ratingThreshold').value = '4.2';
+            document.getElementById('bsrThreshold').value = '10000';
+
+            document.getElementById('onlyNoRating').checked = false;
+            document.getElementById('onlyNoBsr').checked = false;
+            document.getElementById('onlyHasTrend').checked = false;
+
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = cb.value === 'all';
+            });
+
+            currentPage = 1;
+            updateAllFilters();
+            filterProducts();
+        }
+
+        function zoomImage(src) {
+            if (!src) return;
+            document.getElementById('overlayImg').src = src;
+            document.getElementById('imageOverlay').style.display = 'flex';
+        }
+
+        function downloadOriginalData() {
+            if (!excelBase64) {
+                alert('数据文件未加载');
+                return;
+            }
+            const link = document.createElement('a');
+            link.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + excelBase64;
+            link.download = 'a数据处理结果_原始数据.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 监听 ESC 键关闭弹窗
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeChartModal();
+                document.getElementById('imageOverlay').style.display = 'none';
+            }
+        });
+
+        window.addEventListener('scroll', () => {
+            saveFilterState();
+        });
+
+        document.querySelectorAll('.filter-container input, .filter-container select').forEach(el => {
+            el.addEventListener('input', () => { updateAllFilters(); filterProducts(); });
+            el.addEventListener('change', () => { updateAllFilters(); filterProducts(); });
+        });
+
+        // 初始化恢复状态
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedState = restoreFilterState();
+            updateAllFilters();
+            filterProducts();
+            if (savedState && savedState.scrollY) {
+                setTimeout(() => {
+                    window.scrollTo(0, savedState.scrollY);
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
