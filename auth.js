@@ -6,7 +6,7 @@
         correctHashGeneral: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
 
         // 特殊模块密码哈希值（店铺分析的三个模块使用相同的密码）
-        correctHashSpecial: "172482e5768d2b2d2ff627f5e24da1d3006d397c3a74e0f744e7d6ea6c6f33a6", // 请替换为实际哈希值
+        correctHashSpecial: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e", // 请替换为实际哈希值
 
         // 受保护的模块列表及其密码类型
         protectedModules: {
