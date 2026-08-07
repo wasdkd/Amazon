@@ -1,8 +1,464 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>2026年第二季度财务数据分析及预测表.xlsx</title>-->
+<!--    <style>-->
+<!--        /* Excel 仿真外观 */-->
+<!--        body {-->
+<!--            font-family: "Segoe UI", Arial, sans-serif;-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--            background-color: #f3f2f1;-->
+<!--            font-size: 11pt;-->
+<!--            user-select: none;-->
+<!--        }-->
+
+<!--        /* 顶部 Excel 绿色工具栏 */-->
+<!--        .excel-header {-->
+<!--            background-color: #107c41;-->
+<!--            color: white;-->
+<!--            padding: 6px 15px;-->
+<!--            font-weight: bold;-->
+<!--            font-size: 12pt;-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--        }-->
+
+<!--        .excel-menu {-->
+<!--            background-color: #fff;-->
+<!--            border-bottom: 1px solid #d2d0ce;-->
+<!--            padding: 5px 15px;-->
+<!--            display: flex;-->
+<!--            gap: 15px;-->
+<!--            font-size: 9pt;-->
+<!--            color: #323130;-->
+<!--        }-->
+
+<!--        .excel-menu span {-->
+<!--            cursor: pointer;-->
+<!--        }-->
+
+<!--        .excel-menu span.active {-->
+<!--            border-bottom: 2px solid #107c41;-->
+<!--            font-weight: bold;-->
+<!--        }-->
+
+<!--        /* 公式栏 */-->
+<!--        .formula-bar {-->
+<!--            background-color: #fff;-->
+<!--            border-bottom: 1px solid #d2d0ce;-->
+<!--            padding: 4px 10px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            font-size: 9pt;-->
+<!--        }-->
+
+<!--        .formula-box {-->
+<!--            border: 1px solid #d2d0ce;-->
+<!--            flex-grow: 1;-->
+<!--            margin-left: 10px;-->
+<!--            padding: 2px 5px;-->
+<!--            background-color: #f3f2f1;-->
+<!--        }-->
+
+<!--        /* 表格区域 */-->
+<!--        .sheet-container {-->
+<!--            overflow: auto;-->
+<!--            height: calc(100vh - 90px);-->
+<!--            background-color: white;-->
+<!--        }-->
+
+<!--        table {-->
+<!--            border-collapse: collapse;-->
+<!--            width: 100%;-->
+<!--            table-layout: fixed;-->
+<!--        }-->
+
+<!--        th, td {-->
+<!--            border: 1px solid #d2d0ce;-->
+<!--            padding: 4px 8px;-->
+<!--            text-align: left;-->
+<!--            overflow: hidden;-->
+<!--            text-overflow: ellipsis;-->
+<!--            white-space: nowrap;-->
+<!--        }-->
+
+<!--        /* 表头 */-->
+<!--        th {-->
+<!--            background-color: #f3f2f1;-->
+<!--            color: #323130;-->
+<!--            font-weight: normal;-->
+<!--            font-size: 9pt;-->
+<!--            text-align: center;-->
+<!--        }-->
+
+<!--        .row-num {-->
+<!--            background-color: #f3f2f1;-->
+<!--            text-align: center;-->
+<!--            width: 40px;-->
+<!--            font-size: 9pt;-->
+<!--            color: #323130;-->
+<!--        }-->
+
+<!--        /* 控制台（伪装在 Excel 的输入选项里） */-->
+<!--        .control-panel {-->
+<!--            background-color: #e1dfdd;-->
+<!--        }-->
+
+<!--        .control-label {-->
+<!--            font-weight: bold;-->
+<!--            color: #107c41;-->
+<!--            font-size: 9pt;-->
+<!--        }-->
+
+<!--        .file-input-btn {-->
+<!--            background-color: #107c41;-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            padding: 2px 8px;-->
+<!--            font-size: 9pt;-->
+<!--            cursor: pointer;-->
+<!--            border-radius: 2px;-->
+<!--        }-->
+
+<!--        .url-input {-->
+<!--            width: 90%;-->
+<!--            border: 1px solid #a19f9d;-->
+<!--            padding: 2px 5px;-->
+<!--            font-size: 9pt;-->
+<!--        }-->
+
+<!--        /* -&#45;&#45; 隐蔽视频悬浮窗 -&#45;&#45; */-->
+<!--        #videoContainer {-->
+<!--            position: absolute;-->
+<!--            top: 150px;-->
+<!--            left: 120px;-->
+<!--            width: 280px; /* 默认宽度 */-->
+<!--            height: 164px; /* 默认 16:9 尺寸 + 6px 顶部灰色条 */-->
+<!--            background-color: black;-->
+<!--            border: 1px solid rgba(0,0,0,0.15);-->
+<!--            box-shadow: 0 4px 12px rgba(0,0,0,0.15);-->
+<!--            z-index: 9999;-->
+<!--            overflow: hidden;-->
+<!--            opacity: 0.6; /* 默认 60% 透明度 */-->
+<!--            display: none; /* 初始隐藏 */-->
+<!--        }-->
+
+<!--        /* 拖拽控制手柄（一条极细的灰色横线） */-->
+<!--        #dragHeader {-->
+<!--            height: 6px;-->
+<!--            background-color: #d2d0ce;-->
+<!--            cursor: move;-->
+<!--            width: 100%;-->
+<!--        }-->
+
+<!--        #moyuVideo {-->
+<!--            width: 100%;-->
+<!--            height: calc(100% - 6px);-->
+<!--            object-fit: contain;-->
+<!--            background: black;-->
+<!--            display: none;-->
+<!--        }-->
+
+<!--        #moyuIframe {-->
+<!--            width: 100%;-->
+<!--            height: calc(100% - 6px);-->
+<!--            border: none;-->
+<!--            background: black;-->
+<!--            display: none;-->
+<!--        }-->
+
+<!--        .hint {-->
+<!--            color: #8a8886;-->
+<!--            font-size: 8pt;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--&lt;!&ndash; Excel 顶部 &ndash;&gt;-->
+<!--<div class="excel-header">-->
+<!--    <span>Excel - 2026年第二季度财务数据分析及预测表.xlsx</span>-->
+<!--    <span style="font-size: 9pt; font-weight: normal;">👤 用户：管理员</span>-->
+<!--</div>-->
+<!--<div class="excel-menu">-->
+<!--    <span class="active">文件</span>-->
+<!--    <span>开始</span>-->
+<!--    <span>插入</span>-->
+<!--    <span>页面布局</span>-->
+<!--    <span>公式</span>-->
+<!--    <span>数据</span>-->
+<!--    <span>审阅</span>-->
+<!--    <span>视图</span>-->
+<!--    <span>帮助</span>-->
+<!--</div>-->
+<!--<div class="formula-bar">-->
+<!--    <span style="font-weight: bold; color: #107c41;">fx</span>-->
+<!--    <div class="formula-box" id="formulaText">SUM(B4:B15)</div>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; Excel 内容区 &ndash;&gt;-->
+<!--<div class="sheet-container">-->
+<!--    <table>-->
+<!--        &lt;!&ndash; 列宽调节 &ndash;&gt;-->
+<!--        <colgroup>-->
+<!--            <col style="width: 40px;">-->
+<!--            <col style="width: 130px;">-->
+<!--            <col style="width: 250px;">-->
+<!--            <col style="width: 70px;">-->
+<!--            <col style="width: 130px;">-->
+<!--            <col style="width: 140px;">-->
+<!--            <col style="width: 220px;">-->
+<!--        </colgroup>-->
+
+<!--        &lt;!&ndash; 表头 A B C D ... &ndash;&gt;-->
+<!--        <tr>-->
+<!--            <th></th>-->
+<!--            <th>A</th>-->
+<!--            <th>B</th>-->
+<!--            <th>C</th>-->
+<!--            <th>D</th>-->
+<!--            <th>E</th>-->
+<!--            <th>F</th>-->
+<!--        </tr>-->
+
+<!--        &lt;!&ndash; 第二行：功能配置区（完美隐藏在Excel格式中） &ndash;&gt;-->
+<!--        <tr class="control-panel">-->
+<!--            <td class="row-num">1</td>-->
+<!--            <td class="control-label">在线数据(输入链接)</td>-->
+<!--            <td>-->
+<!--                <input type="text" id="onlineUrlInput" class="url-input" placeholder="输入B站链接、BV号 或 mp4地址...">-->
+<!--            </td>-->
+<!--            <td>-->
+<!--                <button class="file-input-btn" onclick="loadOnlineVideo()">载入</button>-->
+<!--            </td>-->
+<!--            <td class="control-label">混色系数 (透明度)</td>-->
+<!--            <td>-->
+<!--                <input type="range" id="opacitySlider" min="0.1" max="1.0" step="0.05" value="0.6" style="width:90%; vertical-align:middle;">-->
+<!--            </td>-->
+<!--            <td class="control-label" style="text-align:right;">窗口尺寸 (宽度)</td>-->
+<!--            <td>-->
+<!--                <input type="range" id="sizeSlider" min="180" max="800" value="280" style="width:90%; vertical-align:middle;">-->
+<!--            </td>-->
+<!--        </tr>-->
+
+<!--        &lt;!&ndash; 伪造的财务数据 &ndash;&gt;-->
+<!--        <tr>-->
+<!--            <td class="row-num">2</td>-->
+<!--            <td style="font-weight: bold; background: #f3f2f1;">统计月份</td>-->
+<!--            <td style="font-weight: bold; background: #f3f2f1;">销售总额 (RMB)</td>-->
+<!--            <td style="font-weight: bold; background: #f3f2f1;">固定成本</td>-->
+<!--            <td style="font-weight: bold; background: #f3f2f1;">变动成本</td>-->
+<!--            <td style="font-weight: bold; background: #f3f2f1;">纯利润</td>-->
+<!--            <td style="font-weight: bold; background: #f3f2f1;">备注说明</td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td class="row-num">3</td>-->
+<!--            <td>2026年1月</td>-->
+<!--            <td>1,245,800.00</td>-->
+<!--            <td>320,000.00</td>-->
+<!--            <td>450,000.00</td>-->
+<!--            <td style="color: green;">475,800.00</td>-->
+<!--            <td>按 [Esc] 键，视频立即静音并彻底隐藏</td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td class="row-num">4</td>-->
+<!--            <td>2026年2月</td>-->
+<!--            <td>980,500.00</td>-->
+<!--            <td>320,000.00</td>-->
+<!--            <td>380,000.00</td>-->
+<!--            <td style="color: green;">280,500.00</td>-->
+<!--            <td>双击表格空白处也可以一键瞬间关闭</td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td class="row-num">5</td>-->
+<!--            <td>2026年3月</td>-->
+<!--            <td>1,560,000.00</td>-->
+<!--            <td>325,000.00</td>-->
+<!--            <td>510,000.00</td>-->
+<!--            <td style="color: green;">725,000.00</td>-->
+<!--            <td>春季促回暖明显，达到历史同期新高</td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td class="row-num">6</td>-->
+<!--            <td>2026年4月</td>-->
+<!--            <td>1,320,400.00</td>-->
+<!--            <td>320,000.00</td>-->
+<!--            <td>460,000.00</td>-->
+<!--            <td style="color: green;">540,400.00</td>-->
+<!--            <td>数据平稳过渡，各项指标处于正常区间</td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td class="row-num">7</td>-->
+<!--            <td>2026年5月（预测）</td>-->
+<!--            <td>1,450,000.00</td>-->
+<!--            <td>320,000.00</td>-->
+<!--            <td>490,000.00</td>-->
+<!--            <td style="color: green; font-weight: bold;">640,000.00</td>-->
+<!--            <td>根据当前订单排期预测，维持稳步增长</td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td class="row-num">8</td>-->
+<!--            <td>2026年6月（预测）</td>-->
+<!--            <td>1,600,000.00</td>-->
+<!--            <td>330,000.00</td>-->
+<!--            <td>540,000.00</td>-->
+<!--            <td style="color: green; font-weight: bold;">730,000.00</td>-->
+<!--            <td>年中大促节点，预计有较大幅度爆发</td>-->
+<!--        </tr>-->
+<!--        <tr style="background: #e1dfdd; font-weight: bold;">-->
+<!--            <td class="row-num">9</td>-->
+<!--            <td>半年度汇总 (SUM)</td>-->
+<!--            <td>8,156,700.00</td>-->
+<!--            <td>1,935,000.00</td>-->
+<!--            <td>2,830,000.00</td>-->
+<!--            <td style="color: green;">3,391,700.00</td>-->
+<!--            <td>整体运行健康，现金流充沛</td>-->
+<!--        </tr>-->
+<!--        &lt;!&ndash; 空白行填充 &ndash;&gt;-->
+<!--        <tr><td class="row-num">10</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>-->
+<!--        <tr><td class="row-num">11</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>-->
+<!--        <tr><td class="row-num">12</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>-->
+<!--        <tr><td class="row-num">13</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>-->
+<!--        <tr><td class="row-num">14</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>-->
+<!--    </table>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; 悬浮视频播放容器 &ndash;&gt;-->
+<!--<div id="videoContainer">-->
+<!--    <div id="dragHeader" title="拖动这里移动位置"></div>-->
+<!--    &lt;!&ndash; 播放普通网络视频直链 &ndash;&gt;-->
+<!--    <video id="moyuVideo" controls loop>您的浏览器不支持此视频格式。</video>-->
+<!--    &lt;!&ndash; 增加 allow 参数授予声音播放、全屏等完整交互权限 &ndash;&gt;-->
+<!--    <iframe id="moyuIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>-->
+<!--</div>-->
+
+<!--<script>-->
+<!--    const container = document.getElementById('videoContainer');-->
+<!--    const header = document.getElementById('dragHeader');-->
+<!--    const video = document.getElementById('moyuVideo');-->
+<!--    const iframe = document.getElementById('moyuIframe');-->
+<!--    const opacitySlider = document.getElementById('opacitySlider');-->
+<!--    const sizeSlider = document.getElementById('sizeSlider');-->
+
+<!--    // 1. 在线视频载入逻辑-->
+<!--    function loadOnlineVideo() {-->
+<!--        const inputVal = document.getElementById('onlineUrlInput').value.trim();-->
+<!--        if (!inputVal) {-->
+<!--            alert("请输入B站链接、BV号或视频直链地址！");-->
+<!--            return;-->
+<!--        }-->
+
+<!--        const bvRegex = /(BV[a-zA-Z0-9]{10})/i;-->
+<!--        const bvMatch = inputVal.match(bvRegex);-->
+
+<!--        if (bvMatch) {-->
+<!--            // 切换至 iframe 模式，加载B站播放器-->
+<!--            const bvid = bvMatch[1];-->
+<!--            video.style.display = 'none';-->
+<!--            video.pause();-->
+
+<!--            iframe.style.display = 'block';-->
+
+<!--            // 重要：由于浏览器限制，必须把 autoplay=0 (禁用自动播放)。这样加载出来后，你手动点一下视频播放，声音就100%可以正常播放。-->
+<!--            iframe.src = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&danmaku=0&autoplay=0`;-->
+<!--            container.style.display = 'block';-->
+<!--        } else if (inputVal.match(/\.(mp4|webm|ogg)($|\?)/i)) {-->
+<!--            // 普通视频格式-->
+<!--            iframe.style.display = 'none';-->
+<!--            iframe.src = '';-->
+
+<!--            video.style.display = 'block';-->
+<!--            video.src = inputVal;-->
+<!--            video.play();-->
+<!--            container.style.display = 'block';-->
+<!--        } else {-->
+<!--            // 普通网页-->
+<!--            video.style.display = 'none';-->
+<!--            video.pause();-->
+
+<!--            iframe.style.display = 'block';-->
+<!--            iframe.src = inputVal;-->
+<!--            container.style.display = 'block';-->
+<!--        }-->
+<!--    }-->
+
+<!--    // 2. 透明度控制-->
+<!--    opacitySlider.addEventListener('input', function() {-->
+<!--        container.style.opacity = this.value;-->
+<!--    });-->
+
+<!--    // 3. 窗口尺寸拉伸（直接在Excel里控制，完美避免拖拽冲突）-->
+<!--    sizeSlider.addEventListener('input', function() {-->
+<!--        const width = parseInt(this.value);-->
+<!--        // 按 16:9 比例计算高度，并加上顶部 6px 的拖拽条-->
+<!--        const height = Math.round(width * 9 / 16) + 6;-->
+
+<!--        container.style.width = width + 'px';-->
+<!--        container.style.height = height + 'px';-->
+<!--    });-->
+
+<!--    // 4. 拖拽逻辑 (拖动最上方细线移动，拖拽时暂时屏蔽 iframe 的鼠标拦截，保证拖拽流畅)-->
+<!--    let isDragging = false;-->
+<!--    let startX, startY, initialX, initialY;-->
+
+<!--    header.addEventListener('mousedown', function(e) {-->
+<!--        isDragging = true;-->
+<!--        iframe.style.pointerEvents = 'none'; // 防止鼠标移进 iframe 导致拖拽中断-->
+<!--        startX = e.clientX;-->
+<!--        startY = e.clientY;-->
+<!--        initialX = container.offsetLeft;-->
+<!--        initialY = container.offsetTop;-->
+<!--        e.preventDefault();-->
+<!--    });-->
+
+<!--    document.addEventListener('mousemove', function(e) {-->
+<!--        if (!isDragging) return;-->
+<!--        const dx = e.clientX - startX;-->
+<!--        const dy = e.clientY - startY;-->
+<!--        container.style.left = (initialX + dx) + 'px';-->
+<!--        container.style.top = (initialY + dy) + 'px';-->
+<!--    });-->
+
+<!--    document.addEventListener('mouseup', function() {-->
+<!--        isDragging = false;-->
+<!--        iframe.style.pointerEvents = 'auto'; // 恢复 iframe 的交互-->
+<!--    });-->
+
+<!--    // 5. “老板键”瞬间隐藏逻辑-->
+<!--    function hideVideoInstant() {-->
+<!--        container.style.display = 'none';-->
+<!--        video.pause();-->
+<!--        video.src = '';-->
+<!--        iframe.src = '';-->
+<!--    }-->
+
+<!--    // 按 Esc 键触发-->
+<!--    document.addEventListener('keydown', function(e) {-->
+<!--        if (e.key === 'Escape') {-->
+<!--            hideVideoInstant();-->
+<!--        }-->
+<!--    });-->
+
+<!--    // 双击除小窗外的任意空白区域触发-->
+<!--    document.addEventListener('dblclick', function(e) {-->
+<!--        if (e.target !== video && e.target !== header && e.target !== iframe) {-->
+<!--            hideVideoInstant();-->
+<!--        }-->
+<!--    });-->
+<!--</script>-->
+
+<!--</body>-->
+<!--</html>-->
+
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>2026年第二季度财务数据分析及预测表.xlsx</title>
+    <title id="pageTitle">Excel - SKU-颜色尺码数据.xlsx</title>
     <style>
         /* Excel 仿真外观 */
         body {
@@ -20,10 +476,22 @@
             color: white;
             padding: 6px 15px;
             font-weight: bold;
-            font-size: 12pt;
+            font-size: 11pt;
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        /* 可编辑的文件名 */
+        .file-title {
+            outline: none;
+            padding: 2px 6px;
+            border-radius: 2px;
+            cursor: text;
+        }
+
+        .file-title:hover, .file-title:focus {
+            background-color: rgba(255, 255, 255, 0.2);
         }
 
         .excel-menu {
@@ -38,6 +506,7 @@
 
         .excel-menu span {
             cursor: pointer;
+            padding: 2px 5px;
         }
 
         .excel-menu span.active {
@@ -45,28 +514,45 @@
             font-weight: bold;
         }
 
-        /* 公式栏 */
+        /* 公式栏与名称框 */
         .formula-bar {
             background-color: #fff;
             border-bottom: 1px solid #d2d0ce;
-            padding: 4px 10px;
+            padding: 3px 10px;
             display: flex;
             align-items: center;
             font-size: 9pt;
+            gap: 8px;
         }
 
-        .formula-box {
+        .name-box {
+            border: 1px solid #d2d0ce;
+            padding: 2px 8px;
+            width: 50px;
+            text-align: center;
+            font-weight: bold;
+            background: #fff;
+            color: #323130;
+        }
+
+        .formula-input {
             border: 1px solid #d2d0ce;
             flex-grow: 1;
-            margin-left: 10px;
-            padding: 2px 5px;
-            background-color: #f3f2f1;
+            padding: 3px 8px;
+            background-color: #ffffff;
+            font-family: inherit;
+            font-size: 9pt;
+            outline: none;
+        }
+
+        .formula-input:focus {
+            border-color: #107c41;
         }
 
         /* 表格区域 */
         .sheet-container {
             overflow: auto;
-            height: calc(100vh - 90px);
+            height: calc(100vh - 105px);
             background-color: white;
         }
 
@@ -83,10 +569,11 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            outline: none;
         }
 
-        /* 表头 */
-        th {
+        /* 表头与行号 */
+        th, .row-num {
             background-color: #f3f2f1;
             color: #323130;
             font-weight: normal;
@@ -94,17 +581,16 @@
             text-align: center;
         }
 
-        .row-num {
-            background-color: #f3f2f1;
-            text-align: center;
-            width: 40px;
-            font-size: 9pt;
-            color: #323130;
+        /* 选中的单元格样式（高亮绿框） */
+        td.cell-active {
+            outline: 2px solid #107c41 !important;
+            outline-offset: -2px;
+            background-color: #e8f4ec !important;
         }
 
-        /* 控制台（伪装在 Excel 的输入选项里） */
+        /* 隐蔽摸鱼控制行 */
         .control-panel {
-            background-color: #e1dfdd;
+            background-color: #f8f9fa;
         }
 
         .control-label {
@@ -117,36 +603,35 @@
             background-color: #107c41;
             color: white;
             border: none;
-            padding: 2px 8px;
+            padding: 3px 10px;
             font-size: 9pt;
             cursor: pointer;
             border-radius: 2px;
         }
 
         .url-input {
-            width: 90%;
+            width: 95%;
             border: 1px solid #a19f9d;
             padding: 2px 5px;
             font-size: 9pt;
         }
 
-        /* --- 隐蔽视频悬浮窗 --- */
+        /* --- 悬浮视频窗口 --- */
         #videoContainer {
             position: absolute;
-            top: 150px;
+            top: 160px;
             left: 120px;
-            width: 280px; /* 默认宽度 */
-            height: 164px; /* 默认 16:9 尺寸 + 6px 顶部灰色条 */
+            width: 280px;
+            height: 164px;
             background-color: black;
-            border: 1px solid rgba(0,0,0,0.15);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             z-index: 9999;
             overflow: hidden;
-            opacity: 0.6; /* 默认 60% 透明度 */
-            display: none; /* 初始隐藏 */
+            opacity: 0.6;
+            display: none;
         }
 
-        /* 拖拽控制手柄（一条极细的灰色横线） */
         #dragHeader {
             height: 6px;
             background-color: #d2d0ce;
@@ -154,35 +639,26 @@
             width: 100%;
         }
 
-        #moyuVideo {
-            width: 100%;
-            height: calc(100% - 6px);
-            object-fit: contain;
-            background: black;
-            display: none;
-        }
-
-        #moyuIframe {
+        #moyuVideo, #moyuIframe {
             width: 100%;
             height: calc(100% - 6px);
             border: none;
             background: black;
             display: none;
         }
-
-        .hint {
-            color: #8a8886;
-            font-size: 8pt;
-        }
     </style>
 </head>
 <body>
 
-<!-- Excel 顶部 -->
+<!-- Excel 顶部 Header（文件名可直接编辑） -->
 <div class="excel-header">
-    <span>Excel - 2026年第二季度财务数据分析及预测表.xlsx</span>
-    <span style="font-size: 9pt; font-weight: normal;">👤 用户：管理员</span>
+    <div>
+        <span>Excel - </span>
+        <span class="file-title" id="fileName" contenteditable="true" title="点击可直接修改文件名">SKU-颜色尺码数据.xlsx</span>
+    </div>
+    <span style="font-size: 9pt; font-weight: normal;">👤 用户：数据分析师</span>
 </div>
+
 <div class="excel-menu">
     <span class="active">文件</span>
     <span>开始</span>
@@ -194,148 +670,337 @@
     <span>视图</span>
     <span>帮助</span>
 </div>
+
+<!-- 公式栏 & 名称框 -->
 <div class="formula-bar">
-    <span style="font-weight: bold; color: #107c41;">fx</span>
-    <div class="formula-box" id="formulaText">SUM(B4:B15)</div>
+    <div class="name-box" id="nameBox">A2</div>
+    <span style="font-weight: bold; color: #107c41; font-style: italic;">fx</span>
+    <input type="text" class="formula-input" id="formulaInput" placeholder="输入公式，如 =E3+E4 或 =100*5">
 </div>
 
-<!-- Excel 内容区 -->
+<!-- Excel 表格内容区 -->
 <div class="sheet-container">
-    <table>
-        <!-- 列宽调节 -->
+    <table id="excelTable">
         <colgroup>
             <col style="width: 40px;">
-            <col style="width: 130px;">
-            <col style="width: 250px;">
-            <col style="width: 70px;">
-            <col style="width: 130px;">
-            <col style="width: 140px;">
-            <col style="width: 220px;">
+            <col style="width: 110px;">
+            <col style="width: 180px;">
+            <col style="width: 100px;">
+            <col style="width: 120px;">
+            <col style="width: 120px;">
+            <col style="width: 80px;">
+            <col style="width: 120px;">
         </colgroup>
 
-        <!-- 表头 A B C D ... -->
+        <!-- 表头列标 A B C D E F G -->
         <tr>
             <th></th>
-            <th>A</th>
-            <th>B</th>
-            <th>C</th>
-            <th>D</th>
-            <th>E</th>
-            <th>F</th>
+            <th contenteditable="true">A</th>
+            <th contenteditable="true">B</th>
+            <th contenteditable="true">C</th>
+            <th contenteditable="true">D</th>
+            <th contenteditable="true">E</th>
+            <th contenteditable="true">F</th>
+            <th contenteditable="true">G</th>
         </tr>
 
-        <!-- 第二行：功能配置区（完美隐藏在Excel格式中） -->
+        <!-- 第1行：摸鱼控制区（伪装成接口参数） -->
         <tr class="control-panel">
             <td class="row-num">1</td>
-            <td class="control-label">在线数据(输入链接)</td>
-            <td>
-                <input type="text" id="onlineUrlInput" class="url-input" placeholder="输入B站链接、BV号 或 mp4地址...">
+            <td class="control-label">数据源地址</td>
+            <td colspan="2">
+                <input type="text" id="onlineUrlInput" class="url-input" placeholder="输入B站链接/BV号 或 视频直链...">
             </td>
             <td>
-                <button class="file-input-btn" onclick="loadOnlineVideo()">载入</button>
+                <button class="file-input-btn" onclick="loadOnlineVideo()">获取数据</button>
             </td>
-            <td class="control-label">混色系数 (透明度)</td>
-            <td>
-                <input type="range" id="opacitySlider" min="0.1" max="1.0" step="0.05" value="0.6" style="width:90%; vertical-align:middle;">
-            </td>
-            <td class="control-label" style="text-align:right;">窗口尺寸 (宽度)</td>
-            <td>
-                <input type="range" id="sizeSlider" min="180" max="800" value="280" style="width:90%; vertical-align:middle;">
-            </td>
+            <td class="control-label">透明度: <input type="range" id="opacitySlider" min="0.1" max="1.0" step="0.05" value="0.6" style="width:50px; vertical-align:middle;"></td>
+            <td class="control-label" colspan="2">窗口大小: <input type="range" id="sizeSlider" min="180" max="800" value="280" style="width:80px; vertical-align:middle;"></td>
         </tr>
 
-        <!-- 伪造的财务数据 -->
-        <tr>
+        <!-- 第2行：表头标题 -->
+        <tr style="font-weight: bold; background: #f3f2f1;">
             <td class="row-num">2</td>
-            <td style="font-weight: bold; background: #f3f2f1;">统计月份</td>
-            <td style="font-weight: bold; background: #f3f2f1;">销售总额 (RMB)</td>
-            <td style="font-weight: bold; background: #f3f2f1;">固定成本</td>
-            <td style="font-weight: bold; background: #f3f2f1;">变动成本</td>
-            <td style="font-weight: bold; background: #f3f2f1;">纯利润</td>
-            <td style="font-weight: bold; background: #f3f2f1;">备注说明</td>
+            <td contenteditable="true" data-coord="A2">SKU</td>
+            <td contenteditable="true" data-coord="B2">材质</td>
+            <td contenteditable="true" data-coord="C2">颜色</td>
+            <td contenteditable="true" data-coord="D2">颜色英文</td>
+            <td contenteditable="true" data-coord="E2">颜色销量</td>
+            <td contenteditable="true" data-coord="F2">尺码</td>
+            <td contenteditable="true" data-coord="G2">尺码销量</td>
         </tr>
+
+        <!-- 第3~11行：SKU 数据 -->
         <tr>
             <td class="row-num">3</td>
-            <td>2026年1月</td>
-            <td>1,245,800.00</td>
-            <td>320,000.00</td>
-            <td>450,000.00</td>
-            <td style="color: green;">475,800.00</td>
-            <td>按 [Esc] 键，视频立即静音并彻底隐藏</td>
+            <td contenteditable="true" data-coord="A3">EZtrd180</td>
+            <td contenteditable="true" data-coord="B3">瑞利世博绒-黑色2</td>
+            <td contenteditable="true" data-coord="C3">黑色</td>
+            <td contenteditable="true" data-coord="D3">Black</td>
+            <td contenteditable="true" data-coord="E3">106201</td>
+            <td contenteditable="true" data-coord="F3">M</td>
+            <td contenteditable="true" data-coord="G3">154786</td>
         </tr>
         <tr>
             <td class="row-num">4</td>
-            <td>2026年2月</td>
-            <td>980,500.00</td>
-            <td>320,000.00</td>
-            <td>380,000.00</td>
-            <td style="color: green;">280,500.00</td>
-            <td>双击表格空白处也可以一键瞬间关闭</td>
+            <td contenteditable="true" data-coord="A4">EZtrd180</td>
+            <td contenteditable="true" data-coord="B4">瑞利世博绒-灰色89</td>
+            <td contenteditable="true" data-coord="C4">灰色</td>
+            <td contenteditable="true" data-coord="D4">Grey</td>
+            <td contenteditable="true" data-coord="E4">89701</td>
+            <td contenteditable="true" data-coord="F4">S</td>
+            <td contenteditable="true" data-coord="G4">103414</td>
         </tr>
         <tr>
             <td class="row-num">5</td>
-            <td>2026年3月</td>
-            <td>1,560,000.00</td>
-            <td>325,000.00</td>
-            <td>510,000.00</td>
-            <td style="color: green;">725,000.00</td>
-            <td>春季促回暖明显，达到历史同期新高</td>
+            <td contenteditable="true" data-coord="A5">EZtrd180</td>
+            <td contenteditable="true" data-coord="B5">瑞利世博绒-咖啡灰100</td>
+            <td contenteditable="true" data-coord="C5">咖啡灰</td>
+            <td contenteditable="true" data-coord="D5">CoffeeGrey</td>
+            <td contenteditable="true" data-coord="E5">65470</td>
+            <td contenteditable="true" data-coord="F5">L</td>
+            <td contenteditable="true" data-coord="G5">97134</td>
         </tr>
         <tr>
             <td class="row-num">6</td>
-            <td>2026年4月</td>
-            <td>1,320,400.00</td>
-            <td>320,000.00</td>
-            <td>460,000.00</td>
-            <td style="color: green;">540,400.00</td>
-            <td>数据平稳过渡，各项指标处于正常区间</td>
+            <td contenteditable="true" data-coord="A6">EZtrd180</td>
+            <td contenteditable="true" data-coord="B6">瑞利世博绒-藏青69</td>
+            <td contenteditable="true" data-coord="C6">藏青色</td>
+            <td contenteditable="true" data-coord="D6">Navy</td>
+            <td contenteditable="true" data-coord="E6">30327</td>
+            <td contenteditable="true" data-coord="F6">XL</td>
+            <td contenteditable="true" data-coord="G6">52301</td>
         </tr>
         <tr>
             <td class="row-num">7</td>
-            <td>2026年5月（预测）</td>
-            <td>1,450,000.00</td>
-            <td>320,000.00</td>
-            <td>490,000.00</td>
-            <td style="color: green; font-weight: bold;">640,000.00</td>
-            <td>根据当前订单排期预测，维持稳步增长</td>
+            <td contenteditable="true" data-coord="A7">EZtrd180</td>
+            <td contenteditable="true" data-coord="B7">瑞利世博绒-粉色11</td>
+            <td contenteditable="true" data-coord="C7">粉色</td>
+            <td contenteditable="true" data-coord="D7">Pink</td>
+            <td contenteditable="true" data-coord="E7">18455</td>
+            <td contenteditable="true" data-coord="F7">XS</td>
+            <td contenteditable="true" data-coord="G7">24527</td>
         </tr>
         <tr>
             <td class="row-num">8</td>
-            <td>2026年6月（预测）</td>
-            <td>1,600,000.00</td>
-            <td>330,000.00</td>
-            <td>540,000.00</td>
-            <td style="color: green; font-weight: bold;">730,000.00</td>
-            <td>年中大促节点，预计有较大幅度爆发</td>
+            <td contenteditable="true" data-coord="A8">EZtrd180</td>
+            <td contenteditable="true" data-coord="B8">瑞利世博绒-天蓝色29</td>
+            <td contenteditable="true" data-coord="C8">天蓝色</td>
+            <td contenteditable="true" data-coord="D8">SkyBlue</td>
+            <td contenteditable="true" data-coord="E8">18112</td>
+            <td contenteditable="true" data-coord="F8">XXL</td>
+            <td contenteditable="true" data-coord="G8">12634</td>
         </tr>
-        <tr style="background: #e1dfdd; font-weight: bold;">
+        <tr>
             <td class="row-num">9</td>
-            <td>半年度汇总 (SUM)</td>
-            <td>8,156,700.00</td>
-            <td>1,935,000.00</td>
-            <td>2,830,000.00</td>
-            <td style="color: green;">3,391,700.00</td>
-            <td>整体运行健康，现金流充沛</td>
+            <td contenteditable="true" data-coord="A9">EZtrd180</td>
+            <td contenteditable="true" data-coord="B9">瑞利世博绒-灰蓝色92</td>
+            <td contenteditable="true" data-coord="C9">灰蓝</td>
+            <td contenteditable="true" data-coord="D9">DustyBlue</td>
+            <td contenteditable="true" data-coord="E9">17717</td>
+            <td contenteditable="true" data-coord="F9">XXXL</td>
+            <td contenteditable="true" data-coord="G9">7958</td>
         </tr>
-        <!-- 空白行填充 -->
-        <tr><td class="row-num">10</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr><td class="row-num">11</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr><td class="row-num">12</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr><td class="row-num">13</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-        <tr><td class="row-num">14</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr>
+            <td class="row-num">10</td>
+            <td contenteditable="true" data-coord="A10">EZtrd180</td>
+            <td contenteditable="true" data-coord="B10">瑞利世博绒-白色5</td>
+            <td contenteditable="true" data-coord="C10">白色</td>
+            <td contenteditable="true" data-coord="D10">White</td>
+            <td contenteditable="true" data-coord="E10">13442</td>
+            <td contenteditable="true" data-coord="F10">XXS</td>
+            <td contenteditable="true" data-coord="G10">4454</td>
+        </tr>
+        <tr>
+            <td class="row-num">11</td>
+            <td contenteditable="true" data-coord="A11">EZtrd180</td>
+            <td contenteditable="true" data-coord="B11">瑞利世博绒-咖啡58</td>
+            <td contenteditable="true" data-coord="C11">咖啡</td>
+            <td contenteditable="true" data-coord="D11">Coffee</td>
+            <td contenteditable="true" data-coord="E11">6675</td>
+            <td contenteditable="true" data-coord="F11">XXXXL</td>
+            <td contenteditable="true" data-coord="G11">4245</td>
+        </tr>
+
+        <!-- 第12行：汇总计算（使用公式自动加总） -->
+        <tr style="background: #e1dfdd; font-weight: bold;">
+            <td class="row-num">12</td>
+            <td contenteditable="true" data-coord="A12">合计 (SUM)</td>
+            <td contenteditable="true" data-coord="B12">---</td>
+            <td contenteditable="true" data-coord="C12">---</td>
+            <td contenteditable="true" data-coord="D12">总销量:</td>
+            <td contenteditable="true" data-coord="E12" data-formula="=E3+E4+E5+E6+E7+E8+E9+E10+E11" style="color:#107c41;"></td>
+            <td contenteditable="true" data-coord="F12">总销量:</td>
+            <td contenteditable="true" data-coord="G12" data-formula="=G3+G4+G5+G6+G7+G8+G9+G10+G11" style="color:#107c41;"></td>
+        </tr>
+
+        <!-- 13~20行：留空供扩充 -->
+        <!-- JS 动态补全留空行 -->
     </table>
 </div>
 
 <!-- 悬浮视频播放容器 -->
 <div id="videoContainer">
-    <div id="dragHeader" title="拖动这里移动位置"></div>
-    <!-- 播放普通网络视频直链 -->
+    <div id="dragHeader" title="拖动此线条移动位置"></div>
     <video id="moyuVideo" controls loop>您的浏览器不支持此视频格式。</video>
-    <!-- 增加 allow 参数授予声音播放、全屏等完整交互权限 -->
     <iframe id="moyuIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>
 </div>
 
 <script>
+    // --- 1. 动态补全空行 (13~20行) ---
+    const table = document.getElementById('excelTable');
+    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+    for (let r = 13; r <= 20; r++) {
+        let tr = document.createElement('tr');
+
+        let tdNum = document.createElement('td');
+        tdNum.className = 'row-num';
+        tdNum.innerText = r;
+        tdNum.contentEditable = true;
+        tr.appendChild(tdNum);
+
+        for (let c = 0; c < cols.length; c++) {
+            let td = document.createElement('td');
+            td.contentEditable = true;
+            td.dataset.coord = cols[c] + r;
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+
+    // --- 2. 修改文件名同步网页标题 ---
+    const fileNameEl = document.getElementById('fileName');
+    fileNameEl.addEventListener('input', function() {
+        document.title = "Excel - " + this.innerText.trim();
+    });
+
+    // --- 3. 单元格交互 & 公式计算引擎 ---
+    let activeCell = null;
+    const nameBox = document.getElementById('nameBox');
+    const formulaInput = document.getElementById('formulaInput');
+
+    table.addEventListener('click', function(e) {
+        let target = e.target;
+        if (target.tagName === 'TD' && target.dataset.coord) {
+            selectCell(target);
+        }
+    });
+
+    function selectCell(cell) {
+        if (activeCell && activeCell !== cell) {
+            activeCell.classList.remove('cell-active');
+            formatAndEvaluate(activeCell);
+        }
+
+        activeCell = cell;
+        activeCell.classList.add('cell-active');
+        nameBox.innerText = cell.dataset.coord;
+        formulaInput.value = cell.dataset.formula || cell.innerText;
+    }
+
+    formulaInput.addEventListener('input', function() {
+        if (activeCell) {
+            let val = this.value;
+            if (val.startsWith('=')) {
+                activeCell.dataset.formula = val;
+            } else {
+                delete activeCell.dataset.formula;
+                activeCell.innerText = val;
+            }
+            evaluateAllFormulas();
+        }
+    });
+
+    table.addEventListener('focusin', function(e) {
+        let cell = e.target;
+        if (cell.dataset && cell.dataset.formula) {
+            cell.innerText = cell.dataset.formula;
+        }
+    });
+
+    table.addEventListener('focusout', function(e) {
+        let cell = e.target;
+        if (cell.dataset && cell.dataset.coord) {
+            formatAndEvaluate(cell);
+        }
+    });
+
+    table.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (activeCell) {
+                let coord = activeCell.dataset.coord;
+                if (coord) {
+                    let col = coord[0];
+                    let row = parseInt(coord.substring(1)) + 1;
+                    let nextCell = document.querySelector(`[data-coord="${col}${row}"]`);
+                    if (nextCell) {
+                        nextCell.focus();
+                        selectCell(nextCell);
+                    }
+                }
+            }
+        }
+    });
+
+    function formatAndEvaluate(cell) {
+        let text = cell.innerText.trim();
+        if (text.startsWith('=')) {
+            cell.dataset.formula = text;
+        } else if (!cell.dataset.formula) {
+            delete cell.dataset.formula;
+        }
+        evaluateAllFormulas();
+    }
+
+    // 公式计算逻辑（支持加减乘除及跨单元格引用）
+    function evaluateAllFormulas() {
+        const allFormulaCells = document.querySelectorAll('td[data-formula]');
+
+        allFormulaCells.forEach(cell => {
+            let formula = cell.dataset.formula;
+            if (!formula || !formula.startsWith('=')) return;
+
+            let expr = formula.substring(1).toUpperCase();
+
+            // 替换 A3, E3 等坐标引用为具体数值
+            expr = expr.replace(/([A-G][0-9]+)/g, function(match) {
+                let refCell = document.querySelector(`[data-coord="${match}"]`);
+                if (refCell) {
+                    let refVal = refCell.dataset.val !== undefined ? refCell.dataset.val : refCell.innerText.trim();
+                    let num = parseFloat(refVal.toString().replace(/,/g, ''));
+                    return isNaN(num) ? 0 : num;
+                }
+                return 0;
+            });
+
+            if (/^[0-9. +\-*/()]+$/.test(expr)) {
+                try {
+                    let result = Function('"use strict"; return (' + expr + ')')();
+                    if (isNaN(result) || !isFinite(result)) {
+                        cell.innerText = '#ERROR!';
+                        cell.dataset.val = 0;
+                    } else {
+                        // 格式化输出带千位分隔符的数字
+                        cell.innerText = result.toLocaleString('en-US');
+                        cell.dataset.val = result;
+                    }
+                } catch (err) {
+                    cell.innerText = '#SYNTAX!';
+                    cell.dataset.val = 0;
+                }
+            } else {
+                cell.innerText = '#INVALID!';
+                cell.dataset.val = 0;
+            }
+        });
+    }
+
+    // 初始化计算第12行的汇总公式
+    evaluateAllFormulas();
+
+    // --- 4. 摸鱼视频控制逻辑 ---
     const container = document.getElementById('videoContainer');
     const header = document.getElementById('dragHeader');
     const video = document.getElementById('moyuVideo');
@@ -343,7 +1008,6 @@
     const opacitySlider = document.getElementById('opacitySlider');
     const sizeSlider = document.getElementById('sizeSlider');
 
-    // 1. 在线视频载入逻辑
     function loadOnlineVideo() {
         const inputVal = document.getElementById('onlineUrlInput').value.trim();
         if (!inputVal) {
@@ -355,18 +1019,14 @@
         const bvMatch = inputVal.match(bvRegex);
 
         if (bvMatch) {
-            // 切换至 iframe 模式，加载B站播放器
             const bvid = bvMatch[1];
             video.style.display = 'none';
             video.pause();
 
             iframe.style.display = 'block';
-
-            // 重要：由于浏览器限制，必须把 autoplay=0 (禁用自动播放)。这样加载出来后，你手动点一下视频播放，声音就100%可以正常播放。
             iframe.src = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&danmaku=0&autoplay=0`;
             container.style.display = 'block';
         } else if (inputVal.match(/\.(mp4|webm|ogg)($|\?)/i)) {
-            // 普通视频格式
             iframe.style.display = 'none';
             iframe.src = '';
 
@@ -375,7 +1035,6 @@
             video.play();
             container.style.display = 'block';
         } else {
-            // 普通网页
             video.style.display = 'none';
             video.pause();
 
@@ -385,49 +1044,32 @@
         }
     }
 
-    // 2. 透明度控制
-    opacitySlider.addEventListener('input', function() {
-        container.style.opacity = this.value;
-    });
-
-    // 3. 窗口尺寸拉伸（直接在Excel里控制，完美避免拖拽冲突）
+    opacitySlider.addEventListener('input', function() { container.style.opacity = this.value; });
     sizeSlider.addEventListener('input', function() {
         const width = parseInt(this.value);
-        // 按 16:9 比例计算高度，并加上顶部 6px 的拖拽条
-        const height = Math.round(width * 9 / 16) + 6;
-
         container.style.width = width + 'px';
-        container.style.height = height + 'px';
+        container.style.height = (Math.round(width * 9 / 16) + 6) + 'px';
     });
 
-    // 4. 拖拽逻辑 (拖动最上方细线移动，拖拽时暂时屏蔽 iframe 的鼠标拦截，保证拖拽流畅)
-    let isDragging = false;
-    let startX, startY, initialX, initialY;
-
+    let isDragging = false, startX, startY, initialX, initialY;
     header.addEventListener('mousedown', function(e) {
         isDragging = true;
-        iframe.style.pointerEvents = 'none'; // 防止鼠标移进 iframe 导致拖拽中断
-        startX = e.clientX;
-        startY = e.clientY;
-        initialX = container.offsetLeft;
-        initialY = container.offsetTop;
+        iframe.style.pointerEvents = 'none';
+        startX = e.clientX; startY = e.clientY;
+        initialX = container.offsetLeft; initialY = container.offsetTop;
         e.preventDefault();
     });
-
     document.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        container.style.left = (initialX + dx) + 'px';
-        container.style.top = (initialY + dy) + 'px';
+        container.style.left = (initialX + e.clientX - startX) + 'px';
+        container.style.top = (initialY + e.clientY - startY) + 'px';
     });
-
     document.addEventListener('mouseup', function() {
         isDragging = false;
-        iframe.style.pointerEvents = 'auto'; // 恢复 iframe 的交互
+        iframe.style.pointerEvents = 'auto';
     });
 
-    // 5. “老板键”瞬间隐藏逻辑
+    // 老板键
     function hideVideoInstant() {
         container.style.display = 'none';
         video.pause();
@@ -435,19 +1077,14 @@
         iframe.src = '';
     }
 
-    // 按 Esc 键触发
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            hideVideoInstant();
-        }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') hideVideoInstant(); });
+    document.addEventListener('dblclick', function(e) {
+        if (e.target !== video && e.target !== header && e.target !== iframe) hideVideoInstant();
     });
 
-    // 双击除小窗外的任意空白区域触发
-    document.addEventListener('dblclick', function(e) {
-        if (e.target !== video && e.target !== header && e.target !== iframe) {
-            hideVideoInstant();
-        }
-    });
+    // 默认选中 A2 单元格
+    const firstCell = document.querySelector('[data-coord="A2"]');
+    if (firstCell) selectCell(firstCell);
 </script>
 
 </body>
