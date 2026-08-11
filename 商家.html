@@ -24,11 +24,11 @@
             <div class="space-y-3 text-left">
                 <div>
                     <label class="block text-[11px] font-bold text-gray-600 mb-1">商家账号 (6位英数字)</label>
-                    <input id="login-shop-id" type="text" maxlength="6" placeholder="例如：123456" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50 uppercase">
+                    <input id="login-shop-id" type="text" maxlength="6" placeholder="例如：a1x8k9" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50 uppercase">
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-gray-600 mb-1">登录密码 (6位英数字)</label>
-                    <input id="login-shop-pwd" type="password" maxlength="6" placeholder="例如：123456" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50">
+                    <input id="login-shop-pwd" type="password" maxlength="6" placeholder="例如：m7p2q5" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50">
                 </div>
             </div>
 
@@ -37,7 +37,7 @@
             </button>
 
             <p class="text-[10px] text-gray-400 leading-relaxed pt-2 border-t">
-                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，未授权账号无法访问。
+                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，登录后将自动开启长久记住身份功能。
             </p>
         </div>
     </div>
@@ -47,7 +47,7 @@
         <!-- 顶部控制栏 -->
         <div class="bg-black text-white py-2.5 px-4 text-xs flex justify-between items-center z-30">
             <div class="flex items-center space-x-3">
-                <span class="bg-green-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">授权账号已验证</span>
+                <span class="bg-green-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">授权身份已记忆</span>
                 <span>当前店铺账号：<strong id="top-shop-id-display" class="text-yellow-400">未指定</strong></span>
                 <span id="data-source-tag" class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]">📡 正在拉取线上数据...</span>
             </div>
@@ -69,7 +69,7 @@
 
                 <div class="flex items-center space-x-6">
                     <button onclick="switchTab('products')" id="tab-btn-products" class="text-xs font-bold border-b-2 border-red-600 py-1 text-red-600">商品管理</button>
-                    <button onclick="switchTab('sales')" id="tab-btn-sales" class="text-xs font-bold text-gray-500 hover:text-red-600 py-1">销售记账与库存</button>
+                    <button onclick="switchTab('sales')" id="tab-btn-sales" class="text-xs font-bold text-gray-500 hover:text-red-600 py-1">出入库与销售明细</button>
                     <button onclick="syncToGitHub()" class="text-xs font-bold text-purple-700 hover:text-purple-900 transition flex items-center gap-1">
                         <span id="sync-status">🔄 同步数据到 GitHub</span>
                     </button>
@@ -94,16 +94,17 @@
                 <div id="admin-product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12"></div>
             </section>
 
-            <!-- Tab 2: 销售记账与库存 -->
+            <!-- Tab 2: 出入库记账与库存明细 -->
             <section id="section-sales" class="hidden space-y-8">
                 <div class="flex justify-between items-center border-b pb-4 border-gray-100">
                     <div>
-                        <h1 class="text-2xl font-light">销售记账 & 库存明细</h1>
-                        <p class="text-xs text-gray-500 mt-1">微信出货后在此手动登记，系统将自动扣减库存</p>
+                        <h1 class="text-2xl font-light">出入库明细 & 销售账单</h1>
+                        <p class="text-xs text-gray-500 mt-1">登记出货/补货将实时扣减或增加商品卡片库存，并自动存档至 GitHub</p>
                     </div>
-                    <div class="space-x-3">
-                        <button onclick="openRecordSaleModal()" class="bg-black text-white text-xs px-5 py-2.5 rounded font-medium hover:bg-gray-800 transition">+ 登记新出货</button>
-                        <button onclick="exportSalesToExcel()" class="bg-green-700 text-white text-xs px-5 py-2.5 rounded font-medium hover:bg-green-800 transition">📊 导出 Excel 报表</button>
+                    <div class="space-x-2 flex">
+                        <button onclick="openStockLogModal('出货')" class="bg-red-600 text-white text-xs px-4 py-2.5 rounded font-bold hover:bg-red-700 transition flex items-center gap-1">📤 登记出货 (-库存)</button>
+                        <button onclick="openStockLogModal('补货')" class="bg-emerald-600 text-white text-xs px-4 py-2.5 rounded font-bold hover:bg-emerald-700 transition flex items-center gap-1">📥 登记补货 (+库存)</button>
+                        <button onclick="exportSalesToExcel()" class="bg-green-700 text-white text-xs px-4 py-2.5 rounded font-bold hover:bg-green-800 transition">📊 导出 Excel 报表</button>
                     </div>
                 </div>
 
@@ -111,12 +112,14 @@
                     <table class="w-full text-left text-xs">
                         <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold">
                             <tr>
-                                <th class="p-3.5">销售时间</th>
-                                <th class="p-3.5">商品名称</th>
+                                <th class="p-3.5">类型</th>
+                                <th class="p-3.5">变动时间</th>
+                                <th class="p-3.5">商品图片</th>
+                                <th class="p-3.5">商品名称 & 编码</th>
                                 <th class="p-3.5">规格/款式/尺寸</th>
-                                <th class="p-3.5">成交金额 (￥)</th>
-                                <th class="p-3.5">卖出数量</th>
-                                <th class="p-3.5">扣减后剩余库存</th>
+                                <th class="p-3.5">变动数量</th>
+                                <th class="p-3.5">成交/进货金额 (￥)</th>
+                                <th class="p-3.5">变动后剩余库存</th>
                                 <th class="p-3.5">备注</th>
                                 <th class="p-3.5 text-right">操作</th>
                             </tr>
@@ -213,41 +216,62 @@
         </div>
     </div>
 
-    <!-- 登记出货 Modal -->
+    <!-- 📦 出入库登记 Modal -->
     <div id="record-sale-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full space-y-4">
-            <h3 class="text-sm font-bold border-b pb-2 text-gray-800">登记微信成交出货</h3>
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="stock-modal-title" class="text-sm font-bold text-gray-800">登记出入库变动</h3>
+                <div class="flex bg-gray-100 p-1 rounded">
+                    <button id="type-btn-sale" onclick="setStockModalType('出货')" class="text-xs px-3 py-1 rounded font-bold transition bg-red-600 text-white">📤 登记出货</button>
+                    <button id="type-btn-restock" onclick="setStockModalType('补货')" class="text-xs px-3 py-1 rounded font-bold transition text-gray-600">📥 登记补货</button>
+                </div>
+            </div>
+
             <div>
-                <label class="block text-xs font-medium text-gray-600">选择卖出的商品</label>
-                <select id="sale-product-select" class="w-full border p-2 text-xs rounded mt-1 bg-white" onchange="onSaleProductChange()"></select>
+                <label class="block text-xs font-bold text-gray-700 mb-1">选择目标商品（支持输入名称或 ID 搜索）</label>
+                <input id="stock-search-input" type="text" oninput="filterStockProductPicker()" placeholder="🔍 输入商品名称或编号/ID 搜索..." class="w-full border p-2 text-xs rounded bg-gray-50 mb-2 border-gray-300">
+
+                <div id="stock-product-picker-list" class="max-h-48 overflow-y-auto space-y-2 border p-2 rounded bg-gray-50"></div>
             </div>
+
+            <div id="selected-product-preview" class="hidden bg-red-50 border border-red-200 p-2.5 rounded flex items-center gap-3">
+                <img id="selected-p-img" src="" class="w-12 h-12 object-cover rounded bg-white border">
+                <div class="text-xs flex-grow">
+                    <div id="selected-p-title" class="font-bold text-gray-800">商品名称</div>
+                    <div class="text-gray-500 mt-0.5">编码: <span id="selected-p-id" class="font-bold text-purple-700">#0</span> | 当前总库存: <b id="selected-p-stock" class="text-red-600">0</b> 件</div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600">款式/颜色 (选填)</label>
-                    <input id="sale-color-input" type="text" placeholder="例如：黑色" class="w-full border p-2 text-xs rounded mt-1">
+                    <label class="block text-xs font-medium text-gray-600">选择/填写款式颜色</label>
+                    <select id="sale-color-select" class="w-full border p-2 text-xs rounded mt-1 bg-white"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600">尺寸/规格 (选填)</label>
-                    <input id="sale-size-input" type="text" placeholder="例如：通用" class="w-full border p-2 text-xs rounded mt-1">
+                    <label class="block text-xs font-medium text-gray-600">选择/填写尺寸规格</label>
+                    <select id="sale-size-select" class="w-full border p-2 text-xs rounded mt-1 bg-white"></select>
                 </div>
             </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600">成交金额 (￥)</label>
+                    <label id="label-amount-title" class="block text-xs font-medium text-gray-600">成交总额 (￥)</label>
                     <input id="sale-amount-input" type="number" class="w-full border p-2 text-xs rounded mt-1 font-bold text-red-600">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600">卖出数量 (件)</label>
+                    <label id="label-qty-title" class="block text-xs font-medium text-gray-600">变动数量 (件)</label>
                     <input id="sale-qty-input" type="number" value="1" min="1" class="w-full border p-2 text-xs rounded mt-1 font-bold">
                 </div>
             </div>
+
             <div>
                 <label class="block text-xs font-medium text-gray-600">备注信息 (选填)</label>
-                <input id="sale-note-input" type="text" placeholder="客户微信名 / 快递单号" class="w-full border p-2 text-xs rounded mt-1">
+                <input id="sale-note-input" type="text" placeholder="客户微信名 / 供应商 / 快递单号" class="w-full border p-2 text-xs rounded mt-1">
             </div>
-            <div class="flex justify-end space-x-2 pt-4 border-t">
+
+            <div class="flex justify-end space-x-2 pt-3 border-t">
                 <button onclick="closeRecordSaleModal()" class="px-4 py-2 text-xs bg-gray-100 rounded text-gray-600">取消</button>
-                <button onclick="confirmRecordSale()" class="px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700">确认扣减库存</button>
+                <button id="stock-confirm-btn" onclick="confirmRecordStockLog()" class="px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700">确认扣减库存</button>
             </div>
         </div>
     </div>
@@ -309,14 +333,37 @@
         let products = [];
         let salesHistory = [];
         let currentlyEditingId = null;
+
+        let currentStockModalType = "出货";
+        let selectedProductForLog = null;
+
         const GITHUB_API = "https://api.github.com";
+
+        // 原生标准 UTF-8 Base64 编解码器（完美支持中文与 Emoji，彻底解决乱码）
+        function encodeUtf8Base64(str) {
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function decodeUtf8Base64(base64Str) {
+            const cleanBase64 = base64Str.replace(/\s/g, '');
+            const binaryStr = atob(cleanBase64);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            return new TextDecoder().decode(bytes);
+        }
 
         function getShopIdFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('shop') || urlParams.get('shopId') || "";
         }
 
-        // 1. 从 GitHub 调取 100 个预置账号清单 accounts.json
         async function fetchAccountsFromGitHub() {
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${defaultConfig.github.repo}/${defaultConfig.github.branch}/stores/accounts.json?t=${Date.now()}`);
@@ -325,44 +372,90 @@
             return null;
         }
 
-        // 2.【核心修复】：与游客端 100% 对齐，直接通过 Raw 链接获取 GitHub 线上最真实的商品列表
+        // 1.【核心解决刷新变旧数据问题】：配置 Token 后，优先通过 GitHub REST API 直连（0秒延迟，穿透 CDN 缓存）
         async function fetchMerchantDataFromGitHub(shopId) {
             if (!shopId) return false;
             try {
+                if (appConfig.github.token) {
+                    const token = appConfig.github.token.trim();
+                    const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+                    const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}&t=${Date.now()}`;
+                    const res = await fetch(apiUrl, {
+                        headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' },
+                        cache: 'no-store'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const jsonStr = decodeUtf8Base64(data.content);
+                        const cloudProducts = JSON.parse(jsonStr);
+                        if (Array.isArray(cloudProducts)) {
+                            products = cloudProducts;
+                            return true;
+                        }
+                    }
+                }
+
+                // 未填 Token 时回退只读 Fetch (带 no-store)
                 const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/products.json?t=${Date.now()}`;
-                const res = await fetch(rawUrl);
+                const res = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
                 if (res.ok) {
                     const cloudProducts = await res.json();
                     if (Array.isArray(cloudProducts)) {
                         products = cloudProducts;
-                        saveLocalData();
                         return true;
                     }
                 }
-            } catch (e) {
-                console.error("无法加载线上数据:", e);
-            }
+            } catch (e) {}
             return false;
         }
 
-        /* 🔒 登录验证 */
+        // 2.【核心解决刷新变旧数据问题】：通过 REST API 抓取账单
+        async function fetchSalesDataFromGitHub(shopId) {
+            if (!shopId) return false;
+            try {
+                if (appConfig.github.token) {
+                    const token = appConfig.github.token.trim();
+                    const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+                    const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/sales.json?ref=${appConfig.github.branch}&t=${Date.now()}`;
+                    const res = await fetch(apiUrl, {
+                        headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' },
+                        cache: 'no-store'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const jsonStr = decodeUtf8Base64(data.content);
+                        const cloudSales = JSON.parse(jsonStr);
+                        if (Array.isArray(cloudSales)) {
+                            salesHistory = cloudSales;
+                            return true;
+                        }
+                    }
+                }
+
+                const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/sales.json?t=${Date.now()}`;
+                const res = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+                if (res.ok) {
+                    const cloudSales = await res.json();
+                    if (Array.isArray(cloudSales)) {
+                        salesHistory = cloudSales;
+                        return true;
+                    }
+                }
+            } catch (e) {}
+            return false;
+        }
+
         async function handleShopLogin() {
             const inputShopId = document.getElementById('login-shop-id').value.trim().toLowerCase();
             const inputPwd = document.getElementById('login-shop-pwd').value.trim();
 
-            if (!inputShopId || !inputPwd) {
-                alert("请输入账号和密码！");
-                return;
-            }
+            if (!inputShopId || !inputPwd) return alert("请输入账号和密码！");
 
             document.getElementById('login-btn-text').innerText = '⏳ 正在验证授权账号...';
             const validAccounts = await fetchAccountsFromGitHub();
             document.getElementById('login-btn-text').innerText = '🔐 验证账号并解锁后台';
 
-            if (!validAccounts) {
-                alert("⚠️ 无法调取账号清单，请确认已在 GitHub 仓库上传 stores/accounts.json 文件！");
-                return;
-            }
+            if (!validAccounts) return alert("⚠️ 无法调取账号清单，请确认已在 GitHub 上传 stores/accounts.json！");
 
             if (validAccounts[inputShopId] && validAccounts[inputShopId] === inputPwd) {
                 appConfig.shopId = inputShopId;
@@ -373,6 +466,9 @@
         }
 
         function loginSuccess(shopId, pwd) {
+            // 【记住登录身份】：同时持久化记录到 localStorage，刷新或重新打开页面免重复登录
+            localStorage.setItem('sora_active_shop_id', shopId);
+            localStorage.setItem('sora_active_shop_pwd', pwd);
             sessionStorage.setItem('active_shop_id', shopId);
             sessionStorage.setItem('active_shop_pwd', pwd);
 
@@ -381,13 +477,13 @@
             document.getElementById('main-admin-layout').classList.add('flex');
 
             document.getElementById('top-shop-id-display').innerText = shopId;
-
             loadShopData(shopId);
         }
 
-        /* 🚪 退出登录 */
         function logoutAdmin() {
-            if (confirm("确定要退出登录吗？")) {
+            if (confirm("确定要退出登录吗？退出后将清除本机的记住登录状态。")) {
+                localStorage.removeItem('sora_active_shop_id');
+                localStorage.removeItem('sora_active_shop_pwd');
                 sessionStorage.clear();
                 products = [];
                 salesHistory = [];
@@ -396,37 +492,38 @@
             }
         }
 
-        /*【核心修复】：数据加载流程重新编排，确保线上数据优先 */
         async function loadShopData(shopId) {
             const tag = document.getElementById('data-source-tag');
-            tag.innerText = "📡 正在同步线上最新数据...";
+            tag.innerText = "📡 正在同步云端商品与出入库账单...";
             tag.className = "bg-yellow-800 text-yellow-200 px-2 py-0.5 rounded text-[10px]";
 
-            // 第一优先级：尝试抓取 GitHub 线上真实的商品数据（和游客看到的一模一样）
-            const fetchedFromCloud = await fetchMerchantDataFromGitHub(shopId);
-
-            if (fetchedFromCloud) {
-                tag.innerText = "📡 已加载 GitHub 线上真实数据";
-                tag.className = "bg-green-800 text-green-200 px-2 py-0.5 rounded text-[10px]";
-            } else {
-                // 第二优先级：云端若没有文件（比如从未同步过的全新店铺），尝试读取本地暂存
-                const localProducts = localStorage.getItem(`sora_products_${shopId}`);
-                if (localProducts) {
-                    try { products = JSON.parse(localProducts); } catch(e) { products = []; }
-                    tag.innerText = "💾 线上无数据，当前为本地暂存草稿";
-                    tag.className = "bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]";
-                } else {
-                    // 全新店铺：初始化为空，不再强行插入没关系的服装和小夜灯测试数据！
-                    products = [];
-                    tag.innerText = "✨ 新店铺 (暂无商品，请点击右上角发布)";
-                    tag.className = "bg-blue-800 text-blue-200 px-2 py-0.5 rounded text-[10px]";
-                }
+            const globalToken = localStorage.getItem('sora_global_github_token');
+            if (globalToken && !appConfig.github.token) {
+                appConfig.github.token = globalToken;
             }
 
-            const localSales = localStorage.getItem(`sora_sales_${shopId}`);
-            salesHistory = localSales ? JSON.parse(localSales) : [];
+            const [fetchedProducts, fetchedSales] = await Promise.all([
+                fetchMerchantDataFromGitHub(shopId),
+                fetchSalesDataFromGitHub(shopId)
+            ]);
+
+            if (fetchedProducts || fetchedSales) {
+                saveLocalData();
+                tag.innerText = "📡 已成功加载 GitHub 线上最新商品与账单";
+                tag.className = "bg-green-800 text-green-200 px-2 py-0.5 rounded text-[10px]";
+            } else {
+                const localProducts = localStorage.getItem(`sora_products_${shopId}`);
+                products = localProducts ? JSON.parse(localProducts) : [];
+
+                const localSales = localStorage.getItem(`sora_sales_${shopId}`);
+                salesHistory = localSales ? JSON.parse(localSales) : [];
+
+                tag.innerText = "💾 读取本地暂存草稿";
+                tag.className = "bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]";
+            }
 
             renderAdminProducts();
+            renderSalesTable();
             syncConfigFields();
         }
 
@@ -441,6 +538,9 @@
                 localStorage.setItem(`sora_config_${appConfig.shopId}`, JSON.stringify(appConfig));
                 localStorage.setItem(`sora_products_${appConfig.shopId}`, JSON.stringify(products));
                 localStorage.setItem(`sora_sales_${appConfig.shopId}`, JSON.stringify(salesHistory));
+                if (appConfig.github.token) {
+                    localStorage.setItem('sora_global_github_token', appConfig.github.token);
+                }
             }
         }
 
@@ -563,6 +663,9 @@
                         <img src="${defaultImg}" class="absolute inset-0 w-full h-full object-cover">
                     </div>
                     <div class="space-y-1">
+                        <div class="flex justify-between items-center text-[10px] text-purple-700 font-bold">
+                            <span>编码: #${p.id}</span>
+                        </div>
                         <h3 class="font-bold text-xs text-gray-800 line-clamp-1">${p.title}</h3>
                         <div class="flex justify-between items-center pt-1">
                             <p class="text-red-600 font-bold text-xs">￥${p.price.toFixed(2)}</p>
@@ -591,7 +694,7 @@
                 document.getElementById('edit-img4').value = '';
                 document.getElementById('edit-desc').value = '';
             } else {
-                const p = products.find(prod => prod.id === id);
+                const p = products.find(prod => String(prod.id) === String(id));
                 if (!p) return;
 
                 document.getElementById('edit-title').value = p.title;
@@ -630,7 +733,7 @@
             list.appendChild(row);
         }
 
-        function saveProductEdits() {
+        async function saveProductEdits() {
             const title = document.getElementById('edit-title').value.trim();
             const price = parseFloat(document.getElementById('edit-price').value);
             const stock = parseInt(document.getElementById('edit-stock').value) || 0;
@@ -656,102 +759,233 @@
                 if (name) colors.push({ hex, name, img });
             });
 
+            const productId = currentlyEditingId === null ? Math.floor(1000 + Math.random() * 9000) : currentlyEditingId;
+
             const productData = {
-                id: currentlyEditingId === null ? Date.now() : currentlyEditingId,
+                id: productId,
                 title, price, stock, img1, img2, img3, img4, desc, colors, sizes
             };
 
             if (currentlyEditingId === null) {
                 products.unshift(productData);
             } else {
-                const idx = products.findIndex(p => p.id === currentlyEditingId);
+                const idx = products.findIndex(p => String(p.id) === String(currentlyEditingId));
                 if (idx !== -1) products[idx] = productData;
             }
 
             saveLocalData();
             closeEditModal();
             renderAdminProducts();
-            showToast('保存成功！记得点击【同步数据到 GitHub】');
+
+            if (appConfig.github.token) {
+                showToast(`正在将商品资料同步更新至 GitHub...`);
+                await syncToGitHub();
+            } else {
+                showToast('保存成功！记得配置 GitHub Token 以同步至云端。');
+            }
         }
 
         function deleteProduct(event, id) {
             event.stopPropagation();
             if (confirm('确定要删除此商品吗？')) {
-                products = products.filter(p => p.id !== id);
+                products = products.filter(p => String(p.id) !== String(id));
                 saveLocalData();
                 renderAdminProducts();
+                syncToGitHub();
             }
         }
 
-        /* 出货记账 */
-        function openRecordSaleModal() {
-            const select = document.getElementById('sale-product-select');
-            select.innerHTML = '';
-            products.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.innerText = `${p.title} (库存: ${p.stock ?? 0}件)`;
-                select.appendChild(opt);
-            });
-            onSaleProductChange();
+        /* 📦 出入库登记与商品选择 */
+        function openStockLogModal(type = "出货") {
+            if (products.length === 0) {
+                alert("当前店铺暂无商品，请先添加发布商品！");
+                return;
+            }
+            setStockModalType(type);
+            document.getElementById('stock-search-input').value = '';
+            filterStockProductPicker();
+
+            selectProductForStockLog(products[0].id);
             document.getElementById('record-sale-modal').classList.remove('hidden');
+        }
+
+        function setStockModalType(type) {
+            currentStockModalType = type;
+            const title = document.getElementById('stock-modal-title');
+            const btnSale = document.getElementById('type-btn-sale');
+            const btnRestock = document.getElementById('type-btn-restock');
+            const confirmBtn = document.getElementById('stock-confirm-btn');
+            const labelAmount = document.getElementById('label-amount-title');
+
+            if (type === "出货") {
+                title.innerText = "登记微信成交出货 (扣减库存)";
+                btnSale.className = "text-xs px-3 py-1 rounded font-bold transition bg-red-600 text-white";
+                btnRestock.className = "text-xs px-3 py-1 rounded font-bold transition text-gray-600 hover:bg-gray-200";
+                confirmBtn.innerText = "确认出货扣减库存";
+                confirmBtn.className = "px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700";
+                labelAmount.innerText = "成交总实付金额 (￥)";
+            } else {
+                title.innerText = "登记进货补货 (增加库存)";
+                btnRestock.className = "text-xs px-3 py-1 rounded font-bold transition bg-emerald-600 text-white";
+                btnSale.className = "text-xs px-3 py-1 rounded font-bold transition text-gray-600 hover:bg-gray-200";
+                confirmBtn.innerText = "确认补货增加库存";
+                confirmBtn.className = "px-5 py-2 text-xs bg-emerald-600 text-white rounded font-bold hover:bg-emerald-700";
+                labelAmount.innerText = "补货进货总成本 (￥)";
+            }
+        }
+
+        function filterStockProductPicker() {
+            const keyword = document.getElementById('stock-search-input').value.trim().toLowerCase();
+            const pickerList = document.getElementById('stock-product-picker-list');
+            pickerList.innerHTML = '';
+
+            const filtered = products.filter(p =>
+                p.title.toLowerCase().includes(keyword) ||
+                String(p.id).includes(keyword)
+            );
+
+            if (filtered.length === 0) {
+                pickerList.innerHTML = `<div class="text-center py-4 text-xs text-gray-400">未找到匹配商品</div>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const img = p.img1 || 'https://via.placeholder.com/100?text=No+Img';
+                const isSelected = selectedProductForLog && String(selectedProductForLog.id) === String(p.id);
+
+                const item = document.createElement('div');
+                item.className = `flex items-center gap-3 p-2 rounded cursor-pointer border transition ${isSelected ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-gray-400 bg-white'}`;
+                item.onclick = () => selectProductForStockLog(p.id);
+
+                item.innerHTML = `
+                    <img src="${img}" class="w-10 h-10 object-cover rounded flex-shrink-0 border bg-gray-100">
+                    <div class="flex-grow min-w-0 text-xs">
+                        <div class="font-bold text-gray-800 truncate">${p.title}</div>
+                        <div class="text-[10px] text-gray-500 mt-0.5">
+                            编码: <span class="font-bold text-purple-700">#${p.id}</span> | 售价: ￥${p.price} | 当前库存: <b class="${p.stock > 0 ? 'text-green-600' : 'text-red-600'}">${p.stock ?? 0}</b> 件
+                        </div>
+                    </div>
+                `;
+                pickerList.appendChild(item);
+            });
+        }
+
+        function selectProductForStockLog(pId) {
+            const p = products.find(prod => String(prod.id) === String(pId));
+            if (!p) return;
+
+            selectedProductForLog = p;
+            filterStockProductPicker();
+
+            document.getElementById('selected-product-preview').classList.remove('hidden');
+            document.getElementById('selected-p-img').src = p.img1 || 'https://via.placeholder.com/100?text=No+Img';
+            document.getElementById('selected-p-title').innerText = p.title;
+            document.getElementById('selected-p-id').innerText = `#${p.id}`;
+            document.getElementById('selected-p-stock').innerText = p.stock ?? 0;
+
+            document.getElementById('sale-amount-input').value = p.price;
+
+            const colorSelect = document.getElementById('sale-color-select');
+            colorSelect.innerHTML = '<option value="默认">默认/无特定颜色</option>';
+            if (p.colors && p.colors.length > 0) {
+                p.colors.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.name;
+                    opt.innerText = c.name;
+                    colorSelect.appendChild(opt);
+                });
+            }
+
+            const sizeSelect = document.getElementById('sale-size-select');
+            sizeSelect.innerHTML = '<option value="通用">通用/均码</option>';
+            if (p.sizes && p.sizes.length > 0) {
+                p.sizes.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.innerText = s;
+                    sizeSelect.appendChild(opt);
+                });
+            }
         }
 
         function closeRecordSaleModal() { document.getElementById('record-sale-modal').classList.add('hidden'); }
 
-        function onSaleProductChange() {
-            const pId = parseInt(document.getElementById('sale-product-select').value);
-            const p = products.find(prod => prod.id === pId);
-            if (p) document.getElementById('sale-amount-input').value = p.price;
-        }
+        async function confirmRecordStockLog() {
+            if (!selectedProductForLog) return alert("请先选择要记录的商品！");
 
-        function confirmRecordSale() {
-            const pId = parseInt(document.getElementById('sale-product-select').value);
-            const p = products.find(prod => prod.id === pId);
-            if (!p) return;
+            const p = products.find(prod => String(prod.id) === String(selectedProductForLog.id));
+            if (!p) return alert("找不到对应商品！");
 
             const qty = parseInt(document.getElementById('sale-qty-input').value) || 1;
             const amount = parseFloat(document.getElementById('sale-amount-input').value) || 0;
-            const color = document.getElementById('sale-color-input').value.trim() || '默认规格';
-            const size = document.getElementById('sale-size-input').value.trim() || '通用';
+            const color = document.getElementById('sale-color-select').value || '默认';
+            const size = document.getElementById('sale-size-select').value || '通用';
             const note = document.getElementById('sale-note-input').value.trim();
 
-            p.stock = (p.stock ?? 0) - qty;
-            if (p.stock < 0) p.stock = 0;
+            if (currentStockModalType === "出货") {
+                p.stock = (p.stock ?? 0) - qty;
+                if (p.stock < 0) p.stock = 0;
+            } else {
+                p.stock = (p.stock ?? 0) + qty;
+            }
 
-            salesHistory.unshift({
+            const record = {
                 id: Date.now(),
+                type: currentStockModalType,
                 time: new Date().toLocaleString('zh-CN'),
                 productId: p.id,
                 productTitle: p.title,
+                productImg: p.img1 || 'https://via.placeholder.com/100?text=No+Img',
                 color, size, amount, qty,
                 remainingStock: p.stock,
                 note
-            });
+            };
+
+            salesHistory.unshift(record);
 
             saveLocalData();
             closeRecordSaleModal();
             renderSalesTable();
             renderAdminProducts();
-            showToast('记账成功，已扣减库存！');
+
+            if (appConfig.github.token) {
+                showToast(`正在自动同步【最新库存与账单】到 GitHub...`);
+                await syncToGitHub();
+            } else {
+                showToast(`⚠️ ${currentStockModalType}记账成功！商品卡片库存已更新 (未配置 Token，尚未同步云端)`);
+            }
         }
 
         function renderSalesTable() {
             const tbody = document.getElementById('sales-table-body');
             tbody.innerHTML = '';
             if (salesHistory.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无出货记录</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-gray-400">暂无出入库记录</td></tr>`;
                 return;
             }
             salesHistory.forEach((item) => {
                 const tr = document.createElement('tr');
+                const isSale = (item.type || '出货') === '出货';
+                const typeBadge = isSale ?
+                    `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">出货</span>` :
+                    `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">补货</span>`;
+
+                const qtyDisplay = isSale ? `<b class="text-red-600">-${item.qty} 件</b>` : `<b class="text-emerald-600">+${item.qty} 件</b>`;
+
                 tr.innerHTML = `
+                    <td class="p-3.5">${typeBadge}</td>
                     <td class="p-3.5 text-gray-500">${item.time}</td>
-                    <td class="p-3.5 font-bold text-gray-800">${item.productTitle}</td>
+                    <td class="p-3.5">
+                        <img src="${item.productImg || 'https://via.placeholder.com/100'}" class="w-10 h-10 object-cover rounded border bg-gray-100">
+                    </td>
+                    <td class="p-3.5">
+                        <div class="font-bold text-gray-800">${item.productTitle}</div>
+                        <div class="text-[10px] text-purple-700 font-bold">编码: #${item.productId || '-'}</div>
+                    </td>
                     <td class="p-3.5">${item.color} / ${item.size}</td>
-                    <td class="p-3.5 text-red-600 font-bold">￥${item.amount.toFixed(2)}</td>
-                    <td class="p-3.5 font-bold">${item.qty} 件</td>
-                    <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">${item.remainingStock} 件</span></td>
+                    <td class="p-3.5">${qtyDisplay}</td>
+                    <td class="p-3.5 font-bold">￥${(item.amount || 0).toFixed(2)}</td>
+                    <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-bold">${item.remainingStock} 件</span></td>
                     <td class="p-3.5 text-gray-400">${item.note || '-'}</td>
                     <td class="p-3.5 text-right"><button onclick="deleteSaleRecord(${item.id})" class="text-red-500 hover:underline">删除</button></td>
                 `;
@@ -760,29 +994,48 @@
         }
 
         function deleteSaleRecord(id) {
-            if (confirm('确定删除此记录？')) {
+            const record = salesHistory.find(s => s.id === id);
+            if (!record) return;
+
+            const isSale = (record.type || '出货') === '出货';
+            const actionText = isSale ? '出货' : '补货';
+
+            if (confirm(`确定删除此条${actionText}记录？\n删除后系统将自动撤销恢复对应的库存变动！`)) {
+                const p = products.find(prod => String(prod.id) === String(record.productId));
+                if (p) {
+                    if (isSale) {
+                        p.stock = (p.stock ?? 0) + record.qty;
+                    } else {
+                        p.stock = Math.max(0, (p.stock ?? 0) - record.qty);
+                    }
+                }
+
                 salesHistory = salesHistory.filter(s => s.id !== id);
                 saveLocalData();
                 renderSalesTable();
+                renderAdminProducts();
+                syncToGitHub();
             }
         }
 
         function exportSalesToExcel() {
-            if (salesHistory.length === 0) return showToast('暂无销售数据可导出', false);
+            if (salesHistory.length === 0) return showToast('暂无记录可导出', false);
             const excelData = salesHistory.map(item => ({
-                "销售时间": item.time,
+                "类型": item.type || "出货",
+                "变动时间": item.time,
+                "商品ID编码": item.productId || "",
                 "商品名称": item.productTitle,
                 "规格/颜色": item.color,
                 "尺寸": item.size,
-                "成交总价(元)": item.amount,
-                "数量": item.qty,
-                "扣减后剩余库存": item.remainingStock,
+                "变动数量": (item.type || '出货') === '出货' ? -item.qty : item.qty,
+                "金额(元)": item.amount,
+                "变动后剩余库存": item.remainingStock,
                 "备注信息": item.note || ""
             }));
             const worksheet = XLSX.utils.json_to_sheet(excelData);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "销售账单");
-            XLSX.writeFile(workbook, `商家_${appConfig.shopId}_销售账本_${new Date().toISOString().slice(0,10)}.xlsx`);
+            XLSX.utils.book_append_sheet(workbook, worksheet, "出入库明细");
+            XLSX.writeFile(workbook, `商家_${appConfig.shopId}_出入库明细账本_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         /* 设置 */
@@ -815,34 +1068,82 @@
             showToast('店铺资料保存成功！');
         }
 
-        /* 云端同步 */
+        /* 3.【彻底解决 409 冲突与 5 分钟缓存问题】：优先用 GitHub REST API 抓取与提交 */
         async function syncToGitHub() {
-            if (!appConfig.github.token) return showToast('请先在【设置】中配置 GitHub Token！', false);
+            if (!appConfig.github.token) {
+                showToast('未配置 GitHub Token，仅本地生效！', false);
+                return false;
+            }
             document.getElementById('sync-status').innerText = '⏳ 同步中...';
 
             const p1 = pushToGitHub(`stores/${appConfig.shopId}/products.json`, JSON.stringify(products, null, 2));
             const p2 = pushToGitHub(`stores/${appConfig.shopId}/sales.json`, JSON.stringify(salesHistory, null, 2));
             const results = await Promise.all([p1, p2]);
 
-            showToast(results[0] && results[1] ? `✅ 已成功同步数据到云端目录 stores/${appConfig.shopId}/` : '❌ 同步失败，请检查 Token', results[0] && results[1]);
+            const isOk = results[0] && results[1];
+            showToast(isOk ? `✅ 已成功同步商品与账单到 GitHub` : '❌ 同步失败，请检查 Token', isOk);
             document.getElementById('sync-status').innerText = '🔄 同步数据到 GitHub';
+            return isOk;
         }
 
         async function pushToGitHub(path, content) {
+            if (!appConfig.github.token) return false;
+
             const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;
-            const headers = { 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json', 'Authorization': `token ${appConfig.github.token}` };
-            const body = { message: "Update Shop Data", content: btoa(unescape(encodeURIComponent(content))), branch: appConfig.github.branch };
+            const token = appConfig.github.token.trim();
+            const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+
+            const headers = {
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+                'Authorization': authHeader
+            };
+
+            const base64Content = encodeUtf8Base64(content);
+
+            const body = {
+                message: "Update Shop Data",
+                content: base64Content,
+                branch: appConfig.github.branch
+            };
+
             try {
-                const checkRes = await fetch(`${url}?ref=${appConfig.github.branch}`, { headers });
-                if (checkRes.ok) body.sha = (await checkRes.json()).sha;
-                const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
-                return response.ok;
-            } catch (e) { return false; }
+                // cache: 'no-store' 穿透缓存获取最新的 SHA 校验码
+                const checkRes = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, {
+                    headers,
+                    cache: 'no-store'
+                });
+
+                if (checkRes.ok) {
+                    const data = await checkRes.json();
+                    body.sha = data.sha;
+                }
+
+                const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+
+                if (res.ok) return true;
+
+                // 409 Conflict 冲突自动重试机制
+                if (res.status === 409) {
+                    console.warn("409 Conflict，重新拉取最新 SHA 校验码重试中...");
+                    const retryCheck = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, { headers, cache: 'no-store' });
+                    if (retryCheck.ok) {
+                        const freshData = await retryCheck.json();
+                        body.sha = freshData.sha;
+                        const retryRes = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+                        return retryRes.ok;
+                    }
+                }
+                return false;
+            } catch (e) {
+                console.error("pushToGitHub 异常:", e);
+                return false;
+            }
         }
 
         window.onload = function() {
-            const activeId = sessionStorage.getItem('active_shop_id');
-            const activePwd = sessionStorage.getItem('active_shop_pwd');
+            const activeId = localStorage.getItem('sora_active_shop_id') || sessionStorage.getItem('active_shop_id');
+            const activePwd = localStorage.getItem('sora_active_shop_pwd') || sessionStorage.getItem('active_shop_pwd');
 
             if (activeId && activePwd) {
                 document.getElementById('login-shop-id').value = activeId;
@@ -858,7 +1159,6 @@
     </script>
 </body>
 </html>
-
 
 
 
@@ -901,7 +1201,7 @@
 <!--            </button>-->
 
 <!--            <p class="text-[10px] text-gray-400 leading-relaxed pt-2 border-t">-->
-<!--                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，未授权账号无法访问。-->
+<!--                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，登录后将自动开启长久记住身份功能。-->
 <!--            </p>-->
 <!--        </div>-->
 <!--    </div>-->
@@ -910,9 +1210,10 @@
 <!--    <div id="main-admin-layout" class="hidden flex-col flex-grow">-->
 <!--        &lt;!&ndash; 顶部控制栏 &ndash;&gt;-->
 <!--        <div class="bg-black text-white py-2.5 px-4 text-xs flex justify-between items-center z-30">-->
-<!--            <div class="flex items-center space-x-2">-->
-<!--                <span class="bg-green-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">授权账号已验证</span>-->
+<!--            <div class="flex items-center space-x-3">-->
+<!--                <span class="bg-green-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">授权身份已记忆</span>-->
 <!--                <span>当前店铺账号：<strong id="top-shop-id-display" class="text-yellow-400">未指定</strong></span>-->
+<!--                <span id="data-source-tag" class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]">📡 正在拉取线上数据...</span>-->
 <!--            </div>-->
 <!--            <div class="flex items-center space-x-3">-->
 <!--                <button onclick="copyCustomerLink()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded transition text-xs flex items-center gap-1 shadow">-->
@@ -932,11 +1233,11 @@
 
 <!--                <div class="flex items-center space-x-6">-->
 <!--                    <button onclick="switchTab('products')" id="tab-btn-products" class="text-xs font-bold border-b-2 border-red-600 py-1 text-red-600">商品管理</button>-->
-<!--                    <button onclick="switchTab('sales')" id="tab-btn-sales" class="text-xs font-bold text-gray-500 hover:text-red-600 py-1">销售记账与库存</button>-->
+<!--                    <button onclick="switchTab('sales')" id="tab-btn-sales" class="text-xs font-bold text-gray-500 hover:text-red-600 py-1">出入库与销售明细</button>-->
 <!--                    <button onclick="syncToGitHub()" class="text-xs font-bold text-purple-700 hover:text-purple-900 transition flex items-center gap-1">-->
 <!--                        <span id="sync-status">🔄 同步数据到 GitHub</span>-->
 <!--                    </button>-->
-<!--                    <button onclick="openConfigModal()" class="text-xs font-bold text-gray-700 hover:text-red-600 transition">⚙️ 设置店铺资料</button>-->
+<!--                    <button onclick="openConfigModal()" class="text-xs font-bold text-gray-700 hover:text-red-600 transition">⚙️ 设置店铺资料与Token</button>-->
 <!--                </div>-->
 <!--            </div>-->
 <!--        </header>-->
@@ -949,21 +1250,25 @@
 <!--                        <h1 class="text-2xl font-light">商品列表</h1>-->
 <!--                        <p class="text-xs text-gray-400 mt-1">双击商品卡片可编辑信息或修改库存</p>-->
 <!--                    </div>-->
-<!--                    <button onclick="openEditModal(null)" class="bg-red-600 text-white text-xs px-5 py-2.5 rounded font-bold hover:bg-red-700 transition">+ 发布新商品</button>-->
+<!--                    <div class="space-x-2">-->
+<!--                        <button onclick="reloadCloudDataManual()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-2.5 rounded font-bold transition">🔄 刷新线上数据</button>-->
+<!--                        <button onclick="openEditModal(null)" class="bg-red-600 text-white text-xs px-5 py-2.5 rounded font-bold hover:bg-red-700 transition">+ 发布新商品</button>-->
+<!--                    </div>-->
 <!--                </div>-->
 <!--                <div id="admin-product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12"></div>-->
 <!--            </section>-->
 
-<!--            &lt;!&ndash; Tab 2: 销售记账与库存 &ndash;&gt;-->
+<!--            &lt;!&ndash; Tab 2: 出入库记账与库存明细 &ndash;&gt;-->
 <!--            <section id="section-sales" class="hidden space-y-8">-->
 <!--                <div class="flex justify-between items-center border-b pb-4 border-gray-100">-->
 <!--                    <div>-->
-<!--                        <h1 class="text-2xl font-light">销售记账 & 库存明细</h1>-->
-<!--                        <p class="text-xs text-gray-500 mt-1">微信出货后在此手动登记，系统将自动扣减库存</p>-->
+<!--                        <h1 class="text-2xl font-light">出入库明细 & 销售账单</h1>-->
+<!--                        <p class="text-xs text-gray-500 mt-1">登记出货/补货将实时扣减或增加商品卡片库存，并自动存档至 GitHub</p>-->
 <!--                    </div>-->
-<!--                    <div class="space-x-3">-->
-<!--                        <button onclick="openRecordSaleModal()" class="bg-black text-white text-xs px-5 py-2.5 rounded font-medium hover:bg-gray-800 transition">+ 登记新出货</button>-->
-<!--                        <button onclick="exportSalesToExcel()" class="bg-green-700 text-white text-xs px-5 py-2.5 rounded font-medium hover:bg-green-800 transition">📊 导出 Excel 报表</button>-->
+<!--                    <div class="space-x-2 flex">-->
+<!--                        <button onclick="openStockLogModal('出货')" class="bg-red-600 text-white text-xs px-4 py-2.5 rounded font-bold hover:bg-red-700 transition flex items-center gap-1">📤 登记出货 (-库存)</button>-->
+<!--                        <button onclick="openStockLogModal('补货')" class="bg-emerald-600 text-white text-xs px-4 py-2.5 rounded font-bold hover:bg-emerald-700 transition flex items-center gap-1">📥 登记补货 (+库存)</button>-->
+<!--                        <button onclick="exportSalesToExcel()" class="bg-green-700 text-white text-xs px-4 py-2.5 rounded font-bold hover:bg-green-800 transition">📊 导出 Excel 报表</button>-->
 <!--                    </div>-->
 <!--                </div>-->
 
@@ -971,12 +1276,14 @@
 <!--                    <table class="w-full text-left text-xs">-->
 <!--                        <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold">-->
 <!--                            <tr>-->
-<!--                                <th class="p-3.5">销售时间</th>-->
-<!--                                <th class="p-3.5">商品名称</th>-->
+<!--                                <th class="p-3.5">类型</th>-->
+<!--                                <th class="p-3.5">变动时间</th>-->
+<!--                                <th class="p-3.5">商品图片</th>-->
+<!--                                <th class="p-3.5">商品名称 & 编码</th>-->
 <!--                                <th class="p-3.5">规格/款式/尺寸</th>-->
-<!--                                <th class="p-3.5">成交金额 (￥)</th>-->
-<!--                                <th class="p-3.5">卖出数量</th>-->
-<!--                                <th class="p-3.5">扣减后剩余库存</th>-->
+<!--                                <th class="p-3.5">变动数量</th>-->
+<!--                                <th class="p-3.5">成交/进货金额 (￥)</th>-->
+<!--                                <th class="p-3.5">变动后剩余库存</th>-->
 <!--                                <th class="p-3.5">备注</th>-->
 <!--                                <th class="p-3.5 text-right">操作</th>-->
 <!--                            </tr>-->
@@ -1073,41 +1380,62 @@
 <!--        </div>-->
 <!--    </div>-->
 
-<!--    &lt;!&ndash; 登记出货 Modal &ndash;&gt;-->
+<!--    &lt;!&ndash; 📦 出入库登记 Modal &ndash;&gt;-->
 <!--    <div id="record-sale-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">-->
-<!--        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full space-y-4">-->
-<!--            <h3 class="text-sm font-bold border-b pb-2 text-gray-800">登记微信成交出货</h3>-->
+<!--        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full space-y-4">-->
+<!--            <div class="flex justify-between items-center border-b pb-2">-->
+<!--                <h3 id="stock-modal-title" class="text-sm font-bold text-gray-800">登记出入库变动</h3>-->
+<!--                <div class="flex bg-gray-100 p-1 rounded">-->
+<!--                    <button id="type-btn-sale" onclick="setStockModalType('出货')" class="text-xs px-3 py-1 rounded font-bold transition bg-red-600 text-white">📤 登记出货</button>-->
+<!--                    <button id="type-btn-restock" onclick="setStockModalType('补货')" class="text-xs px-3 py-1 rounded font-bold transition text-gray-600">📥 登记补货</button>-->
+<!--                </div>-->
+<!--            </div>-->
+
 <!--            <div>-->
-<!--                <label class="block text-xs font-medium text-gray-600">选择卖出的商品</label>-->
-<!--                <select id="sale-product-select" class="w-full border p-2 text-xs rounded mt-1 bg-white" onchange="onSaleProductChange()"></select>-->
+<!--                <label class="block text-xs font-bold text-gray-700 mb-1">选择目标商品（支持输入名称或 ID 搜索）</label>-->
+<!--                <input id="stock-search-input" type="text" oninput="filterStockProductPicker()" placeholder="🔍 输入商品名称或编号/ID 搜索..." class="w-full border p-2 text-xs rounded bg-gray-50 mb-2 border-gray-300">-->
+
+<!--                <div id="stock-product-picker-list" class="max-h-48 overflow-y-auto space-y-2 border p-2 rounded bg-gray-50"></div>-->
 <!--            </div>-->
+
+<!--            <div id="selected-product-preview" class="hidden bg-red-50 border border-red-200 p-2.5 rounded flex items-center gap-3">-->
+<!--                <img id="selected-p-img" src="" class="w-12 h-12 object-cover rounded bg-white border">-->
+<!--                <div class="text-xs flex-grow">-->
+<!--                    <div id="selected-p-title" class="font-bold text-gray-800">商品名称</div>-->
+<!--                    <div class="text-gray-500 mt-0.5">编码: <span id="selected-p-id" class="font-bold text-purple-700">#0</span> | 当前总库存: <b id="selected-p-stock" class="text-red-600">0</b> 件</div>-->
+<!--                </div>-->
+<!--            </div>-->
+
 <!--            <div class="grid grid-cols-2 gap-3">-->
 <!--                <div>-->
-<!--                    <label class="block text-xs font-medium text-gray-600">款式/颜色 (选填)</label>-->
-<!--                    <input id="sale-color-input" type="text" placeholder="例如：黑色" class="w-full border p-2 text-xs rounded mt-1">-->
+<!--                    <label class="block text-xs font-medium text-gray-600">选择/填写款式颜色</label>-->
+<!--                    <select id="sale-color-select" class="w-full border p-2 text-xs rounded mt-1 bg-white"></select>-->
 <!--                </div>-->
 <!--                <div>-->
-<!--                    <label class="block text-xs font-medium text-gray-600">尺寸/规格 (选填)</label>-->
-<!--                    <input id="sale-size-input" type="text" placeholder="例如：通用" class="w-full border p-2 text-xs rounded mt-1">-->
+<!--                    <label class="block text-xs font-medium text-gray-600">选择/填写尺寸规格</label>-->
+<!--                    <select id="sale-size-select" class="w-full border p-2 text-xs rounded mt-1 bg-white"></select>-->
 <!--                </div>-->
 <!--            </div>-->
+
 <!--            <div class="grid grid-cols-2 gap-3">-->
 <!--                <div>-->
-<!--                    <label class="block text-xs font-medium text-gray-600">成交金额 (￥)</label>-->
+<!--                    <label id="label-amount-title" class="block text-xs font-medium text-gray-600">成交总额 (￥)</label>-->
 <!--                    <input id="sale-amount-input" type="number" class="w-full border p-2 text-xs rounded mt-1 font-bold text-red-600">-->
 <!--                </div>-->
 <!--                <div>-->
-<!--                    <label class="block text-xs font-medium text-gray-600">卖出数量 (件)</label>-->
+<!--                    <label id="label-qty-title" class="block text-xs font-medium text-gray-600">变动数量 (件)</label>-->
 <!--                    <input id="sale-qty-input" type="number" value="1" min="1" class="w-full border p-2 text-xs rounded mt-1 font-bold">-->
 <!--                </div>-->
 <!--            </div>-->
+
 <!--            <div>-->
 <!--                <label class="block text-xs font-medium text-gray-600">备注信息 (选填)</label>-->
-<!--                <input id="sale-note-input" type="text" placeholder="客户微信名 / 快递单号" class="w-full border p-2 text-xs rounded mt-1">-->
+<!--                <input id="sale-note-input" type="text" placeholder="客户微信名 / 供应商 / 快递单号" class="w-full border p-2 text-xs rounded mt-1">-->
 <!--            </div>-->
-<!--            <div class="flex justify-end space-x-2 pt-4 border-t">-->
+
+<!--            <div class="flex justify-end space-x-2 pt-3 border-t">-->
 <!--                <button onclick="closeRecordSaleModal()" class="px-4 py-2 text-xs bg-gray-100 rounded text-gray-600">取消</button>-->
-<!--                <button onclick="confirmRecordSale()" class="px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700">确认扣减库存</button>-->
+<!--                <button id="stock-confirm-btn" onclick="confirmRecordStockLog()" class="px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700">确认扣减库存</button>-->
 <!--            </div>-->
 <!--        </div>-->
 <!--    </div>-->
@@ -1138,7 +1466,7 @@
 <!--                    <h4 class="text-xs font-bold text-gray-600">GitHub 统一云储存账号配置</h4>-->
 <!--                    <input id="cfg-repo" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="仓库 (例如: wasdkd/Amazon)">-->
 <!--                    <input id="cfg-branch" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="分支 (例如: main)">-->
-<!--                    <input id="cfg-github-token" type="password" class="w-full border p-1.5 text-xs rounded" placeholder="Personal Access Token">-->
+<!--                    <input id="cfg-github-token" type="password" class="w-full border p-1.5 text-xs rounded" placeholder="Personal Access Token (ghp_...)">-->
 <!--                </div>-->
 <!--            </div>-->
 <!--            <div class="flex justify-end space-x-2 pt-3 border-t">-->
@@ -1169,14 +1497,24 @@
 <!--        let products = [];-->
 <!--        let salesHistory = [];-->
 <!--        let currentlyEditingId = null;-->
+
+<!--        let currentStockModalType = "出货";-->
+<!--        let selectedProductForLog = null;-->
+
 <!--        const GITHUB_API = "https://api.github.com";-->
+
+<!--        // 安全 UTF-8 转 Base64（支持中文/ Emoji，防报错）-->
+<!--        function encodeUtf8Base64(str) {-->
+<!--            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {-->
+<!--                return String.fromCharCode('0x' + p1);-->
+<!--            }));-->
+<!--        }-->
 
 <!--        function getShopIdFromUrl() {-->
 <!--            const urlParams = new URLSearchParams(window.location.search);-->
 <!--            return urlParams.get('shop') || urlParams.get('shopId') || "";-->
 <!--        }-->
 
-<!--        // 从 GitHub 读取 100 个预置账号清单 accounts.json-->
 <!--        async function fetchAccountsFromGitHub() {-->
 <!--            try {-->
 <!--                const res = await fetch(`https://raw.githubusercontent.com/${defaultConfig.github.repo}/${defaultConfig.github.branch}/stores/accounts.json?t=${Date.now()}`);-->
@@ -1185,29 +1523,51 @@
 <!--            return null;-->
 <!--        }-->
 
-<!--        /* 🔒 严格账号与密码校验 */-->
+<!--        async function fetchMerchantDataFromGitHub(shopId) {-->
+<!--            if (!shopId) return false;-->
+<!--            try {-->
+<!--                const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/products.json?t=${Date.now()}`;-->
+<!--                const res = await fetch(rawUrl);-->
+<!--                if (res.ok) {-->
+<!--                    const cloudProducts = await res.json();-->
+<!--                    if (Array.isArray(cloudProducts)) {-->
+<!--                        products = cloudProducts;-->
+<!--                        return true;-->
+<!--                    }-->
+<!--                }-->
+<!--            } catch (e) {}-->
+<!--            return false;-->
+<!--        }-->
+
+<!--        async function fetchSalesDataFromGitHub(shopId) {-->
+<!--            if (!shopId) return false;-->
+<!--            try {-->
+<!--                const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/sales.json?t=${Date.now()}`;-->
+<!--                const res = await fetch(rawUrl);-->
+<!--                if (res.ok) {-->
+<!--                    const cloudSales = await res.json();-->
+<!--                    if (Array.isArray(cloudSales)) {-->
+<!--                        salesHistory = cloudSales;-->
+<!--                        return true;-->
+<!--                    }-->
+<!--                }-->
+<!--            } catch (e) {}-->
+<!--            return false;-->
+<!--        }-->
+
+<!--        /* 🔒 登录机制 */-->
 <!--        async function handleShopLogin() {-->
 <!--            const inputShopId = document.getElementById('login-shop-id').value.trim().toLowerCase();-->
 <!--            const inputPwd = document.getElementById('login-shop-pwd').value.trim();-->
 
-<!--            if (!inputShopId || !inputPwd) {-->
-<!--                alert("请输入账号和密码！");-->
-<!--                return;-->
-<!--            }-->
+<!--            if (!inputShopId || !inputPwd) return alert("请输入账号和密码！");-->
 
 <!--            document.getElementById('login-btn-text').innerText = '⏳ 正在验证授权账号...';-->
-
-<!--            // 获取官方授权账号库-->
 <!--            const validAccounts = await fetchAccountsFromGitHub();-->
-
 <!--            document.getElementById('login-btn-text').innerText = '🔐 验证账号并解锁后台';-->
 
-<!--            if (!validAccounts) {-->
-<!--                alert("⚠️ 无法调取账号清单，请确认已在 GitHub 仓库上传 stores/accounts.json 文件！");-->
-<!--                return;-->
-<!--            }-->
+<!--            if (!validAccounts) return alert("⚠️ 无法调取账号清单，请确认已在 GitHub 上传 stores/accounts.json！");-->
 
-<!--            // 严格配对鉴权-->
 <!--            if (validAccounts[inputShopId] && validAccounts[inputShopId] === inputPwd) {-->
 <!--                appConfig.shopId = inputShopId;-->
 <!--                loginSuccess(inputShopId, inputPwd);-->
@@ -1217,6 +1577,9 @@
 <!--        }-->
 
 <!--        function loginSuccess(shopId, pwd) {-->
+<!--            // 【记忆功能】：同时记录到 localStorage，实现刷新或关闭网页后再打开依然自动保持登录！-->
+<!--            localStorage.setItem('sora_active_shop_id', shopId);-->
+<!--            localStorage.setItem('sora_active_shop_pwd', pwd);-->
 <!--            sessionStorage.setItem('active_shop_id', shopId);-->
 <!--            sessionStorage.setItem('active_shop_pwd', pwd);-->
 
@@ -1225,13 +1588,14 @@
 <!--            document.getElementById('main-admin-layout').classList.add('flex');-->
 
 <!--            document.getElementById('top-shop-id-display').innerText = shopId;-->
-
 <!--            loadShopData(shopId);-->
 <!--        }-->
 
 <!--        /* 🚪 退出登录 */-->
 <!--        function logoutAdmin() {-->
-<!--            if (confirm("确定要退出登录吗？退出后将清空当前会话。")) {-->
+<!--            if (confirm("确定要退出登录吗？退出后将清除本机的记住登录状态。")) {-->
+<!--                localStorage.removeItem('sora_active_shop_id');-->
+<!--                localStorage.removeItem('sora_active_shop_pwd');-->
 <!--                sessionStorage.clear();-->
 <!--                products = [];-->
 <!--                salesHistory = [];-->
@@ -1241,16 +1605,45 @@
 <!--        }-->
 
 <!--        async function loadShopData(shopId) {-->
-<!--            const localProducts = localStorage.getItem(`sora_products_${shopId}`);-->
-<!--            products = localProducts ? JSON.parse(localProducts) : (window.soraProducts || []);-->
+<!--            const tag = document.getElementById('data-source-tag');-->
+<!--            tag.innerText = "📡 正在同步云端商品与出入库账单...";-->
+<!--            tag.className = "bg-yellow-800 text-yellow-200 px-2 py-0.5 rounded text-[10px]";-->
 
-<!--            const localSales = localStorage.getItem(`sora_sales_${shopId}`);-->
-<!--            salesHistory = localSales ? JSON.parse(localSales) : [];-->
+<!--            // 读取共享的 Token 记忆-->
+<!--            const globalToken = localStorage.getItem('sora_global_github_token');-->
+<!--            if (globalToken && !appConfig.github.token) {-->
+<!--                appConfig.github.token = globalToken;-->
+<!--            }-->
 
-<!--            await fetchMerchantDataFromGitHub(shopId);-->
+<!--            const [fetchedProducts, fetchedSales] = await Promise.all([-->
+<!--                fetchMerchantDataFromGitHub(shopId),-->
+<!--                fetchSalesDataFromGitHub(shopId)-->
+<!--            ]);-->
+
+<!--            if (fetchedProducts || fetchedSales) {-->
+<!--                saveLocalData();-->
+<!--                tag.innerText = "📡 已成功加载 GitHub 线上最新商品与账单";-->
+<!--                tag.className = "bg-green-800 text-green-200 px-2 py-0.5 rounded text-[10px]";-->
+<!--            } else {-->
+<!--                const localProducts = localStorage.getItem(`sora_products_${shopId}`);-->
+<!--                products = localProducts ? JSON.parse(localProducts) : [];-->
+
+<!--                const localSales = localStorage.getItem(`sora_sales_${shopId}`);-->
+<!--                salesHistory = localSales ? JSON.parse(localSales) : [];-->
+
+<!--                tag.innerText = "💾 读取本地暂存草稿";-->
+<!--                tag.className = "bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]";-->
+<!--            }-->
 
 <!--            renderAdminProducts();-->
+<!--            renderSalesTable();-->
 <!--            syncConfigFields();-->
+<!--        }-->
+
+<!--        async function reloadCloudDataManual() {-->
+<!--            showToast("正在强制刷新 GitHub 线上数据...");-->
+<!--            await loadShopData(appConfig.shopId);-->
+<!--            showToast("刷新完成！");-->
 <!--        }-->
 
 <!--        function saveLocalData() {-->
@@ -1258,6 +1651,9 @@
 <!--                localStorage.setItem(`sora_config_${appConfig.shopId}`, JSON.stringify(appConfig));-->
 <!--                localStorage.setItem(`sora_products_${appConfig.shopId}`, JSON.stringify(products));-->
 <!--                localStorage.setItem(`sora_sales_${appConfig.shopId}`, JSON.stringify(salesHistory));-->
+<!--                if (appConfig.github.token) {-->
+<!--                    localStorage.setItem('sora_global_github_token', appConfig.github.token);-->
+<!--                }-->
 <!--            }-->
 <!--        }-->
 
@@ -1355,6 +1751,15 @@
 <!--            const grid = document.getElementById('admin-product-grid');-->
 <!--            grid.innerHTML = '';-->
 
+<!--            if (products.length === 0) {-->
+<!--                grid.innerHTML = `-->
+<!--                    <div class="col-span-full text-center py-16 bg-white rounded-lg border border-dashed border-gray-300">-->
+<!--                        <p class="text-gray-400 text-xs mb-3">该店铺暂无商品，请点击右上角【+ 发布新商品】添加</p>-->
+<!--                    </div>-->
+<!--                `;-->
+<!--                return;-->
+<!--            }-->
+
 <!--            products.forEach(p => {-->
 <!--                const card = document.createElement('div');-->
 <!--                card.className = "flex flex-col bg-white p-4 rounded-lg shadow-sm border border-gray-100 relative group cursor-pointer hover:shadow-md transition";-->
@@ -1371,6 +1776,9 @@
 <!--                        <img src="${defaultImg}" class="absolute inset-0 w-full h-full object-cover">-->
 <!--                    </div>-->
 <!--                    <div class="space-y-1">-->
+<!--                        <div class="flex justify-between items-center text-[10px] text-purple-700 font-bold">-->
+<!--                            <span>编码: #${p.id}</span>-->
+<!--                        </div>-->
 <!--                        <h3 class="font-bold text-xs text-gray-800 line-clamp-1">${p.title}</h3>-->
 <!--                        <div class="flex justify-between items-center pt-1">-->
 <!--                            <p class="text-red-600 font-bold text-xs">￥${p.price.toFixed(2)}</p>-->
@@ -1399,7 +1807,7 @@
 <!--                document.getElementById('edit-img4').value = '';-->
 <!--                document.getElementById('edit-desc').value = '';-->
 <!--            } else {-->
-<!--                const p = products.find(prod => prod.id === id);-->
+<!--                const p = products.find(prod => String(prod.id) === String(id));-->
 <!--                if (!p) return;-->
 
 <!--                document.getElementById('edit-title').value = p.title;-->
@@ -1438,7 +1846,7 @@
 <!--            list.appendChild(row);-->
 <!--        }-->
 
-<!--        function saveProductEdits() {-->
+<!--        async function saveProductEdits() {-->
 <!--            const title = document.getElementById('edit-title').value.trim();-->
 <!--            const price = parseFloat(document.getElementById('edit-price').value);-->
 <!--            const stock = parseInt(document.getElementById('edit-stock').value) || 0;-->
@@ -1464,102 +1872,233 @@
 <!--                if (name) colors.push({ hex, name, img });-->
 <!--            });-->
 
+<!--            const productId = currentlyEditingId === null ? Math.floor(1000 + Math.random() * 9000) : currentlyEditingId;-->
+
 <!--            const productData = {-->
-<!--                id: currentlyEditingId === null ? Date.now() : currentlyEditingId,-->
+<!--                id: productId,-->
 <!--                title, price, stock, img1, img2, img3, img4, desc, colors, sizes-->
 <!--            };-->
 
 <!--            if (currentlyEditingId === null) {-->
 <!--                products.unshift(productData);-->
 <!--            } else {-->
-<!--                const idx = products.findIndex(p => p.id === currentlyEditingId);-->
+<!--                const idx = products.findIndex(p => String(p.id) === String(currentlyEditingId));-->
 <!--                if (idx !== -1) products[idx] = productData;-->
 <!--            }-->
 
 <!--            saveLocalData();-->
 <!--            closeEditModal();-->
 <!--            renderAdminProducts();-->
-<!--            showToast('保存成功！记得点击【同步数据到 GitHub】');-->
+
+<!--            if (appConfig.github.token) {-->
+<!--                showToast(`正在将商品资料同步更新至 GitHub...`);-->
+<!--                await syncToGitHub();-->
+<!--            } else {-->
+<!--                showToast('保存成功！记得配置 GitHub Token 以同步至云端。');-->
+<!--            }-->
 <!--        }-->
 
 <!--        function deleteProduct(event, id) {-->
 <!--            event.stopPropagation();-->
 <!--            if (confirm('确定要删除此商品吗？')) {-->
-<!--                products = products.filter(p => p.id !== id);-->
+<!--                products = products.filter(p => String(p.id) !== String(id));-->
 <!--                saveLocalData();-->
 <!--                renderAdminProducts();-->
+<!--                syncToGitHub();-->
 <!--            }-->
 <!--        }-->
 
-<!--        /* 出货记账 */-->
-<!--        function openRecordSaleModal() {-->
-<!--            const select = document.getElementById('sale-product-select');-->
-<!--            select.innerHTML = '';-->
-<!--            products.forEach(p => {-->
-<!--                const opt = document.createElement('option');-->
-<!--                opt.value = p.id;-->
-<!--                opt.innerText = `${p.title} (库存: ${p.stock ?? 0}件)`;-->
-<!--                select.appendChild(opt);-->
-<!--            });-->
-<!--            onSaleProductChange();-->
+<!--        /* 📦 出入库登记与选择 */-->
+<!--        function openStockLogModal(type = "出货") {-->
+<!--            if (products.length === 0) {-->
+<!--                alert("当前店铺暂无商品，请先添加发布商品！");-->
+<!--                return;-->
+<!--            }-->
+<!--            setStockModalType(type);-->
+<!--            document.getElementById('stock-search-input').value = '';-->
+<!--            filterStockProductPicker();-->
+
+<!--            selectProductForStockLog(products[0].id);-->
 <!--            document.getElementById('record-sale-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function setStockModalType(type) {-->
+<!--            currentStockModalType = type;-->
+<!--            const title = document.getElementById('stock-modal-title');-->
+<!--            const btnSale = document.getElementById('type-btn-sale');-->
+<!--            const btnRestock = document.getElementById('type-btn-restock');-->
+<!--            const confirmBtn = document.getElementById('stock-confirm-btn');-->
+<!--            const labelAmount = document.getElementById('label-amount-title');-->
+
+<!--            if (type === "出货") {-->
+<!--                title.innerText = "登记微信成交出货 (扣减库存)";-->
+<!--                btnSale.className = "text-xs px-3 py-1 rounded font-bold transition bg-red-600 text-white";-->
+<!--                btnRestock.className = "text-xs px-3 py-1 rounded font-bold transition text-gray-600 hover:bg-gray-200";-->
+<!--                confirmBtn.innerText = "确认出货扣减库存";-->
+<!--                confirmBtn.className = "px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700";-->
+<!--                labelAmount.innerText = "成交总实付金额 (￥)";-->
+<!--            } else {-->
+<!--                title.innerText = "登记进货补货 (增加库存)";-->
+<!--                btnRestock.className = "text-xs px-3 py-1 rounded font-bold transition bg-emerald-600 text-white";-->
+<!--                btnSale.className = "text-xs px-3 py-1 rounded font-bold transition text-gray-600 hover:bg-gray-200";-->
+<!--                confirmBtn.innerText = "确认补货增加库存";-->
+<!--                confirmBtn.className = "px-5 py-2 text-xs bg-emerald-600 text-white rounded font-bold hover:bg-emerald-700";-->
+<!--                labelAmount.innerText = "补货进货总成本 (￥)";-->
+<!--            }-->
+<!--        }-->
+
+<!--        function filterStockProductPicker() {-->
+<!--            const keyword = document.getElementById('stock-search-input').value.trim().toLowerCase();-->
+<!--            const pickerList = document.getElementById('stock-product-picker-list');-->
+<!--            pickerList.innerHTML = '';-->
+
+<!--            const filtered = products.filter(p =>-->
+<!--                p.title.toLowerCase().includes(keyword) ||-->
+<!--                String(p.id).includes(keyword)-->
+<!--            );-->
+
+<!--            if (filtered.length === 0) {-->
+<!--                pickerList.innerHTML = `<div class="text-center py-4 text-xs text-gray-400">未找到匹配商品</div>`;-->
+<!--                return;-->
+<!--            }-->
+
+<!--            filtered.forEach(p => {-->
+<!--                const img = p.img1 || 'https://via.placeholder.com/100?text=No+Img';-->
+<!--                const isSelected = selectedProductForLog && String(selectedProductForLog.id) === String(p.id);-->
+
+<!--                const item = document.createElement('div');-->
+<!--                item.className = `flex items-center gap-3 p-2 rounded cursor-pointer border transition ${isSelected ? 'border-red-600 bg-red-50' : 'border-gray-200 hover:border-gray-400 bg-white'}`;-->
+<!--                item.onclick = () => selectProductForStockLog(p.id);-->
+
+<!--                item.innerHTML = `-->
+<!--                    <img src="${img}" class="w-10 h-10 object-cover rounded flex-shrink-0 border bg-gray-100">-->
+<!--                    <div class="flex-grow min-w-0 text-xs">-->
+<!--                        <div class="font-bold text-gray-800 truncate">${p.title}</div>-->
+<!--                        <div class="text-[10px] text-gray-500 mt-0.5">-->
+<!--                            编码: <span class="font-bold text-purple-700">#${p.id}</span> | 售价: ￥${p.price} | 当前库存: <b class="${p.stock > 0 ? 'text-green-600' : 'text-red-600'}">${p.stock ?? 0}</b> 件-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                `;-->
+<!--                pickerList.appendChild(item);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function selectProductForStockLog(pId) {-->
+<!--            const p = products.find(prod => String(prod.id) === String(pId));-->
+<!--            if (!p) return;-->
+
+<!--            selectedProductForLog = p;-->
+<!--            filterStockProductPicker();-->
+
+<!--            document.getElementById('selected-product-preview').classList.remove('hidden');-->
+<!--            document.getElementById('selected-p-img').src = p.img1 || 'https://via.placeholder.com/100?text=No+Img';-->
+<!--            document.getElementById('selected-p-title').innerText = p.title;-->
+<!--            document.getElementById('selected-p-id').innerText = `#${p.id}`;-->
+<!--            document.getElementById('selected-p-stock').innerText = p.stock ?? 0;-->
+
+<!--            document.getElementById('sale-amount-input').value = p.price;-->
+
+<!--            const colorSelect = document.getElementById('sale-color-select');-->
+<!--            colorSelect.innerHTML = '<option value="默认">默认/无特定颜色</option>';-->
+<!--            if (p.colors && p.colors.length > 0) {-->
+<!--                p.colors.forEach(c => {-->
+<!--                    const opt = document.createElement('option');-->
+<!--                    opt.value = c.name;-->
+<!--                    opt.innerText = c.name;-->
+<!--                    colorSelect.appendChild(opt);-->
+<!--                });-->
+<!--            }-->
+
+<!--            const sizeSelect = document.getElementById('sale-size-select');-->
+<!--            sizeSelect.innerHTML = '<option value="通用">通用/均码</option>';-->
+<!--            if (p.sizes && p.sizes.length > 0) {-->
+<!--                p.sizes.forEach(s => {-->
+<!--                    const opt = document.createElement('option');-->
+<!--                    opt.value = s;-->
+<!--                    opt.innerText = s;-->
+<!--                    sizeSelect.appendChild(opt);-->
+<!--                });-->
+<!--            }-->
 <!--        }-->
 
 <!--        function closeRecordSaleModal() { document.getElementById('record-sale-modal').classList.add('hidden'); }-->
 
-<!--        function onSaleProductChange() {-->
-<!--            const pId = parseInt(document.getElementById('sale-product-select').value);-->
-<!--            const p = products.find(prod => prod.id === pId);-->
-<!--            if (p) document.getElementById('sale-amount-input').value = p.price;-->
-<!--        }-->
+<!--        async function confirmRecordStockLog() {-->
+<!--            if (!selectedProductForLog) return alert("请先选择要记录的商品！");-->
 
-<!--        function confirmRecordSale() {-->
-<!--            const pId = parseInt(document.getElementById('sale-product-select').value);-->
-<!--            const p = products.find(prod => prod.id === pId);-->
-<!--            if (!p) return;-->
+<!--            const p = products.find(prod => String(prod.id) === String(selectedProductForLog.id));-->
+<!--            if (!p) return alert("找不到对应商品！");-->
 
 <!--            const qty = parseInt(document.getElementById('sale-qty-input').value) || 1;-->
 <!--            const amount = parseFloat(document.getElementById('sale-amount-input').value) || 0;-->
-<!--            const color = document.getElementById('sale-color-input').value.trim() || '默认规格';-->
-<!--            const size = document.getElementById('sale-size-input').value.trim() || '通用';-->
+<!--            const color = document.getElementById('sale-color-select').value || '默认';-->
+<!--            const size = document.getElementById('sale-size-select').value || '通用';-->
 <!--            const note = document.getElementById('sale-note-input').value.trim();-->
 
-<!--            p.stock = (p.stock ?? 0) - qty;-->
-<!--            if (p.stock < 0) p.stock = 0;-->
+<!--            if (currentStockModalType === "出货") {-->
+<!--                p.stock = (p.stock ?? 0) - qty;-->
+<!--                if (p.stock < 0) p.stock = 0;-->
+<!--            } else {-->
+<!--                p.stock = (p.stock ?? 0) + qty;-->
+<!--            }-->
 
-<!--            salesHistory.unshift({-->
+<!--            const record = {-->
 <!--                id: Date.now(),-->
+<!--                type: currentStockModalType,-->
 <!--                time: new Date().toLocaleString('zh-CN'),-->
 <!--                productId: p.id,-->
 <!--                productTitle: p.title,-->
+<!--                productImg: p.img1 || 'https://via.placeholder.com/100?text=No+Img',-->
 <!--                color, size, amount, qty,-->
 <!--                remainingStock: p.stock,-->
 <!--                note-->
-<!--            });-->
+<!--            };-->
+
+<!--            salesHistory.unshift(record);-->
 
 <!--            saveLocalData();-->
 <!--            closeRecordSaleModal();-->
 <!--            renderSalesTable();-->
 <!--            renderAdminProducts();-->
-<!--            showToast('记账成功，已扣减库存！');-->
+
+<!--            if (appConfig.github.token) {-->
+<!--                showToast(`正在自动将【最新库存与账单】同步存档到 GitHub...`);-->
+<!--                await syncToGitHub();-->
+<!--            } else {-->
+<!--                showToast(`⚠️ ${currentStockModalType}记账成功！商品卡片库存已更新 (未配置 Token，尚未同步云端)`);-->
+<!--            }-->
 <!--        }-->
 
 <!--        function renderSalesTable() {-->
 <!--            const tbody = document.getElementById('sales-table-body');-->
 <!--            tbody.innerHTML = '';-->
 <!--            if (salesHistory.length === 0) {-->
-<!--                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无出货记录</td></tr>`;-->
+<!--                tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-gray-400">暂无出入库记录</td></tr>`;-->
 <!--                return;-->
 <!--            }-->
 <!--            salesHistory.forEach((item) => {-->
 <!--                const tr = document.createElement('tr');-->
+<!--                const isSale = (item.type || '出货') === '出货';-->
+<!--                const typeBadge = isSale ?-->
+<!--                    `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">出货</span>` :-->
+<!--                    `<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">补货</span>`;-->
+
+<!--                const qtyDisplay = isSale ? `<b class="text-red-600">-${item.qty} 件</b>` : `<b class="text-emerald-600">+${item.qty} 件</b>`;-->
+
 <!--                tr.innerHTML = `-->
+<!--                    <td class="p-3.5">${typeBadge}</td>-->
 <!--                    <td class="p-3.5 text-gray-500">${item.time}</td>-->
-<!--                    <td class="p-3.5 font-bold text-gray-800">${item.productTitle}</td>-->
+<!--                    <td class="p-3.5">-->
+<!--                        <img src="${item.productImg || 'https://via.placeholder.com/100'}" class="w-10 h-10 object-cover rounded border bg-gray-100">-->
+<!--                    </td>-->
+<!--                    <td class="p-3.5">-->
+<!--                        <div class="font-bold text-gray-800">${item.productTitle}</div>-->
+<!--                        <div class="text-[10px] text-purple-700 font-bold">编码: #${item.productId || '-'}</div>-->
+<!--                    </td>-->
 <!--                    <td class="p-3.5">${item.color} / ${item.size}</td>-->
-<!--                    <td class="p-3.5 text-red-600 font-bold">￥${item.amount.toFixed(2)}</td>-->
-<!--                    <td class="p-3.5 font-bold">${item.qty} 件</td>-->
-<!--                    <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">${item.remainingStock} 件</span></td>-->
+<!--                    <td class="p-3.5">${qtyDisplay}</td>-->
+<!--                    <td class="p-3.5 font-bold">￥${(item.amount || 0).toFixed(2)}</td>-->
+<!--                    <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-bold">${item.remainingStock} 件</span></td>-->
 <!--                    <td class="p-3.5 text-gray-400">${item.note || '-'}</td>-->
 <!--                    <td class="p-3.5 text-right"><button onclick="deleteSaleRecord(${item.id})" class="text-red-500 hover:underline">删除</button></td>-->
 <!--                `;-->
@@ -1568,29 +2107,48 @@
 <!--        }-->
 
 <!--        function deleteSaleRecord(id) {-->
-<!--            if (confirm('确定删除此记录？')) {-->
+<!--            const record = salesHistory.find(s => s.id === id);-->
+<!--            if (!record) return;-->
+
+<!--            const isSale = (record.type || '出货') === '出货';-->
+<!--            const actionText = isSale ? '出货' : '补货';-->
+
+<!--            if (confirm(`确定删除此条${actionText}记录？\n删除后系统将自动撤销恢复对应的库存变动！`)) {-->
+<!--                const p = products.find(prod => String(prod.id) === String(record.productId));-->
+<!--                if (p) {-->
+<!--                    if (isSale) {-->
+<!--                        p.stock = (p.stock ?? 0) + record.qty;-->
+<!--                    } else {-->
+<!--                        p.stock = Math.max(0, (p.stock ?? 0) - record.qty);-->
+<!--                    }-->
+<!--                }-->
+
 <!--                salesHistory = salesHistory.filter(s => s.id !== id);-->
 <!--                saveLocalData();-->
 <!--                renderSalesTable();-->
+<!--                renderAdminProducts();-->
+<!--                syncToGitHub();-->
 <!--            }-->
 <!--        }-->
 
 <!--        function exportSalesToExcel() {-->
-<!--            if (salesHistory.length === 0) return showToast('暂无销售数据可导出', false);-->
+<!--            if (salesHistory.length === 0) return showToast('暂无记录可导出', false);-->
 <!--            const excelData = salesHistory.map(item => ({-->
-<!--                "销售时间": item.time,-->
+<!--                "类型": item.type || "出货",-->
+<!--                "变动时间": item.time,-->
+<!--                "商品ID编码": item.productId || "",-->
 <!--                "商品名称": item.productTitle,-->
 <!--                "规格/颜色": item.color,-->
 <!--                "尺寸": item.size,-->
-<!--                "成交总价(元)": item.amount,-->
-<!--                "数量": item.qty,-->
-<!--                "扣减后剩余库存": item.remainingStock,-->
+<!--                "变动数量": (item.type || '出货') === '出货' ? -item.qty : item.qty,-->
+<!--                "金额(元)": item.amount,-->
+<!--                "变动后剩余库存": item.remainingStock,-->
 <!--                "备注信息": item.note || ""-->
 <!--            }));-->
 <!--            const worksheet = XLSX.utils.json_to_sheet(excelData);-->
 <!--            const workbook = XLSX.utils.book_new();-->
-<!--            XLSX.utils.book_append_sheet(workbook, worksheet, "销售账单");-->
-<!--            XLSX.writeFile(workbook, `商家_${appConfig.shopId}_销售账本_${new Date().toISOString().slice(0,10)}.xlsx`);-->
+<!--            XLSX.utils.book_append_sheet(workbook, worksheet, "出入库明细");-->
+<!--            XLSX.writeFile(workbook, `商家_${appConfig.shopId}_出入库明细账本_${new Date().toISOString().slice(0,10)}.xlsx`);-->
 <!--        }-->
 
 <!--        /* 设置 */-->
@@ -1623,48 +2181,84 @@
 <!--            showToast('店铺资料保存成功！');-->
 <!--        }-->
 
-<!--        /* 云端同步 */-->
+<!--        /* 🔄 彻底解决 409 Conflict 冲突与 UTF-8 编码问题的上传更新函数 */-->
 <!--        async function syncToGitHub() {-->
-<!--            if (!appConfig.github.token) return showToast('请先在【设置】中配置 GitHub Token！', false);-->
+<!--            if (!appConfig.github.token) {-->
+<!--                showToast('未配置 GitHub Token，仅本地生效！', false);-->
+<!--                return false;-->
+<!--            }-->
 <!--            document.getElementById('sync-status').innerText = '⏳ 同步中...';-->
 
 <!--            const p1 = pushToGitHub(`stores/${appConfig.shopId}/products.json`, JSON.stringify(products, null, 2));-->
 <!--            const p2 = pushToGitHub(`stores/${appConfig.shopId}/sales.json`, JSON.stringify(salesHistory, null, 2));-->
 <!--            const results = await Promise.all([p1, p2]);-->
 
-<!--            showToast(results[0] && results[1] ? `✅ 已成功同步数据到云端目录 stores/${appConfig.shopId}/` : '❌ 同步失败，请检查 Token', results[0] && results[1]);-->
+<!--            const isOk = results[0] && results[1];-->
+<!--            showToast(isOk ? `✅ 已成功同步商品与账单到 GitHub` : '❌ 同步失败，请检查 Token', isOk);-->
 <!--            document.getElementById('sync-status').innerText = '🔄 同步数据到 GitHub';-->
+<!--            return isOk;-->
 <!--        }-->
 
 <!--        async function pushToGitHub(path, content) {-->
-<!--            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;-->
-<!--            const headers = { 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json', 'Authorization': `token ${appConfig.github.token}` };-->
-<!--            const body = { message: "Update Shop Data", content: btoa(unescape(encodeURIComponent(content))), branch: appConfig.github.branch };-->
-<!--            try {-->
-<!--                const checkRes = await fetch(`${url}?ref=${appConfig.github.branch}`, { headers });-->
-<!--                if (checkRes.ok) body.sha = (await checkRes.json()).sha;-->
-<!--                const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });-->
-<!--                return response.ok;-->
-<!--            } catch (e) { return false; }-->
-<!--        }-->
+<!--            if (!appConfig.github.token) return false;-->
 
-<!--        async function fetchMerchantDataFromGitHub(shopId) {-->
-<!--            if (!appConfig.github.token || !shopId) return;-->
+<!--            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;-->
+<!--            const token = appConfig.github.token.trim();-->
+<!--            // 适配 GitHub 最新 Bearer 鉴权方式-->
+<!--            const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;-->
+
+<!--            const headers = {-->
+<!--                'Accept': 'application/vnd.github.v3+json',-->
+<!--                'Content-Type': 'application/json',-->
+<!--                'Authorization': authHeader-->
+<!--            };-->
+
+<!--            const base64Content = encodeUtf8Base64(content);-->
+
+<!--            const body = {-->
+<!--                message: "Update Shop Data",-->
+<!--                content: base64Content,-->
+<!--                branch: appConfig.github.branch-->
+<!--            };-->
+
 <!--            try {-->
-<!--                const res = await fetch(`${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}`, {-->
-<!--                    headers: { 'Authorization': `token ${appConfig.github.token}` }-->
+<!--                // 强制禁止浏览器 HTTP 缓存，防止 409 SHA 冲突-->
+<!--                const checkRes = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, {-->
+<!--                    headers,-->
+<!--                    cache: 'no-store'-->
 <!--                });-->
-<!--                if (res.ok) {-->
-<!--                    const data = await res.json();-->
-<!--                    products = JSON.parse(decodeURIComponent(escape(atob(data.content))));-->
-<!--                    saveLocalData();-->
+
+<!--                if (checkRes.ok) {-->
+<!--                    const data = await checkRes.json();-->
+<!--                    body.sha = data.sha;-->
 <!--                }-->
-<!--            } catch (e) {}-->
+
+<!--                const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });-->
+
+<!--                if (res.ok) return true;-->
+
+<!--                // 遇到 409 Conflict 冲突自动无感二次重试机制-->
+<!--                if (res.status === 409) {-->
+<!--                    console.warn("409 Conflict，重新拉取最新 SHA 校验码重试中...");-->
+<!--                    const retryCheck = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, { headers, cache: 'no-store' });-->
+<!--                    if (retryCheck.ok) {-->
+<!--                        const freshData = await retryCheck.json();-->
+<!--                        body.sha = freshData.sha;-->
+<!--                        const retryRes = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });-->
+<!--                        return retryRes.ok;-->
+<!--                    }-->
+<!--                }-->
+<!--                return false;-->
+<!--            } catch (e) {-->
+<!--                console.error("pushToGitHub 异常:", e);-->
+<!--                return false;-->
+<!--            }-->
 <!--        }-->
 
 <!--        window.onload = function() {-->
-<!--            const activeId = sessionStorage.getItem('active_shop_id');-->
-<!--            const activePwd = sessionStorage.getItem('active_shop_pwd');-->
+<!--            // 【自动记住功能】：优先检查 localStorage 中永久记录的登录信息-->
+<!--            const activeId = localStorage.getItem('sora_active_shop_id') || sessionStorage.getItem('active_shop_id');-->
+<!--            const activePwd = localStorage.getItem('sora_active_shop_pwd') || sessionStorage.getItem('active_shop_pwd');-->
 
 <!--            if (activeId && activePwd) {-->
 <!--                document.getElementById('login-shop-id').value = activeId;-->
