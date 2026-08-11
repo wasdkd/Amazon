@@ -24,11 +24,11 @@
             <div class="space-y-3 text-left">
                 <div>
                     <label class="block text-[11px] font-bold text-gray-600 mb-1">商家账号 (6位英数字)</label>
-                    <input id="login-shop-id" type="text" maxlength="6" placeholder="例如：a1x8k9" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50 uppercase">
+                    <input id="login-shop-id" type="text" maxlength="6" placeholder="例如：123456" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50 uppercase">
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-gray-600 mb-1">登录密码 (6位英数字)</label>
-                    <input id="login-shop-pwd" type="password" maxlength="6" placeholder="例如：m7p2q5" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50">
+                    <input id="login-shop-pwd" type="password" maxlength="6" placeholder="例如：123456" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50">
                 </div>
             </div>
 
@@ -46,9 +46,10 @@
     <div id="main-admin-layout" class="hidden flex-col flex-grow">
         <!-- 顶部控制栏 -->
         <div class="bg-black text-white py-2.5 px-4 text-xs flex justify-between items-center z-30">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-3">
                 <span class="bg-green-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">授权账号已验证</span>
                 <span>当前店铺账号：<strong id="top-shop-id-display" class="text-yellow-400">未指定</strong></span>
+                <span id="data-source-tag" class="bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]">📡 正在拉取线上数据...</span>
             </div>
             <div class="flex items-center space-x-3">
                 <button onclick="copyCustomerLink()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded transition text-xs flex items-center gap-1 shadow">
@@ -72,7 +73,7 @@
                     <button onclick="syncToGitHub()" class="text-xs font-bold text-purple-700 hover:text-purple-900 transition flex items-center gap-1">
                         <span id="sync-status">🔄 同步数据到 GitHub</span>
                     </button>
-                    <button onclick="openConfigModal()" class="text-xs font-bold text-gray-700 hover:text-red-600 transition">⚙️ 设置店铺资料</button>
+                    <button onclick="openConfigModal()" class="text-xs font-bold text-gray-700 hover:text-red-600 transition">⚙️ 设置店铺资料与Token</button>
                 </div>
             </div>
         </header>
@@ -85,7 +86,10 @@
                         <h1 class="text-2xl font-light">商品列表</h1>
                         <p class="text-xs text-gray-400 mt-1">双击商品卡片可编辑信息或修改库存</p>
                     </div>
-                    <button onclick="openEditModal(null)" class="bg-red-600 text-white text-xs px-5 py-2.5 rounded font-bold hover:bg-red-700 transition">+ 发布新商品</button>
+                    <div class="space-x-2">
+                        <button onclick="reloadCloudDataManual()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-2.5 rounded font-bold transition">🔄 刷新线上数据</button>
+                        <button onclick="openEditModal(null)" class="bg-red-600 text-white text-xs px-5 py-2.5 rounded font-bold hover:bg-red-700 transition">+ 发布新商品</button>
+                    </div>
                 </div>
                 <div id="admin-product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12"></div>
             </section>
@@ -274,7 +278,7 @@
                     <h4 class="text-xs font-bold text-gray-600">GitHub 统一云储存账号配置</h4>
                     <input id="cfg-repo" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="仓库 (例如: wasdkd/Amazon)">
                     <input id="cfg-branch" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="分支 (例如: main)">
-                    <input id="cfg-github-token" type="password" class="w-full border p-1.5 text-xs rounded" placeholder="Personal Access Token">
+                    <input id="cfg-github-token" type="password" class="w-full border p-1.5 text-xs rounded" placeholder="Personal Access Token (ghp_...)">
                 </div>
             </div>
             <div class="flex justify-end space-x-2 pt-3 border-t">
@@ -312,7 +316,7 @@
             return urlParams.get('shop') || urlParams.get('shopId') || "";
         }
 
-        // 从 GitHub 读取 100 个预置账号清单 accounts.json
+        // 1. 从 GitHub 调取 100 个预置账号清单 accounts.json
         async function fetchAccountsFromGitHub() {
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${defaultConfig.github.repo}/${defaultConfig.github.branch}/stores/accounts.json?t=${Date.now()}`);
@@ -321,7 +325,27 @@
             return null;
         }
 
-        /* 🔒 严格账号与密码校验 */
+        // 2.【核心修复】：与游客端 100% 对齐，直接通过 Raw 链接获取 GitHub 线上最真实的商品列表
+        async function fetchMerchantDataFromGitHub(shopId) {
+            if (!shopId) return false;
+            try {
+                const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/products.json?t=${Date.now()}`;
+                const res = await fetch(rawUrl);
+                if (res.ok) {
+                    const cloudProducts = await res.json();
+                    if (Array.isArray(cloudProducts)) {
+                        products = cloudProducts;
+                        saveLocalData();
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.error("无法加载线上数据:", e);
+            }
+            return false;
+        }
+
+        /* 🔒 登录验证 */
         async function handleShopLogin() {
             const inputShopId = document.getElementById('login-shop-id').value.trim().toLowerCase();
             const inputPwd = document.getElementById('login-shop-pwd').value.trim();
@@ -332,10 +356,7 @@
             }
 
             document.getElementById('login-btn-text').innerText = '⏳ 正在验证授权账号...';
-
-            // 获取官方授权账号库
             const validAccounts = await fetchAccountsFromGitHub();
-
             document.getElementById('login-btn-text').innerText = '🔐 验证账号并解锁后台';
 
             if (!validAccounts) {
@@ -343,7 +364,6 @@
                 return;
             }
 
-            // 严格配对鉴权
             if (validAccounts[inputShopId] && validAccounts[inputShopId] === inputPwd) {
                 appConfig.shopId = inputShopId;
                 loginSuccess(inputShopId, inputPwd);
@@ -367,7 +387,7 @@
 
         /* 🚪 退出登录 */
         function logoutAdmin() {
-            if (confirm("确定要退出登录吗？退出后将清空当前会话。")) {
+            if (confirm("确定要退出登录吗？")) {
                 sessionStorage.clear();
                 products = [];
                 salesHistory = [];
@@ -376,17 +396,44 @@
             }
         }
 
+        /*【核心修复】：数据加载流程重新编排，确保线上数据优先 */
         async function loadShopData(shopId) {
-            const localProducts = localStorage.getItem(`sora_products_${shopId}`);
-            products = localProducts ? JSON.parse(localProducts) : (window.soraProducts || []);
+            const tag = document.getElementById('data-source-tag');
+            tag.innerText = "📡 正在同步线上最新数据...";
+            tag.className = "bg-yellow-800 text-yellow-200 px-2 py-0.5 rounded text-[10px]";
+
+            // 第一优先级：尝试抓取 GitHub 线上真实的商品数据（和游客看到的一模一样）
+            const fetchedFromCloud = await fetchMerchantDataFromGitHub(shopId);
+
+            if (fetchedFromCloud) {
+                tag.innerText = "📡 已加载 GitHub 线上真实数据";
+                tag.className = "bg-green-800 text-green-200 px-2 py-0.5 rounded text-[10px]";
+            } else {
+                // 第二优先级：云端若没有文件（比如从未同步过的全新店铺），尝试读取本地暂存
+                const localProducts = localStorage.getItem(`sora_products_${shopId}`);
+                if (localProducts) {
+                    try { products = JSON.parse(localProducts); } catch(e) { products = []; }
+                    tag.innerText = "💾 线上无数据，当前为本地暂存草稿";
+                    tag.className = "bg-gray-800 text-gray-300 px-2 py-0.5 rounded text-[10px]";
+                } else {
+                    // 全新店铺：初始化为空，不再强行插入没关系的服装和小夜灯测试数据！
+                    products = [];
+                    tag.innerText = "✨ 新店铺 (暂无商品，请点击右上角发布)";
+                    tag.className = "bg-blue-800 text-blue-200 px-2 py-0.5 rounded text-[10px]";
+                }
+            }
 
             const localSales = localStorage.getItem(`sora_sales_${shopId}`);
             salesHistory = localSales ? JSON.parse(localSales) : [];
 
-            await fetchMerchantDataFromGitHub(shopId);
-
             renderAdminProducts();
             syncConfigFields();
+        }
+
+        async function reloadCloudDataManual() {
+            showToast("正在强制刷新 GitHub 线上数据...");
+            await loadShopData(appConfig.shopId);
+            showToast("刷新完成！");
         }
 
         function saveLocalData() {
@@ -490,6 +537,15 @@
         function renderAdminProducts() {
             const grid = document.getElementById('admin-product-grid');
             grid.innerHTML = '';
+
+            if (products.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-lg border border-dashed border-gray-300">
+                        <p class="text-gray-400 text-xs mb-3">该店铺暂无商品，请点击右上角【+ 发布新商品】添加</p>
+                    </div>
+                `;
+                return;
+            }
 
             products.forEach(p => {
                 const card = document.createElement('div');
@@ -784,20 +840,6 @@
             } catch (e) { return false; }
         }
 
-        async function fetchMerchantDataFromGitHub(shopId) {
-            if (!appConfig.github.token || !shopId) return;
-            try {
-                const res = await fetch(`${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}`, {
-                    headers: { 'Authorization': `token ${appConfig.github.token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    products = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                    saveLocalData();
-                }
-            } catch (e) {}
-        }
-
         window.onload = function() {
             const activeId = sessionStorage.getItem('active_shop_id');
             const activePwd = sessionStorage.getItem('active_shop_pwd');
@@ -816,3 +858,825 @@
     </script>
 </body>
 </html>
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>商家管理后台</title>-->
+<!--    <script src="https://cdn.tailwindcss.com"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>-->
+<!--    <style>-->
+<!--        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background-color: #faf9f6; }-->
+<!--        .no-scrollbar::-webkit-scrollbar { display: none; }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body class="text-gray-900 flex flex-col min-h-screen relative">-->
+
+<!--    &lt;!&ndash; 🔒 100预置账号强鉴权登录界面 &ndash;&gt;-->
+<!--    <div id="login-screen" class="fixed inset-0 bg-gray-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">-->
+<!--        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full space-y-5 text-center">-->
+<!--            <div class="space-y-1">-->
+<!--                <h1 class="text-xl font-bold tracking-wider text-gray-900">商家店铺登录系统</h1>-->
+<!--                <p class="text-xs text-gray-400">请输入您获取到的 6 位商家账号与密码</p>-->
+<!--            </div>-->
+
+<!--            <div class="space-y-3 text-left">-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] font-bold text-gray-600 mb-1">商家账号 (6位英数字)</label>-->
+<!--                    <input id="login-shop-id" type="text" maxlength="6" placeholder="例如：a1x8k9" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50 uppercase">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] font-bold text-gray-600 mb-1">登录密码 (6位英数字)</label>-->
+<!--                    <input id="login-shop-pwd" type="password" maxlength="6" placeholder="例如：m7p2q5" class="w-full border p-3 text-sm rounded-lg focus:outline-none focus:border-red-600 font-bold bg-gray-50">-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            <button onclick="handleShopLogin()" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs py-3.5 rounded-lg font-bold transition shadow-lg flex items-center justify-center gap-2">-->
+<!--                <span id="login-btn-text">🔐 验证账号并解锁后台</span>-->
+<!--            </button>-->
+
+<!--            <p class="text-[10px] text-gray-400 leading-relaxed pt-2 border-t">-->
+<!--                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，未授权账号无法访问。-->
+<!--            </p>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 🏠 商家管理主界面 &ndash;&gt;-->
+<!--    <div id="main-admin-layout" class="hidden flex-col flex-grow">-->
+<!--        &lt;!&ndash; 顶部控制栏 &ndash;&gt;-->
+<!--        <div class="bg-black text-white py-2.5 px-4 text-xs flex justify-between items-center z-30">-->
+<!--            <div class="flex items-center space-x-2">-->
+<!--                <span class="bg-green-600 text-white px-2 py-0.5 rounded font-bold text-[10px]">授权账号已验证</span>-->
+<!--                <span>当前店铺账号：<strong id="top-shop-id-display" class="text-yellow-400">未指定</strong></span>-->
+<!--            </div>-->
+<!--            <div class="flex items-center space-x-3">-->
+<!--                <button onclick="copyCustomerLink()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded transition text-xs flex items-center gap-1 shadow">-->
+<!--                    📋 复制【我的顾客专属店铺链接】-->
+<!--                </button>-->
+<!--                <button onclick="logoutAdmin()" class="bg-gray-700 hover:bg-red-600 text-white font-bold px-3 py-1.5 rounded transition text-xs">-->
+<!--                    🚪 退出登录-->
+<!--                </button>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        <header class="sticky top-0 z-40 border-b border-gray-100 shadow-sm bg-white/90 backdrop-blur">-->
+<!--            <div class="mx-auto py-4 flex justify-between items-center" style="max-width: 1500px; width: 94%;">-->
+<!--                <div class="flex items-center space-x-3">-->
+<!--                    <span id="nav-brand-name" class="text-xl font-bold tracking-widest">商家管理后台</span>-->
+<!--                </div>-->
+
+<!--                <div class="flex items-center space-x-6">-->
+<!--                    <button onclick="switchTab('products')" id="tab-btn-products" class="text-xs font-bold border-b-2 border-red-600 py-1 text-red-600">商品管理</button>-->
+<!--                    <button onclick="switchTab('sales')" id="tab-btn-sales" class="text-xs font-bold text-gray-500 hover:text-red-600 py-1">销售记账与库存</button>-->
+<!--                    <button onclick="syncToGitHub()" class="text-xs font-bold text-purple-700 hover:text-purple-900 transition flex items-center gap-1">-->
+<!--                        <span id="sync-status">🔄 同步数据到 GitHub</span>-->
+<!--                    </button>-->
+<!--                    <button onclick="openConfigModal()" class="text-xs font-bold text-gray-700 hover:text-red-600 transition">⚙️ 设置店铺资料</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </header>-->
+
+<!--        <main class="mx-auto py-8 flex-grow" style="max-width: 1500px; width: 94%;">-->
+<!--            &lt;!&ndash; Tab 1: 商品管理 &ndash;&gt;-->
+<!--            <section id="section-products">-->
+<!--                <div class="flex justify-between items-end mb-8 border-b pb-4 border-gray-100">-->
+<!--                    <div>-->
+<!--                        <h1 class="text-2xl font-light">商品列表</h1>-->
+<!--                        <p class="text-xs text-gray-400 mt-1">双击商品卡片可编辑信息或修改库存</p>-->
+<!--                    </div>-->
+<!--                    <button onclick="openEditModal(null)" class="bg-red-600 text-white text-xs px-5 py-2.5 rounded font-bold hover:bg-red-700 transition">+ 发布新商品</button>-->
+<!--                </div>-->
+<!--                <div id="admin-product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12"></div>-->
+<!--            </section>-->
+
+<!--            &lt;!&ndash; Tab 2: 销售记账与库存 &ndash;&gt;-->
+<!--            <section id="section-sales" class="hidden space-y-8">-->
+<!--                <div class="flex justify-between items-center border-b pb-4 border-gray-100">-->
+<!--                    <div>-->
+<!--                        <h1 class="text-2xl font-light">销售记账 & 库存明细</h1>-->
+<!--                        <p class="text-xs text-gray-500 mt-1">微信出货后在此手动登记，系统将自动扣减库存</p>-->
+<!--                    </div>-->
+<!--                    <div class="space-x-3">-->
+<!--                        <button onclick="openRecordSaleModal()" class="bg-black text-white text-xs px-5 py-2.5 rounded font-medium hover:bg-gray-800 transition">+ 登记新出货</button>-->
+<!--                        <button onclick="exportSalesToExcel()" class="bg-green-700 text-white text-xs px-5 py-2.5 rounded font-medium hover:bg-green-800 transition">📊 导出 Excel 报表</button>-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">-->
+<!--                    <table class="w-full text-left text-xs">-->
+<!--                        <thead class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold">-->
+<!--                            <tr>-->
+<!--                                <th class="p-3.5">销售时间</th>-->
+<!--                                <th class="p-3.5">商品名称</th>-->
+<!--                                <th class="p-3.5">规格/款式/尺寸</th>-->
+<!--                                <th class="p-3.5">成交金额 (￥)</th>-->
+<!--                                <th class="p-3.5">卖出数量</th>-->
+<!--                                <th class="p-3.5">扣减后剩余库存</th>-->
+<!--                                <th class="p-3.5">备注</th>-->
+<!--                                <th class="p-3.5 text-right">操作</th>-->
+<!--                            </tr>-->
+<!--                        </thead>-->
+<!--                        <tbody id="sales-table-body" class="divide-y divide-gray-100 text-gray-700"></tbody>-->
+<!--                    </table>-->
+<!--                </div>-->
+<!--            </section>-->
+<!--        </main>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 商品编辑 Modal &ndash;&gt;-->
+<!--    <div id="edit-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">-->
+<!--        <div class="bg-white w-full max-w-4xl rounded-lg overflow-hidden shadow-2xl flex flex-col md:flex-row relative" style="max-height: 90vh;">-->
+<!--            <button onclick="closeEditModal()" class="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-gray-800 p-1.5 rounded-full shadow transition">&times;</button>-->
+
+<!--            <div class="w-full md:w-1/2 bg-gray-50 p-6 flex flex-col justify-between overflow-y-auto space-y-4">-->
+<!--                <h3 class="text-xs font-bold text-red-600 border-b pb-2">商品图片 (支持拖拽/本地上传)</h3>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] font-bold text-gray-700">主图 / 封面图</label>-->
+<!--                    <div class="border-2 border-dashed border-gray-300 hover:border-red-500 rounded p-3 text-center cursor-pointer transition bg-white relative mt-1" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img1')">-->
+<!--                        <p class="text-[11px] text-gray-500">📁 点击选取本地图片 或 拖拽图片</p>-->
+<!--                        <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img1')">-->
+<!--                        <input id="edit-img1" type="text" class="w-full border p-1.5 text-[10px] rounded mt-2 bg-gray-50" placeholder="或直接粘贴图片 URL 链接">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] font-bold text-gray-500">细节图 2 (选填)</label>-->
+<!--                    <div class="border-2 border-dashed border-gray-300 hover:border-red-500 rounded p-2 text-center cursor-pointer transition bg-white relative mt-1" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img2')">-->
+<!--                        <p class="text-[10px] text-gray-500">📁 点击选取 或 拖拽图片</p>-->
+<!--                        <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img2')">-->
+<!--                        <input id="edit-img2" type="text" class="w-full border p-1 text-[10px] rounded mt-1 bg-gray-50" placeholder="或粘贴 URL">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] font-bold text-gray-500">细节图 3 (选填)</label>-->
+<!--                    <div class="border-2 border-dashed border-gray-300 hover:border-red-500 rounded p-2 text-center cursor-pointer transition bg-white relative mt-1" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img3')">-->
+<!--                        <p class="text-[10px] text-gray-500">📁 点击选取 或 拖拽图片</p>-->
+<!--                        <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img3')">-->
+<!--                        <input id="edit-img3" type="text" class="w-full border p-1 text-[10px] rounded mt-1 bg-gray-50" placeholder="或粘贴 URL">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[11px] font-bold text-gray-500">细节图 4 (选填)</label>-->
+<!--                    <div class="border-2 border-dashed border-gray-300 hover:border-red-500 rounded p-2 text-center cursor-pointer transition bg-white relative mt-1" ondragover="event.preventDefault()" ondrop="handleImageDrop(event, 'edit-img4')">-->
+<!--                        <p class="text-[10px] text-gray-500">📁 点击选取 或 拖拽图片</p>-->
+<!--                        <input type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageFile(event, 'edit-img4')">-->
+<!--                        <input id="edit-img4" type="text" class="w-full border p-1 text-[10px] rounded mt-1 bg-gray-50" placeholder="或粘贴 URL">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            <div class="w-full md:w-1/2 p-6 flex flex-col justify-between overflow-y-auto border-t md:border-t-0 md:border-l border-gray-100">-->
+<!--                <div class="space-y-4">-->
+<!--                    <h3 class="text-xs font-bold text-red-600 border-b pb-2">基本信息 & 规格</h3>-->
+<!--                    <div>-->
+<!--                        <label class="block text-[11px] font-bold text-gray-700">商品名称 <span class="text-red-500">*必填</span></label>-->
+<!--                        <input id="edit-title" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-300">-->
+<!--                    </div>-->
+<!--                    <div class="grid grid-cols-2 gap-3">-->
+<!--                        <div>-->
+<!--                            <label class="block text-[11px] font-bold text-gray-700">售价 (￥) <span class="text-red-500">*必填</span></label>-->
+<!--                            <input id="edit-price" type="number" class="w-full border p-2 text-xs rounded mt-1 border-gray-300">-->
+<!--                        </div>-->
+<!--                        <div>-->
+<!--                            <label class="block text-[11px] font-bold text-red-600">当前总库存 (件)</label>-->
+<!--                            <input id="edit-stock" type="number" class="w-full border p-2 text-xs rounded mt-1 border-red-200 font-bold text-red-600" placeholder="10">-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <span class="text-[11px] font-bold text-gray-500 block">可选颜色/款式 (选填)</span>-->
+<!--                        <div id="edit-colors-list" class="space-y-2 mt-2"></div>-->
+<!--                        <button onclick="addNewColorRow()" class="mt-2 text-[10px] font-bold text-blue-600 hover:underline">+ 添加款式/颜色</button>-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <span class="text-[11px] font-bold text-gray-500 block">可选尺码/尺寸 (选填)</span>-->
+<!--                        <div class="flex flex-wrap gap-3 mt-2">-->
+<!--                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="S" class="size-cb mr-1">S</label>-->
+<!--                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="M" class="size-cb mr-1">M</label>-->
+<!--                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="L" class="size-cb mr-1">L</label>-->
+<!--                            <label class="inline-flex items-center text-xs"><input type="checkbox" value="均码/通用" class="size-cb mr-1">均码/通用</label>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <label class="block text-[11px] font-bold text-gray-500">详细描述 (选填)</label>-->
+<!--                        <textarea id="edit-desc" class="w-full border p-2 text-xs rounded mt-1 h-20 border-gray-200"></textarea>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="mt-6 pt-4 border-t border-gray-100 flex gap-2">-->
+<!--                    <button onclick="closeEditModal()" class="w-1/3 border border-gray-200 text-xs py-2.5 rounded text-gray-500">取消</button>-->
+<!--                    <button onclick="saveProductEdits()" class="w-2/3 bg-red-600 text-white text-xs py-2.5 rounded font-bold hover:bg-red-700">保存修改</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 登记出货 Modal &ndash;&gt;-->
+<!--    <div id="record-sale-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">-->
+<!--        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full space-y-4">-->
+<!--            <h3 class="text-sm font-bold border-b pb-2 text-gray-800">登记微信成交出货</h3>-->
+<!--            <div>-->
+<!--                <label class="block text-xs font-medium text-gray-600">选择卖出的商品</label>-->
+<!--                <select id="sale-product-select" class="w-full border p-2 text-xs rounded mt-1 bg-white" onchange="onSaleProductChange()"></select>-->
+<!--            </div>-->
+<!--            <div class="grid grid-cols-2 gap-3">-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-600">款式/颜色 (选填)</label>-->
+<!--                    <input id="sale-color-input" type="text" placeholder="例如：黑色" class="w-full border p-2 text-xs rounded mt-1">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-600">尺寸/规格 (选填)</label>-->
+<!--                    <input id="sale-size-input" type="text" placeholder="例如：通用" class="w-full border p-2 text-xs rounded mt-1">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="grid grid-cols-2 gap-3">-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-600">成交金额 (￥)</label>-->
+<!--                    <input id="sale-amount-input" type="number" class="w-full border p-2 text-xs rounded mt-1 font-bold text-red-600">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-xs font-medium text-gray-600">卖出数量 (件)</label>-->
+<!--                    <input id="sale-qty-input" type="number" value="1" min="1" class="w-full border p-2 text-xs rounded mt-1 font-bold">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div>-->
+<!--                <label class="block text-xs font-medium text-gray-600">备注信息 (选填)</label>-->
+<!--                <input id="sale-note-input" type="text" placeholder="客户微信名 / 快递单号" class="w-full border p-2 text-xs rounded mt-1">-->
+<!--            </div>-->
+<!--            <div class="flex justify-end space-x-2 pt-4 border-t">-->
+<!--                <button onclick="closeRecordSaleModal()" class="px-4 py-2 text-xs bg-gray-100 rounded text-gray-600">取消</button>-->
+<!--                <button onclick="confirmRecordSale()" class="px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700">确认扣减库存</button>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 设置 Modal &ndash;&gt;-->
+<!--    <div id="config-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">-->
+<!--        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full space-y-4">-->
+<!--            <h3 class="text-sm font-bold text-red-600 border-b pb-2">店铺与系统配置</h3>-->
+<!--            <div class="space-y-3">-->
+<!--                <div>-->
+<!--                    <label class="block text-[10px] font-bold text-gray-500">店铺名称</label>-->
+<!--                    <input id="cfg-shop-name" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[10px] font-bold text-gray-500">客服微信号</label>-->
+<!--                    <input id="cfg-wechat-id" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[10px] font-bold text-gray-500">微信二维码图片 URL</label>-->
+<!--                    <input id="cfg-wechat-qr" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label class="block text-[10px] font-bold text-gray-500">顶部公告文字</label>-->
+<!--                    <input id="cfg-announcement" type="text" class="w-full border p-2 text-xs rounded mt-1 border-gray-200">-->
+<!--                </div>-->
+<!--                <hr class="my-2">-->
+<!--                <div class="bg-gray-50 p-3 rounded space-y-2">-->
+<!--                    <h4 class="text-xs font-bold text-gray-600">GitHub 统一云储存账号配置</h4>-->
+<!--                    <input id="cfg-repo" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="仓库 (例如: wasdkd/Amazon)">-->
+<!--                    <input id="cfg-branch" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="分支 (例如: main)">-->
+<!--                    <input id="cfg-github-token" type="password" class="w-full border p-1.5 text-xs rounded" placeholder="Personal Access Token">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="flex justify-end space-x-2 pt-3 border-t">-->
+<!--                <button onclick="closeConfigModal()" class="px-4 py-2 text-xs bg-gray-100 rounded text-gray-600">取消</button>-->
+<!--                <button onclick="saveGlobalConfig()" class="px-5 py-2 text-xs bg-red-600 text-white rounded font-bold hover:bg-red-700">保存设置</button>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div id="status-toast" class="fixed bottom-4 right-4 z-50 hidden">-->
+<!--        <div id="status-toast-bg" class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg text-xs font-bold">-->
+<!--            <span id="status-text">操作成功</span>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script src="products.js"></script>-->
+<!--    <script>-->
+<!--        const defaultConfig = {-->
+<!--            shopId: "",-->
+<!--            shopName: "精品店铺",-->
+<!--            wechatId: "sora_apparel",-->
+<!--            wechatQr: "",-->
+<!--            announcement: "全场支持微信下单 • 全国包邮 • 现货秒发",-->
+<!--            github: { repo: "wasdkd/Amazon", branch: "main", token: "" }-->
+<!--        };-->
+
+<!--        let appConfig = JSON.parse(JSON.stringify(defaultConfig));-->
+<!--        let products = [];-->
+<!--        let salesHistory = [];-->
+<!--        let currentlyEditingId = null;-->
+<!--        const GITHUB_API = "https://api.github.com";-->
+
+<!--        function getShopIdFromUrl() {-->
+<!--            const urlParams = new URLSearchParams(window.location.search);-->
+<!--            return urlParams.get('shop') || urlParams.get('shopId') || "";-->
+<!--        }-->
+
+<!--        // 从 GitHub 读取 100 个预置账号清单 accounts.json-->
+<!--        async function fetchAccountsFromGitHub() {-->
+<!--            try {-->
+<!--                const res = await fetch(`https://raw.githubusercontent.com/${defaultConfig.github.repo}/${defaultConfig.github.branch}/stores/accounts.json?t=${Date.now()}`);-->
+<!--                if (res.ok) return await res.json();-->
+<!--            } catch (e) {}-->
+<!--            return null;-->
+<!--        }-->
+
+<!--        /* 🔒 严格账号与密码校验 */-->
+<!--        async function handleShopLogin() {-->
+<!--            const inputShopId = document.getElementById('login-shop-id').value.trim().toLowerCase();-->
+<!--            const inputPwd = document.getElementById('login-shop-pwd').value.trim();-->
+
+<!--            if (!inputShopId || !inputPwd) {-->
+<!--                alert("请输入账号和密码！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            document.getElementById('login-btn-text').innerText = '⏳ 正在验证授权账号...';-->
+
+<!--            // 获取官方授权账号库-->
+<!--            const validAccounts = await fetchAccountsFromGitHub();-->
+
+<!--            document.getElementById('login-btn-text').innerText = '🔐 验证账号并解锁后台';-->
+
+<!--            if (!validAccounts) {-->
+<!--                alert("⚠️ 无法调取账号清单，请确认已在 GitHub 仓库上传 stores/accounts.json 文件！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            // 严格配对鉴权-->
+<!--            if (validAccounts[inputShopId] && validAccounts[inputShopId] === inputPwd) {-->
+<!--                appConfig.shopId = inputShopId;-->
+<!--                loginSuccess(inputShopId, inputPwd);-->
+<!--            } else {-->
+<!--                alert("❌ 账号或密码错误！仅限官方分配的 6 位商家账号登录。");-->
+<!--            }-->
+<!--        }-->
+
+<!--        function loginSuccess(shopId, pwd) {-->
+<!--            sessionStorage.setItem('active_shop_id', shopId);-->
+<!--            sessionStorage.setItem('active_shop_pwd', pwd);-->
+
+<!--            document.getElementById('login-screen').classList.add('hidden');-->
+<!--            document.getElementById('main-admin-layout').classList.remove('hidden');-->
+<!--            document.getElementById('main-admin-layout').classList.add('flex');-->
+
+<!--            document.getElementById('top-shop-id-display').innerText = shopId;-->
+
+<!--            loadShopData(shopId);-->
+<!--        }-->
+
+<!--        /* 🚪 退出登录 */-->
+<!--        function logoutAdmin() {-->
+<!--            if (confirm("确定要退出登录吗？退出后将清空当前会话。")) {-->
+<!--                sessionStorage.clear();-->
+<!--                products = [];-->
+<!--                salesHistory = [];-->
+<!--                appConfig = JSON.parse(JSON.stringify(defaultConfig));-->
+<!--                window.location.href = window.location.pathname;-->
+<!--            }-->
+<!--        }-->
+
+<!--        async function loadShopData(shopId) {-->
+<!--            const localProducts = localStorage.getItem(`sora_products_${shopId}`);-->
+<!--            products = localProducts ? JSON.parse(localProducts) : (window.soraProducts || []);-->
+
+<!--            const localSales = localStorage.getItem(`sora_sales_${shopId}`);-->
+<!--            salesHistory = localSales ? JSON.parse(localSales) : [];-->
+
+<!--            await fetchMerchantDataFromGitHub(shopId);-->
+
+<!--            renderAdminProducts();-->
+<!--            syncConfigFields();-->
+<!--        }-->
+
+<!--        function saveLocalData() {-->
+<!--            if (appConfig.shopId) {-->
+<!--                localStorage.setItem(`sora_config_${appConfig.shopId}`, JSON.stringify(appConfig));-->
+<!--                localStorage.setItem(`sora_products_${appConfig.shopId}`, JSON.stringify(products));-->
+<!--                localStorage.setItem(`sora_sales_${appConfig.shopId}`, JSON.stringify(salesHistory));-->
+<!--            }-->
+<!--        }-->
+
+<!--        function copyCustomerLink() {-->
+<!--            if (!appConfig.shopId) return alert("未登录账号！");-->
+
+<!--            let decodedUrl = decodeURIComponent(window.location.href);-->
+<!--            let urlObj = new URL(decodedUrl);-->
+
+<!--            if (urlObj.pathname.includes('商家.html')) {-->
+<!--                urlObj.pathname = urlObj.pathname.replace('商家.html', '游客.html');-->
+<!--            } else {-->
+<!--                let segments = urlObj.pathname.split('/');-->
+<!--                segments[segments.length - 1] = '游客.html';-->
+<!--                urlObj.pathname = segments.join('/');-->
+<!--            }-->
+
+<!--            urlObj.searchParams.set('shop', appConfig.shopId);-->
+<!--            const customerUrl = urlObj.href;-->
+
+<!--            navigator.clipboard.writeText(customerUrl).then(() => {-->
+<!--                showToast(`✅ 专属链接已复制！店铺代码 [${appConfig.shopId}]`);-->
+<!--            }).catch(() => {-->
+<!--                prompt("请复制以下链接发给顾客：", customerUrl);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function handleImageDrop(event, targetInputId) {-->
+<!--            event.preventDefault();-->
+<!--            processLocalImage(event.dataTransfer.files[0], targetInputId);-->
+<!--        }-->
+
+<!--        function handleImageFile(event, targetInputId) {-->
+<!--            processLocalImage(event.target.files[0], targetInputId);-->
+<!--        }-->
+
+<!--        function processLocalImage(file, targetInputId) {-->
+<!--            if (!file) return;-->
+<!--            const reader = new FileReader();-->
+<!--            reader.onload = function(e) {-->
+<!--                const img = new Image();-->
+<!--                img.onload = function() {-->
+<!--                    const canvas = document.createElement('canvas');-->
+<!--                    const max_size = 1000;-->
+<!--                    let width = img.width, height = img.height;-->
+
+<!--                    if (width > height) {-->
+<!--                        if (width > max_size) { height *= max_size / width; width = max_size; }-->
+<!--                    } else {-->
+<!--                        if (height > max_size) { width *= max_size / height; height = max_size; }-->
+<!--                    }-->
+
+<!--                    canvas.width = width; canvas.height = height;-->
+<!--                    const ctx = canvas.getContext('2d');-->
+<!--                    ctx.drawImage(img, 0, 0, width, height);-->
+<!--                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);-->
+
+<!--                    const targetInput = document.getElementById(targetInputId);-->
+<!--                    if (targetInput) {-->
+<!--                        targetInput.value = compressedBase64;-->
+<!--                        showToast('图片加载成功！');-->
+<!--                    }-->
+<!--                };-->
+<!--                img.src = e.target.result;-->
+<!--            };-->
+<!--            reader.readAsDataURL(file);-->
+<!--        }-->
+
+<!--        function showToast(message, isSuccess = true) {-->
+<!--            const toast = document.getElementById('status-toast');-->
+<!--            document.getElementById('status-text').innerText = message;-->
+<!--            document.getElementById('status-toast-bg').className = isSuccess ?-->
+<!--                'bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg text-xs font-bold' :-->
+<!--                'bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg text-xs font-bold';-->
+<!--            toast.classList.remove('hidden');-->
+<!--            setTimeout(() => toast.classList.add('hidden'), 3000);-->
+<!--        }-->
+
+<!--        function switchTab(tab) {-->
+<!--            if (tab === 'products') {-->
+<!--                document.getElementById('section-products').classList.remove('hidden');-->
+<!--                document.getElementById('section-sales').classList.add('hidden');-->
+<!--                document.getElementById('tab-btn-products').className = "text-xs font-bold border-b-2 border-red-600 py-1 text-red-600";-->
+<!--                document.getElementById('tab-btn-sales').className = "text-xs font-bold text-gray-500 hover:text-red-600 py-1";-->
+<!--            } else {-->
+<!--                document.getElementById('section-products').classList.add('hidden');-->
+<!--                document.getElementById('section-sales').classList.remove('hidden');-->
+<!--                document.getElementById('tab-btn-sales').className = "text-xs font-bold border-b-2 border-red-600 py-1 text-red-600";-->
+<!--                document.getElementById('tab-btn-products').className = "text-xs font-bold text-gray-500 hover:text-red-600 py-1";-->
+<!--                renderSalesTable();-->
+<!--            }-->
+<!--        }-->
+
+<!--        function renderAdminProducts() {-->
+<!--            const grid = document.getElementById('admin-product-grid');-->
+<!--            grid.innerHTML = '';-->
+
+<!--            products.forEach(p => {-->
+<!--                const card = document.createElement('div');-->
+<!--                card.className = "flex flex-col bg-white p-4 rounded-lg shadow-sm border border-gray-100 relative group cursor-pointer hover:shadow-md transition";-->
+<!--                card.ondblclick = () => openEditModal(p.id);-->
+
+<!--                const defaultImg = p.img1 || 'https://via.placeholder.com/400x600?text=No+Image';-->
+
+<!--                card.innerHTML = `-->
+<!--                    <button onclick="deleteProduct(event, ${p.id})" class="absolute top-5 left-5 z-20 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow transition">✕</button>-->
+<!--                    <div class="absolute inset-x-4 top-1/3 z-20 bg-black/60 text-white text-[10px] py-1.5 rounded text-center opacity-0 group-hover:opacity-100 transition">-->
+<!--                        双击编辑信息/调整库存-->
+<!--                    </div>-->
+<!--                    <div class="relative overflow-hidden bg-gray-50 mb-3 rounded-md" style="aspect-ratio: 3/4;">-->
+<!--                        <img src="${defaultImg}" class="absolute inset-0 w-full h-full object-cover">-->
+<!--                    </div>-->
+<!--                    <div class="space-y-1">-->
+<!--                        <h3 class="font-bold text-xs text-gray-800 line-clamp-1">${p.title}</h3>-->
+<!--                        <div class="flex justify-between items-center pt-1">-->
+<!--                            <p class="text-red-600 font-bold text-xs">￥${p.price.toFixed(2)}</p>-->
+<!--                            <span class="text-[10px] px-2 py-0.5 rounded font-bold ${p.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">-->
+<!--                                库存: ${p.stock ?? 0} 件-->
+<!--                            </span>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                `;-->
+<!--                grid.appendChild(card);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function openEditModal(id = null) {-->
+<!--            currentlyEditingId = id;-->
+<!--            document.querySelectorAll('.size-cb').forEach(cb => cb.checked = false);-->
+<!--            document.getElementById('edit-colors-list').innerHTML = '';-->
+
+<!--            if (id === null) {-->
+<!--                document.getElementById('edit-title').value = '';-->
+<!--                document.getElementById('edit-price').value = '';-->
+<!--                document.getElementById('edit-stock').value = '10';-->
+<!--                document.getElementById('edit-img1').value = '';-->
+<!--                document.getElementById('edit-img2').value = '';-->
+<!--                document.getElementById('edit-img3').value = '';-->
+<!--                document.getElementById('edit-img4').value = '';-->
+<!--                document.getElementById('edit-desc').value = '';-->
+<!--            } else {-->
+<!--                const p = products.find(prod => prod.id === id);-->
+<!--                if (!p) return;-->
+
+<!--                document.getElementById('edit-title').value = p.title;-->
+<!--                document.getElementById('edit-price').value = p.price;-->
+<!--                document.getElementById('edit-stock').value = p.stock ?? 0;-->
+<!--                document.getElementById('edit-img1').value = p.img1 || '';-->
+<!--                document.getElementById('edit-img2').value = p.img2 || '';-->
+<!--                document.getElementById('edit-img3').value = p.img3 || '';-->
+<!--                document.getElementById('edit-img4').value = p.img4 || '';-->
+<!--                document.getElementById('edit-desc').value = p.desc || '';-->
+
+<!--                (p.sizes || []).forEach(sz => {-->
+<!--                    const cb = document.querySelector(`.size-cb[value="${sz}"]`);-->
+<!--                    if (cb) cb.checked = true;-->
+<!--                });-->
+
+<!--                if (p.colors && p.colors.length > 0) {-->
+<!--                    p.colors.forEach(col => addNewColorRow(col.hex, col.name, col.img));-->
+<!--                }-->
+<!--            }-->
+<!--            document.getElementById('edit-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }-->
+
+<!--        function addNewColorRow(hex = "#000000", name = "", img = "") {-->
+<!--            const list = document.getElementById('edit-colors-list');-->
+<!--            const row = document.createElement('div');-->
+<!--            row.className = "color-edit-row flex items-center space-x-2 border p-2 rounded bg-white relative";-->
+<!--            row.innerHTML = `-->
+<!--                <input type="color" value="${hex}" class="color-hex-input w-7 h-7 rounded border-0 cursor-pointer">-->
+<!--                <input type="text" value="${name}" placeholder="名称/规格" class="color-name-input border p-1 text-xs rounded w-1/3">-->
+<!--                <input type="text" value="${img}" class="color-img-input border p-1 text-xs rounded flex-grow" placeholder="关联图片 URL (选填)">-->
+<!--                <button onclick="this.parentElement.remove()" class="text-red-500 font-bold px-1">&times;</button>-->
+<!--            `;-->
+<!--            list.appendChild(row);-->
+<!--        }-->
+
+<!--        function saveProductEdits() {-->
+<!--            const title = document.getElementById('edit-title').value.trim();-->
+<!--            const price = parseFloat(document.getElementById('edit-price').value);-->
+<!--            const stock = parseInt(document.getElementById('edit-stock').value) || 0;-->
+<!--            const img1 = document.getElementById('edit-img1').value.trim();-->
+<!--            const img2 = document.getElementById('edit-img2').value.trim();-->
+<!--            const img3 = document.getElementById('edit-img3').value.trim();-->
+<!--            const img4 = document.getElementById('edit-img4').value.trim();-->
+<!--            const desc = document.getElementById('edit-desc').value.trim();-->
+
+<!--            if (!title || isNaN(price)) {-->
+<!--                showToast('请至少填写商品标题和价格！', false);-->
+<!--                return;-->
+<!--            }-->
+
+<!--            const sizes = [];-->
+<!--            document.querySelectorAll('.size-cb:checked').forEach(cb => sizes.push(cb.value));-->
+
+<!--            const colors = [];-->
+<!--            document.querySelectorAll('.color-edit-row').forEach(row => {-->
+<!--                const hex = row.querySelector('.color-hex-input').value;-->
+<!--                const name = row.querySelector('.color-name-input').value.trim();-->
+<!--                const img = row.querySelector('.color-img-input').value.trim();-->
+<!--                if (name) colors.push({ hex, name, img });-->
+<!--            });-->
+
+<!--            const productData = {-->
+<!--                id: currentlyEditingId === null ? Date.now() : currentlyEditingId,-->
+<!--                title, price, stock, img1, img2, img3, img4, desc, colors, sizes-->
+<!--            };-->
+
+<!--            if (currentlyEditingId === null) {-->
+<!--                products.unshift(productData);-->
+<!--            } else {-->
+<!--                const idx = products.findIndex(p => p.id === currentlyEditingId);-->
+<!--                if (idx !== -1) products[idx] = productData;-->
+<!--            }-->
+
+<!--            saveLocalData();-->
+<!--            closeEditModal();-->
+<!--            renderAdminProducts();-->
+<!--            showToast('保存成功！记得点击【同步数据到 GitHub】');-->
+<!--        }-->
+
+<!--        function deleteProduct(event, id) {-->
+<!--            event.stopPropagation();-->
+<!--            if (confirm('确定要删除此商品吗？')) {-->
+<!--                products = products.filter(p => p.id !== id);-->
+<!--                saveLocalData();-->
+<!--                renderAdminProducts();-->
+<!--            }-->
+<!--        }-->
+
+<!--        /* 出货记账 */-->
+<!--        function openRecordSaleModal() {-->
+<!--            const select = document.getElementById('sale-product-select');-->
+<!--            select.innerHTML = '';-->
+<!--            products.forEach(p => {-->
+<!--                const opt = document.createElement('option');-->
+<!--                opt.value = p.id;-->
+<!--                opt.innerText = `${p.title} (库存: ${p.stock ?? 0}件)`;-->
+<!--                select.appendChild(opt);-->
+<!--            });-->
+<!--            onSaleProductChange();-->
+<!--            document.getElementById('record-sale-modal').classList.remove('hidden');-->
+<!--        }-->
+
+<!--        function closeRecordSaleModal() { document.getElementById('record-sale-modal').classList.add('hidden'); }-->
+
+<!--        function onSaleProductChange() {-->
+<!--            const pId = parseInt(document.getElementById('sale-product-select').value);-->
+<!--            const p = products.find(prod => prod.id === pId);-->
+<!--            if (p) document.getElementById('sale-amount-input').value = p.price;-->
+<!--        }-->
+
+<!--        function confirmRecordSale() {-->
+<!--            const pId = parseInt(document.getElementById('sale-product-select').value);-->
+<!--            const p = products.find(prod => prod.id === pId);-->
+<!--            if (!p) return;-->
+
+<!--            const qty = parseInt(document.getElementById('sale-qty-input').value) || 1;-->
+<!--            const amount = parseFloat(document.getElementById('sale-amount-input').value) || 0;-->
+<!--            const color = document.getElementById('sale-color-input').value.trim() || '默认规格';-->
+<!--            const size = document.getElementById('sale-size-input').value.trim() || '通用';-->
+<!--            const note = document.getElementById('sale-note-input').value.trim();-->
+
+<!--            p.stock = (p.stock ?? 0) - qty;-->
+<!--            if (p.stock < 0) p.stock = 0;-->
+
+<!--            salesHistory.unshift({-->
+<!--                id: Date.now(),-->
+<!--                time: new Date().toLocaleString('zh-CN'),-->
+<!--                productId: p.id,-->
+<!--                productTitle: p.title,-->
+<!--                color, size, amount, qty,-->
+<!--                remainingStock: p.stock,-->
+<!--                note-->
+<!--            });-->
+
+<!--            saveLocalData();-->
+<!--            closeRecordSaleModal();-->
+<!--            renderSalesTable();-->
+<!--            renderAdminProducts();-->
+<!--            showToast('记账成功，已扣减库存！');-->
+<!--        }-->
+
+<!--        function renderSalesTable() {-->
+<!--            const tbody = document.getElementById('sales-table-body');-->
+<!--            tbody.innerHTML = '';-->
+<!--            if (salesHistory.length === 0) {-->
+<!--                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无出货记录</td></tr>`;-->
+<!--                return;-->
+<!--            }-->
+<!--            salesHistory.forEach((item) => {-->
+<!--                const tr = document.createElement('tr');-->
+<!--                tr.innerHTML = `-->
+<!--                    <td class="p-3.5 text-gray-500">${item.time}</td>-->
+<!--                    <td class="p-3.5 font-bold text-gray-800">${item.productTitle}</td>-->
+<!--                    <td class="p-3.5">${item.color} / ${item.size}</td>-->
+<!--                    <td class="p-3.5 text-red-600 font-bold">￥${item.amount.toFixed(2)}</td>-->
+<!--                    <td class="p-3.5 font-bold">${item.qty} 件</td>-->
+<!--                    <td class="p-3.5"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded">${item.remainingStock} 件</span></td>-->
+<!--                    <td class="p-3.5 text-gray-400">${item.note || '-'}</td>-->
+<!--                    <td class="p-3.5 text-right"><button onclick="deleteSaleRecord(${item.id})" class="text-red-500 hover:underline">删除</button></td>-->
+<!--                `;-->
+<!--                tbody.appendChild(tr);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function deleteSaleRecord(id) {-->
+<!--            if (confirm('确定删除此记录？')) {-->
+<!--                salesHistory = salesHistory.filter(s => s.id !== id);-->
+<!--                saveLocalData();-->
+<!--                renderSalesTable();-->
+<!--            }-->
+<!--        }-->
+
+<!--        function exportSalesToExcel() {-->
+<!--            if (salesHistory.length === 0) return showToast('暂无销售数据可导出', false);-->
+<!--            const excelData = salesHistory.map(item => ({-->
+<!--                "销售时间": item.time,-->
+<!--                "商品名称": item.productTitle,-->
+<!--                "规格/颜色": item.color,-->
+<!--                "尺寸": item.size,-->
+<!--                "成交总价(元)": item.amount,-->
+<!--                "数量": item.qty,-->
+<!--                "扣减后剩余库存": item.remainingStock,-->
+<!--                "备注信息": item.note || ""-->
+<!--            }));-->
+<!--            const worksheet = XLSX.utils.json_to_sheet(excelData);-->
+<!--            const workbook = XLSX.utils.book_new();-->
+<!--            XLSX.utils.book_append_sheet(workbook, worksheet, "销售账单");-->
+<!--            XLSX.writeFile(workbook, `商家_${appConfig.shopId}_销售账本_${new Date().toISOString().slice(0,10)}.xlsx`);-->
+<!--        }-->
+
+<!--        /* 设置 */-->
+<!--        function openConfigModal() { syncConfigFields(); document.getElementById('config-modal').classList.remove('hidden'); }-->
+<!--        function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden'); }-->
+
+<!--        function syncConfigFields() {-->
+<!--            document.getElementById('nav-brand-name').innerText = appConfig.shopName || "商家后台";-->
+<!--            document.getElementById('cfg-shop-name').value = appConfig.shopName;-->
+<!--            document.getElementById('cfg-wechat-id').value = appConfig.wechatId;-->
+<!--            document.getElementById('cfg-wechat-qr').value = appConfig.wechatQr || '';-->
+<!--            document.getElementById('cfg-announcement').value = appConfig.announcement;-->
+<!--            document.getElementById('cfg-repo').value = appConfig.github.repo;-->
+<!--            document.getElementById('cfg-branch').value = appConfig.github.branch;-->
+<!--            document.getElementById('cfg-github-token').value = appConfig.github.token || '';-->
+<!--        }-->
+
+<!--        function saveGlobalConfig() {-->
+<!--            appConfig.shopName = document.getElementById('cfg-shop-name').value.trim();-->
+<!--            appConfig.wechatId = document.getElementById('cfg-wechat-id').value.trim();-->
+<!--            appConfig.wechatQr = document.getElementById('cfg-wechat-qr').value.trim();-->
+<!--            appConfig.announcement = document.getElementById('cfg-announcement').value.trim();-->
+<!--            appConfig.github.repo = document.getElementById('cfg-repo').value.trim();-->
+<!--            appConfig.github.branch = document.getElementById('cfg-branch').value.trim();-->
+<!--            appConfig.github.token = document.getElementById('cfg-github-token').value.trim();-->
+
+<!--            saveLocalData();-->
+<!--            closeConfigModal();-->
+<!--            syncConfigFields();-->
+<!--            showToast('店铺资料保存成功！');-->
+<!--        }-->
+
+<!--        /* 云端同步 */-->
+<!--        async function syncToGitHub() {-->
+<!--            if (!appConfig.github.token) return showToast('请先在【设置】中配置 GitHub Token！', false);-->
+<!--            document.getElementById('sync-status').innerText = '⏳ 同步中...';-->
+
+<!--            const p1 = pushToGitHub(`stores/${appConfig.shopId}/products.json`, JSON.stringify(products, null, 2));-->
+<!--            const p2 = pushToGitHub(`stores/${appConfig.shopId}/sales.json`, JSON.stringify(salesHistory, null, 2));-->
+<!--            const results = await Promise.all([p1, p2]);-->
+
+<!--            showToast(results[0] && results[1] ? `✅ 已成功同步数据到云端目录 stores/${appConfig.shopId}/` : '❌ 同步失败，请检查 Token', results[0] && results[1]);-->
+<!--            document.getElementById('sync-status').innerText = '🔄 同步数据到 GitHub';-->
+<!--        }-->
+
+<!--        async function pushToGitHub(path, content) {-->
+<!--            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;-->
+<!--            const headers = { 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json', 'Authorization': `token ${appConfig.github.token}` };-->
+<!--            const body = { message: "Update Shop Data", content: btoa(unescape(encodeURIComponent(content))), branch: appConfig.github.branch };-->
+<!--            try {-->
+<!--                const checkRes = await fetch(`${url}?ref=${appConfig.github.branch}`, { headers });-->
+<!--                if (checkRes.ok) body.sha = (await checkRes.json()).sha;-->
+<!--                const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });-->
+<!--                return response.ok;-->
+<!--            } catch (e) { return false; }-->
+<!--        }-->
+
+<!--        async function fetchMerchantDataFromGitHub(shopId) {-->
+<!--            if (!appConfig.github.token || !shopId) return;-->
+<!--            try {-->
+<!--                const res = await fetch(`${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}`, {-->
+<!--                    headers: { 'Authorization': `token ${appConfig.github.token}` }-->
+<!--                });-->
+<!--                if (res.ok) {-->
+<!--                    const data = await res.json();-->
+<!--                    products = JSON.parse(decodeURIComponent(escape(atob(data.content))));-->
+<!--                    saveLocalData();-->
+<!--                }-->
+<!--            } catch (e) {}-->
+<!--        }-->
+
+<!--        window.onload = function() {-->
+<!--            const activeId = sessionStorage.getItem('active_shop_id');-->
+<!--            const activePwd = sessionStorage.getItem('active_shop_pwd');-->
+
+<!--            if (activeId && activePwd) {-->
+<!--                document.getElementById('login-shop-id').value = activeId;-->
+<!--                document.getElementById('login-shop-pwd').value = activePwd;-->
+<!--                handleShopLogin();-->
+<!--            } else {-->
+<!--                const urlShopId = getShopIdFromUrl();-->
+<!--                if (urlShopId) {-->
+<!--                    document.getElementById('login-shop-id').value = urlShopId;-->
+<!--                }-->
+<!--            }-->
+<!--        };-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
