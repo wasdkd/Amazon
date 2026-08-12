@@ -37,7 +37,7 @@
             </button>
 
             <p class="text-[10px] text-gray-400 leading-relaxed pt-2 border-t">
-                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，登录后将自动开启长久记住身份功能。
+                🛡️ 安全提示：系统仅支持预分配的官方授权账号登录，无需 Token 即可读取店铺商品。
             </p>
         </div>
     </div>
@@ -71,7 +71,7 @@
                     <button onclick="switchTab('products')" id="tab-btn-products" class="text-xs font-bold border-b-2 border-red-600 py-1 text-red-600">商品管理</button>
                     <button onclick="switchTab('sales')" id="tab-btn-sales" class="text-xs font-bold text-gray-500 hover:text-red-600 py-1">出入库与销售明细</button>
                     <button onclick="syncToGitHub()" class="text-xs font-bold text-purple-700 hover:text-purple-900 transition flex items-center gap-1">
-                        <span id="sync-status">🔄 同步数据到 GitHub</span>
+                        <span id="sync-status">🔄 同步修改到 GitHub</span>
                     </button>
                     <button onclick="openConfigModal()" class="text-xs font-bold text-gray-700 hover:text-red-600 transition">⚙️ 设置店铺资料与Token</button>
                 </div>
@@ -84,7 +84,7 @@
                 <div class="flex justify-between items-end mb-8 border-b pb-4 border-gray-100">
                     <div>
                         <h1 class="text-2xl font-light">商品列表</h1>
-                        <p class="text-xs text-gray-400 mt-1">双击商品卡片可编辑信息或修改库存</p>
+                        <p class="text-xs text-gray-400 mt-1">双击商品卡片可编辑信息或修改库存（修改后需配置Token即可同步到云端）</p>
                     </div>
                     <div class="space-x-2">
                         <button onclick="reloadCloudDataManual()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-2.5 rounded font-bold transition">🔄 刷新线上数据</button>
@@ -300,6 +300,7 @@
                 <hr class="my-2">
                 <div class="bg-gray-50 p-3 rounded space-y-2">
                     <h4 class="text-xs font-bold text-gray-600">GitHub 统一云储存账号配置</h4>
+                    <p class="text-[10px] text-gray-400">读取线上数据无需 Token；发布/修改/同步数据时需在此配置 Token。</p>
                     <input id="cfg-repo" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="仓库 (例如: wasdkd/Amazon)">
                     <input id="cfg-branch" type="text" class="w-full border p-1.5 text-xs rounded" placeholder="分支 (例如: main)">
                     <input id="cfg-github-token" type="password" class="w-full border p-1.5 text-xs rounded" placeholder="Personal Access Token (ghp_...)">
@@ -339,7 +340,7 @@
 
         const GITHUB_API = "https://api.github.com";
 
-        // 原生标准 UTF-8 Base64 编解码器（完美支持中文与 Emoji，彻底解决乱码）
+        // 原生 UTF-8 Base64 编解码器
         function encodeUtf8Base64(str) {
             const bytes = new TextEncoder().encode(str);
             let binary = '';
@@ -372,34 +373,34 @@
             return null;
         }
 
-        // 1.【核心解决刷新变旧数据问题】：配置 Token 后，优先通过 GitHub REST API 直连（0秒延迟，穿透 CDN 缓存）
+        // 1.【无需 Token 即可读取】：无论是否填写 Token，任何人都可以直接读取 GitHub 云端数据！
         async function fetchMerchantDataFromGitHub(shopId) {
             if (!shopId) return false;
             try {
-                if (appConfig.github.token) {
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (appConfig.github.token && appConfig.github.token.trim()) {
                     const token = appConfig.github.token.trim();
-                    const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-                    const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}&t=${Date.now()}`;
-                    const res = await fetch(apiUrl, {
-                        headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' },
-                        cache: 'no-store'
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        const jsonStr = decodeUtf8Base64(data.content);
-                        const cloudProducts = JSON.parse(jsonStr);
-                        if (Array.isArray(cloudProducts)) {
-                            products = cloudProducts;
-                            return true;
-                        }
+                    headers['Authorization'] = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+                }
+
+                // API 直连（0 秒延迟，强穿透缓存）
+                const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}&t=${Date.now()}`;
+                const res = await fetch(apiUrl, { headers, cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const jsonStr = decodeUtf8Base64(data.content);
+                    const cloudProducts = JSON.parse(jsonStr);
+                    if (Array.isArray(cloudProducts)) {
+                        products = cloudProducts;
+                        return true;
                     }
                 }
 
-                // 未填 Token 时回退只读 Fetch (带 no-store)
+                // Raw 备用节点
                 const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/products.json?t=${Date.now()}`;
-                const res = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
-                if (res.ok) {
-                    const cloudProducts = await res.json();
+                const rawRes = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+                if (rawRes.ok) {
+                    const cloudProducts = await rawRes.json();
                     if (Array.isArray(cloudProducts)) {
                         products = cloudProducts;
                         return true;
@@ -409,33 +410,32 @@
             return false;
         }
 
-        // 2.【核心解决刷新变旧数据问题】：通过 REST API 抓取账单
+        // 2.【无需 Token 即可读取】：抓取账单数据
         async function fetchSalesDataFromGitHub(shopId) {
             if (!shopId) return false;
             try {
-                if (appConfig.github.token) {
+                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (appConfig.github.token && appConfig.github.token.trim()) {
                     const token = appConfig.github.token.trim();
-                    const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
-                    const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/sales.json?ref=${appConfig.github.branch}&t=${Date.now()}`;
-                    const res = await fetch(apiUrl, {
-                        headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' },
-                        cache: 'no-store'
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        const jsonStr = decodeUtf8Base64(data.content);
-                        const cloudSales = JSON.parse(jsonStr);
-                        if (Array.isArray(cloudSales)) {
-                            salesHistory = cloudSales;
-                            return true;
-                        }
+                    headers['Authorization'] = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+                }
+
+                const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/sales.json?ref=${appConfig.github.branch}&t=${Date.now()}`;
+                const res = await fetch(apiUrl, { headers, cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const jsonStr = decodeUtf8Base64(data.content);
+                    const cloudSales = JSON.parse(jsonStr);
+                    if (Array.isArray(cloudSales)) {
+                        salesHistory = cloudSales;
+                        return true;
                     }
                 }
 
                 const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/sales.json?t=${Date.now()}`;
-                const res = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
-                if (res.ok) {
-                    const cloudSales = await res.json();
+                const rawRes = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
+                if (rawRes.ok) {
+                    const cloudSales = await rawRes.json();
                     if (Array.isArray(cloudSales)) {
                         salesHistory = cloudSales;
                         return true;
@@ -466,7 +466,6 @@
         }
 
         function loginSuccess(shopId, pwd) {
-            // 【记住登录身份】：同时持久化记录到 localStorage，刷新或重新打开页面免重复登录
             localStorage.setItem('sora_active_shop_id', shopId);
             localStorage.setItem('sora_active_shop_pwd', pwd);
             sessionStorage.setItem('active_shop_id', shopId);
@@ -494,7 +493,7 @@
 
         async function loadShopData(shopId) {
             const tag = document.getElementById('data-source-tag');
-            tag.innerText = "📡 正在同步云端商品与出入库账单...";
+            tag.innerText = "📡 正在读取 GitHub 线上商品与账单...";
             tag.className = "bg-yellow-800 text-yellow-200 px-2 py-0.5 rounded text-[10px]";
 
             const globalToken = localStorage.getItem('sora_global_github_token');
@@ -509,7 +508,7 @@
 
             if (fetchedProducts || fetchedSales) {
                 saveLocalData();
-                tag.innerText = "📡 已成功加载 GitHub 线上最新商品与账单";
+                tag.innerText = "📡 已拉取 GitHub 线上最新数据 (无需Token即可读取)";
                 tag.className = "bg-green-800 text-green-200 px-2 py-0.5 rounded text-[10px]";
             } else {
                 const localProducts = localStorage.getItem(`sora_products_${shopId}`);
@@ -528,7 +527,7 @@
         }
 
         async function reloadCloudDataManual() {
-            showToast("正在强制刷新 GitHub 线上数据...");
+            showToast("正在重新抓取 GitHub 线上数据...");
             await loadShopData(appConfig.shopId);
             showToast("刷新完成！");
         }
@@ -733,6 +732,7 @@
             list.appendChild(row);
         }
 
+        /* 写入操作：需要配置 Token 才能提交上传云端 */
         async function saveProductEdits() {
             const title = document.getElementById('edit-title').value.trim();
             const price = parseFloat(document.getElementById('edit-price').value);
@@ -778,10 +778,10 @@
             renderAdminProducts();
 
             if (appConfig.github.token) {
-                showToast(`正在将商品资料同步更新至 GitHub...`);
+                showToast(`正在同步保存至 GitHub...`);
                 await syncToGitHub();
             } else {
-                showToast('保存成功！记得配置 GitHub Token 以同步至云端。');
+                showToast('⚠️ 本地保存成功！若需同步至云端，请在【设置】中配置 Token', false);
             }
         }
 
@@ -791,7 +791,12 @@
                 products = products.filter(p => String(p.id) !== String(id));
                 saveLocalData();
                 renderAdminProducts();
-                syncToGitHub();
+
+                if (appConfig.github.token) {
+                    syncToGitHub();
+                } else {
+                    showToast('⚠️ 本地删除成功！同步至云端需要配置 Token', false);
+                }
             }
         }
 
@@ -952,7 +957,7 @@
                 showToast(`正在自动同步【最新库存与账单】到 GitHub...`);
                 await syncToGitHub();
             } else {
-                showToast(`⚠️ ${currentStockModalType}记账成功！商品卡片库存已更新 (未配置 Token，尚未同步云端)`);
+                showToast(`⚠️ ${currentStockModalType}记账成功！(未配置 Token，尚未同步云端)`, false);
             }
         }
 
@@ -1014,7 +1019,12 @@
                 saveLocalData();
                 renderSalesTable();
                 renderAdminProducts();
-                syncToGitHub();
+
+                if (appConfig.github.token) {
+                    syncToGitHub();
+                } else {
+                    showToast('⚠️ 本地记录已删除！同步至云端需要配置 Token', false);
+                }
             }
         }
 
@@ -1068,10 +1078,10 @@
             showToast('店铺资料保存成功！');
         }
 
-        /* 3.【彻底解决 409 冲突与 5 分钟缓存问题】：优先用 GitHub REST API 抓取与提交 */
+        /* 写入同步：必须要 Token 才能更新推送到 GitHub */
         async function syncToGitHub() {
-            if (!appConfig.github.token) {
-                showToast('未配置 GitHub Token，仅本地生效！', false);
+            if (!appConfig.github.token || !appConfig.github.token.trim()) {
+                showToast('⚠️ 增删改云端同步需要配置 Token！请在【设置】中填写 Token', false);
                 return false;
             }
             document.getElementById('sync-status').innerText = '⏳ 同步中...';
@@ -1081,7 +1091,7 @@
             const results = await Promise.all([p1, p2]);
 
             const isOk = results[0] && results[1];
-            showToast(isOk ? `✅ 已成功同步商品与账单到 GitHub` : '❌ 同步失败，请检查 Token', isOk);
+            showToast(isOk ? `✅ 已成功同步商品与账单到 GitHub` : '❌ 同步失败，请检查 Token 权限', isOk);
             document.getElementById('sync-status').innerText = '🔄 同步数据到 GitHub';
             return isOk;
         }
@@ -1108,7 +1118,6 @@
             };
 
             try {
-                // cache: 'no-store' 穿透缓存获取最新的 SHA 校验码
                 const checkRes = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, {
                     headers,
                     cache: 'no-store'
@@ -1159,6 +1168,7 @@
     </script>
 </body>
 </html>
+
 
 
 
@@ -1503,11 +1513,24 @@
 
 <!--        const GITHUB_API = "https://api.github.com";-->
 
-<!--        // 安全 UTF-8 转 Base64（支持中文/ Emoji，防报错）-->
+<!--        // 原生标准 UTF-8 Base64 编解码器（完美支持中文与 Emoji，彻底解决乱码）-->
 <!--        function encodeUtf8Base64(str) {-->
-<!--            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {-->
-<!--                return String.fromCharCode('0x' + p1);-->
-<!--            }));-->
+<!--            const bytes = new TextEncoder().encode(str);-->
+<!--            let binary = '';-->
+<!--            for (let i = 0; i < bytes.byteLength; i++) {-->
+<!--                binary += String.fromCharCode(bytes[i]);-->
+<!--            }-->
+<!--            return btoa(binary);-->
+<!--        }-->
+
+<!--        function decodeUtf8Base64(base64Str) {-->
+<!--            const cleanBase64 = base64Str.replace(/\s/g, '');-->
+<!--            const binaryStr = atob(cleanBase64);-->
+<!--            const bytes = new Uint8Array(binaryStr.length);-->
+<!--            for (let i = 0; i < binaryStr.length; i++) {-->
+<!--                bytes[i] = binaryStr.charCodeAt(i);-->
+<!--            }-->
+<!--            return new TextDecoder().decode(bytes);-->
 <!--        }-->
 
 <!--        function getShopIdFromUrl() {-->
@@ -1523,11 +1546,32 @@
 <!--            return null;-->
 <!--        }-->
 
+<!--        // 1.【核心解决刷新变旧数据问题】：配置 Token 后，优先通过 GitHub REST API 直连（0秒延迟，穿透 CDN 缓存）-->
 <!--        async function fetchMerchantDataFromGitHub(shopId) {-->
 <!--            if (!shopId) return false;-->
 <!--            try {-->
+<!--                if (appConfig.github.token) {-->
+<!--                    const token = appConfig.github.token.trim();-->
+<!--                    const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;-->
+<!--                    const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/products.json?ref=${appConfig.github.branch}&t=${Date.now()}`;-->
+<!--                    const res = await fetch(apiUrl, {-->
+<!--                        headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' },-->
+<!--                        cache: 'no-store'-->
+<!--                    });-->
+<!--                    if (res.ok) {-->
+<!--                        const data = await res.json();-->
+<!--                        const jsonStr = decodeUtf8Base64(data.content);-->
+<!--                        const cloudProducts = JSON.parse(jsonStr);-->
+<!--                        if (Array.isArray(cloudProducts)) {-->
+<!--                            products = cloudProducts;-->
+<!--                            return true;-->
+<!--                        }-->
+<!--                    }-->
+<!--                }-->
+
+<!--                // 未填 Token 时回退只读 Fetch (带 no-store)-->
 <!--                const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/products.json?t=${Date.now()}`;-->
-<!--                const res = await fetch(rawUrl);-->
+<!--                const res = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });-->
 <!--                if (res.ok) {-->
 <!--                    const cloudProducts = await res.json();-->
 <!--                    if (Array.isArray(cloudProducts)) {-->
@@ -1539,11 +1583,31 @@
 <!--            return false;-->
 <!--        }-->
 
+<!--        // 2.【核心解决刷新变旧数据问题】：通过 REST API 抓取账单-->
 <!--        async function fetchSalesDataFromGitHub(shopId) {-->
 <!--            if (!shopId) return false;-->
 <!--            try {-->
+<!--                if (appConfig.github.token) {-->
+<!--                    const token = appConfig.github.token.trim();-->
+<!--                    const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;-->
+<!--                    const apiUrl = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/stores/${shopId}/sales.json?ref=${appConfig.github.branch}&t=${Date.now()}`;-->
+<!--                    const res = await fetch(apiUrl, {-->
+<!--                        headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' },-->
+<!--                        cache: 'no-store'-->
+<!--                    });-->
+<!--                    if (res.ok) {-->
+<!--                        const data = await res.json();-->
+<!--                        const jsonStr = decodeUtf8Base64(data.content);-->
+<!--                        const cloudSales = JSON.parse(jsonStr);-->
+<!--                        if (Array.isArray(cloudSales)) {-->
+<!--                            salesHistory = cloudSales;-->
+<!--                            return true;-->
+<!--                        }-->
+<!--                    }-->
+<!--                }-->
+
 <!--                const rawUrl = `https://raw.githubusercontent.com/${appConfig.github.repo}/${appConfig.github.branch}/stores/${shopId}/sales.json?t=${Date.now()}`;-->
-<!--                const res = await fetch(rawUrl);-->
+<!--                const res = await fetch(rawUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });-->
 <!--                if (res.ok) {-->
 <!--                    const cloudSales = await res.json();-->
 <!--                    if (Array.isArray(cloudSales)) {-->
@@ -1555,7 +1619,6 @@
 <!--            return false;-->
 <!--        }-->
 
-<!--        /* 🔒 登录机制 */-->
 <!--        async function handleShopLogin() {-->
 <!--            const inputShopId = document.getElementById('login-shop-id').value.trim().toLowerCase();-->
 <!--            const inputPwd = document.getElementById('login-shop-pwd').value.trim();-->
@@ -1577,7 +1640,7 @@
 <!--        }-->
 
 <!--        function loginSuccess(shopId, pwd) {-->
-<!--            // 【记忆功能】：同时记录到 localStorage，实现刷新或关闭网页后再打开依然自动保持登录！-->
+<!--            // 【记住登录身份】：同时持久化记录到 localStorage，刷新或重新打开页面免重复登录-->
 <!--            localStorage.setItem('sora_active_shop_id', shopId);-->
 <!--            localStorage.setItem('sora_active_shop_pwd', pwd);-->
 <!--            sessionStorage.setItem('active_shop_id', shopId);-->
@@ -1591,7 +1654,6 @@
 <!--            loadShopData(shopId);-->
 <!--        }-->
 
-<!--        /* 🚪 退出登录 */-->
 <!--        function logoutAdmin() {-->
 <!--            if (confirm("确定要退出登录吗？退出后将清除本机的记住登录状态。")) {-->
 <!--                localStorage.removeItem('sora_active_shop_id');-->
@@ -1609,7 +1671,6 @@
 <!--            tag.innerText = "📡 正在同步云端商品与出入库账单...";-->
 <!--            tag.className = "bg-yellow-800 text-yellow-200 px-2 py-0.5 rounded text-[10px]";-->
 
-<!--            // 读取共享的 Token 记忆-->
 <!--            const globalToken = localStorage.getItem('sora_global_github_token');-->
 <!--            if (globalToken && !appConfig.github.token) {-->
 <!--                appConfig.github.token = globalToken;-->
@@ -1908,7 +1969,7 @@
 <!--            }-->
 <!--        }-->
 
-<!--        /* 📦 出入库登记与选择 */-->
+<!--        /* 📦 出入库登记与商品选择 */-->
 <!--        function openStockLogModal(type = "出货") {-->
 <!--            if (products.length === 0) {-->
 <!--                alert("当前店铺暂无商品，请先添加发布商品！");-->
@@ -2062,7 +2123,7 @@
 <!--            renderAdminProducts();-->
 
 <!--            if (appConfig.github.token) {-->
-<!--                showToast(`正在自动将【最新库存与账单】同步存档到 GitHub...`);-->
+<!--                showToast(`正在自动同步【最新库存与账单】到 GitHub...`);-->
 <!--                await syncToGitHub();-->
 <!--            } else {-->
 <!--                showToast(`⚠️ ${currentStockModalType}记账成功！商品卡片库存已更新 (未配置 Token，尚未同步云端)`);-->
@@ -2181,7 +2242,7 @@
 <!--            showToast('店铺资料保存成功！');-->
 <!--        }-->
 
-<!--        /* 🔄 彻底解决 409 Conflict 冲突与 UTF-8 编码问题的上传更新函数 */-->
+<!--        /* 3.【彻底解决 409 冲突与 5 分钟缓存问题】：优先用 GitHub REST API 抓取与提交 */-->
 <!--        async function syncToGitHub() {-->
 <!--            if (!appConfig.github.token) {-->
 <!--                showToast('未配置 GitHub Token，仅本地生效！', false);-->
@@ -2204,7 +2265,6 @@
 
 <!--            const url = `${GITHUB_API}/repos/${appConfig.github.repo}/contents/${path}`;-->
 <!--            const token = appConfig.github.token.trim();-->
-<!--            // 适配 GitHub 最新 Bearer 鉴权方式-->
 <!--            const authHeader = token.startsWith('ghp_') || token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;-->
 
 <!--            const headers = {-->
@@ -2222,7 +2282,7 @@
 <!--            };-->
 
 <!--            try {-->
-<!--                // 强制禁止浏览器 HTTP 缓存，防止 409 SHA 冲突-->
+<!--                // cache: 'no-store' 穿透缓存获取最新的 SHA 校验码-->
 <!--                const checkRes = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, {-->
 <!--                    headers,-->
 <!--                    cache: 'no-store'-->
@@ -2237,7 +2297,7 @@
 
 <!--                if (res.ok) return true;-->
 
-<!--                // 遇到 409 Conflict 冲突自动无感二次重试机制-->
+<!--                // 409 Conflict 冲突自动重试机制-->
 <!--                if (res.status === 409) {-->
 <!--                    console.warn("409 Conflict，重新拉取最新 SHA 校验码重试中...");-->
 <!--                    const retryCheck = await fetch(`${url}?ref=${encodeURIComponent(appConfig.github.branch)}&t=${Date.now()}`, { headers, cache: 'no-store' });-->
@@ -2256,7 +2316,6 @@
 <!--        }-->
 
 <!--        window.onload = function() {-->
-<!--            // 【自动记住功能】：优先检查 localStorage 中永久记录的登录信息-->
 <!--            const activeId = localStorage.getItem('sora_active_shop_id') || sessionStorage.getItem('active_shop_id');-->
 <!--            const activePwd = localStorage.getItem('sora_active_shop_pwd') || sessionStorage.getItem('active_shop_pwd');-->
 
@@ -2274,3 +2333,5 @@
 <!--    </script>-->
 <!--</body>-->
 <!--</html>-->
+
+
