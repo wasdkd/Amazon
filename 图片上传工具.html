@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub 图床上传工具</title>
-  <!-- 引入 Tailwind CSS 快速构建现代化 UI -->
+  <title>SKU 图片 GitHub 全能工具（上传 + 批量读取）</title>
+  <!-- 引入 Tailwind CSS 构建UI -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* 拖拽高亮样式 */
     .drag-over {
       border-color: #3b82f6 !important;
       background-color: #eff6ff !important;
@@ -18,79 +17,130 @@
 
   <div class="max-w-6xl mx-auto space-y-6">
 
-    <!-- 标题 -->
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-        <span>📸 GitHub 图床工具</span>
-      </h1>
-      <span class="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-medium">保存目录: SKU_IMG/</span>
+    <!-- 顶栏标题 -->
+    <div class="flex items-center justify-between border-b pb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">📸 SKU 图片 GitHub 全能工具</h1>
+        <p class="text-xs text-gray-500 mt-1">少量图片直接网页拖拽上传；大量图片用 Git 推送后一键读取生成 Excel 链接</p>
+      </div>
+      <span class="text-xs bg-purple-100 text-purple-800 px-3 py-1 rounded-full font-bold">二合一网页版</span>
     </div>
 
-    <!-- 1. GitHub 配置面板 -->
+    <!-- 1. 全局配置面板 -->
     <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">
-      <div class="flex items-center justify-between border-b pb-3">
-        <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-1">
-          <span>⚙️ GitHub 仓库配置</span>
-        </h2>
-        <button onclick="saveConfig()" class="text-xs bg-gray-800 text-white hover:bg-black px-3 py-1.5 rounded-lg font-medium transition">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h2 class="text-xs font-bold text-gray-700 uppercase tracking-wider">⚙️ GitHub 仓库配置</h2>
+        <button onclick="saveConfig()" class="text-xs bg-gray-800 hover:bg-black text-white px-3 py-1.5 rounded-lg font-medium transition">
           保存配置
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">GitHub 仓库 (owner/repo)</label>
-          <input id="cfg-repo" type="text" placeholder="例如: yourname/my-images" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <input id="cfg-repo" type="text" placeholder="例如: wasdkd/Amazon" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">分支 (Branch)</label>
           <input id="cfg-branch" type="text" placeholder="main 或 master" value="main" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
         <div>
-          <label class="block text-[11px] font-medium text-gray-600 mb-1">Personal Access Token (PAT)</label>
-          <input id="cfg-token" type="password" placeholder="ghp_xxxxxxxxxxxx" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <label class="block text-xs font-medium text-gray-600 mb-1">目标文件夹路径</label>
+          <input id="cfg-folder" type="text" placeholder="例如: SKU_IMG" value="SKU_IMG" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 font-bold text-purple-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Personal Access Token (PAT)</label>
+          <input id="cfg-token" type="password" placeholder="上传必填 / 私有仓库必填 (ghp_...)" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
       </div>
     </div>
 
-    <!-- 2. 拖拽上传区域 -->
-    <div
-      id="drop-zone"
-      ondragover="handleDragOver(event)"
-      ondragleave="handleDragLeave(event)"
-      ondrop="handleDrop(event)"
-      onclick="document.getElementById('file-input').click()"
-      class="border-2 border-dashed border-gray-300 bg-white hover:border-blue-500 hover:bg-blue-50/50 transition-all rounded-xl p-8 text-center cursor-pointer relative"
-    >
-      <input type="file" id="file-input" multiple accept="image/*" class="hidden" onchange="handleFileSelect(event)">
-      <div class="space-y-2 pointer-events-none">
-        <div class="text-4xl">📤</div>
-        <p class="text-sm font-semibold text-gray-700">点击选择图片，或将图片拖拽到此处上传</p>
-        <p class="text-xs text-gray-400">支持 PNG, JPG, JPEG, WEBP, GIF 等格式，可多选</p>
+    <!-- 2. 操作功能双面板 (少量上传 vs 大量读取) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- 左侧：模式 1 - 网页拖拽上传（少量图片） -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between border-b pb-2">
+          <h3 class="text-xs font-bold text-blue-600 flex items-center gap-1">
+            <span>📤 方式一：网页极速上传 (少量图片)</span>
+          </h3>
+          <span class="text-[10px] text-gray-400">支持拖拽 / 同名自动覆盖</span>
+        </div>
+
+        <div
+          id="drop-zone"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)"
+          onclick="document.getElementById('file-input').click()"
+          class="border-2 border-dashed border-gray-300 bg-gray-50 hover:border-blue-500 hover:bg-blue-50/50 transition-all rounded-lg p-6 text-center cursor-pointer relative flex-grow flex flex-col justify-center items-center"
+        >
+          <input type="file" id="file-input" multiple accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+          <div class="space-y-1 pointer-events-none">
+            <div class="text-3xl">📤</div>
+            <p class="text-xs font-bold text-gray-700">点击或将少量图片拖到此处上传</p>
+            <p class="text-[10px] text-gray-400">自动传至 SKU_IMG/ 目录，即刻替换同名图片</p>
+          </div>
+        </div>
       </div>
+
+      <!-- 右侧：模式 2 - 线上文件夹读取（大量 Git Push 图片） -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between border-b pb-2">
+          <h3 class="text-xs font-bold text-purple-600 flex items-center gap-1">
+            <span>📂 方式二：调取云端文件夹 (大量图片)</span>
+          </h3>
+          <span class="text-[10px] text-gray-400">本地 Git Push 后使用</span>
+        </div>
+
+        <div class="bg-purple-50/50 border border-purple-100 rounded-lg p-6 text-center space-y-3 flex-grow flex flex-col justify-center items-center">
+          <div class="text-3xl">🚀</div>
+          <p class="text-xs text-gray-600">图片过多时，请在本地用 Git 推送到 <b class="text-purple-700" id="display-folder-name">SKU_IMG</b> 目录</p>
+          <button onclick="fetchGitHubDirectory()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-lg text-xs transition shadow flex items-center gap-1.5">
+            🔄 一键加载 / 刷新线上所有图片
+          </button>
+        </div>
+      </div>
+
     </div>
 
-    <!-- 3. 上传结果展示表格 -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-        <h3 class="text-sm font-semibold text-gray-700">上传结果列表</h3>
-        <button onclick="copyAllToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
-          📋 一键复制全部到 Excel
-        </button>
+    <!-- 3. 结果列表与批量复制栏 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-0">
+
+      <!-- 搜选控制栏 -->
+      <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50">
+        <div class="flex items-center gap-2 w-full md:w-auto flex-grow max-w-md">
+          <span class="text-sm">🔍</span>
+          <input id="search-input" type="text" oninput="filterImages()" placeholder="搜索 SKU 名称或文件名..." class="w-full text-xs border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+          <span id="count-badge" class="text-xs text-gray-500 font-medium">列表共 0 张图片</span>
+          <button onclick="copyAllToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2.5 rounded-lg font-bold transition shadow-sm flex items-center gap-1.5">
+            📋 一键复制全部到 Excel
+          </button>
+          <button onclick="clearTable()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs px-3 py-2.5 rounded-lg font-medium transition">
+            清空列表
+          </button>
+        </div>
       </div>
 
+      <!-- 表格 -->
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-xs">
           <thead>
             <tr class="bg-gray-100 text-gray-500 font-semibold border-b">
-              <th class="p-3.5 w-24">图片</th>
+              <th class="p-3.5 w-20">图片</th>
               <th class="p-3.5">图片名称 (无后缀)</th>
-              <th class="p-3.5">GitHub 图片链接</th>
-              <th class="p-3.5 text-center w-32">操作</th>
+              <th class="p-3.5">GitHub 图片直连链接 (Raw URL)</th>
+              <th class="p-3.5 text-center w-28">操作</th>
             </tr>
           </thead>
           <tbody id="result-tbody" class="divide-y divide-gray-100 text-gray-700">
             <tr id="empty-row">
-              <td colspan="4" class="p-8 text-center text-gray-400">暂无上传数据，请拖拽或选择图片上传</td>
+              <td colspan="4" class="p-12 text-center text-gray-400 space-y-2">
+                <div class="text-3xl">🖼️</div>
+                <div>暂无图片数据。你可以拖拽少量图片上传，或点击上方【加载/刷新】读取线上文件夹</div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -99,54 +149,64 @@
 
   </div>
 
-  <!-- Toast 提示框 -->
+  <!-- Toast 消息框 -->
   <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl hidden transition-opacity duration-300 z-50">
     <span id="toast-message"></span>
   </div>
 
   <script>
-    // 存储已上传成功的记录供批量复制
-    const uploadRecords = [];
+    let displayedRows = []; // 存储当前表格中展示的记录 { name, url }
 
-    // 初始化：读取 LocalStorage 配置
+    // 初始化配置
     window.onload = () => {
-      document.getElementById('cfg-repo').value = localStorage.getItem('gh_repo') || '';
+      document.getElementById('cfg-repo').value = localStorage.getItem('gh_repo') || 'wasdkd/Amazon';
       document.getElementById('cfg-branch').value = localStorage.getItem('gh_branch') || 'main';
+      document.getElementById('cfg-folder').value = localStorage.getItem('gh_folder') || 'SKU_IMG';
       document.getElementById('cfg-token').value = localStorage.getItem('gh_token') || '';
+
+      updateFolderDisplayName();
     };
 
-    // 保存配置到本地
     function saveConfig() {
       const repo = document.getElementById('cfg-repo').value.trim();
       const branch = document.getElementById('cfg-branch').value.trim() || 'main';
+      const folder = document.getElementById('cfg-folder').value.trim() || 'SKU_IMG';
       const token = document.getElementById('cfg-token').value.trim();
 
-      if (!repo || !token) {
-        showToast('请填写完整 GitHub 仓库名和 Token！', true);
+      if (!repo) {
+        showToast('请填写 GitHub 仓库名 (owner/repo)！', true);
         return;
       }
 
       localStorage.setItem('gh_repo', repo);
       localStorage.setItem('gh_branch', branch);
+      localStorage.setItem('gh_folder', folder);
       localStorage.setItem('gh_token', token);
+
+      updateFolderDisplayName();
       showToast('配置已保存！');
     }
 
-    // 获取配置
+    function updateFolderDisplayName() {
+      const folder = document.getElementById('cfg-folder').value.trim() || 'SKU_IMG';
+      document.getElementById('display-folder-name').innerText = folder + '/';
+    }
+
     function getConfig() {
       return {
         repo: document.getElementById('cfg-repo').value.trim(),
         branch: document.getElementById('cfg-branch').value.trim() || 'main',
+        folder: (document.getElementById('cfg-folder').value.trim() || 'SKU_IMG').replace(/^\/+|\/+$/g, ''),
         token: document.getElementById('cfg-token').value.trim()
       };
     }
 
-    // 去除文件名后缀
     function getFileNameWithoutExt(filename) {
       return filename.replace(/\.[^/.]+$/, "");
     }
 
-    // 拖拽事件处理
+    /* ================= 模式 1：网页极速上传逻辑 ================= */
+
     function handleDragOver(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -164,20 +224,19 @@
       e.stopPropagation();
       document.getElementById('drop-zone').classList.remove('drag-over');
       const files = e.dataTransfer.files;
-      if (files.length > 0) processFiles(files);
+      if (files.length > 0) processUploadFiles(files);
     }
 
     function handleFileSelect(e) {
       const files = e.target.files;
-      if (files.length > 0) processFiles(files);
-      e.target.value = ''; // 重置 file input，允许重复选相同文件
+      if (files.length > 0) processUploadFiles(files);
+      e.target.value = '';
     }
 
-    // 处理选中的多个文件
-    async function processFiles(files) {
+    async function processUploadFiles(files) {
       const config = getConfig();
       if (!config.repo || !config.token) {
-        alert('请先在顶部设置并保存 GitHub 仓库 (owner/repo) 和 Token！');
+        alert('网页上传需要配置 Token！请先在顶部填入 GitHub 仓库名与 Token。');
         return;
       }
 
@@ -186,125 +245,261 @@
 
       const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
 
-      for (const file of imageFiles) {
+      const tasks = imageFiles.map(file => {
         const rowId = 'row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
         const nameNoExt = getFileNameWithoutExt(file.name);
         const localPreviewUrl = URL.createObjectURL(file);
 
-        // 1. 瞬间生成表格行（无感加载 UI）
         insertTableRow(rowId, localPreviewUrl, nameNoExt);
+        return { file, rowId, nameNoExt };
+      });
 
-        // 2. 异步处理并上传 GitHub
-        uploadFileTask(file, rowId, nameNoExt, config);
+      // 队列顺序上传，防止 SHA 碰撞
+      for (const task of tasks) {
+        await uploadFileTaskWithRetry(task.file, task.rowId, task.nameNoExt, config);
       }
     }
 
-    // 在表格中插入占位行
     function insertTableRow(rowId, previewUrl, nameNoExt) {
       const tbody = document.getElementById('result-tbody');
       const tr = document.createElement('tr');
       tr.id = rowId;
-      tr.className = "hover:bg-gray-50 transition border-b";
+      tr.className = "hover:bg-gray-50 transition border-b item-row";
+      tr.setAttribute('data-name', nameNoExt.toLowerCase());
 
       tr.innerHTML = `
         <td class="p-3">
           <img src="${previewUrl}" class="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-gray-100">
         </td>
-        <td class="p-3 font-semibold text-gray-800 select-all">${nameNoExt}</td>
+        <td class="p-3 font-semibold text-gray-800 select-all row-name">${nameNoExt}</td>
         <td class="p-3 text-gray-400 italic font-mono text-[11px] status-cell">
           <span class="inline-flex items-center gap-1 text-blue-600">
             <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            上传至 GitHub 中...
+            等待排队上传...
           </span>
         </td>
         <td class="p-3 text-center action-cell">
-          <button disabled class="bg-gray-200 text-gray-400 text-xs px-3 py-1.5 rounded-lg cursor-not-allowed">等待上传</button>
+          <button disabled class="bg-gray-200 text-gray-400 text-xs px-3 py-1.5 rounded-lg cursor-not-allowed">上传中</button>
         </td>
       `;
 
       tbody.prepend(tr);
+      updateBadgeCount();
     }
 
-    // 核心上传任务
-    async function uploadFileTask(file, rowId, nameNoExt, config) {
+    async function uploadFileTaskWithRetry(file, rowId, nameNoExt, config, maxRetries = 3) {
       const row = document.getElementById(rowId);
+      if (!row) return;
       const statusCell = row.querySelector('.status-cell');
       const actionCell = row.querySelector('.action-cell');
 
+      const fileName = file.name;
+      const filePath = `${config.folder}/${fileName}`;
+      const apiUrl = `https://api.github.com/repos/${config.repo}/contents/${filePath}`;
+
+      statusCell.innerHTML = `<span class="inline-flex items-center gap-1 text-blue-600">正在上传 GitHub...</span>`;
+
       try {
         const base64Content = await fileToBase64(file);
-        const fileName = file.name;
-        const filePath = `SKU_IMG/${fileName}`;
 
-        // GitHub API PUT URL
-        const apiUrl = `https://api.github.com/repos/${config.repo}/contents/${filePath}`;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            let sha = null;
+            try {
+              const checkRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(config.branch)}&t=${Date.now()}`, {
+                headers: { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github.v3+json' },
+                cache: 'no-store'
+              });
+              if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                sha = checkData.sha;
+              }
+            } catch (e) {}
 
-        // 检查文件是否已存在以获取 SHA（支持覆盖）
-        let sha = null;
-        try {
-          const checkRes = await fetch(`${apiUrl}?ref=${config.branch}`, {
-            headers: { 'Authorization': `Bearer ${config.token}` }
-          });
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            sha = checkData.sha;
+            const requestBody = {
+              message: `Upload ${fileName} via SKU Tool`,
+              content: base64Content,
+              branch: config.branch
+            };
+            if (sha) requestBody.sha = sha;
+
+            const response = await fetch(apiUrl, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${config.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+              },
+              body: JSON.stringify(requestBody)
+            });
+
+            if (response.ok) {
+              const rawUrl = `https://raw.githubusercontent.com/${config.repo}/${config.branch}/${filePath}`;
+              trSetSuccess(row, nameNoExt, rawUrl, statusCell, actionCell);
+              showToast(`图片 ${nameNoExt} ${sha ? '覆盖' : '上传'}成功！`);
+              return;
+            }
+
+            const errData = await response.json();
+            const errMsg = errData.message || '';
+
+            if ((errMsg.includes('expected') || response.status === 409 || response.status === 422) && attempt < maxRetries) {
+              statusCell.innerHTML = `<span class="text-amber-600 font-medium">版本冲突，正在自动重试覆盖 (${attempt}/${maxRetries})...</span>`;
+              await new Promise(r => setTimeout(r, 600 * attempt));
+              continue;
+            }
+
+            throw new Error(errMsg || `HTTP ${response.status}`);
+          } catch (innerErr) {
+            if (attempt === maxRetries) throw innerErr;
           }
-        } catch (e) {}
-
-        const requestBody = {
-          message: `Upload ${fileName} to SKU_IMG`,
-          content: base64Content,
-          branch: config.branch
-        };
-        if (sha) requestBody.sha = sha;
-
-        // 调用 GitHub API 上传
-        const response = await fetch(apiUrl, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${config.token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || '上传失败');
         }
-
-        // 上传成功，生成 Raw 图片访问链接
-        const rawUrl = `https://raw.githubusercontent.com/${config.repo}/${config.branch}/${filePath}`;
-
-        // 保存记录供批量复制
-        uploadRecords.push({ name: nameNoExt, url: rawUrl });
-
-        // 更新 UI
-        statusCell.innerHTML = `
-          <a href="${rawUrl}" target="_blank" class="text-blue-600 hover:underline font-mono text-[11px] break-all">
-            ${rawUrl}
-          </a>
-        `;
-
-        actionCell.innerHTML = `
-          <button onclick="copySingle('${nameNoExt}', '${rawUrl}')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg transition font-medium border border-gray-300">
-            复制此行
-          </button>
-        `;
-
-        showToast(`图片 ${nameNoExt} 上传成功！`);
-
       } catch (err) {
         statusCell.innerHTML = `<span class="text-red-500 font-semibold">❌ 上传失败: ${err.message}</span>`;
-        actionCell.innerHTML = `<button onclick="this.closest('tr').remove()" class="text-xs text-red-500 hover:underline">删除</button>`;
+        actionCell.innerHTML = `<button onclick="this.closest('tr').remove(); updateBadgeCount();" class="text-xs text-red-500 hover:underline">删除</button>`;
       }
     }
 
-    // 文件转 Base64
+    function trSetSuccess(row, nameNoExt, rawUrl, statusCell, actionCell) {
+      row.setAttribute('data-url', rawUrl);
+
+      statusCell.innerHTML = `
+        <a href="${rawUrl}" target="_blank" class="text-blue-600 hover:underline font-mono text-[11px] break-all row-url">
+          ${rawUrl}
+        </a>
+      `;
+
+      actionCell.innerHTML = `
+        <button onclick="copySingle('${nameNoExt}', '${rawUrl}')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg transition font-medium border border-gray-300">
+          复制此行
+        </button>
+      `;
+    }
+
+    /* ================= 模式 2：调取线上文件夹逻辑 ================= */
+
+    async function fetchGitHubDirectory() {
+      const config = getConfig();
+      if (!config.repo) {
+        alert('请填写 GitHub 仓库名 (例如: wasdkd/Amazon)！');
+        return;
+      }
+
+      saveConfig();
+      showToast('正在调取云端文件夹图片...');
+
+      const apiUrl = `https://api.github.com/repos/${config.repo}/contents/${config.folder}?ref=${encodeURIComponent(config.branch)}&t=${Date.now()}`;
+
+      const headers = { 'Accept': 'application/vnd.github.v3+json' };
+      if (config.token) {
+        headers['Authorization'] = config.token.startsWith('ghp_') || config.token.startsWith('github_pat_') ? `Bearer ${config.token}` : `token ${config.token}`;
+      }
+
+      try {
+        const res = await fetch(apiUrl, { headers, cache: 'no-store' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error(`路径 '${config.folder}' 不是一个有效的文件夹！`);
+        }
+
+        const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp'];
+        const imageFiles = data.filter(item => {
+          if (item.type !== 'file') return false;
+          const ext = '.' + item.name.split('.').pop().toLowerCase();
+          return imageExts.includes(ext);
+        });
+
+        // 清空列表重新渲染
+        clearTable();
+        const emptyRow = document.getElementById('empty-row');
+        if (emptyRow) emptyRow.remove();
+
+        const tbody = document.getElementById('result-tbody');
+
+        imageFiles.forEach(item => {
+          const nameNoExt = getFileNameWithoutExt(item.name);
+          const rawUrl = `https://raw.githubusercontent.com/${config.repo}/${config.branch}/${item.path}`;
+
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-gray-50 transition border-b item-row";
+          tr.setAttribute('data-name', nameNoExt.toLowerCase());
+          tr.setAttribute('data-url', rawUrl);
+
+          tr.innerHTML = `
+            <td class="p-3">
+              <img src="${rawUrl}" loading="lazy" class="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-gray-100" onerror="this.src='https://via.placeholder.com/100?text=Error'">
+            </td>
+            <td class="p-3 font-semibold text-gray-800 select-all row-name">${nameNoExt}</td>
+            <td class="p-3">
+              <a href="${rawUrl}" target="_blank" class="text-blue-600 hover:underline font-mono text-[11px] break-all row-url">
+                ${rawUrl}
+              </a>
+            </td>
+            <td class="p-3 text-center">
+              <button onclick="copySingle('${nameNoExt}', '${rawUrl}')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg transition font-medium border border-gray-300">
+                复制此行
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        updateBadgeCount();
+        showToast(`成功读取 ${imageFiles.length} 张图片！`);
+
+      } catch (err) {
+        console.error(err);
+        alert(`读取文件夹失败: ${err.message}\n请确认文件夹 '${config.folder}' 是否已存在并包含图片。`);
+      }
+    }
+
+    /* ================= 搜索 & 复制通用逻辑 ================= */
+
+    function filterImages() {
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+      const rows = document.querySelectorAll('#result-tbody .item-row');
+
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        if (name.includes(query)) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      document.getElementById('count-badge').innerText = `已显示 ${visibleCount} / ${rows.length} 张图片`;
+    }
+
+    function updateBadgeCount() {
+      const rows = document.querySelectorAll('#result-tbody .item-row');
+      document.getElementById('count-badge').innerText = `列表共 ${rows.length} 张图片`;
+    }
+
+    function clearTable() {
+      const tbody = document.getElementById('result-tbody');
+      tbody.innerHTML = `
+        <tr id="empty-row">
+          <td colspan="4" class="p-12 text-center text-gray-400 space-y-2">
+            <div class="text-3xl">🖼️</div>
+            <div>暂无图片数据。你可以拖拽少量图片上传，或点击上方【加载/刷新】读取线上文件夹</div>
+          </td>
+        </tr>
+      `;
+      document.getElementById('search-input').value = '';
+      updateBadgeCount();
+    }
+
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -314,42 +509,433 @@
       });
     }
 
-    // 复制单行（名称 + Tab + 链接，完美对应 Excel 两列）
+    // 复制单行（名称 + Tab + 链接）
     function copySingle(name, url) {
       const copyText = `${name}\t${url}`;
       navigator.clipboard.writeText(copyText).then(() => {
-        showToast('已复制！可直接粘贴到 Excel（自动分为两列）');
+        showToast(`已复制 [${name}] 到剪贴板！`);
       });
     }
 
-    // 一键复制全部成功项到 Excel
+    // 一键复制当前显示的全部有效行到 Excel
     function copyAllToExcel() {
-      if (uploadRecords.length === 0) {
-        showToast('暂无成功上传的图片记录！', true);
+      const visibleRows = Array.from(document.querySelectorAll('#result-tbody .item-row'))
+                               .filter(row => row.style.display !== 'none' && row.getAttribute('data-url'));
+
+      if (visibleRows.length === 0) {
+        showToast('当前列表中没有可复制的图片记录！', true);
         return;
       }
 
-      // 用制表符 \t 分隔列，换行符 \n 分隔行，Excel 原生完美识别
-      const excelText = uploadRecords.map(item => `${item.name}\t${item.url}`).join('\n');
+      const excelText = visibleRows.map(row => {
+        const name = row.querySelector('.row-name').innerText.trim();
+        const url = row.getAttribute('data-url');
+        return `${name}\t${url}`;
+      }).join('\n');
 
       navigator.clipboard.writeText(excelText).then(() => {
-        showToast(`已成功复制 ${uploadRecords.length} 条记录！请在 Excel 中直接 Ctrl+V 粘贴`);
+        showToast(`✅ 已成功复制 ${visibleRows.length} 条记录！可直接在 Excel 中 Ctrl+V 粘贴`);
       });
     }
 
-    // 显示 Toast 提示
     function showToast(msg, isError = false) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toast-message');
       toastMsg.innerText = msg;
-
       toast.className = `fixed bottom-6 right-6 text-white text-xs px-4 py-3 rounded-lg shadow-xl transition-opacity duration-300 z-50 ${isError ? 'bg-red-600' : 'bg-gray-900'}`;
-
       toast.classList.remove('hidden');
-      setTimeout(() => {
-        toast.classList.add('hidden');
-      }, 3000);
+      setTimeout(() => toast.classList.add('hidden'), 3000);
     }
   </script>
 </body>
 </html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--  <title>SKU 图片 GitHub 图床上传工具 (支持自动覆盖)</title>-->
+<!--  &lt;!&ndash; 引入 Tailwind CSS 快速构建现代化 UI &ndash;&gt;-->
+<!--  <script src="https://cdn.tailwindcss.com"></script>-->
+<!--  <style>-->
+<!--    /* 拖拽高亮样式 */-->
+<!--    .drag-over {-->
+<!--      border-color: #3b82f6 !important;-->
+<!--      background-color: #eff6ff !important;-->
+<!--    }-->
+<!--  </style>-->
+<!--</head>-->
+<!--<body class="bg-gray-50 text-gray-800 min-h-screen p-4 md:p-8">-->
+
+<!--  <div class="max-w-6xl mx-auto space-y-6">-->
+
+<!--    &lt;!&ndash; 标题 &ndash;&gt;-->
+<!--    <div class="flex items-center justify-between">-->
+<!--      <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">-->
+<!--        <span>📸 SKU 图片 GitHub 图床工具</span>-->
+<!--      </h1>-->
+<!--      <span class="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-medium">保存目录: SKU_IMG/ (支持同名覆盖)</span>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 1. GitHub 配置面板 &ndash;&gt;-->
+<!--    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">-->
+<!--      <div class="flex items-center justify-between border-b pb-3">-->
+<!--        <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-1">-->
+<!--          <span>⚙️ GitHub 仓库配置</span>-->
+<!--        </h2>-->
+<!--        <button onclick="saveConfig()" class="text-xs bg-gray-800 text-white hover:bg-black px-3 py-1.5 rounded-lg font-medium transition">-->
+<!--          保存配置-->
+<!--        </button>-->
+<!--      </div>-->
+<!--      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">-->
+<!--        <div>-->
+<!--          <label class="block text-xs font-medium text-gray-600 mb-1">GitHub 仓库 (owner/repo)</label>-->
+<!--          <input id="cfg-repo" type="text" placeholder="例如: yourname/my-images" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">-->
+<!--        </div>-->
+<!--        <div>-->
+<!--          <label class="block text-xs font-medium text-gray-600 mb-1">分支 (Branch)</label>-->
+<!--          <input id="cfg-branch" type="text" placeholder="main 或 master" value="main" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">-->
+<!--        </div>-->
+<!--        <div>-->
+<!--          <label class="block text-[11px] font-medium text-gray-600 mb-1">Personal Access Token (PAT)</label>-->
+<!--          <input id="cfg-token" type="password" placeholder="ghp_xxxxxxxxxxxx" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 2. 拖拽上传区域 &ndash;&gt;-->
+<!--    <div-->
+<!--      id="drop-zone"-->
+<!--      ondragover="handleDragOver(event)"-->
+<!--      ondragleave="handleDragLeave(event)"-->
+<!--      ondrop="handleDrop(event)"-->
+<!--      onclick="document.getElementById('file-input').click()"-->
+<!--      class="border-2 border-dashed border-gray-300 bg-white hover:border-blue-500 hover:bg-blue-50/50 transition-all rounded-xl p-8 text-center cursor-pointer relative"-->
+<!--    >-->
+<!--      <input type="file" id="file-input" multiple accept="image/*" class="hidden" onchange="handleFileSelect(event)">-->
+<!--      <div class="space-y-2 pointer-events-none">-->
+<!--        <div class="text-4xl">📤</div>-->
+<!--        <p class="text-sm font-semibold text-gray-700">点击选择图片，或将图片拖拽到此处上传（重复图片将自动覆盖）</p>-->
+<!--        <p class="text-xs text-gray-400">支持 PNG, JPG, JPEG, WEBP, GIF 等格式，可多选</p>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 3. 上传结果展示表格 &ndash;&gt;-->
+<!--    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">-->
+<!--      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">-->
+<!--        <h3 class="text-sm font-semibold text-gray-700">上传结果列表</h3>-->
+<!--        <button onclick="copyAllToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">-->
+<!--          📋 一键复制全部到 Excel-->
+<!--        </button>-->
+<!--      </div>-->
+
+<!--      <div class="overflow-x-auto">-->
+<!--        <table class="w-full text-left border-collapse text-xs">-->
+<!--          <thead>-->
+<!--            <tr class="bg-gray-100 text-gray-500 font-semibold border-b">-->
+<!--              <th class="p-3.5 w-24">图片</th>-->
+<!--              <th class="p-3.5">图片名称 (无后缀)</th>-->
+<!--              <th class="p-3.5">GitHub 图片链接</th>-->
+<!--              <th class="p-3.5 text-center w-32">操作</th>-->
+<!--            </tr>-->
+<!--          </thead>-->
+<!--          <tbody id="result-tbody" class="divide-y divide-gray-100 text-gray-700">-->
+<!--            <tr id="empty-row">-->
+<!--              <td colspan="4" class="p-8 text-center text-gray-400">暂无上传数据，请拖拽或选择图片上传</td>-->
+<!--            </tr>-->
+<!--          </tbody>-->
+<!--        </table>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--  </div>-->
+
+<!--  &lt;!&ndash; Toast 提示框 &ndash;&gt;-->
+<!--  <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl hidden transition-opacity duration-300 z-50">-->
+<!--    <span id="toast-message"></span>-->
+<!--  </div>-->
+
+<!--  <script>-->
+<!--    // 存储已上传成功的记录供批量复制-->
+<!--    let uploadRecords = [];-->
+
+<!--    // 初始化：读取 LocalStorage 配置-->
+<!--    window.onload = () => {-->
+<!--      document.getElementById('cfg-repo').value = localStorage.getItem('gh_repo') || '';-->
+<!--      document.getElementById('cfg-branch').value = localStorage.getItem('gh_branch') || 'main';-->
+<!--      document.getElementById('cfg-token').value = localStorage.getItem('gh_token') || '';-->
+<!--    };-->
+
+<!--    // 保存配置到本地-->
+<!--    function saveConfig() {-->
+<!--      const repo = document.getElementById('cfg-repo').value.trim();-->
+<!--      const branch = document.getElementById('cfg-branch').value.trim() || 'main';-->
+<!--      const token = document.getElementById('cfg-token').value.trim();-->
+
+<!--      if (!repo || !token) {-->
+<!--        showToast('请填写完整 GitHub 仓库名和 Token！', true);-->
+<!--        return;-->
+<!--      }-->
+
+<!--      localStorage.setItem('gh_repo', repo);-->
+<!--      localStorage.setItem('gh_branch', branch);-->
+<!--      localStorage.setItem('gh_token', token);-->
+<!--      showToast('配置已保存！');-->
+<!--    }-->
+
+<!--    function getConfig() {-->
+<!--      return {-->
+<!--        repo: document.getElementById('cfg-repo').value.trim(),-->
+<!--        branch: document.getElementById('cfg-branch').value.trim() || 'main',-->
+<!--        token: document.getElementById('cfg-token').value.trim()-->
+<!--      };-->
+<!--    }-->
+
+<!--    function getFileNameWithoutExt(filename) {-->
+<!--      return filename.replace(/\.[^/.]+$/, "");-->
+<!--    }-->
+
+<!--    function handleDragOver(e) {-->
+<!--      e.preventDefault();-->
+<!--      e.stopPropagation();-->
+<!--      document.getElementById('drop-zone').classList.add('drag-over');-->
+<!--    }-->
+
+<!--    function handleDragLeave(e) {-->
+<!--      e.preventDefault();-->
+<!--      e.stopPropagation();-->
+<!--      document.getElementById('drop-zone').classList.remove('drag-over');-->
+<!--    }-->
+
+<!--    function handleDrop(e) {-->
+<!--      e.preventDefault();-->
+<!--      e.stopPropagation();-->
+<!--      document.getElementById('drop-zone').classList.remove('drag-over');-->
+<!--      const files = e.dataTransfer.files;-->
+<!--      if (files.length > 0) processFiles(files);-->
+<!--    }-->
+
+<!--    function handleFileSelect(e) {-->
+<!--      const files = e.target.files;-->
+<!--      if (files.length > 0) processFiles(files);-->
+<!--      e.target.value = ''; // 重置允许选重复文件-->
+<!--    }-->
+
+<!--    // 处理多文件：采用队列式顺序上传，防止 GitHub API 发生 Commit 碰撞-->
+<!--    async function processFiles(files) {-->
+<!--      const config = getConfig();-->
+<!--      if (!config.repo || !config.token) {-->
+<!--        alert('请先在顶部设置并保存 GitHub 仓库 (owner/repo) 和 Token！');-->
+<!--        return;-->
+<!--      }-->
+
+<!--      const emptyRow = document.getElementById('empty-row');-->
+<!--      if (emptyRow) emptyRow.remove();-->
+
+<!--      const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));-->
+
+<!--      // 1. 瞬间生成所有图片的表格占位行（极速反馈）-->
+<!--      const tasks = imageFiles.map(file => {-->
+<!--        const rowId = 'row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);-->
+<!--        const nameNoExt = getFileNameWithoutExt(file.name);-->
+<!--        const localPreviewUrl = URL.createObjectURL(file);-->
+
+<!--        insertTableRow(rowId, localPreviewUrl, nameNoExt);-->
+<!--        return { file, rowId, nameNoExt };-->
+<!--      });-->
+
+<!--      // 2. 顺序队列上传，防止 GitHub Commit SHA 碰撞冲突-->
+<!--      for (const task of tasks) {-->
+<!--        await uploadFileTaskWithRetry(task.file, task.rowId, task.nameNoExt, config);-->
+<!--      }-->
+<!--    }-->
+
+<!--    // 在表格中插入占位行-->
+<!--    function insertTableRow(rowId, previewUrl, nameNoExt) {-->
+<!--      const tbody = document.getElementById('result-tbody');-->
+<!--      const tr = document.createElement('tr');-->
+<!--      tr.id = rowId;-->
+<!--      tr.className = "hover:bg-gray-50 transition border-b";-->
+
+<!--      tr.innerHTML = `-->
+<!--        <td class="p-3">-->
+<!--          <img src="${previewUrl}" class="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-gray-100">-->
+<!--        </td>-->
+<!--        <td class="p-3 font-semibold text-gray-800 select-all">${nameNoExt}</td>-->
+<!--        <td class="p-3 text-gray-400 italic font-mono text-[11px] status-cell">-->
+<!--          <span class="inline-flex items-center gap-1 text-blue-600">-->
+<!--            <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">-->
+<!--              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
+<!--              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
+<!--            </svg>-->
+<!--            等待排队上传...-->
+<!--          </span>-->
+<!--        </td>-->
+<!--        <td class="p-3 text-center action-cell">-->
+<!--          <button disabled class="bg-gray-200 text-gray-400 text-xs px-3 py-1.5 rounded-lg cursor-not-allowed">上传中</button>-->
+<!--        </td>-->
+<!--      `;-->
+
+<!--      tbody.prepend(tr);-->
+<!--    }-->
+
+<!--    // 带防冲突自动重试机制的核心上传逻辑-->
+<!--    async function uploadFileTaskWithRetry(file, rowId, nameNoExt, config, maxRetries = 3) {-->
+<!--      const row = document.getElementById(rowId);-->
+<!--      const statusCell = row.querySelector('.status-cell');-->
+<!--      const actionCell = row.querySelector('.action-cell');-->
+
+<!--      const fileName = file.name;-->
+<!--      const filePath = `SKU_IMG/${fileName}`;-->
+<!--      const apiUrl = `https://api.github.com/repos/${config.repo}/contents/${filePath}`;-->
+
+<!--      statusCell.innerHTML = `-->
+<!--        <span class="inline-flex items-center gap-1 text-blue-600">-->
+<!--          <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">-->
+<!--            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
+<!--            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
+<!--          </svg>-->
+<!--          正在上传 GitHub...-->
+<!--        </span>-->
+<!--      `;-->
+
+<!--      try {-->
+<!--        const base64Content = await fileToBase64(file);-->
+
+<!--        for (let attempt = 1; attempt <= maxRetries; attempt++) {-->
+<!--          try {-->
+<!--            // 1. 禁用缓存获取最新 SHA（加上时间戳和 cache: 'no-store'）-->
+<!--            let sha = null;-->
+<!--            try {-->
+<!--              const checkRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(config.branch)}&t=${Date.now()}`, {-->
+<!--                headers: {-->
+<!--                  'Authorization': `Bearer ${config.token}`,-->
+<!--                  'Accept': 'application/vnd.github.v3+json'-->
+<!--                },-->
+<!--                cache: 'no-store'-->
+<!--              });-->
+<!--              if (checkRes.ok) {-->
+<!--                const checkData = await checkRes.json();-->
+<!--                sha = checkData.sha;-->
+<!--              }-->
+<!--            } catch (e) {-->
+<!--              console.warn("检查 SHA 异常:", e);-->
+<!--            }-->
+
+<!--            // 2. 构造提交请求-->
+<!--            const requestBody = {-->
+<!--              message: `Upload/Overwrite ${fileName} in SKU_IMG`,-->
+<!--              content: base64Content,-->
+<!--              branch: config.branch-->
+<!--            };-->
+<!--            if (sha) requestBody.sha = sha;-->
+
+<!--            // 3. 执行 PUT 写入/覆盖-->
+<!--            const response = await fetch(apiUrl, {-->
+<!--              method: 'PUT',-->
+<!--              headers: {-->
+<!--                'Authorization': `Bearer ${config.token}`,-->
+<!--                'Content-Type': 'application/json',-->
+<!--                'Accept': 'application/vnd.github.v3+json'-->
+<!--              },-->
+<!--              body: JSON.stringify(requestBody)-->
+<!--            });-->
+
+<!--            if (response.ok) {-->
+<!--              // 上传/覆盖成功！-->
+<!--              const rawUrl = `https://raw.githubusercontent.com/${config.repo}/${config.branch}/${filePath}`;-->
+
+<!--              // 避免重复推送同一名称到数组-->
+<!--              uploadRecords = uploadRecords.filter(r => r.name !== nameNoExt);-->
+<!--              uploadRecords.push({ name: nameNoExt, url: rawUrl });-->
+
+<!--              statusCell.innerHTML = `-->
+<!--                <a href="${rawUrl}" target="_blank" class="text-blue-600 hover:underline font-mono text-[11px] break-all">-->
+<!--                  ${rawUrl}-->
+<!--                </a>-->
+<!--              `;-->
+
+<!--              actionCell.innerHTML = `-->
+<!--                <button onclick="copySingle('${nameNoExt}', '${rawUrl}')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg transition font-medium border border-gray-300">-->
+<!--                  复制此行-->
+<!--                </button>-->
+<!--              `;-->
+
+<!--              showToast(`图片 ${nameNoExt} ${sha ? '覆盖' : '上传'}成功！`);-->
+<!--              return; // 成功即退出重试循环-->
+<!--            }-->
+
+<!--            const errData = await response.json();-->
+<!--            const errMsg = errData.message || '';-->
+
+<!--            // 如果发生 SHA 不匹配或 409 冲突，且还没达到最大重试次数，则重试-->
+<!--            if ((errMsg.includes('expected') || response.status === 409 || response.status === 422) && attempt < maxRetries) {-->
+<!--              statusCell.innerHTML = `<span class="text-amber-600 font-medium">版本冲突，正在自动重试覆盖 (${attempt}/${maxRetries})...</span>`;-->
+<!--              await new Promise(r => setTimeout(r, 600 * attempt)); // 延迟后重试-->
+<!--              continue;-->
+<!--            }-->
+
+<!--            throw new Error(errMsg || `HTTP ${response.status} 上传失败`);-->
+
+<!--          } catch (innerErr) {-->
+<!--            if (attempt === maxRetries) throw innerErr;-->
+<!--          }-->
+<!--        }-->
+
+<!--      } catch (err) {-->
+<!--        statusCell.innerHTML = `<span class="text-red-500 font-semibold">❌ 上传失败: ${err.message}</span>`;-->
+<!--        actionCell.innerHTML = `<button onclick="this.closest('tr').remove()" class="text-xs text-red-500 hover:underline">删除</button>`;-->
+<!--      }-->
+<!--    }-->
+
+<!--    // 文件转 Base64-->
+<!--    function fileToBase64(file) {-->
+<!--      return new Promise((resolve, reject) => {-->
+<!--        const reader = new FileReader();-->
+<!--        reader.readAsDataURL(file);-->
+<!--        reader.onload = () => resolve(reader.result.split(',')[1]);-->
+<!--        reader.onerror = error => reject(error);-->
+<!--      });-->
+<!--    }-->
+
+<!--    // 复制单行（名称 + Tab + 链接，完美对应 Excel 两列）-->
+<!--    function copySingle(name, url) {-->
+<!--      const copyText = `${name}\t${url}`;-->
+<!--      navigator.clipboard.writeText(copyText).then(() => {-->
+<!--        showToast('已复制！可直接粘贴到 Excel（自动分为两列）');-->
+<!--      });-->
+<!--    }-->
+
+<!--    // 一键复制全部成功项到 Excel-->
+<!--    function copyAllToExcel() {-->
+<!--      if (uploadRecords.length === 0) {-->
+<!--        showToast('暂无成功上传的图片记录！', true);-->
+<!--        return;-->
+<!--      }-->
+
+<!--      // 用制表符 \t 分隔列，换行符 \n 分隔行，Excel 原生完美识别-->
+<!--      const excelText = uploadRecords.map(item => `${item.name}\t${item.url}`).join('\n');-->
+
+<!--      navigator.clipboard.writeText(excelText).then(() => {-->
+<!--        showToast(`已成功复制 ${uploadRecords.length} 条记录！请在 Excel 中直接 Ctrl+V 粘贴`);-->
+<!--      });-->
+<!--    }-->
+
+<!--    // 显示 Toast 提示-->
+<!--    function showToast(msg, isError = false) {-->
+<!--      const toast = document.getElementById('toast');-->
+<!--      const toastMsg = document.getElementById('toast-message');-->
+<!--      toastMsg.innerText = msg;-->
+
+<!--      toast.className = `fixed bottom-6 right-6 text-white text-xs px-4 py-3 rounded-lg shadow-xl transition-opacity duration-300 z-50 ${isError ? 'bg-red-600' : 'bg-gray-900'}`;-->
+
+<!--      toast.classList.remove('hidden');-->
+<!--      setTimeout(() => {-->
+<!--        toast.classList.add('hidden');-->
+<!--      }, 3000);-->
+<!--    }-->
+<!--  </script>-->
+<!--</body>-->
+<!--</html>-->
