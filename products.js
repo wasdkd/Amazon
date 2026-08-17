@@ -1,3 +1,4 @@
+
 window.soraProducts = [
     {
         id: 1,
@@ -8,7 +9,7 @@ window.soraProducts = [
         img2: "",
         img3: "",
         img4: "",
-        video: "",
+        video: "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-posing-39832-large.mp4",
         sizeChartImg: "",
         desc: "精选复古黄铜打造，温润实木底座，支持无级调光，营造温馨居家氛围。",
         colors: [],
