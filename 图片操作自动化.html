@@ -213,7 +213,7 @@
      4. D Excel数据合并
     </button>
     <button class="nav-btn" onclick="navigateToReport(4)">
-     5. E 修改图片名称
+     5. E 数据提取 分组统计
     </button>
     <button class="nav-btn" onclick="navigateToReport(5)">
      6. F 创建文件夹
@@ -225,10 +225,13 @@
      8. H 数据透视表
     </button>
     <button class="nav-btn" onclick="navigateToReport(8)">
-     9. J 可视化
+     9. I 修改图片名称
     </button>
     <button class="nav-btn" onclick="navigateToReport(9)">
-     10. K 数据工具
+     10. J 可视化
+    </button>
+    <button class="nav-btn" onclick="navigateToReport(10)">
+     11. K 数据工具
     </button>
    </div>
    <div id="visualizationsContainer">
@@ -3206,1098 +3209,1078 @@
     </div>
     <div class="visualization-section">
      <div class="iframe-container">
-      <iframe srcdoc="
-&lt;!--写前端代码，我上传一个大文件夹，里面都是图片文件，可以批量修改图片名字的功能，1、修改图片后缀前面的功能：首先获取图片名称，放到一个表格，
-用户根据这个表格，添加要修改的新图片名称，再修改图片名称。2、修改图片后缀：获取图片，提取到后缀，用户可选择要修改的后缀(比如.jpg)。1和2功能筛选按钮分别实现--&gt;
-
-&lt;!DOCTYPE html&gt;
+      <iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
     &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-    &lt;title&gt;批量图片重命名工具&lt;/title&gt;
-    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css&quot;&gt;
+    &lt;title&gt;数据提取_分组统计&lt;/title&gt;
+    &lt;!-- 引入 SheetJS 用于解析与导出 Excel --&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
     &lt;style&gt;
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border-color: #e2e8f0;
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 24px 16px;
+            display: flex;
+            justify-content: center;
         }
 
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            width: 100%;
+            max-width: 1240px;
         }
 
         header {
-            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
-            color: white;
-            padding: 2px 30px;
+            margin-bottom: 20px;
             text-align: center;
         }
 
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
         }
 
-        .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            font-weight: 300;
+        header p {
+            color: var(--text-sub);
+            font-size: 14px;
         }
 
-        .upload-section {
-            padding: 5px;
-            border-bottom: 1px solid #eee;
-            text-align: center;
+        /* 选项卡导航 */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 20px;
         }
 
-        .upload-area {
-            border: 3px dashed #4b6cb7;
-            border-radius: 12px;
-            padding: 4px 20px;
-            background-color: #f8faff;
-            transition: all 0.3s;
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 11px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-sub);
             cursor: pointer;
-            margin-bottom: 2px;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
         }
 
-        .upload-area:hover {
-            background-color: #edf2ff;
-            border-color: #3a56a0;
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
         }
 
-        .upload-icon {
-            font-size: 3.5rem;
-            color: #4b6cb7;
-            margin-bottom: 1px;
-        }
-
-        .upload-text {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-            color: #182848;
-        }
-
-        .upload-hint {
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        #fileInput {
+        /* 卡片模块 */
+        .tab-content {
             display: none;
         }
 
-        .button {
-            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 26px 20px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: #eff6ff;
+        }
+
+        .upload-area input[type=&quot;file&quot;] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            margin-bottom: 6px;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .upload-tip {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        /* 操作栏 */
+        .actions-bar {
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .file-info {
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+
+        .file-info span {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-size: 1rem;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            gap: 6px;
+            transition: background 0.2s;
         }
 
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(75, 108, 183, 0.3);
+        .btn:hover {
+            background-color: var(--primary-hover);
         }
 
-        .button-secondary {
-            background: linear-gradient(90deg, #6c757d 0%, #495057 100%);
+        .btn:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
         }
 
-        .button-success {
-            background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
+        .btn-download {
+            background-color: var(--success-color);
         }
 
-        .button-danger {
-            background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
+        .btn-download:hover {
+            background-color: #059669;
         }
 
-        .button-info {
-            background: linear-gradient(90deg, #17a2b8 0%, #138496 100%);
-        }
-
-        .button-excel {
-            background: linear-gradient(90deg, #1d6f42 0%, #14532d 100%);
-        }
-
-        .controls {
-            padding: 5px 30px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .file-count {
-            background-color: #e9ecef;
-            padding: 10px 15px;
+        /* 表头排序/字段标签 */
+        .config-box {
+            margin-top: 18px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 20px;
         }
 
-        .file-count i {
-            color: #4b6cb7;
-        }
-
-        .function-buttons {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .rename-panels-container {
-            padding: 20px 30px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-
-        .rename-panel {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-        }
-
-        .panel-header {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            color: #182848;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .panel-header i {
-            color: #4b6cb7;
-        }
-
-        .panel-description {
-            margin-bottom: 20px;
-            color: #666;
-            line-height: 1.5;
-        }
-
-        .panel-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .control-group label {
-            font-weight: 500;
-            color: #495057;
-        }
-
-        .excel-controls {
-            background-color: #e8f5e9;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 10px;
-        }
-
-        .excel-controls h3 {
-            color: #1d6f42;
+        .config-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
             margin-bottom: 10px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
+        }
+
+        .config-desc {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+        }
+
+        .column-tags-container {
+            display: flex;
+            flex-wrap: wrap;
             gap: 8px;
         }
 
-        .excel-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        .col-tag {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: grab;
+            user-select: none;
         }
 
-        .file-table-container {
-            padding: 20px 30px;
+        .col-tag.is-new {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+            font-weight: 500;
+        }
+
+        .col-btn-arrow {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .col-btn-arrow:hover { color: var(--primary-color); }
+
+        /* 复选框网格 */
+        .checkbox-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .checkbox-item {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .calc-settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            background: #fff;
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 16px;
+        }
+
+        .calc-field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .calc-field-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #475569;
+        }
+
+        select, input[type=&quot;text&quot;] {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            background: #fff;
+        }
+        select:focus, input[type=&quot;text&quot;]:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* 数据预览表格 */
+        .preview-section {
+            margin-top: 24px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .preview-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .table-responsive {
+            width: 100%;
             overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            max-height: 420px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        thead {
-            background-color: #f8f9fa;
+            font-size: 13px;
+            text-align: left;
+            white-space: nowrap;
         }
 
         th, td {
-            padding: 15px 12px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid #f1f5f9;
         }
 
         th {
+            background-color: #f1f5f9;
+            color: #475569;
             font-weight: 600;
-            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
-        .filename-cell {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        tr:nth-child(even) td { background-color: #fafafa; }
+        tr:hover td { background-color: #f1f5f9; }
+
+        .badge-new {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
         }
 
-        .file-icon {
-            color: #4b6cb7;
-            font-size: 1.2rem;
-        }
-
-        .preview-img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-        }
-
-        input[type=&quot;text&quot;], select, input[type=&quot;number&quot;] {
+        /* 提示信息 */
+        .status-msg {
+            margin-top: 12px;
+            font-size: 13px;
             padding: 10px 12px;
-            border: 1px solid #ced4da;
             border-radius: 6px;
-            width: 100%;
-            font-size: 0.95rem;
-        }
-
-        input[type=&quot;text&quot;]:focus, select:focus, input[type=&quot;number&quot;]:focus {
-            outline: none;
-            border-color: #4b6cb7;
-            box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
-        }
-
-        .status-cell {
-            font-weight: 500;
-        }
-
-        .original-name {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin-top: 4px;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 5px;
-        }
-
-        .loading {
             display: none;
-            text-align: center;
-            padding: 30px;
         }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #4b6cb7;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-            font-size: 0.9rem;
-            border-top: 1px solid #eee;
-        }
-
-        @media (max-width: 992px) {
-            .rename-panels-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-            }
-
-            .function-buttons {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .button {
-                width: 100%;
-            }
-
-            th, td {
-                padding: 10px 8px;
-                font-size: 0.9rem;
-            }
-
-            .preview-img {
-                width: 40px;
-                height: 40px;
-            }
-        }
+        .status-msg.error { display: block; background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-msg.success { display: block; background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
     &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
-    &lt;div class=&quot;container&quot;&gt;
-        &lt;header&gt;
-            &lt;h1&gt;批量图片重命名工具&lt;/h1&gt;
-            &lt;p class=&quot;subtitle&quot;&gt;上传图片文件夹，批量修改图片名称和后缀&lt;/p&gt;
-        &lt;/header&gt;
 
-        &lt;div class=&quot;upload-section&quot;&gt;
-            &lt;div class=&quot;upload-area&quot; id=&quot;uploadArea&quot;&gt;
-                &lt;div class=&quot;upload-icon&quot;&gt;
-                    &lt;i class=&quot;fas fa-cloud-upload-alt&quot;&gt;&lt;/i&gt;
+&lt;div class=&quot;container&quot;&gt;
+    &lt;header&gt;
+        &lt;h1&gt;数据提取_分组统计&lt;/h1&gt;
+        &lt;p&gt;纯本地解析 · 零依赖安全运行 · 支持两级分组透视、多表合并、全列信息首位非空匹配&lt;/p&gt;
+    &lt;/header&gt;
+
+    &lt;!-- 选项卡导航 --&gt;
+    &lt;div class=&quot;tabs&quot;&gt;
+        &lt;button class=&quot;tab-btn active&quot; onclick=&quot;switchTab('skuTab', this)&quot;&gt;1. 提取 SKU &amp; 颜色 (多表合并)&lt;/button&gt;
+        &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('fabricTab', this)&quot;&gt;2. 拆解材质(成分)&lt;/button&gt;
+        &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('groupTab', this)&quot;&gt;3. 两级分组与销量均价统计&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 功能一：提取SKU &amp; 颜色 --&gt;
+    &lt;div id=&quot;skuTab&quot; class=&quot;tab-content active&quot;&gt;
+        &lt;div class=&quot;card&quot;&gt;
+            &lt;div class=&quot;upload-area&quot;&gt;
+                &lt;input type=&quot;file&quot; id=&quot;skuFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'sku')&quot;&gt;
+                &lt;div class=&quot;upload-icon&quot;&gt;📂&lt;/div&gt;
+                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽 Excel 文件到这里（支持多选自动合并）&lt;/div&gt;
+                &lt;div class=&quot;upload-tip&quot;&gt;按住 Ctrl/Shift 选择多表；自动对齐表头，识别「品名」及「MSKU / *SKU」&lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div id=&quot;skuStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
+
+            &lt;div id=&quot;skuColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
+                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整列顺序&lt;/span&gt;
                 &lt;/div&gt;
-                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽文件夹到此区域上传&lt;/div&gt;
-                &lt;div class=&quot;upload-hint&quot;&gt;支持上传包含图片的整个文件夹，系统将自动读取所有图片文件&lt;/div&gt;
-            &lt;/div&gt;
-            &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; webkitdirectory multiple accept=&quot;image/*&quot;&gt;
-            &lt;p id=&quot;uploadStatus&quot; style=&quot;margin-top: 15px; color: #666;&quot;&gt;&lt;/p&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;controls&quot;&gt;
-            &lt;div class=&quot;file-count&quot;&gt;
-                &lt;i class=&quot;fas fa-images&quot;&gt;&lt;/i&gt;
-                &lt;span id=&quot;fileCount&quot;&gt;0 个文件&lt;/span&gt;
+                &lt;div class=&quot;column-tags-container&quot; id=&quot;skuColumnTags&quot;&gt;&lt;/div&gt;
             &lt;/div&gt;
 
-            &lt;div class=&quot;function-buttons&quot;&gt;
-                &lt;button class=&quot;button button-success&quot; id=&quot;applyRenamesBtn&quot; disabled&gt;
-                    &lt;i class=&quot;fas fa-check-circle&quot;&gt;&lt;/i&gt; 应用所有更改
-                &lt;/button&gt;
-                &lt;button class=&quot;button button-danger&quot; id=&quot;resetBtn&quot;&gt;
-                    &lt;i class=&quot;fas fa-redo&quot;&gt;&lt;/i&gt; 重置
+            &lt;div class=&quot;actions-bar&quot;&gt;
+                &lt;div class=&quot;file-info&quot; id=&quot;skuFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;
+                &lt;button class=&quot;btn btn-download&quot; id=&quot;skuDownloadBtn&quot; onclick=&quot;downloadExcel('sku')&quot; disabled&gt;
+                    📥 导出处理后的 Excel
                 &lt;/button&gt;
             &lt;/div&gt;
-        &lt;/div&gt;
 
-        &lt;!-- 批量修改图片名称的面板 --&gt;
-        &lt;div class=&quot;rename-panels-container&quot;&gt;
-            &lt;div class=&quot;rename-panel&quot;&gt;
-    &lt;div class=&quot;panel-header&quot;&gt;
-        &lt;i class=&quot;fas fa-font&quot;&gt;&lt;/i&gt;
-        &lt;span&gt;批量修改图片名称&lt;/span&gt;
-    &lt;/div&gt;
-    &lt;div class=&quot;panel-description&quot;&gt;
-        修改图片文件名的前缀部分（不包括后缀）。您可以直接在表格中编辑，或使用以下功能批量设置。
-    &lt;/div&gt;
-
-    &lt;div class=&quot;panel-controls&quot;&gt;
-        &lt;div class=&quot;control-group&quot;&gt;
-            &lt;label&gt;命名模式：&lt;/label&gt;
-            &lt;select id=&quot;namePattern&quot;&gt;
-                &lt;option value=&quot;custom&quot;&gt;自定义名称&lt;/option&gt;
-                &lt;option value=&quot;sequential&quot;&gt;顺序编号 (图片1, 图片2, ...)&lt;/option&gt;
-                &lt;option value=&quot;date&quot;&gt;日期+序号 (2023-01-01_1, 2023-01-01_2, ...)&lt;/option&gt;
-                &lt;option value=&quot;timestamp&quot;&gt;时间戳 (1685432100_1, 1685432100_2, ...)&lt;/option&gt;
-            &lt;/select&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;control-group&quot;&gt;
-            &lt;label&gt;起始编号：&lt;/label&gt;
-            &lt;input type=&quot;number&quot; id=&quot;startNumber&quot; value=&quot;1&quot; min=&quot;1&quot;&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;control-group&quot;&gt;
-            &lt;label&gt;自定义前缀：&lt;/label&gt;
-            &lt;input type=&quot;text&quot; id=&quot;customPrefix&quot; placeholder=&quot;例如: 我的图片_&quot;&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;action-buttons&quot;&gt;
-            &lt;button class=&quot;button&quot; id=&quot;previewNameBtn&quot;&gt;
-                &lt;i class=&quot;fas fa-sync&quot;&gt;&lt;/i&gt; 应用名称更改
-            &lt;/button&gt;
-        &lt;/div&gt;
-
-        &lt;!-- Excel导入导出功能 --&gt;
-        &lt;div class=&quot;excel-controls&quot;&gt;
-            &lt;h3&gt;&lt;i class=&quot;fas fa-file-excel&quot;&gt;&lt;/i&gt; Excel批量编辑&lt;/h3&gt;
-            &lt;p style=&quot;margin-bottom: 15px; color: #666; font-size: 0.95rem;&quot;&gt;
-                当图片数量很多时，您可以通过Excel文件批量编辑文件名。下载模板，填写新名称后上传即可。
-            &lt;/p&gt;
-            &lt;div class=&quot;excel-buttons&quot;&gt;
-                &lt;button class=&quot;button button-excel&quot; id=&quot;downloadExcelBtn&quot;&gt;
-                    &lt;i class=&quot;fas fa-download&quot;&gt;&lt;/i&gt; 下载Excel模板
-                &lt;/button&gt;
-                &lt;button class=&quot;button button-info&quot; id=&quot;uploadExcelBtn&quot;&gt;
-                    &lt;i class=&quot;fas fa-upload&quot;&gt;&lt;/i&gt; 上传Excel文件
-                &lt;/button&gt;
-                &lt;input type=&quot;file&quot; id=&quot;excelFileInput&quot; accept=&quot;.xlsx,.xls&quot; style=&quot;display: none;&quot;&gt;
+            &lt;div class=&quot;preview-section&quot; id=&quot;skuPreviewSection&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;preview-header&quot;&gt;
+                    &lt;h3&gt;处理结果预览 (前 10 行)&lt;/h3&gt;
+                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;已新增「SKU」、「颜色」、「颜色英文」&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table id=&quot;skuTable&quot;&gt;&lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;/table&gt;
+                &lt;/div&gt;
             &lt;/div&gt;
         &lt;/div&gt;
     &lt;/div&gt;
-&lt;/div&gt;
 
-            &lt;!-- 批量修改图片后缀的面板 --&gt;
-            &lt;div class=&quot;rename-panel&quot;&gt;
-    &lt;div class=&quot;panel-header&quot;&gt;
-        &lt;i class=&quot;fas fa-file-export&quot;&gt;&lt;/i&gt;
-        &lt;span&gt;批量修改图片后缀&lt;/span&gt;
-    &lt;/div&gt;
-    &lt;div class=&quot;panel-description&quot;&gt;
-        修改图片文件的后缀（扩展名）。请注意，这仅修改文件名，不会转换图片格式。
-    &lt;/div&gt;
-
-    &lt;div class=&quot;panel-controls&quot;&gt;
-        &lt;div class=&quot;control-group&quot;&gt;
-            &lt;label&gt;当前后缀筛选：&lt;/label&gt;
-            &lt;select id=&quot;currentExtFilter&quot;&gt;
-                &lt;option value=&quot;all&quot;&gt;所有后缀&lt;/option&gt;
-                &lt;option value=&quot;.jpg&quot;&gt;.jpg 文件&lt;/option&gt;
-                &lt;option value=&quot;.png&quot;&gt;.png 文件&lt;/option&gt;
-                &lt;option value=&quot;.gif&quot;&gt;.gif 文件&lt;/option&gt;
-                &lt;option value=&quot;.webp&quot;&gt;.webp 文件&lt;/option&gt;
-                &lt;option value=&quot;.bmp&quot;&gt;.bmp 文件&lt;/option&gt;
-            &lt;/select&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;control-group&quot;&gt;
-            &lt;label&gt;新后缀：&lt;/label&gt;
-            &lt;select id=&quot;newExtension&quot;&gt;
-                &lt;option value=&quot;.jpg&quot;&gt;.jpg&lt;/option&gt;
-                &lt;option value=&quot;.png&quot;&gt;.png&lt;/option&gt;
-                &lt;option value=&quot;.gif&quot;&gt;.gif&lt;/option&gt;
-                &lt;option value=&quot;.webp&quot;&gt;.webp&lt;/option&gt;
-                &lt;option value=&quot;.bmp&quot;&gt;.bmp&lt;/option&gt;
-                &lt;option value=&quot;.jpeg&quot;&gt;.jpeg&lt;/option&gt;
-                &lt;option value=&quot;.svg&quot;&gt;.svg&lt;/option&gt;
-            &lt;/select&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;action-buttons&quot;&gt;
-            &lt;button class=&quot;button&quot; id=&quot;previewExtBtn&quot;&gt;
-                &lt;i class=&quot;fas fa-sync&quot;&gt;&lt;/i&gt; 应用后缀更改
-            &lt;/button&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
-&lt;/div&gt;
-        &lt;/div&gt;
-
-        &lt;div class=&quot;file-table-container&quot;&gt;
-            &lt;div class=&quot;loading&quot; id=&quot;loadingIndicator&quot;&gt;
-                &lt;div class=&quot;spinner&quot;&gt;&lt;/div&gt;
-                &lt;p&gt;正在处理文件，请稍候...&lt;/p&gt;
+    &lt;!-- 功能二：拆解材质 --&gt;
+    &lt;div id=&quot;fabricTab&quot; class=&quot;tab-content&quot;&gt;
+        &lt;div class=&quot;card&quot;&gt;
+            &lt;div class=&quot;upload-area&quot;&gt;
+                &lt;input type=&quot;file&quot; id=&quot;fabricFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'fabric')&quot;&gt;
+                &lt;div class=&quot;upload-icon&quot;&gt;🧵&lt;/div&gt;
+                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽 Excel 文件到这里（支持多选合并）&lt;/div&gt;
+                &lt;div class=&quot;upload-tip&quot;&gt;需包含「详细参数」列&lt;/div&gt;
             &lt;/div&gt;
 
-            &lt;table id=&quot;fileTable&quot;&gt;
-                &lt;thead&gt;
-                    &lt;tr&gt;
-                        &lt;th style=&quot;width: 50px;&quot;&gt;序号&lt;/th&gt;
-                        &lt;th&gt;预览&lt;/th&gt;
-                        &lt;th&gt;原始文件名&lt;/th&gt;
-                        &lt;th&gt;新文件名&lt;/th&gt;
-                        &lt;th&gt;原始后缀&lt;/th&gt;
-                        &lt;th&gt;新后缀&lt;/th&gt;
-                        &lt;th&gt;状态&lt;/th&gt;
-                    &lt;/tr&gt;
-                &lt;/thead&gt;
-                &lt;tbody id=&quot;fileTableBody&quot;&gt;
-                    &lt;!-- 文件行将通过JavaScript动态添加 --&gt;
-                &lt;/tbody&gt;
-            &lt;/table&gt;
-        &lt;/div&gt;
+            &lt;div id=&quot;fabricStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
 
-        &lt;footer&gt;
-            &lt;p&gt;© 2025 批量图片重命名工具 | 提示：此工具仅修改文件名，不会转换图片格式&lt;/p&gt;
-        &lt;/footer&gt;
+            &lt;div id=&quot;fabricColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
+                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整列顺序&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;column-tags-container&quot; id=&quot;fabricColumnTags&quot;&gt;&lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;actions-bar&quot;&gt;
+                &lt;div class=&quot;file-info&quot; id=&quot;fabricFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;
+                &lt;button class=&quot;btn btn-download&quot; id=&quot;fabricDownloadBtn&quot; onclick=&quot;downloadExcel('fabric')&quot; disabled&gt;
+                    📥 导出处理后的 Excel
+                &lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;preview-section&quot; id=&quot;fabricPreviewSection&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;preview-header&quot;&gt;
+                    &lt;h3&gt;处理结果预览 (前 10 行)&lt;/h3&gt;
+                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;已新增「材质(成分)」&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table id=&quot;fabricTable&quot;&gt;&lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- 引入SheetJS库用于Excel处理 --&gt;
-    &lt;script src=&quot;https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
-    &lt;!-- 引入JSZip库用于创建ZIP文件 --&gt;
-    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!-- 功能三：两级分组与全表头透视统计 --&gt;
+    &lt;div id=&quot;groupTab&quot; class=&quot;tab-content&quot;&gt;
+        &lt;div class=&quot;card&quot;&gt;
+            &lt;div class=&quot;upload-area&quot;&gt;
+                &lt;input type=&quot;file&quot; id=&quot;groupFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'group')&quot;&gt;
+                &lt;div class=&quot;upload-icon&quot;&gt;📊&lt;/div&gt;
+                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽任意 Excel 文件到这里进行两级分组统计&lt;/div&gt;
+                &lt;div class=&quot;upload-tip&quot;&gt;自动保留原表所有未分组列（自动取首个非空值）；支持计算大组总销量、细组销量、加权及算术均价&lt;/div&gt;
+            &lt;/div&gt;
 
-    &lt;script&gt;
-        // 文件数据存储
-        let filesData = [];
-        let originalFilesData = [];
+            &lt;div id=&quot;groupStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
 
-        // DOM元素
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const fileTableBody = document.getElementById('fileTableBody');
-        const fileCountElement = document.getElementById('fileCount');
-        const uploadStatus = document.getElementById('uploadStatus');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const applyRenamesBtn = document.getElementById('applyRenamesBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const previewNameBtn = document.getElementById('previewNameBtn');
-        const applyNameChangesBtn = document.getElementById('applyNameChangesBtn');
-        const previewExtBtn = document.getElementById('previewExtBtn');
-        const applyExtChangesBtn = document.getElementById('applyExtChangesBtn');
-        const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-        const uploadExcelBtn = document.getElementById('uploadExcelBtn');
-        const excelFileInput = document.getElementById('excelFileInput');
+            &lt;!-- 配置区 --&gt;
+            &lt;div id=&quot;groupConfigBox&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
+                &lt;!-- 1. 一级大类分组 --&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;1. 选择【一级大类分组】字段 (Large Group)&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;config-desc&quot;&gt;
+                    💡 大类汇总维度（例如勾选：&lt;code&gt;修正面料&lt;/code&gt;、&lt;code&gt;色号&lt;/code&gt;）。系统将计算该组合下的&lt;b&gt;【大组总销量】&lt;/b&gt;并作为第一排序依据。
+                &lt;/div&gt;
+                &lt;div class=&quot;checkbox-grid&quot; id=&quot;largeGroupContainer&quot;&gt;&lt;/div&gt;
 
-        // 事件监听器
-        uploadArea.addEventListener('click', () =&gt; fileInput.click());
-        uploadArea.addEventListener('dragover', (e) =&gt; {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#e3e9ff';
-        });
-        uploadArea.addEventListener('dragleave', () =&gt; {
-            uploadArea.style.backgroundColor = '#f8faff';
-        });
-        uploadArea.addEventListener('drop', (e) =&gt; {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#f8faff';
-            handleFolderDrop(e);
-        });
+                &lt;!-- 2. 二级细分分组 --&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;2. 选择【二级细分组】字段 (Sub Group)&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;config-desc&quot;&gt;
+                    💡 进一步细分的维度（例如勾选：&lt;code&gt;SKU&lt;/code&gt; 或 &lt;code&gt;子ASIN&lt;/code&gt;）。最终汇总结果的每一行代表一个细分组。
+                &lt;/div&gt;
+                &lt;div class=&quot;checkbox-grid&quot; id=&quot;subGroupContainer&quot;&gt;&lt;/div&gt;
 
-        fileInput.addEventListener('change', (e) =&gt; {
-            handleFiles(e.target.files);
-        });
-
-        applyRenamesBtn.addEventListener('click', applyAllRenames);
-        resetBtn.addEventListener('click', resetAll);
-
-        previewNameBtn.addEventListener('click', previewNameChanges);
-        previewExtBtn.addEventListener('click', previewExtChanges);
-
-        downloadExcelBtn.addEventListener('click', downloadExcelTemplate);
-        uploadExcelBtn.addEventListener('click', () =&gt; excelFileInput.click());
-        excelFileInput.addEventListener('change', handleExcelUpload);
-
-        // 处理拖放文件夹
-        async function handleFolderDrop(e) {
-            const items = e.dataTransfer.items;
-            const files = [];
-
-            // 遍历拖放的项目
-            for (const item of items) {
-                const entry = item.webkitGetAsEntry();
-                if (entry) {
-                    await traverseFileTree(entry, files);
-                }
-            }
-
-            // 转换为FileList类似对象
-            const fileList = {
-                length: files.length,
-                item: (index) =&gt; files[index],
-                ...files
-            };
-
-            handleFiles(fileList);
-        }
-
-        // 遍历文件树（用于拖放文件夹）
-        async function traverseFileTree(entry, files) {
-            if (entry.isFile) {
-                return new Promise((resolve) =&gt; {
-                    entry.file((file) =&gt; {
-                        // 只处理图片文件
-                        if (file.type.startsWith('image/')) {
-                            files.push(file);
-                        }
-                        resolve();
-                    });
-                });
-            } else if (entry.isDirectory) {
-                const reader = entry.createReader();
-                return new Promise((resolve) =&gt; {
-                    reader.readEntries(async (entries) =&gt; {
-                        for (const childEntry of entries) {
-                            await traverseFileTree(childEntry, files);
-                        }
-                        resolve();
-                    });
-                });
-            }
-        }
-
-        // 处理上传的文件
-        function handleFiles(fileList) {
-            if (fileList.length === 0) return;
-
-            loadingIndicator.classList.add('active');
-
-            // 清空现有数据
-            filesData = [];
-            originalFilesData = [];
-            fileTableBody.innerHTML = '';
-
-            // 筛选图片文件
-            const imageFiles = Array.from(fileList).filter(file =&gt;
-                file.type.startsWith('image/')
-            );
-
-            if (imageFiles.length === 0) {
-                uploadStatus.textContent = '未找到图片文件，请上传包含图片的文件夹';
-                uploadStatus.style.color = '#dc3545';
-                loadingIndicator.classList.remove('active');
-                return;
-            }
-
-            uploadStatus.textContent = `成功加载 ${imageFiles.length} 个图片文件`;
-            uploadStatus.style.color = '#28a745';
-
-            // 处理每个文件
-            imageFiles.forEach((file, index) =&gt; {
-                // 提取文件名和扩展名
-                const lastDotIndex = file.name.lastIndexOf('.');
-                const nameWithoutExt = lastDotIndex &gt; 0 ? file.name.substring(0, lastDotIndex) : file.name;
-                const extension = lastDotIndex &gt; 0 ? file.name.substring(lastDotIndex) : '';
-
-                // 创建文件对象
-                const fileObj = {
-                    id: index + 1,
-                    originalName: file.name,
-                    originalNameWithoutExt: nameWithoutExt,
-                    originalExtension: extension,
-                    newNameWithoutExt: nameWithoutExt,
-                    newExtension: extension,
-                    file: file,
-                    previewUrl: URL.createObjectURL(file),
-                    status: '未更改'
-                };
-
-                filesData.push(fileObj);
-                originalFilesData.push({...fileObj}); // 保存原始数据副本
-
-                // 创建表格行
-                addFileToTable(fileObj);
-            });
-
-            updateFileCount();
-            loadingIndicator.classList.remove('active');
-            applyRenamesBtn.disabled = false;
-
-            // 更新Excel下载按钮状态
-            downloadExcelBtn.disabled = false;
-        }
-
-        // 添加文件到表格
-        function addFileToTable(fileObj) {
-            const row = document.createElement('tr');
-            row.dataset.id = fileObj.id;
-
-            row.innerHTML = `
-                &lt;td&gt;${fileObj.id}&lt;/td&gt;
-                &lt;td&gt;
-                    &lt;img src=&quot;${fileObj.previewUrl}&quot; alt=&quot;预览&quot; class=&quot;preview-img&quot;&gt;
-                &lt;/td&gt;
-                &lt;td&gt;
-                    &lt;div class=&quot;filename-cell&quot;&gt;
-                        &lt;i class=&quot;fas fa-file-image file-icon&quot;&gt;&lt;/i&gt;
-                        &lt;div&gt;
-                            &lt;div&gt;${fileObj.originalName}&lt;/div&gt;
-                            &lt;div class=&quot;original-name&quot;&gt;原始名称&lt;/div&gt;
-                        &lt;/div&gt;
+                &lt;!-- 3. 计算指标映射 --&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;3. 数值指标计算配置&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;calc-settings-grid&quot;&gt;
+                    &lt;div class=&quot;calc-field-group&quot;&gt;
+                        &lt;label&gt;📊 销量字段（求和汇总）：&lt;/label&gt;
+                        &lt;select id=&quot;salesColSelect&quot;&gt;&lt;/select&gt;
                     &lt;/div&gt;
-                &lt;/td&gt;
-                &lt;td&gt;
-                    &lt;input type=&quot;text&quot; class=&quot;new-name-input&quot; value=&quot;${fileObj.newNameWithoutExt}&quot; data-id=&quot;${fileObj.id}&quot;&gt;
-                &lt;/td&gt;
-                &lt;td&gt;${fileObj.originalExtension}&lt;/td&gt;
-                &lt;td&gt;
-                    &lt;select class=&quot;new-ext-select&quot; data-id=&quot;${fileObj.id}&quot;&gt;
-                        &lt;option value=&quot;.jpg&quot; ${fileObj.newExtension === '.jpg' ? 'selected' : ''}&gt;.jpg&lt;/option&gt;
-                        &lt;option value=&quot;.png&quot; ${fileObj.newExtension === '.png' ? 'selected' : ''}&gt;.png&lt;/option&gt;
-                        &lt;option value=&quot;.gif&quot; ${fileObj.newExtension === '.gif' ? 'selected' : ''}&gt;.gif&lt;/option&gt;
-                        &lt;option value=&quot;.webp&quot; ${fileObj.newExtension === '.webp' ? 'selected' : ''}&gt;.webp&lt;/option&gt;
-                        &lt;option value=&quot;.bmp&quot; ${fileObj.newExtension === '.bmp' ? 'selected' : ''}&gt;.bmp&lt;/option&gt;
-                        &lt;option value=&quot;.jpeg&quot; ${fileObj.newExtension === '.jpeg' ? 'selected' : ''}&gt;.jpeg&lt;/option&gt;
-                        &lt;option value=&quot;.svg&quot; ${fileObj.newExtension === '.svg' ? 'selected' : ''}&gt;.svg&lt;/option&gt;
-                    &lt;/select&gt;
-                &lt;/td&gt;
-                &lt;td class=&quot;status-cell&quot; data-id=&quot;${fileObj.id}&quot;&gt;${fileObj.status}&lt;/td&gt;
-            `;
+                    &lt;div class=&quot;calc-field-group&quot;&gt;
+                        &lt;label&gt;💰 销售单价/均价字段（计算加权/算术均价，选填）：&lt;/label&gt;
+                        &lt;select id=&quot;priceColSelect&quot;&gt;&lt;/select&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
 
-            fileTableBody.appendChild(row);
+                &lt;div class=&quot;config-desc&quot; style=&quot;margin-bottom: 0;&quot;&gt;
+                    📌 &lt;b&gt;原表其余所有字段处理规则&lt;/b&gt;：自动保留原表所有未选列，并自动提取该组内&lt;b&gt;第一个不为空的真实内容&lt;/b&gt;（如图片链接、中文品类、统一颜色、备注等）。
+                &lt;/div&gt;
 
-            // 添加事件监听器
-            const nameInput = row.querySelector('.new-name-input');
-            const extSelect = row.querySelector('.new-ext-select');
-            const statusCell = row.querySelector('.status-cell');
+                &lt;div style=&quot;margin-top: 18px; text-align: right;&quot;&gt;
+                    &lt;button class=&quot;btn&quot; onclick=&quot;executeAdvancedGroupAggregation()&quot;&gt;🚀 执行两级分组统计分析&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
 
-            nameInput.addEventListener('input', (e) =&gt; {
-                const id = parseInt(e.target.dataset.id);
-                updateFileName(id, e.target.value, null);
-                updateStatus(id);
-                updateFileCount();
+            &lt;!-- 自定义表头排序模块 --&gt;
+            &lt;div id=&quot;groupColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
+                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整导出顺序&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;column-tags-container&quot; id=&quot;groupColumnTags&quot;&gt;&lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;actions-bar&quot;&gt;
+                &lt;div class=&quot;file-info&quot; id=&quot;groupFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;
+                &lt;button class=&quot;btn btn-download&quot; id=&quot;groupDownloadBtn&quot; onclick=&quot;downloadExcel('group')&quot; disabled&gt;
+                    📥 导出统计结果 Excel
+                &lt;/button&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;preview-section&quot; id=&quot;groupPreviewSection&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;preview-header&quot;&gt;
+                    &lt;h3&gt;统计结果预览 (前 10 行)&lt;/h3&gt;
+                    &lt;span id=&quot;groupResultCount&quot; style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table id=&quot;groupTable&quot;&gt;&lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+    // 全局数据状态
+    const appState = {
+        sku: { rawData: null, data: null, fileName: &quot;&quot;, columns: [] },
+        fabric: { rawData: null, data: null, fileName: &quot;&quot;, columns: [] },
+        group: { rawData: null, data: null, fileName: &quot;&quot;, columns: [], rawColumns: [] }
+    };
+
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.tab-btn').forEach(btn =&gt; btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content =&gt; content.classList.remove('active'));
+        element.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    function readExcelFile(file) {
+        return new Promise((resolve, reject) =&gt; {
+            const reader = new FileReader();
+            reader.onload = (e) =&gt; {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: &quot;&quot; });
+                    resolve(jsonData);
+                } catch (err) { reject(err); }
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    async function handleFile(event, type) {
+        const files = Array.from(event.target.files);
+        if (!files || files.length === 0) return;
+
+        const statusEl = document.getElementById(`${type}Status`);
+        const fileInfoEl = document.getElementById(`${type}FileInfo`);
+        const downloadBtn = document.getElementById(`${type}DownloadBtn`);
+        const previewSection = document.getElementById(`${type}PreviewSection`);
+
+        statusEl.className = 'status-msg';
+        statusEl.style.display = 'none';
+
+        try {
+            const results = await Promise.all(files.map(f =&gt; readExcelFile(f)));
+            let mergedData = [];
+            let columnSet = new Set();
+
+            results.forEach(sheetData =&gt; {
+                if (sheetData &amp;&amp; sheetData.length &gt; 0) {
+                    Object.keys(sheetData[0]).forEach(k =&gt; columnSet.add(k));
+                    mergedData.push(...sheetData);
+                }
             });
 
-            extSelect.addEventListener('change', (e) =&gt; {
-                const id = parseInt(e.target.dataset.id);
-                updateFileName(id, null, e.target.value);
-                updateStatus(id);
-                updateFileCount();
-            });
+            if (mergedData.length === 0) throw new Error(&quot;所选文件中没有发现有效数据！&quot;);
+
+            const baseName = files.length === 1 ? files[0].name.replace(/\.[^/.]+$/, &quot;&quot;) : `已合并_${files.length}个文件`;
+            const allCols = Array.from(columnSet);
+
+            if (type === 'sku') {
+                processSkuData(mergedData, baseName, files.length, allCols);
+            } else if (type === 'fabric') {
+                processFabricData(mergedData, baseName, files.length, allCols);
+            } else if (type === 'group') {
+                initTwoLevelGroupTool(mergedData, baseName, files.length, allCols);
+            }
+        } catch (err) {
+            statusEl.textContent = `❌ 解析出错：${err.message}`;
+            statusEl.className = 'status-msg error';
+            downloadBtn.disabled = true;
+            previewSection.style.display = 'none';
         }
+    }
 
-        // 更新文件名
-        function updateFileName(id, newNameWithoutExt, newExtension) {
-            const fileObj = filesData.find(f =&gt; f.id === id);
-            if (!fileObj) return;
+    /* -------------------------- 逻辑 1：SKU与颜色 -------------------------- */
+    function extractSku(p) {
+        if (!p || typeof p !== 'string') return p || '';
+        const patterns = [/_[\u4e00-\u9fa5].*/, /-[\u4e00-\u9fa5].*/, / [\u4e00-\u9fa5].*/, /[\u4e00-\u9fa5].*/];
+        for (let pat of patterns) {
+            if (pat.test(p)) return p.replace(pat, '').trim();
+        }
+        return p.trim();
+    }
 
-            if (newNameWithoutExt !== null) {
-                fileObj.newNameWithoutExt = newNameWithoutExt;
+    function extractColor(p) {
+        if (!p || typeof p !== 'string') return '';
+        const match = p.match(/[\u4e00-\u9fa5]/g);
+        return match ? match.join('') : '';
+    }
+
+    function extractColorEnglish(orig, sku) {
+        if (!orig || typeof orig !== 'string') return '';
+        let c = orig;
+        if (sku) {
+            c = c.replace(new RegExp(sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;'), 'g'), '');
+        }
+        if (c.includes('_')) c = c.substring(0, c.lastIndexOf('_'));
+        return c.replace(/^[_ \s]+|[_ \s]+$/g, '');
+    }
+
+    function processSkuData(data, baseName, count, initialCols) {
+        data.forEach(row =&gt; {
+            const productName = String(row['品名'] !== undefined ? row['品名'] : '');
+            let originalEnglish = '';
+            if (row['MSKU'] !== undefined) originalEnglish = String(row['MSKU']);
+            else if (row['*SKU'] !== undefined) originalEnglish = String(row['*SKU']);
+            else if (row['msku'] !== undefined) originalEnglish = String(row['msku']);
+            else if (row['sku'] !== undefined) originalEnglish = String(row['sku']);
+
+            const sku = extractSku(productName);
+            row['SKU'] = sku;
+            row['颜色'] = extractColor(productName);
+            row['颜色英文'] = extractColorEnglish(originalEnglish, sku);
+        });
+
+        let finalColumns = [...initialCols];
+        ['SKU', '颜色', '颜色英文'].forEach(c =&gt; { if (!finalColumns.includes(c)) finalColumns.push(c); });
+
+        appState.sku.data = data;
+        appState.sku.fileName = `${baseName}_提取SKU.xlsx`;
+        appState.sku.columns = finalColumns;
+
+        document.getElementById('skuFileInfo').innerHTML = `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;
+        document.getElementById('skuStatus').textContent = `✅ 成功处理 ${data.length} 行数据！`;
+        document.getElementById('skuStatus').className = 'status-msg success';
+        document.getElementById('skuDownloadBtn').disabled = false;
+
+        initColumnTags('sku');
+        renderPreviewTable('sku');
+    }
+
+    /* -------------------------- 逻辑 2：拆解材质 -------------------------- */
+    function containsForbiddenWords(t) {
+        return ['women', 'sexy', 'womens', 'size', 'this'].some(w =&gt; t.toLowerCase().includes(w));
+    }
+
+    function parseFabricType(detail) {
+        if (!detail) return '';
+        const match = String(detail).match(/Fabric type[:：]\s*(.*?)(?:\||$)/i);
+        if (!match) return '';
+
+        const content = match[1].trim();
+        const matches = [...content.matchAll(/(\d+(?:\.\d+)?)%\s*([a-zA-Z]+)/g)];
+
+        if (matches.length &gt; 0) {
+            const parts = [];
+            for (let m of matches) {
+                if (m[2].toLowerCase() === 'brand') continue;
+                parts.push(`${m[1]}% ${m[2].trim()}`);
             }
-
-            if (newExtension !== null) {
-                fileObj.newExtension = newExtension;
-            }
-
-            // 检查是否有更改
-            const isNameChanged = fileObj.newNameWithoutExt !== fileObj.originalNameWithoutExt;
-            const isExtChanged = fileObj.newExtension !== fileObj.originalExtension;
-
-            if (isNameChanged || isExtChanged) {
-                fileObj.status = '已修改';
+            return parts.join('，');
+        } else {
+            let res = '';
+            if (content.includes('.')) {
+                res = content.split('.')[0].trim();
+                if (res.split(/\s+/).filter(Boolean).length &gt; 8 || containsForbiddenWords(res)) res = '';
             } else {
-                fileObj.status = '未更改';
+                const words = content.trim().split(/\s+/).filter(Boolean);
+                res = (words.length &gt; 5 || containsForbiddenWords(content)) ? '' : content.trim();
+            }
+            return res;
+        }
+    }
+
+    function processFabricData(data, baseName, count, initialCols) {
+        data.forEach(row =&gt; {
+            row['材质(成分)'] = parseFabricType(row['详细参数']);
+        });
+
+        let finalColumns = [...initialCols];
+        if (!finalColumns.includes('材质(成分)')) finalColumns.push('材质(成分)');
+
+        appState.fabric.data = data;
+        appState.fabric.fileName = `${baseName}_已拆材质.xlsx`;
+        appState.fabric.columns = finalColumns;
+
+        document.getElementById('fabricFileInfo').innerHTML = `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;
+        document.getElementById('fabricStatus').textContent = `✅ 成功处理 ${data.length} 行数据！`;
+        document.getElementById('fabricStatus').className = 'status-msg success';
+        document.getElementById('fabricDownloadBtn').disabled = false;
+
+        initColumnTags('fabric');
+        renderPreviewTable('fabric');
+    }
+
+    /* -------------------------- 逻辑 3：两级分组透视统计 -------------------------- */
+    function initTwoLevelGroupTool(data, baseName, count, columns) {
+        appState.group.rawData = data;
+        appState.group.rawColumns = columns;
+        appState.group.fileName = `${baseName}_两级统计结果.xlsx`;
+
+        document.getElementById('groupFileInfo').innerHTML = `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;
+        document.getElementById('groupStatus').textContent = `✅ 成功读取 ${columns.length} 个字段！请在下方选择两级分组维度。`;
+        document.getElementById('groupStatus').className = 'status-msg success';
+
+        // 渲染一级大类分组复选框
+        const largeContainer = document.getElementById('largeGroupContainer');
+        largeContainer.innerHTML = '';
+        columns.forEach(col =&gt; {
+            const label = document.createElement('label');
+            label.className = 'checkbox-item';
+            const isDefault = ['修正面料', '面料', '色号', '父ASIN'].includes(col);
+            label.innerHTML = `&lt;input type=&quot;checkbox&quot; name=&quot;largeGroupCol&quot; value=&quot;${col}&quot; ${isDefault ? 'checked' : ''}&gt; ${col}`;
+            largeContainer.appendChild(label);
+        });
+
+        // 渲染二级细分组复选框
+        const subContainer = document.getElementById('subGroupContainer');
+        subContainer.innerHTML = '';
+        columns.forEach(col =&gt; {
+            const label = document.createElement('label');
+            label.className = 'checkbox-item';
+            const isDefault = ['SKU', 'ASIN', '子ASIN', '颜色'].includes(col);
+            label.innerHTML = `&lt;input type=&quot;checkbox&quot; name=&quot;subGroupCol&quot; value=&quot;${col}&quot; ${isDefault ? 'checked' : ''}&gt; ${col}`;
+            subContainer.appendChild(label);
+        });
+
+        // 填充销量下拉框
+        const salesSelect = document.getElementById('salesColSelect');
+        salesSelect.innerHTML = `&lt;option value=&quot;&quot;&gt;(不计算销量汇总)&lt;/option&gt;` + columns.map(c =&gt; {
+            const isMatch = ['销量', '总销量', 'SKU销量', 'Sales', 'Quantity'].includes(c);
+            return `&lt;option value=&quot;${c}&quot; ${isMatch ? 'selected' : ''}&gt;${c}&lt;/option&gt;`;
+        }).join('');
+
+        // 填充价格下拉框
+        const priceSelect = document.getElementById('priceColSelect');
+        priceSelect.innerHTML = `&lt;option value=&quot;&quot;&gt;(不计算价格均价)&lt;/option&gt;` + columns.map(c =&gt; {
+            const isMatch = ['销售均价', '均价', '价格', 'Price', '售价'].includes(c);
+            return `&lt;option value=&quot;${c}&quot; ${isMatch ? 'selected' : ''}&gt;${c}&lt;/option&gt;`;
+        }).join('');
+
+        document.getElementById('groupConfigBox').style.display = 'block';
+    }
+
+    // 辅助函数：提取列表中第一个不为空的值
+    function getFirstNonEmptyVal(rows, col) {
+        for (let r of rows) {
+            const val = r[col];
+            if (val !== undefined &amp;&amp; val !== null &amp;&amp; String(val).trim() !== '') {
+                return val;
             }
         }
+        return '';
+    }
 
-        // 更新状态显示
-        function updateStatus(id) {
-            const fileObj = filesData.find(f =&gt; f.id === id);
-            if (!fileObj) return;
+    // 执行两级分组统计
+    function executeAdvancedGroupAggregation() {
+        const rawData = appState.group.rawData;
+        if (!rawData || rawData.length === 0) return;
 
-            const statusCell = document.querySelector(`.status-cell[data-id=&quot;${id}&quot;]`);
-            if (statusCell) {
-                statusCell.textContent = fileObj.status;
-                statusCell.style.color = fileObj.status === '已修改' ? '#28a745' : '#6c757d';
-            }
-        }
+        // 1. 获取分组维度
+        const largeGroupCols = Array.from(document.querySelectorAll('input[name=&quot;largeGroupCol&quot;]:checked')).map(cb =&gt; cb.value);
+        const subGroupCols = Array.from(document.querySelectorAll('input[name=&quot;subGroupCol&quot;]:checked')).map(cb =&gt; cb.value);
 
-        // 更新文件计数
-        function updateFileCount() {
-            const count = filesData.length;
-            const modifiedCount = filesData.filter(f =&gt; f.status === '已修改').length;
-
-            fileCountElement.textContent = `${count} 个文件${modifiedCount &gt; 0 ? ` (${modifiedCount} 个已修改)` : ''}`;
-        }
-
-        // 预览名称更改
-        function previewNameChanges() {
-    const pattern = document.getElementById('namePattern').value;
-    const startNumber = parseInt(document.getElementById('startNumber').value) || 1;
-    const customPrefix = document.getElementById('customPrefix').value;
-
-    filesData.forEach((fileObj, index) =&gt; {
-        let newName = '';
-
-        switch (pattern) {
-            case 'sequential':
-                newName = `图片${startNumber + index}`;
-                break;
-            case 'date':
-                const today = new Date();
-                const dateStr = today.toISOString().split('T')[0];
-                newName = `${dateStr}_${startNumber + index}`;
-                break;
-            case 'timestamp':
-                const timestamp = Math.floor(Date.now() / 1000);
-                newName = `${timestamp}_${startNumber + index}`;
-                break;
-            case 'custom':
-            default:
-                newName = customPrefix ? `${customPrefix}${startNumber + index}` : fileObj.originalNameWithoutExt;
-                break;
-        }
-
-        // 更新表格中的输入框
-        const nameInput = document.querySelector(`.new-name-input[data-id=&quot;${fileObj.id}&quot;]`);
-        if (nameInput) {
-            nameInput.value = newName;
-        }
-
-        // 直接调用updateFileName来更新状态
-        updateFileName(fileObj.id, newName, null);
-    });
-
-    updateFileCount();
-}
-
-
-
-        // 预览后缀更改
-        function previewExtChanges() {
-    const currentExtFilter = document.getElementById('currentExtFilter').value;
-    const newExtension = document.getElementById('newExtension').value;
-
-    filesData.forEach((fileObj) =&gt; {
-        // 检查是否满足筛选条件
-        if (currentExtFilter !== 'all' &amp;&amp; fileObj.originalExtension !== currentExtFilter) {
+        if (largeGroupCols.length === 0 &amp;&amp; subGroupCols.length === 0) {
+            alert(&quot;请至少在一级大类或二级细分组中选择一个分组字段！&quot;);
             return;
         }
 
-        // 更新表格中的选择框
-        const extSelect = document.querySelector(`.new-ext-select[data-id=&quot;${fileObj.id}&quot;]`);
-        if (extSelect) {
-            extSelect.value = newExtension;
-        }
+        // 合并所有细分组键（大组 + 细组）
+        const allGroupKeys = Array.from(new Set([...largeGroupCols, ...subGroupCols]));
+        const salesCol = document.getElementById('salesColSelect').value;
+        const priceCol = document.getElementById('priceColSelect').value;
 
-        // 直接调用updateFileName来更新状态
-        updateFileName(fileObj.id, null, newExtension);
-    });
+        // 2. 第一层统计：细分组聚合（按 allGroupKeys 聚类）
+        const subGroupMap = new Map();
 
-    updateFileCount();
-}
-
-
-
-        // 下载Excel模板
-        function downloadExcelTemplate() {
-            if (filesData.length === 0) {
-                alert('请先上传图片文件！');
-                return;
+        rawData.forEach(row =&gt; {
+            const groupKey = allGroupKeys.map(k =&gt; String(row[k] !== undefined ? row[k] : '')).join('___|||___');
+            if (!subGroupMap.has(groupKey)) {
+                subGroupMap.set(groupKey, []);
             }
+            subGroupMap.get(groupKey).push(row);
+        });
 
-            // 创建工作簿
-            const wb = XLSX.utils.book_new();
+        const subGroupResults = [];
 
-            // 创建工作表数据
-            const wsData = [
-                ['原始文件名', '新文件名（请在此列填写）', '原始后缀', '新后缀（可选）'],
-                ['说明：请在第二列填写您想要的新文件名（不需要填写后缀）', '', '', '']
-            ];
+        subGroupMap.forEach((rows, key) =&gt; {
+            const summaryRow = {};
 
-            // 添加每个文件的数据
-            filesData.forEach(fileObj =&gt; {
-                wsData.push([
-                    fileObj.originalName,
-                    fileObj.originalNameWithoutExt, // 初始值设为原始文件名（不带后缀）
-                    fileObj.originalExtension,
-                    fileObj.originalExtension // 初始值设为原始后缀
-                ]);
+            // 填充分组维度值
+            allGroupKeys.forEach(k =&gt; {
+                summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';
             });
 
-            // 创建工作表
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            // 计算该细分组销量指标
+            let subSalesSum = 0;
+            let validSalesSum = 0;
+            let validAmountSum = 0;
+            let priceList = [];
 
-            // 设置列宽
-            const wscols = [
-                {wch: 30}, // 原始文件名
-                {wch: 30}, // 新文件名
-                {wch: 10}, // 原始后缀
-                {wch: 10}  // 新后缀
-            ];
-            ws['!cols'] = wscols;
+            rows.forEach(r =&gt; {
+                const salesVal = salesCol ? (Number(r[salesCol]) || 0) : 0;
+                subSalesSum += salesVal;
 
-            // 将工作表添加到工作簿
-            XLSX.utils.book_append_sheet(wb, ws, &quot;图片重命名&quot;);
+                if (priceCol) {
+                    const priceVal = Number(r[priceCol]);
+                    if (!isNaN(priceVal) &amp;&amp; priceVal &gt; 0) {
+                        validSalesSum += salesVal;
+                        validAmountSum += salesVal * priceVal;
+                        priceList.push(priceVal);
+                    }
+                }
+            });
 
-            // 生成Excel文件并下载
-            XLSX.writeFile(wb, '图片重命名模板.xlsx');
+            if (salesCol) {
+                summaryRow['SKU销量'] = Math.round(subSalesSum * 100) / 100;
+            }
 
-            alert('Excel模板已生成！请填写第二列&quot;新文件名&quot;和第四列&quot;新后缀&quot;，然后上传Excel文件以应用更改。');
+            if (priceCol) {
+                const arithmeticMean = priceList.length &gt; 0 ? (priceList.reduce((a, b) =&gt; a + b, 0) / priceList.length) : 0;
+                const weightedMean = validSalesSum &gt; 0 ? (validAmountSum / validSalesSum) : arithmeticMean;
+                summaryRow['SKU销售均价_加权平均'] = Math.round(weightedMean * 100) / 100;
+                summaryRow['SKU销售均价_算术平均'] = Math.round(arithmeticMean * 100) / 100;
+            }
+
+            // 保留原表其他所有列，匹配该组内第一个非空值
+            appState.group.rawColumns.forEach(origCol =&gt; {
+                if (!allGroupKeys.includes(origCol) &amp;&amp; origCol !== salesCol &amp;&amp; origCol !== priceCol) {
+                    summaryRow[origCol] = getFirstNonEmptyVal(rows, origCol);
+                }
+            });
+
+            // 记录内部用于大组聚合的键
+            summaryRow._largeKey = largeGroupCols.map(k =&gt; String(summaryRow[k] !== undefined ? summaryRow[k] : '')).join('___|||___');
+            summaryRow._subSales = subSalesSum;
+
+            subGroupResults.push(summaryRow);
+        });
+
+        // 3. 第二层统计：计算大组层级的【大组总销量】
+        const largeGroupSalesMap = new Map();
+        if (largeGroupCols.length &gt; 0 &amp;&amp; salesCol) {
+            subGroupResults.forEach(item =&gt; {
+                const lk = item._largeKey;
+                const current = largeGroupSalesMap.get(lk) || 0;
+                largeGroupSalesMap.set(lk, current + item._subSales);
+            });
+
+            subGroupResults.forEach(item =&gt; {
+                item['大组总销量'] = Math.round((largeGroupSalesMap.get(item._largeKey) || 0) * 100) / 100;
+            });
         }
 
-        // 处理Excel文件上传
-        function handleExcelUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+        // 4. 两级排序：大组总销量降序 -&gt; 大类分组字段升序 -&gt; 细组销量降序
+        subGroupResults.sort((a, b) =&gt; {
+            // 1. 大组总销量 降序
+            if (salesCol &amp;&amp; largeGroupCols.length &gt; 0) {
+                const lSalesA = a['大组总销量'] || 0;
+                const lSalesB = b['大组总销量'] || 0;
+                if (lSalesB !== lSalesA) return lSalesB - lSalesA;
+            }
 
-    // 检查文件类型
-    if (!file.name.match(/\.(xlsx|xls)$/)) {
-        alert('请上传Excel文件（.xlsx或.xls格式）');
-        return;
+            // 2. 大类分组字段 升序（保证同面料色号聚集在一起）
+            for (let lk of largeGroupCols) {
+                const valA = String(a[lk] || '');
+                const valB = String(b[lk] || '');
+                const cmp = valA.localeCompare(valB);
+                if (cmp !== 0) return cmp;
+            }
+
+            // 3. 细组销量 降序（组内最热卖的 SKU 排第一）
+            if (salesCol) {
+                const sSalesA = a['SKU销量'] || 0;
+                const sSalesB = b['SKU销量'] || 0;
+                if (sSalesB !== sSalesA) return sSalesB - sSalesA;
+            }
+
+            return 0;
+        });
+
+        // 5. 整理导出表头顺序：大类字段 -&gt; 大组总销量 -&gt; 细分字段 -&gt; 细组销量 -&gt; 均价 -&gt; 原表其他所有列
+        const frontCols = [];
+        largeGroupCols.forEach(c =&gt; frontCols.push(c));
+        if (salesCol &amp;&amp; largeGroupCols.length &gt; 0) frontCols.push('大组总销量');
+        subGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });
+        if (salesCol) frontCols.push('SKU销量');
+        if (priceCol) {
+            frontCols.push('SKU销售均价_加权平均');
+            frontCols.push('SKU销售均价_算术平均');
+        }
+
+        const remainingCols = appState.group.rawColumns.filter(c =&gt; !frontCols.includes(c) &amp;&amp; c !== salesCol &amp;&amp; c !== priceCol);
+        const finalColumns = [...frontCols, ...remainingCols];
+
+        // 清理内部临时辅助字段
+        subGroupResults.forEach(r =&gt; {
+            delete r._largeKey;
+            delete r._subSales;
+        });
+
+        appState.group.data = subGroupResults;
+        appState.group.columns = finalColumns;
+
+        document.getElementById('groupResultCount').textContent = `共聚合出 ${subGroupResults.length} 个细分组`;
+        document.getElementById('groupDownloadBtn').disabled = false;
+
+        initColumnTags('group');
+        renderPreviewTable('group');
     }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
+    /* -------------------------- 通用表头拖拽 &amp; 预览与下载 -------------------------- */
+    let draggedIndex = null;
 
-            // 获取第一个工作表
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const sheetData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+    function initColumnTags(type) {
+        const section = document.getElementById(`${type}ColumnOrderSection`);
+        const container = document.getElementById(`${type}ColumnTags`);
+        container.innerHTML = '';
+        section.style.display = 'block';
 
-            // 跳过表头行
-            const dataRows = sheetData.slice(2); // 跳过标题行和说明行
+        const columns = appState[type].columns;
 
-            if (dataRows.length === 0) {
-                alert('Excel文件中没有数据！');
-                return;
-            }
+        columns.forEach((col, index) =&gt; {
+            const tag = document.createElement('div');
+            const isNew = ['SKU', '颜色', '颜色英文', '材质(成分)', '大组总销量', 'SKU销量', 'SKU销售均价_加权平均', 'SKU销售均价_算术平均'].includes(col);
+            tag.className = `col-tag ${isNew ? 'is-new' : ''}`;
+            tag.draggable = true;
+            tag.dataset.index = index;
 
-            // 用于统计更新了多少文件
-            let updatedCount = 0;
+            tag.innerHTML = `
+                &lt;button class=&quot;col-btn-arrow&quot; onclick=&quot;moveColumn('${type}', ${index}, -1)&quot; title=&quot;前移&quot;&gt;◀&lt;/button&gt;
+                &lt;span&gt;${col}&lt;/span&gt;
+                &lt;button class=&quot;col-btn-arrow&quot; onclick=&quot;moveColumn('${type}', ${index}, 1)&quot; title=&quot;后移&quot;&gt;▶&lt;/button&gt;
+            `;
 
-            // 遍历Excel数据行
-            dataRows.forEach(row =&gt; {
-                const originalName = row[0]; // 第一列：原始文件名
-                const newName = row[1]; // 第二列：新文件名
-                const newExtension = row[3]; // 第四列：新后缀（可选）
-
-                // 查找匹配的文件
-                const fileObj = filesData.find(f =&gt; f.originalName === originalName);
-
-                if (fileObj &amp;&amp; newName) {
-                    // 更新文件名（不带后缀）
-                    fileObj.newNameWithoutExt = newName;
-
-                    // 更新表格中的输入框
-                    const nameInput = document.querySelector(`.new-name-input[data-id=&quot;${fileObj.id}&quot;]`);
-                    if (nameInput) {
-                        nameInput.value = newName;
-                    }
-
-                    // 关键修复：手动调用更新文件名函数来确保状态正确更新
-                    updateFileName(fileObj.id, newName, null);
-                    updatedCount++;
-                }
-
-                // 如果有新后缀，更新后缀
-                if (fileObj &amp;&amp; newExtension &amp;&amp; newExtension.startsWith('.')) {
-                    fileObj.newExtension = newExtension;
-
-                    // 更新表格中的选择框
-                    const extSelect = document.querySelector(`.new-ext-select[data-id=&quot;${fileObj.id}&quot;]`);
-                    if (extSelect) {
-                        extSelect.value = newExtension;
-                    }
-
-                    // 关键修复：手动调用更新文件名函数来确保状态正确更新
-                    updateFileName(fileObj.id, null, newExtension);
-                }
-
-                // 更新状态
-                if (fileObj) {
-                    updateStatus(fileObj.id);
+            tag.addEventListener('dragstart', () =&gt; { draggedIndex = index; tag.style.opacity = '0.4'; });
+            tag.addEventListener('dragend', () =&gt; { tag.style.opacity = '1'; draggedIndex = null; });
+            tag.addEventListener('dragover', (e) =&gt; e.preventDefault());
+            tag.addEventListener('drop', (e) =&gt; {
+                e.preventDefault();
+                const targetIndex = parseInt(tag.dataset.index);
+                if (draggedIndex !== null &amp;&amp; draggedIndex !== targetIndex) {
+                    const item = columns.splice(draggedIndex, 1)[0];
+                    columns.splice(targetIndex, 0, item);
+                    initColumnTags(type);
+                    renderPreviewTable(type);
                 }
             });
 
-            // 更新文件计数
-            updateFileCount();
-
-            // 清空文件输入
-            excelFileInput.value = '';
-
-            alert(`成功从Excel文件更新了 ${updatedCount} 个文件的名称！`);
-
-        } catch (error) {
-            console.error('解析Excel文件时出错:', error);
-            alert('解析Excel文件时出错，请确保文件格式正确。');
-        }
-    };
-
-    reader.readAsArrayBuffer(file);
-}
-
-        // 应用所有重命名并下载
-        function applyAllRenames() {
-            if (filesData.length === 0) return;
-
-            const modifiedFiles = filesData.filter(f =&gt; f.status === '已修改');
-            if (modifiedFiles.length === 0) {
-                alert('没有文件被修改，请先修改文件名或后缀。');
-                return;
-            }
-
-            // 创建Zip文件
-            const zip = new JSZip();
-
-            modifiedFiles.forEach(fileObj =&gt; {
-                const newFileName = fileObj.newNameWithoutExt + fileObj.newExtension;
-                zip.file(newFileName, fileObj.file);
-            });
-
-            // 生成Zip文件并下载
-            zip.generateAsync({type: &quot;blob&quot;})
-                .then(function(content) {
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(content);
-                    link.download = '重命名后的图片.zip';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    // 更新状态
-                    filesData.forEach(fileObj =&gt; {
-                        if (fileObj.status === '已修改') {
-                            fileObj.status = '已下载';
-                            updateStatus(fileObj.id);
-                        }
-                    });
-
-                    alert(`成功打包并下载 ${modifiedFiles.length} 个文件！`);
-                })
-                .catch(error =&gt; {
-                    console.error('创建ZIP文件时出错:', error);
-                    alert('创建ZIP文件时出错，请重试。');
-                });
-        }
-
-        // 重置所有更改
-        function resetAll() {
-            if (filesData.length === 0) return;
-
-            if (!confirm('确定要重置所有更改吗？这将恢复所有文件到原始名称。')) {
-                return;
-            }
-
-            // 恢复原始数据
-            filesData = originalFilesData.map(f =&gt; ({...f}));
-
-            // 更新表格
-            fileTableBody.innerHTML = '';
-            filesData.forEach(fileObj =&gt; {
-                addFileToTable(fileObj);
-            });
-
-            updateFileCount();
-            alert('所有更改已重置！');
-        }
-
-        // 初始化页面
-        document.addEventListener('DOMContentLoaded', () =&gt; {
-            // 添加一些示例文件（仅用于演示）
-            setTimeout(() =&gt; {
-                uploadStatus.textContent = '请上传包含图片的文件夹，或拖放文件夹到此区域';
-                uploadStatus.style.color = '#666';
-            }, 100);
+            container.appendChild(tag);
         });
-    &lt;/script&gt;
+    }
+
+    function moveColumn(type, index, direction) {
+        const columns = appState[type].columns;
+        const targetIndex = index + direction;
+        if (targetIndex &lt; 0 || targetIndex &gt;= columns.length) return;
+        const temp = columns[index];
+        columns[index] = columns[targetIndex];
+        columns[targetIndex] = temp;
+        initColumnTags(type);
+        renderPreviewTable(type);
+    }
+
+    function renderPreviewTable(type) {
+        const table = document.getElementById(`${type}Table`);
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+        const previewSection = document.getElementById(`${type}PreviewSection`);
+
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        const data = appState[type].data;
+        const columns = appState[type].columns;
+        if (!data || data.length === 0 || !columns) return;
+
+        const previewRows = data.slice(0, 10);
+
+        const trHead = document.createElement('tr');
+        columns.forEach(h =&gt; {
+            const th = document.createElement('th');
+            if (['SKU', '颜色', '颜色英文', '材质(成分)', '大组总销量', 'SKU销量', 'SKU销售均价_加权平均', 'SKU销售均价_算术平均'].includes(h)) {
+                th.innerHTML = `${h} &lt;span class=&quot;badge-new&quot;&gt;计算字段&lt;/span&gt;`;
+            } else {
+                th.textContent = h;
+            }
+            trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+
+        previewRows.forEach(row =&gt; {
+            const tr = document.createElement('tr');
+            columns.forEach(h =&gt; {
+                const td = document.createElement('td');
+                td.textContent = row[h] !== undefined ? row[h] : '';
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+
+        previewSection.style.display = 'block';
+    }
+
+    function downloadExcel(type) {
+        const target = appState[type];
+        if (!target.data || !target.columns) return;
+
+        const worksheet = XLSX.utils.json_to_sheet(target.data, { header: target.columns });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, &quot;统计结果&quot;);
+        XLSX.writeFile(workbook, target.fileName || '统计结果.xlsx');
+    }
+&lt;/script&gt;
+
 &lt;/body&gt;
 &lt;/html&gt;">
       </iframe>
@@ -9270,6 +9253,1105 @@
 
             XLSX.writeFile(wb, &quot;智能分析报告.xlsx&quot;);
         }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;">
+      </iframe>
+     </div>
+    </div>
+    <div class="visualization-section">
+     <div class="iframe-container">
+      <iframe srcdoc="
+&lt;!--写前端代码，我上传一个大文件夹，里面都是图片文件，可以批量修改图片名字的功能，1、修改图片后缀前面的功能：首先获取图片名称，放到一个表格，
+用户根据这个表格，添加要修改的新图片名称，再修改图片名称。2、修改图片后缀：获取图片，提取到后缀，用户可选择要修改的后缀(比如.jpg)。1和2功能筛选按钮分别实现--&gt;
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;批量图片重命名工具&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css&quot;&gt;
+    &lt;style&gt;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            padding: 2px 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .upload-section {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 3px dashed #4b6cb7;
+            border-radius: 12px;
+            padding: 4px 20px;
+            background-color: #f8faff;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 2px;
+        }
+
+        .upload-area:hover {
+            background-color: #edf2ff;
+            border-color: #3a56a0;
+        }
+
+        .upload-icon {
+            font-size: 3.5rem;
+            color: #4b6cb7;
+            margin-bottom: 1px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #182848;
+        }
+
+        .upload-hint {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .button {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(75, 108, 183, 0.3);
+        }
+
+        .button-secondary {
+            background: linear-gradient(90deg, #6c757d 0%, #495057 100%);
+        }
+
+        .button-success {
+            background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
+        }
+
+        .button-danger {
+            background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .button-info {
+            background: linear-gradient(90deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .button-excel {
+            background: linear-gradient(90deg, #1d6f42 0%, #14532d 100%);
+        }
+
+        .controls {
+            padding: 5px 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .file-count {
+            background-color: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-count i {
+            color: #4b6cb7;
+        }
+
+        .function-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .rename-panels-container {
+            padding: 20px 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .rename-panel {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .panel-header {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #182848;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-header i {
+            color: #4b6cb7;
+        }
+
+        .panel-description {
+            margin-bottom: 20px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .panel-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .excel-controls {
+            background-color: #e8f5e9;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .excel-controls h3 {
+            color: #1d6f42;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .excel-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .file-table-container {
+            padding: 20px 30px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        thead {
+            background-color: #f8f9fa;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filename-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-icon {
+            color: #4b6cb7;
+            font-size: 1.2rem;
+        }
+
+        .preview-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        input[type=&quot;text&quot;], select, input[type=&quot;number&quot;] {
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 0.95rem;
+        }
+
+        input[type=&quot;text&quot;]:focus, select:focus, input[type=&quot;number&quot;]:focus {
+            outline: none;
+            border-color: #4b6cb7;
+            box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
+        }
+
+        .status-cell {
+            font-weight: 500;
+        }
+
+        .original-name {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4b6cb7;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 992px) {
+            .rename-panels-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .function-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .button {
+                width: 100%;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.9rem;
+            }
+
+            .preview-img {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;header&gt;
+            &lt;h1&gt;批量图片重命名工具&lt;/h1&gt;
+            &lt;p class=&quot;subtitle&quot;&gt;上传图片文件夹，批量修改图片名称和后缀&lt;/p&gt;
+        &lt;/header&gt;
+
+        &lt;div class=&quot;upload-section&quot;&gt;
+            &lt;div class=&quot;upload-area&quot; id=&quot;uploadArea&quot;&gt;
+                &lt;div class=&quot;upload-icon&quot;&gt;
+                    &lt;i class=&quot;fas fa-cloud-upload-alt&quot;&gt;&lt;/i&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽文件夹到此区域上传&lt;/div&gt;
+                &lt;div class=&quot;upload-hint&quot;&gt;支持上传包含图片的整个文件夹，系统将自动读取所有图片文件&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; webkitdirectory multiple accept=&quot;image/*&quot;&gt;
+            &lt;p id=&quot;uploadStatus&quot; style=&quot;margin-top: 15px; color: #666;&quot;&gt;&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;controls&quot;&gt;
+            &lt;div class=&quot;file-count&quot;&gt;
+                &lt;i class=&quot;fas fa-images&quot;&gt;&lt;/i&gt;
+                &lt;span id=&quot;fileCount&quot;&gt;0 个文件&lt;/span&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;function-buttons&quot;&gt;
+                &lt;button class=&quot;button button-success&quot; id=&quot;applyRenamesBtn&quot; disabled&gt;
+                    &lt;i class=&quot;fas fa-check-circle&quot;&gt;&lt;/i&gt; 应用所有更改
+                &lt;/button&gt;
+                &lt;button class=&quot;button button-danger&quot; id=&quot;resetBtn&quot;&gt;
+                    &lt;i class=&quot;fas fa-redo&quot;&gt;&lt;/i&gt; 重置
+                &lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 批量修改图片名称的面板 --&gt;
+        &lt;div class=&quot;rename-panels-container&quot;&gt;
+            &lt;div class=&quot;rename-panel&quot;&gt;
+    &lt;div class=&quot;panel-header&quot;&gt;
+        &lt;i class=&quot;fas fa-font&quot;&gt;&lt;/i&gt;
+        &lt;span&gt;批量修改图片名称&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;panel-description&quot;&gt;
+        修改图片文件名的前缀部分（不包括后缀）。您可以直接在表格中编辑，或使用以下功能批量设置。
+    &lt;/div&gt;
+
+    &lt;div class=&quot;panel-controls&quot;&gt;
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;命名模式：&lt;/label&gt;
+            &lt;select id=&quot;namePattern&quot;&gt;
+                &lt;option value=&quot;custom&quot;&gt;自定义名称&lt;/option&gt;
+                &lt;option value=&quot;sequential&quot;&gt;顺序编号 (图片1, 图片2, ...)&lt;/option&gt;
+                &lt;option value=&quot;date&quot;&gt;日期+序号 (2023-01-01_1, 2023-01-01_2, ...)&lt;/option&gt;
+                &lt;option value=&quot;timestamp&quot;&gt;时间戳 (1685432100_1, 1685432100_2, ...)&lt;/option&gt;
+            &lt;/select&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;起始编号：&lt;/label&gt;
+            &lt;input type=&quot;number&quot; id=&quot;startNumber&quot; value=&quot;1&quot; min=&quot;1&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;自定义前缀：&lt;/label&gt;
+            &lt;input type=&quot;text&quot; id=&quot;customPrefix&quot; placeholder=&quot;例如: 我的图片_&quot;&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;action-buttons&quot;&gt;
+            &lt;button class=&quot;button&quot; id=&quot;previewNameBtn&quot;&gt;
+                &lt;i class=&quot;fas fa-sync&quot;&gt;&lt;/i&gt; 应用名称更改
+            &lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Excel导入导出功能 --&gt;
+        &lt;div class=&quot;excel-controls&quot;&gt;
+            &lt;h3&gt;&lt;i class=&quot;fas fa-file-excel&quot;&gt;&lt;/i&gt; Excel批量编辑&lt;/h3&gt;
+            &lt;p style=&quot;margin-bottom: 15px; color: #666; font-size: 0.95rem;&quot;&gt;
+                当图片数量很多时，您可以通过Excel文件批量编辑文件名。下载模板，填写新名称后上传即可。
+            &lt;/p&gt;
+            &lt;div class=&quot;excel-buttons&quot;&gt;
+                &lt;button class=&quot;button button-excel&quot; id=&quot;downloadExcelBtn&quot;&gt;
+                    &lt;i class=&quot;fas fa-download&quot;&gt;&lt;/i&gt; 下载Excel模板
+                &lt;/button&gt;
+                &lt;button class=&quot;button button-info&quot; id=&quot;uploadExcelBtn&quot;&gt;
+                    &lt;i class=&quot;fas fa-upload&quot;&gt;&lt;/i&gt; 上传Excel文件
+                &lt;/button&gt;
+                &lt;input type=&quot;file&quot; id=&quot;excelFileInput&quot; accept=&quot;.xlsx,.xls&quot; style=&quot;display: none;&quot;&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+            &lt;!-- 批量修改图片后缀的面板 --&gt;
+            &lt;div class=&quot;rename-panel&quot;&gt;
+    &lt;div class=&quot;panel-header&quot;&gt;
+        &lt;i class=&quot;fas fa-file-export&quot;&gt;&lt;/i&gt;
+        &lt;span&gt;批量修改图片后缀&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;panel-description&quot;&gt;
+        修改图片文件的后缀（扩展名）。请注意，这仅修改文件名，不会转换图片格式。
+    &lt;/div&gt;
+
+    &lt;div class=&quot;panel-controls&quot;&gt;
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;当前后缀筛选：&lt;/label&gt;
+            &lt;select id=&quot;currentExtFilter&quot;&gt;
+                &lt;option value=&quot;all&quot;&gt;所有后缀&lt;/option&gt;
+                &lt;option value=&quot;.jpg&quot;&gt;.jpg 文件&lt;/option&gt;
+                &lt;option value=&quot;.png&quot;&gt;.png 文件&lt;/option&gt;
+                &lt;option value=&quot;.gif&quot;&gt;.gif 文件&lt;/option&gt;
+                &lt;option value=&quot;.webp&quot;&gt;.webp 文件&lt;/option&gt;
+                &lt;option value=&quot;.bmp&quot;&gt;.bmp 文件&lt;/option&gt;
+            &lt;/select&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;control-group&quot;&gt;
+            &lt;label&gt;新后缀：&lt;/label&gt;
+            &lt;select id=&quot;newExtension&quot;&gt;
+                &lt;option value=&quot;.jpg&quot;&gt;.jpg&lt;/option&gt;
+                &lt;option value=&quot;.png&quot;&gt;.png&lt;/option&gt;
+                &lt;option value=&quot;.gif&quot;&gt;.gif&lt;/option&gt;
+                &lt;option value=&quot;.webp&quot;&gt;.webp&lt;/option&gt;
+                &lt;option value=&quot;.bmp&quot;&gt;.bmp&lt;/option&gt;
+                &lt;option value=&quot;.jpeg&quot;&gt;.jpeg&lt;/option&gt;
+                &lt;option value=&quot;.svg&quot;&gt;.svg&lt;/option&gt;
+            &lt;/select&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;action-buttons&quot;&gt;
+            &lt;button class=&quot;button&quot; id=&quot;previewExtBtn&quot;&gt;
+                &lt;i class=&quot;fas fa-sync&quot;&gt;&lt;/i&gt; 应用后缀更改
+            &lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;file-table-container&quot;&gt;
+            &lt;div class=&quot;loading&quot; id=&quot;loadingIndicator&quot;&gt;
+                &lt;div class=&quot;spinner&quot;&gt;&lt;/div&gt;
+                &lt;p&gt;正在处理文件，请稍候...&lt;/p&gt;
+            &lt;/div&gt;
+
+            &lt;table id=&quot;fileTable&quot;&gt;
+                &lt;thead&gt;
+                    &lt;tr&gt;
+                        &lt;th style=&quot;width: 50px;&quot;&gt;序号&lt;/th&gt;
+                        &lt;th&gt;预览&lt;/th&gt;
+                        &lt;th&gt;原始文件名&lt;/th&gt;
+                        &lt;th&gt;新文件名&lt;/th&gt;
+                        &lt;th&gt;原始后缀&lt;/th&gt;
+                        &lt;th&gt;新后缀&lt;/th&gt;
+                        &lt;th&gt;状态&lt;/th&gt;
+                    &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody id=&quot;fileTableBody&quot;&gt;
+                    &lt;!-- 文件行将通过JavaScript动态添加 --&gt;
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+
+        &lt;footer&gt;
+            &lt;p&gt;© 2025 批量图片重命名工具 | 提示：此工具仅修改文件名，不会转换图片格式&lt;/p&gt;
+        &lt;/footer&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 引入SheetJS库用于Excel处理 --&gt;
+    &lt;script src=&quot;https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!-- 引入JSZip库用于创建ZIP文件 --&gt;
+    &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js&quot;&gt;&lt;/script&gt;
+
+    &lt;script&gt;
+        // 文件数据存储
+        let filesData = [];
+        let originalFilesData = [];
+
+        // DOM元素
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileTableBody = document.getElementById('fileTableBody');
+        const fileCountElement = document.getElementById('fileCount');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const applyRenamesBtn = document.getElementById('applyRenamesBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const previewNameBtn = document.getElementById('previewNameBtn');
+        const applyNameChangesBtn = document.getElementById('applyNameChangesBtn');
+        const previewExtBtn = document.getElementById('previewExtBtn');
+        const applyExtChangesBtn = document.getElementById('applyExtChangesBtn');
+        const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+        const uploadExcelBtn = document.getElementById('uploadExcelBtn');
+        const excelFileInput = document.getElementById('excelFileInput');
+
+        // 事件监听器
+        uploadArea.addEventListener('click', () =&gt; fileInput.click());
+        uploadArea.addEventListener('dragover', (e) =&gt; {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#e3e9ff';
+        });
+        uploadArea.addEventListener('dragleave', () =&gt; {
+            uploadArea.style.backgroundColor = '#f8faff';
+        });
+        uploadArea.addEventListener('drop', (e) =&gt; {
+            e.preventDefault();
+            uploadArea.style.backgroundColor = '#f8faff';
+            handleFolderDrop(e);
+        });
+
+        fileInput.addEventListener('change', (e) =&gt; {
+            handleFiles(e.target.files);
+        });
+
+        applyRenamesBtn.addEventListener('click', applyAllRenames);
+        resetBtn.addEventListener('click', resetAll);
+
+        previewNameBtn.addEventListener('click', previewNameChanges);
+        previewExtBtn.addEventListener('click', previewExtChanges);
+
+        downloadExcelBtn.addEventListener('click', downloadExcelTemplate);
+        uploadExcelBtn.addEventListener('click', () =&gt; excelFileInput.click());
+        excelFileInput.addEventListener('change', handleExcelUpload);
+
+        // 处理拖放文件夹
+        async function handleFolderDrop(e) {
+            const items = e.dataTransfer.items;
+            const files = [];
+
+            // 遍历拖放的项目
+            for (const item of items) {
+                const entry = item.webkitGetAsEntry();
+                if (entry) {
+                    await traverseFileTree(entry, files);
+                }
+            }
+
+            // 转换为FileList类似对象
+            const fileList = {
+                length: files.length,
+                item: (index) =&gt; files[index],
+                ...files
+            };
+
+            handleFiles(fileList);
+        }
+
+        // 遍历文件树（用于拖放文件夹）
+        async function traverseFileTree(entry, files) {
+            if (entry.isFile) {
+                return new Promise((resolve) =&gt; {
+                    entry.file((file) =&gt; {
+                        // 只处理图片文件
+                        if (file.type.startsWith('image/')) {
+                            files.push(file);
+                        }
+                        resolve();
+                    });
+                });
+            } else if (entry.isDirectory) {
+                const reader = entry.createReader();
+                return new Promise((resolve) =&gt; {
+                    reader.readEntries(async (entries) =&gt; {
+                        for (const childEntry of entries) {
+                            await traverseFileTree(childEntry, files);
+                        }
+                        resolve();
+                    });
+                });
+            }
+        }
+
+        // 处理上传的文件
+        function handleFiles(fileList) {
+            if (fileList.length === 0) return;
+
+            loadingIndicator.classList.add('active');
+
+            // 清空现有数据
+            filesData = [];
+            originalFilesData = [];
+            fileTableBody.innerHTML = '';
+
+            // 筛选图片文件
+            const imageFiles = Array.from(fileList).filter(file =&gt;
+                file.type.startsWith('image/')
+            );
+
+            if (imageFiles.length === 0) {
+                uploadStatus.textContent = '未找到图片文件，请上传包含图片的文件夹';
+                uploadStatus.style.color = '#dc3545';
+                loadingIndicator.classList.remove('active');
+                return;
+            }
+
+            uploadStatus.textContent = `成功加载 ${imageFiles.length} 个图片文件`;
+            uploadStatus.style.color = '#28a745';
+
+            // 处理每个文件
+            imageFiles.forEach((file, index) =&gt; {
+                // 提取文件名和扩展名
+                const lastDotIndex = file.name.lastIndexOf('.');
+                const nameWithoutExt = lastDotIndex &gt; 0 ? file.name.substring(0, lastDotIndex) : file.name;
+                const extension = lastDotIndex &gt; 0 ? file.name.substring(lastDotIndex) : '';
+
+                // 创建文件对象
+                const fileObj = {
+                    id: index + 1,
+                    originalName: file.name,
+                    originalNameWithoutExt: nameWithoutExt,
+                    originalExtension: extension,
+                    newNameWithoutExt: nameWithoutExt,
+                    newExtension: extension,
+                    file: file,
+                    previewUrl: URL.createObjectURL(file),
+                    status: '未更改'
+                };
+
+                filesData.push(fileObj);
+                originalFilesData.push({...fileObj}); // 保存原始数据副本
+
+                // 创建表格行
+                addFileToTable(fileObj);
+            });
+
+            updateFileCount();
+            loadingIndicator.classList.remove('active');
+            applyRenamesBtn.disabled = false;
+
+            // 更新Excel下载按钮状态
+            downloadExcelBtn.disabled = false;
+        }
+
+        // 添加文件到表格
+        function addFileToTable(fileObj) {
+            const row = document.createElement('tr');
+            row.dataset.id = fileObj.id;
+
+            row.innerHTML = `
+                &lt;td&gt;${fileObj.id}&lt;/td&gt;
+                &lt;td&gt;
+                    &lt;img src=&quot;${fileObj.previewUrl}&quot; alt=&quot;预览&quot; class=&quot;preview-img&quot;&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    &lt;div class=&quot;filename-cell&quot;&gt;
+                        &lt;i class=&quot;fas fa-file-image file-icon&quot;&gt;&lt;/i&gt;
+                        &lt;div&gt;
+                            &lt;div&gt;${fileObj.originalName}&lt;/div&gt;
+                            &lt;div class=&quot;original-name&quot;&gt;原始名称&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    &lt;input type=&quot;text&quot; class=&quot;new-name-input&quot; value=&quot;${fileObj.newNameWithoutExt}&quot; data-id=&quot;${fileObj.id}&quot;&gt;
+                &lt;/td&gt;
+                &lt;td&gt;${fileObj.originalExtension}&lt;/td&gt;
+                &lt;td&gt;
+                    &lt;select class=&quot;new-ext-select&quot; data-id=&quot;${fileObj.id}&quot;&gt;
+                        &lt;option value=&quot;.jpg&quot; ${fileObj.newExtension === '.jpg' ? 'selected' : ''}&gt;.jpg&lt;/option&gt;
+                        &lt;option value=&quot;.png&quot; ${fileObj.newExtension === '.png' ? 'selected' : ''}&gt;.png&lt;/option&gt;
+                        &lt;option value=&quot;.gif&quot; ${fileObj.newExtension === '.gif' ? 'selected' : ''}&gt;.gif&lt;/option&gt;
+                        &lt;option value=&quot;.webp&quot; ${fileObj.newExtension === '.webp' ? 'selected' : ''}&gt;.webp&lt;/option&gt;
+                        &lt;option value=&quot;.bmp&quot; ${fileObj.newExtension === '.bmp' ? 'selected' : ''}&gt;.bmp&lt;/option&gt;
+                        &lt;option value=&quot;.jpeg&quot; ${fileObj.newExtension === '.jpeg' ? 'selected' : ''}&gt;.jpeg&lt;/option&gt;
+                        &lt;option value=&quot;.svg&quot; ${fileObj.newExtension === '.svg' ? 'selected' : ''}&gt;.svg&lt;/option&gt;
+                    &lt;/select&gt;
+                &lt;/td&gt;
+                &lt;td class=&quot;status-cell&quot; data-id=&quot;${fileObj.id}&quot;&gt;${fileObj.status}&lt;/td&gt;
+            `;
+
+            fileTableBody.appendChild(row);
+
+            // 添加事件监听器
+            const nameInput = row.querySelector('.new-name-input');
+            const extSelect = row.querySelector('.new-ext-select');
+            const statusCell = row.querySelector('.status-cell');
+
+            nameInput.addEventListener('input', (e) =&gt; {
+                const id = parseInt(e.target.dataset.id);
+                updateFileName(id, e.target.value, null);
+                updateStatus(id);
+                updateFileCount();
+            });
+
+            extSelect.addEventListener('change', (e) =&gt; {
+                const id = parseInt(e.target.dataset.id);
+                updateFileName(id, null, e.target.value);
+                updateStatus(id);
+                updateFileCount();
+            });
+        }
+
+        // 更新文件名
+        function updateFileName(id, newNameWithoutExt, newExtension) {
+            const fileObj = filesData.find(f =&gt; f.id === id);
+            if (!fileObj) return;
+
+            if (newNameWithoutExt !== null) {
+                fileObj.newNameWithoutExt = newNameWithoutExt;
+            }
+
+            if (newExtension !== null) {
+                fileObj.newExtension = newExtension;
+            }
+
+            // 检查是否有更改
+            const isNameChanged = fileObj.newNameWithoutExt !== fileObj.originalNameWithoutExt;
+            const isExtChanged = fileObj.newExtension !== fileObj.originalExtension;
+
+            if (isNameChanged || isExtChanged) {
+                fileObj.status = '已修改';
+            } else {
+                fileObj.status = '未更改';
+            }
+        }
+
+        // 更新状态显示
+        function updateStatus(id) {
+            const fileObj = filesData.find(f =&gt; f.id === id);
+            if (!fileObj) return;
+
+            const statusCell = document.querySelector(`.status-cell[data-id=&quot;${id}&quot;]`);
+            if (statusCell) {
+                statusCell.textContent = fileObj.status;
+                statusCell.style.color = fileObj.status === '已修改' ? '#28a745' : '#6c757d';
+            }
+        }
+
+        // 更新文件计数
+        function updateFileCount() {
+            const count = filesData.length;
+            const modifiedCount = filesData.filter(f =&gt; f.status === '已修改').length;
+
+            fileCountElement.textContent = `${count} 个文件${modifiedCount &gt; 0 ? ` (${modifiedCount} 个已修改)` : ''}`;
+        }
+
+        // 预览名称更改
+        function previewNameChanges() {
+    const pattern = document.getElementById('namePattern').value;
+    const startNumber = parseInt(document.getElementById('startNumber').value) || 1;
+    const customPrefix = document.getElementById('customPrefix').value;
+
+    filesData.forEach((fileObj, index) =&gt; {
+        let newName = '';
+
+        switch (pattern) {
+            case 'sequential':
+                newName = `图片${startNumber + index}`;
+                break;
+            case 'date':
+                const today = new Date();
+                const dateStr = today.toISOString().split('T')[0];
+                newName = `${dateStr}_${startNumber + index}`;
+                break;
+            case 'timestamp':
+                const timestamp = Math.floor(Date.now() / 1000);
+                newName = `${timestamp}_${startNumber + index}`;
+                break;
+            case 'custom':
+            default:
+                newName = customPrefix ? `${customPrefix}${startNumber + index}` : fileObj.originalNameWithoutExt;
+                break;
+        }
+
+        // 更新表格中的输入框
+        const nameInput = document.querySelector(`.new-name-input[data-id=&quot;${fileObj.id}&quot;]`);
+        if (nameInput) {
+            nameInput.value = newName;
+        }
+
+        // 直接调用updateFileName来更新状态
+        updateFileName(fileObj.id, newName, null);
+    });
+
+    updateFileCount();
+}
+
+
+
+        // 预览后缀更改
+        function previewExtChanges() {
+    const currentExtFilter = document.getElementById('currentExtFilter').value;
+    const newExtension = document.getElementById('newExtension').value;
+
+    filesData.forEach((fileObj) =&gt; {
+        // 检查是否满足筛选条件
+        if (currentExtFilter !== 'all' &amp;&amp; fileObj.originalExtension !== currentExtFilter) {
+            return;
+        }
+
+        // 更新表格中的选择框
+        const extSelect = document.querySelector(`.new-ext-select[data-id=&quot;${fileObj.id}&quot;]`);
+        if (extSelect) {
+            extSelect.value = newExtension;
+        }
+
+        // 直接调用updateFileName来更新状态
+        updateFileName(fileObj.id, null, newExtension);
+    });
+
+    updateFileCount();
+}
+
+
+
+        // 下载Excel模板
+        function downloadExcelTemplate() {
+            if (filesData.length === 0) {
+                alert('请先上传图片文件！');
+                return;
+            }
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+
+            // 创建工作表数据
+            const wsData = [
+                ['原始文件名', '新文件名（请在此列填写）', '原始后缀', '新后缀（可选）'],
+                ['说明：请在第二列填写您想要的新文件名（不需要填写后缀）', '', '', '']
+            ];
+
+            // 添加每个文件的数据
+            filesData.forEach(fileObj =&gt; {
+                wsData.push([
+                    fileObj.originalName,
+                    fileObj.originalNameWithoutExt, // 初始值设为原始文件名（不带后缀）
+                    fileObj.originalExtension,
+                    fileObj.originalExtension // 初始值设为原始后缀
+                ]);
+            });
+
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 设置列宽
+            const wscols = [
+                {wch: 30}, // 原始文件名
+                {wch: 30}, // 新文件名
+                {wch: 10}, // 原始后缀
+                {wch: 10}  // 新后缀
+            ];
+            ws['!cols'] = wscols;
+
+            // 将工作表添加到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, &quot;图片重命名&quot;);
+
+            // 生成Excel文件并下载
+            XLSX.writeFile(wb, '图片重命名模板.xlsx');
+
+            alert('Excel模板已生成！请填写第二列&quot;新文件名&quot;和第四列&quot;新后缀&quot;，然后上传Excel文件以应用更改。');
+        }
+
+        // 处理Excel文件上传
+        function handleExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 检查文件类型
+    if (!file.name.match(/\.(xlsx|xls)$/)) {
+        alert('请上传Excel文件（.xlsx或.xls格式）');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+
+            // 获取第一个工作表
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const sheetData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+
+            // 跳过表头行
+            const dataRows = sheetData.slice(2); // 跳过标题行和说明行
+
+            if (dataRows.length === 0) {
+                alert('Excel文件中没有数据！');
+                return;
+            }
+
+            // 用于统计更新了多少文件
+            let updatedCount = 0;
+
+            // 遍历Excel数据行
+            dataRows.forEach(row =&gt; {
+                const originalName = row[0]; // 第一列：原始文件名
+                const newName = row[1]; // 第二列：新文件名
+                const newExtension = row[3]; // 第四列：新后缀（可选）
+
+                // 查找匹配的文件
+                const fileObj = filesData.find(f =&gt; f.originalName === originalName);
+
+                if (fileObj &amp;&amp; newName) {
+                    // 更新文件名（不带后缀）
+                    fileObj.newNameWithoutExt = newName;
+
+                    // 更新表格中的输入框
+                    const nameInput = document.querySelector(`.new-name-input[data-id=&quot;${fileObj.id}&quot;]`);
+                    if (nameInput) {
+                        nameInput.value = newName;
+                    }
+
+                    // 关键修复：手动调用更新文件名函数来确保状态正确更新
+                    updateFileName(fileObj.id, newName, null);
+                    updatedCount++;
+                }
+
+                // 如果有新后缀，更新后缀
+                if (fileObj &amp;&amp; newExtension &amp;&amp; newExtension.startsWith('.')) {
+                    fileObj.newExtension = newExtension;
+
+                    // 更新表格中的选择框
+                    const extSelect = document.querySelector(`.new-ext-select[data-id=&quot;${fileObj.id}&quot;]`);
+                    if (extSelect) {
+                        extSelect.value = newExtension;
+                    }
+
+                    // 关键修复：手动调用更新文件名函数来确保状态正确更新
+                    updateFileName(fileObj.id, null, newExtension);
+                }
+
+                // 更新状态
+                if (fileObj) {
+                    updateStatus(fileObj.id);
+                }
+            });
+
+            // 更新文件计数
+            updateFileCount();
+
+            // 清空文件输入
+            excelFileInput.value = '';
+
+            alert(`成功从Excel文件更新了 ${updatedCount} 个文件的名称！`);
+
+        } catch (error) {
+            console.error('解析Excel文件时出错:', error);
+            alert('解析Excel文件时出错，请确保文件格式正确。');
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+        // 应用所有重命名并下载
+        function applyAllRenames() {
+            if (filesData.length === 0) return;
+
+            const modifiedFiles = filesData.filter(f =&gt; f.status === '已修改');
+            if (modifiedFiles.length === 0) {
+                alert('没有文件被修改，请先修改文件名或后缀。');
+                return;
+            }
+
+            // 创建Zip文件
+            const zip = new JSZip();
+
+            modifiedFiles.forEach(fileObj =&gt; {
+                const newFileName = fileObj.newNameWithoutExt + fileObj.newExtension;
+                zip.file(newFileName, fileObj.file);
+            });
+
+            // 生成Zip文件并下载
+            zip.generateAsync({type: &quot;blob&quot;})
+                .then(function(content) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = '重命名后的图片.zip';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // 更新状态
+                    filesData.forEach(fileObj =&gt; {
+                        if (fileObj.status === '已修改') {
+                            fileObj.status = '已下载';
+                            updateStatus(fileObj.id);
+                        }
+                    });
+
+                    alert(`成功打包并下载 ${modifiedFiles.length} 个文件！`);
+                })
+                .catch(error =&gt; {
+                    console.error('创建ZIP文件时出错:', error);
+                    alert('创建ZIP文件时出错，请重试。');
+                });
+        }
+
+        // 重置所有更改
+        function resetAll() {
+            if (filesData.length === 0) return;
+
+            if (!confirm('确定要重置所有更改吗？这将恢复所有文件到原始名称。')) {
+                return;
+            }
+
+            // 恢复原始数据
+            filesData = originalFilesData.map(f =&gt; ({...f}));
+
+            // 更新表格
+            fileTableBody.innerHTML = '';
+            filesData.forEach(fileObj =&gt; {
+                addFileToTable(fileObj);
+            });
+
+            updateFileCount();
+            alert('所有更改已重置！');
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', () =&gt; {
+            // 添加一些示例文件（仅用于演示）
+            setTimeout(() =&gt; {
+                uploadStatus.textContent = '请上传包含图片的文件夹，或拖放文件夹到此区域';
+                uploadStatus.style.color = '#666';
+            }, 100);
+        });
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;">
