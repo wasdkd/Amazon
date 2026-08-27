@@ -216,22 +216,25 @@
      5. E 数据提取 分组统计
     </button>
     <button class="nav-btn" onclick="navigateToReport(5)">
-     6. F 创建文件夹
+     6. F 数据批量分组
     </button>
     <button class="nav-btn" onclick="navigateToReport(6)">
-     7. G 创建 修改excel表
+     7. G 创建文件夹
     </button>
     <button class="nav-btn" onclick="navigateToReport(7)">
-     8. H 数据透视表
+     8. H 创建 修改excel表
     </button>
     <button class="nav-btn" onclick="navigateToReport(8)">
-     9. I 修改图片名称
+     9. I 数据透视表
     </button>
     <button class="nav-btn" onclick="navigateToReport(9)">
-     10. J 可视化
+     10. J 修改图片名称
     </button>
     <button class="nav-btn" onclick="navigateToReport(10)">
-     11. K 数据工具
+     11. K 可视化
+    </button>
+    <button class="nav-btn" onclick="navigateToReport(11)">
+     12. L 数据工具
     </button>
    </div>
    <div id="visualizationsContainer">
@@ -4279,6 +4282,909 @@
         XLSX.utils.book_append_sheet(workbook, worksheet, &quot;统计结果&quot;);
         XLSX.writeFile(workbook, target.fileName || '统计结果.xlsx');
     }
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;">
+      </iframe>
+     </div>
+    </div>
+    <div class="visualization-section">
+     <div class="iframe-container">
+      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+  &lt;title&gt;亚马逊 ASIN 智能分组与格式化工具&lt;/title&gt;
+  &lt;!-- 引入 SheetJS 用于在浏览器端纯本地解析与导出 Excel --&gt;
+  &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --accent: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* 顶部标题区 */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .title-group h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 12px;
+      background: #e0e7ff;
+      color: var(--primary);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .privacy-tag {
+      font-size: 13px;
+      color: var(--success);
+      background: #ecfdf5;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #a7f3d0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 主布局 */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 标签页 */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    /* 上传区域 */
+    .dropzone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary);
+      background: #f5f3ff;
+    }
+
+    .dropzone svg {
+      width: 40px;
+      height: 40px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    /* 文本输入 */
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      resize: vertical;
+      outline: none;
+    }
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    /* 设置表单控件 */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .chip {
+      font-size: 12px;
+      padding: 3px 8px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: #475569;
+    }
+    .chip:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .input-control {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+    .input-control:focus {
+      border-color: var(--primary);
+    }
+
+    .select-control {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+    }
+
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    /* 按钮组 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      width: 100%;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-outline {
+      background: #fff;
+      border: 1px solid var(--border);
+      color: #334155;
+      font-size: 13px;
+      padding: 6px 12px;
+    }
+    .btn-outline:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .btn-success {
+      background: #059669;
+      color: #fff;
+      font-size: 13px;
+      padding: 6px 14px;
+    }
+    .btn-success:hover {
+      background: #047857;
+    }
+
+    /* 右侧统计与结果区 */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .batch-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 650px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .batch-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px 14px;
+      transition: all 0.2s;
+    }
+    .batch-item:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .batch-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .batch-index {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .batch-count-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .batch-content {
+      font-family: monospace;
+      font-size: 12px;
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 6px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid #f1f5f9;
+      color: #334155;
+    }
+
+    .empty-placeholder {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: none;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;div class=&quot;container&quot;&gt;
+  &lt;!-- 头部 --&gt;
+  &lt;header&gt;
+    &lt;div class=&quot;title-group&quot;&gt;
+      &lt;h1&gt;
+        &lt;svg width=&quot;24&quot; height=&quot;24&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z&quot;&gt;&lt;/path&gt;&lt;polyline points=&quot;3.27 6.96 12 12.01 20.73 6.96&quot;&gt;&lt;/polyline&gt;&lt;line x1=&quot;12&quot; y1=&quot;22.08&quot; x2=&quot;12&quot; y2=&quot;12&quot;&gt;&lt;/line&gt;&lt;/svg&gt;
+        数据批量分组与格式化工具
+      &lt;/h1&gt;
+      &lt;span class=&quot;badge&quot;&gt;V2.0 增强版&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;privacy-tag&quot;&gt;
+      &lt;svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;
+      纯本地处理 · 离线可用 · 绝不上传服务器
+    &lt;/div&gt;
+  &lt;/header&gt;
+
+  &lt;!-- 主工作区 --&gt;
+  &lt;div class=&quot;grid-layout&quot;&gt;
+
+    &lt;!-- 左侧：输入与配置参数 --&gt;
+    &lt;div&gt;
+      &lt;div class=&quot;card&quot;&gt;
+        &lt;div class=&quot;card-title&quot;&gt;
+          &lt;span&gt;1. 数据输入&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;tabs&quot;&gt;
+          &lt;button class=&quot;tab-btn active&quot; onclick=&quot;switchTab('file')&quot;&gt;📂 导入 Excel / CSV 文件&lt;/button&gt;
+          &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('text')&quot;&gt;✍️ 手动粘贴文本&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 表格文件上传 --&gt;
+        &lt;div id=&quot;fileTab&quot;&gt;
+          &lt;div class=&quot;dropzone&quot; id=&quot;dropzone&quot; onclick=&quot;document.getElementById('fileInput').click()&quot;&gt;
+            &lt;svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4&quot;&gt;&lt;/path&gt;&lt;polyline points=&quot;17 8 12 3 7 8&quot;&gt;&lt;/polyline&gt;&lt;line x1=&quot;12&quot; y1=&quot;3&quot; x2=&quot;12&quot; y2=&quot;15&quot;&gt;&lt;/line&gt;&lt;/svg&gt;
+            &lt;p style=&quot;font-size: 14px; font-weight: 600; color: #334155;&quot;&gt;点击或拖拽文件到此处&lt;/p&gt;
+            &lt;p style=&quot;font-size: 12px; color: var(--text-muted); margin-top: 4px;&quot;&gt;支持 .xlsx, .xls, .csv&lt;/p&gt;
+            &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; class=&quot;file-input&quot; accept=&quot;.xlsx, .xls, .csv&quot; onchange=&quot;handleFileUpload(event)&quot;&gt;
+          &lt;/div&gt;
+
+          &lt;div id=&quot;columnSelectWrapper&quot; style=&quot;display: none; margin-top: 14px;&quot;&gt;
+            &lt;label class=&quot;form-label&quot;&gt;已识别到的列（选择 ASIN 所在列）：&lt;/label&gt;
+            &lt;select id=&quot;columnSelect&quot; class=&quot;select-control&quot; onchange=&quot;onColumnChange()&quot;&gt;&lt;/select&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 纯文本直接粘贴 --&gt;
+        &lt;div id=&quot;textTab&quot; style=&quot;display: none;&quot;&gt;
+          &lt;textarea id=&quot;rawTextInput&quot; placeholder=&quot;可直接粘贴一行或多行 ASIN，例如：
+B09X123456
+B08Y654321
+B07Z987654
+或用逗号、空格分隔的文本都可以识别&quot;&gt;&lt;/textarea&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;!-- 参数配置卡片 --&gt;
+      &lt;div class=&quot;card&quot;&gt;
+        &lt;div class=&quot;card-title&quot;&gt;
+          &lt;span&gt;2. 分组与格式化设置&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 每组数量 --&gt;
+        &lt;div class=&quot;form-group&quot;&gt;
+          &lt;label class=&quot;form-label&quot;&gt;每组数量（Batch Size）：&lt;/label&gt;
+          &lt;input type=&quot;number&quot; id=&quot;batchSize&quot; class=&quot;input-control&quot; value=&quot;100&quot; min=&quot;1&quot; step=&quot;1&quot;&gt;
+          &lt;div class=&quot;quick-chips&quot;&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(50)&quot;&gt;50&lt;/span&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(100)&quot;&gt;100 (默认)&lt;/span&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(200)&quot;&gt;200&lt;/span&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(500)&quot;&gt;500&lt;/span&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(1000)&quot;&gt;1000&lt;/span&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 连接符设置 --&gt;
+        &lt;div class=&quot;form-group&quot;&gt;
+          &lt;label class=&quot;form-label&quot;&gt;单元格内 / 组内连接符（Delimiter）：&lt;/label&gt;
+          &lt;select id=&quot;delimiterPreset&quot; class=&quot;select-control&quot; onchange=&quot;handleDelimiterPresetChange()&quot;&gt;
+            &lt;option value=&quot;,&quot;&gt;英文逗号「 , 」(默认)&lt;/option&gt;
+            &lt;option value=&quot;, &quot;&gt;逗号 + 空格「 ,  」&lt;/option&gt;
+            &lt;option value=&quot;\n&quot;&gt;换行回车「 \n 」(多行显示)&lt;/option&gt;
+            &lt;option value=&quot; &quot;&gt;单个空格「   」&lt;/option&gt;
+            &lt;option value=&quot;;&quot;&gt;英文分号「 ; 」&lt;/option&gt;
+            &lt;option value=&quot;\t&quot;&gt;制表符「 Tab 」&lt;/option&gt;
+            &lt;option value=&quot;custom&quot;&gt;👉 自定义输入连接符...&lt;/option&gt;
+          &lt;/select&gt;
+
+          &lt;div id=&quot;customDelimiterWrapper&quot; style=&quot;display: none; margin-top: 8px;&quot;&gt;
+            &lt;input type=&quot;text&quot; id=&quot;customDelimiter&quot; class=&quot;input-control&quot; placeholder=&quot;输入任意自定义连接符（如 | 或 / 或 回车换行\n）&quot;&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 清洗增强选项 --&gt;
+        &lt;div class=&quot;form-group&quot;&gt;
+          &lt;label class=&quot;form-label&quot;&gt;数据处理与增强选项：&lt;/label&gt;
+          &lt;div class=&quot;checkbox-group&quot;&gt;
+            &lt;label class=&quot;checkbox-label&quot;&gt;
+              &lt;input type=&quot;checkbox&quot; id=&quot;optDeduplicate&quot; checked&gt; 自动去除重复 ASIN
+            &lt;/label&gt;
+            &lt;label class=&quot;checkbox-label&quot;&gt;
+              &lt;input type=&quot;checkbox&quot; id=&quot;optUppercase&quot; checked&gt; 自动转为大写
+            &lt;/label&gt;
+            &lt;label class=&quot;checkbox-label&quot;&gt;
+              &lt;input type=&quot;checkbox&quot; id=&quot;optTrim&quot; checked&gt; 清除首尾空格/空行
+            &lt;/label&gt;
+            &lt;label class=&quot;checkbox-label&quot;&gt;
+              &lt;input type=&quot;checkbox&quot; id=&quot;optWrapQuotes&quot;&gt; 加单引号包裹 ('ASIN')
+            &lt;/label&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;button class=&quot;btn btn-primary&quot; onclick=&quot;processData()&quot;&gt;
+          &lt;svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;polyline points=&quot;23 4 23 10 17 10&quot;&gt;&lt;/polyline&gt;&lt;polyline points=&quot;1 20 1 14 7 14&quot;&gt;&lt;/polyline&gt;&lt;path d=&quot;M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15&quot;&gt;&lt;/path&gt;&lt;/svg&gt;
+          立即开始处理与分组
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 右侧：统计概览与处理结果 --&gt;
+    &lt;div&gt;
+      &lt;div class=&quot;card&quot;&gt;
+        &lt;!-- 统计面板 --&gt;
+        &lt;div class=&quot;stats-bar&quot;&gt;
+          &lt;div class=&quot;stat-box&quot;&gt;
+            &lt;div class=&quot;stat-value&quot; id=&quot;statTotal&quot;&gt;0&lt;/div&gt;
+            &lt;div class=&quot;stat-label&quot;&gt;读取到总数&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;stat-box&quot;&gt;
+            &lt;div class=&quot;stat-value&quot; id=&quot;statValid&quot; style=&quot;color: var(--success);&quot;&gt;0&lt;/div&gt;
+            &lt;div class=&quot;stat-label&quot;&gt;清洗后有效数&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;stat-box&quot;&gt;
+            &lt;div class=&quot;stat-value&quot; id=&quot;statBatches&quot; style=&quot;color: var(--accent);&quot;&gt;0&lt;/div&gt;
+            &lt;div class=&quot;stat-label&quot;&gt;生成分组数 (行数)&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 结果操作头 --&gt;
+        &lt;div class=&quot;result-header&quot;&gt;
+          &lt;div style=&quot;font-weight: 600; font-size: 15px; color: #334155;&quot;&gt;分组预览与导出&lt;/div&gt;
+          &lt;div class=&quot;result-actions&quot;&gt;
+            &lt;button class=&quot;btn btn-outline&quot; onclick=&quot;copyAllBatches()&quot;&gt;
+              📋 复制全部
+            &lt;/button&gt;
+            &lt;button class=&quot;btn btn-outline&quot; onclick=&quot;exportToTxt()&quot;&gt;
+              📄 导出 TXT
+            &lt;/button&gt;
+            &lt;button class=&quot;btn btn-success&quot; onclick=&quot;exportToExcel()&quot;&gt;
+              📊 导出 Excel (.xlsx)
+            &lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 结果列表展示 --&gt;
+        &lt;div class=&quot;batch-list&quot; id=&quot;batchListContainer&quot;&gt;
+          &lt;div class=&quot;empty-placeholder&quot;&gt;
+            &lt;svg width=&quot;48&quot; height=&quot;48&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;1.5&quot; style=&quot;margin-bottom: 12px;&quot;&gt;&lt;path d=&quot;M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z&quot;&gt;&lt;/path&gt;&lt;polyline points=&quot;14 2 14 8 20 8&quot;&gt;&lt;/polyline&gt;&lt;line x1=&quot;16&quot; y1=&quot;13&quot; x2=&quot;8&quot; y2=&quot;13&quot;&gt;&lt;/line&gt;&lt;line x1=&quot;16&quot; y1=&quot;17&quot; x2=&quot;8&quot; y2=&quot;17&quot;&gt;&lt;/line&gt;&lt;polyline points=&quot;10 9 9 9 8 9&quot;&gt;&lt;/polyline&gt;&lt;/svg&gt;
+            &lt;p&gt;请在左侧上传 Excel 文件或粘贴 ASIN 文本，点击「立即开始处理」&lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;toast&quot; id=&quot;toast&quot;&gt;已成功复制到剪贴板！&lt;/div&gt;
+
+&lt;script&gt;
+  // 全局状态
+  let currentMode = 'file'; // 'file' | 'text'
+  let parsedExcelData = []; // 存储上传的原始表格行对象
+  let generatedBatches = []; // 存储处理完成的批次数组
+  let uploadedFileName = 'ASIN_分组结果';
+
+  // 选项卡切换
+  function switchTab(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.tab-btn').forEach((btn, idx) =&gt; {
+      btn.classList.toggle('active', (mode === 'file' &amp;&amp; idx === 0) || (mode === 'text' &amp;&amp; idx === 1));
+    });
+    document.getElementById('fileTab').style.display = mode === 'file' ? 'block' : 'none';
+    document.getElementById('textTab').style.display = mode === 'text' ? 'block' : 'none';
+  }
+
+  // 快捷设置批次大小
+  function setBatchSize(val) {
+    document.getElementById('batchSize').value = val;
+  }
+
+  // 连接符预设改变
+  function handleDelimiterPresetChange() {
+    const val = document.getElementById('delimiterPreset').value;
+    document.getElementById('customDelimiterWrapper').style.display = val === 'custom' ? 'block' : 'none';
+  }
+
+  // 拖拽支持
+  const dropzone = document.getElementById('dropzone');
+  ['dragenter', 'dragover'].forEach(name =&gt; {
+    dropzone.addEventListener(name, (e) =&gt; { e.preventDefault(); dropzone.classList.add('dragover'); }, false);
+  });
+  ['dragleave', 'drop'].forEach(name =&gt; {
+    dropzone.addEventListener(name, (e) =&gt; { e.preventDefault(); dropzone.classList.remove('dragover'); }, false);
+  });
+  dropzone.addEventListener('drop', (e) =&gt; {
+    const files = e.dataTransfer.files;
+    if (files.length &gt; 0) {
+      handleFile(files[0]);
+    }
+  });
+
+  function handleFileUpload(e) {
+    if (e.target.files.length &gt; 0) {
+      handleFile(e.target.files[0]);
+    }
+  }
+
+  // 文件解析处理 (SheetJS)
+  function handleFile(file) {
+    uploadedFileName = file.name.replace(/\.[^/.]+$/, &quot;&quot;);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // 解析为对象数组
+        parsedExcelData = XLSX.utils.sheet_to_json(worksheet, { defval: &quot;&quot; });
+
+        if (parsedExcelData.length === 0) {
+          showToast(&quot;表格中未读取到数据，请检查文件！&quot;);
+          return;
+        }
+
+        // 获取所有表头列
+        const headers = Object.keys(parsedExcelData[0]);
+        const select = document.getElementById('columnSelect');
+        select.innerHTML = '';
+
+        let autoSelected = false;
+        headers.forEach(h =&gt; {
+          const opt = document.createElement('option');
+          opt.value = h;
+          opt.textContent = h;
+          // 智能预选包含 asin / 商品编码 等字段的列
+          if (!autoSelected &amp;&amp; /asin|商品编码|标准件号|parent/i.test(h)) {
+            opt.selected = true;
+            autoSelected = true;
+          }
+          select.appendChild(opt);
+        });
+
+        document.getElementById('columnSelectWrapper').style.display = 'block';
+        dropzone.querySelector('p').textContent = `✅ 已加载文件: ${file.name} (${parsedExcelData.length} 行)`;
+
+        // 自动触发一次处理
+        processData();
+      } catch (err) {
+        alert(&quot;解析 Excel 失败，请确保文件格式正确: &quot; + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function onColumnChange() {
+    processData();
+  }
+
+  // 获取真实选择的连接符
+  function getSelectedDelimiter() {
+    const preset = document.getElementById('delimiterPreset').value;
+    if (preset === 'custom') {
+      let custom = document.getElementById('customDelimiter').value;
+      return custom.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+    }
+    if (preset === '\\n') return '\n';
+    if (preset === '\\t') return '\t';
+    return preset;
+  }
+
+  // 核心数据处理流
+  function processData() {
+    let rawList = [];
+
+    if (currentMode === 'file') {
+      if (parsedExcelData.length === 0) {
+        showToast(&quot;请先上传 Excel/CSV 文件！&quot;);
+        return;
+      }
+      const colName = document.getElementById('columnSelect').value;
+      rawList = parsedExcelData.map(row =&gt; String(row[colName] || ''));
+    } else {
+      const text = document.getElementById('rawTextInput').value;
+      if (!text.trim()) {
+        showToast(&quot;请在文本框中粘贴数据！&quot;);
+        return;
+      }
+      // 支持逗号、换行、空格、分号混合分割
+      rawList = text.split(/[\r\n,;\t\s]+/);
+    }
+
+    const totalRead = rawList.length;
+
+    // 清洗参数获取
+    const optTrim = document.getElementById('optTrim').checked;
+    const optUppercase = document.getElementById('optUppercase').checked;
+    const optDeduplicate = document.getElementById('optDeduplicate').checked;
+    const optWrapQuotes = document.getElementById('optWrapQuotes').checked;
+    const batchSize = parseInt(document.getElementById('batchSize').value, 10) || 100;
+    const delimiter = getSelectedDelimiter();
+
+    // 1. 去空格与空值
+    let cleaned = rawList.map(item =&gt; optTrim ? item.trim() : item).filter(item =&gt; item.length &gt; 0);
+
+    // 2. 大写转换
+    if (optUppercase) {
+      cleaned = cleaned.map(item =&gt; item.toUpperCase());
+    }
+
+    // 3. 去重
+    if (optDeduplicate) {
+      cleaned = Array.from(new Set(cleaned));
+    }
+
+    // 4. 包裹引号
+    if (optWrapQuotes) {
+      cleaned = cleaned.map(item =&gt; `'${item}'`);
+    }
+
+    // 5. 分组切片
+    generatedBatches = [];
+    for (let i = 0; i &lt; cleaned.length; i += batchSize) {
+      const chunk = cleaned.slice(i, i + batchSize);
+      generatedBatches.push(chunk.join(delimiter));
+    }
+
+    // 更新统计
+    document.getElementById('statTotal').textContent = totalRead;
+    document.getElementById('statValid').textContent = cleaned.length;
+    document.getElementById('statBatches').textContent = generatedBatches.length;
+
+    // 渲染结果
+    renderBatchList(cleaned, batchSize);
+  }
+
+  // 渲染批次列表
+  function renderBatchList(cleanedList, batchSize) {
+    const container = document.getElementById('batchListContainer');
+    if (generatedBatches.length === 0) {
+      container.innerHTML = `&lt;div class=&quot;empty-placeholder&quot;&gt;&lt;p&gt;未提取到有效数据，请检查输入&lt;/p&gt;&lt;/div&gt;`;
+      return;
+    }
+
+    let html = '';
+    generatedBatches.forEach((batchStr, idx) =&gt; {
+      const startIdx = idx * batchSize + 1;
+      const endIdx = Math.min((idx + 1) * batchSize, cleanedList.length);
+      const count = endIdx - startIdx + 1;
+
+      html += `
+        &lt;div class=&quot;batch-item&quot;&gt;
+          &lt;div class=&quot;batch-item-header&quot;&gt;
+            &lt;div&gt;
+              &lt;span class=&quot;batch-index&quot;&gt;第 ${idx + 1} 组&lt;/span&gt;
+              &lt;span class=&quot;batch-count-tag&quot; style=&quot;margin-left: 6px;&quot;&gt;(涵盖第 ${startIdx} ~ ${endIdx} 个，共 ${count} 个)&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;button class=&quot;btn btn-outline&quot; style=&quot;padding: 3px 8px; font-size: 11px;&quot; onclick=&quot;copySingleBatch(${idx})&quot;&gt;
+              📋 复制本组
+            &lt;/button&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;batch-content&quot;&gt;${escapeHtml(batchStr)}&lt;/div&gt;
+        &lt;/div&gt;
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  // 复制单组
+  function copySingleBatch(idx) {
+    if (generatedBatches[idx]) {
+      copyToClipboard(generatedBatches[idx]);
+    }
+  }
+
+  // 复制全部批次 (换行拼接)
+  function copyAllBatches() {
+    if (generatedBatches.length === 0) {
+      showToast(&quot;没有可复制的内容！&quot;);
+      return;
+    }
+    copyToClipboard(generatedBatches.join('\n\n'));
+  }
+
+  // 导出为 Excel (与 Python 完全一致的逻辑：每组占一个单元格)
+  function exportToExcel() {
+    if (generatedBatches.length === 0) {
+      showToast(&quot;没有可导出的数据！&quot;);
+      return;
+    }
+
+    // 构造 DataFrame 格式的数据
+    const rows = generatedBatches.map(b =&gt; ({ &quot;ASIN_Batches&quot;: b }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, &quot;ASIN分组结果&quot;);
+
+    const batchSize = document.getElementById('batchSize').value || 100;
+    XLSX.writeFile(wb, `${uploadedFileName}_ASIN_${batchSize}分组.xlsx`);
+    showToast(&quot;Excel 文件已生成并开始下载！&quot;);
+  }
+
+  // 导出为 TXT 文件
+  function exportToTxt() {
+    if (generatedBatches.length === 0) {
+      showToast(&quot;没有可导出的数据！&quot;);
+      return;
+    }
+    const content = generatedBatches.join('\n' + '='.repeat(40) + '\n');
+    const blob = new Blob([content], { type: &quot;text/plain;charset=utf-8&quot; });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${uploadedFileName}_分组结果.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(&quot;TXT 文本已导出！&quot;);
+  }
+
+  // 辅助工具：复制到剪贴板
+  function copyToClipboard(text) {
+    if (navigator.clipboard &amp;&amp; window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() =&gt; showToast(&quot;已复制到剪贴板！&quot;));
+    } else {
+      const textArea = document.createElement(&quot;textarea&quot;);
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(&quot;已复制到剪贴板！&quot;);
+      } catch (err) {
+        showToast(&quot;复制失败，请手动选取复制&quot;);
+      }
+      document.body.removeChild(textArea);
+    }
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() =&gt; { toast.style.display = 'none'; }, 2200);
+  }
+
+  function escapeHtml(string) {
+    return String(string)
+      .replace(/&amp;/g, '&amp;amp;')
+      .replace(/&lt;/g, '&amp;lt;')
+      .replace(/&gt;/g, '&amp;gt;')
+      .replace(/&quot;/g, '&amp;quot;');
+  }
 &lt;/script&gt;
 
 &lt;/body&gt;
