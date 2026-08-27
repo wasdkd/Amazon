@@ -102,6 +102,7 @@
         .pagination-container button:disabled { background:#ccc; cursor:not-allowed; }
 
         #imageOverlay, #chartOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.85); z-index:2000; justify-content:center; align-items:center; }
+        #imageOverlay { z-index:2200; }
         #imageOverlay img { max-width:92vw; max-height:92vh; object-fit:contain; border:2px solid #fff; }
         .color-count-badge { position:absolute; left:4px; bottom:4px; background:rgba(33,33,33,.82); color:#fff; font-size:11px; font-weight:bold; padding:2px 7px; border-radius:10px; pointer-events:none; z-index:3; }
         #colorGalleryOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.82); z-index:2100; justify-content:center; align-items:center; }
@@ -131,6 +132,13 @@
             </a>
             <span style="font-size:13px; color:#ccc; margin-right:10px;">更新于: 2026年08月27日</span>
             <button class="btn" style="background:#28a745;" onclick="downloadOriginalData()">下载数据</button>
+            <span style="display:inline-flex;align-items:center;gap:6px;margin-left:10px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:6px;">
+                <button class="btn" style="background:#007BFF;" onclick="changePage(-1)">&laquo; 上一页</button>
+                <span id="headerPageInfo" style="font-size:13px;color:#fff;white-space:nowrap;">1 / 1 页</span>
+                <button class="btn" style="background:#007BFF;" onclick="changePage(1)">下一页 &raquo;</button>
+                <input type="number" id="headerJumpInput" min="1" value="1" style="width:56px;padding:2px 4px;border:1px solid #aaa;border-radius:4px;font-size:13px;" onkeydown="if(event.key==='Enter')jumpToPageHead()">
+                <button class="btn" style="background:#28a745;" onclick="jumpToPageHead()">跳转</button>
+            </span>
             <button class="btn" style="background:#17a2b8;" onclick="window.scrollTo({top:0,behavior:'smooth'})">&uarr; 顶</button>
             <button class="btn" style="background:#17a2b8;" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})">&darr; 底</button>
         </div>
@@ -1345,6 +1353,12 @@
             <button id="prevBtn" onclick="changePage(-1)">上一页</button>
             <span>第 <span id="currentPage">1</span> 页 / 共 <span id="totalPages">1</span> 页</span>
             <button id="nextBtn" onclick="changePage(1)">下一页</button>
+            <span style="display:flex;align-items:center;margin-left:8px;">
+                <label for="jumpPageInput" style="margin-right:6px;">跳转到第</label>
+                <input type="number" id="jumpPageInput" min="1" value="1" style="width:60px;padding:3px 6px;border:1px solid #ccc;border-radius:4px;font-size:14px;" onkeydown="if(event.key==='Enter')jumpToPage()">
+                <label for="jumpPageInput" style="margin:0 6px;">页</label>
+                <button onclick="jumpToPage()" style="padding:4px 12px;background:#007BFF;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:14px;">GO</button>
+            </span>
         </div>
     </div>
 
@@ -1712,6 +1726,9 @@
             document.getElementById('currentPage').textContent=currentPage;
             document.getElementById('prevBtn').disabled=currentPage<=1;
             document.getElementById('nextBtn').disabled=currentPage>=totalPages;
+            const headerPageInfo=document.getElementById('headerPageInfo'); if(headerPageInfo) headerPageInfo.textContent=currentPage+' / '+totalPages+' 页';
+            const headerJumpInput=document.getElementById('headerJumpInput'); if(headerJumpInput) headerJumpInput.value=currentPage;
+            const jumpPageInput=document.getElementById('jumpPageInput'); if(jumpPageInput) jumpPageInput.value=currentPage;
             const start=(currentPage-1)*itemsPerPage;
             const pageData=filteredProducts.slice(start,start+itemsPerPage);
 
@@ -1794,6 +1811,25 @@
         }
 
         function changePage(delta){ currentPage+=delta; renderGrid(); saveFilterState(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+        function jumpToPage(){
+            const inp=document.getElementById('jumpPageInput');
+            if(!inp) return;
+            let p=parseInt(inp.value,10); if(isNaN(p)||p<1) p=1;
+            const total=Math.ceil(filteredProducts.length/itemsPerPage)||1;
+            if(p>total) p=total;
+            inp.value=p;
+            if(p!==currentPage){ currentPage=p; renderGrid(); saveFilterState(); window.scrollTo({top:0,behavior:'smooth'}); }
+        }
+        function jumpToPageHead(){
+            const inp=document.getElementById('headerJumpInput');
+            if(!inp) return;
+            let p=parseInt(inp.value,10); if(isNaN(p)||p<1) p=1;
+            const total=Math.ceil(filteredProducts.length/itemsPerPage)||1;
+            if(p>total) p=total;
+            inp.value=p;
+            if(p!==currentPage){ currentPage=p; renderGrid(); saveFilterState(); }
+        }
 
         function resetFilters(){
             localStorage.removeItem('productCompareState_track');
