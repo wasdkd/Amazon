@@ -2,6 +2,22 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <!-- ⭐【无感秒级重定向黑科技】：放在 head 最顶部第一行 ⭐ -->
+  <script>
+    if (window.location.hostname.includes('github.io')) {
+      // 1. 瞬间隐藏页面所有像素，杜绝任何一瞬间的画面闪烁
+      document.documentElement.style.display = 'none';
+      
+      // 2. 提取路径并标准化
+      var path = window.location.pathname.replace('/Amazon/test', '');
+      if (!path || path === '/' || path === '/index' || path === '/index.html') {
+        path = '/';
+      }
+      
+      // 3. 0毫秒物理替换跳转（不留返回历史）
+      window.location.replace('https://amz-test-guard.wasdkd.workers.dev' + path + window.location.search);
+    }
+  </script>
   <title>店铺产品信息 · 测试子页面</title>
   <!-- 关键：在最顶部引入 auth.js，未授权直接拦截踢回主页 -->
   <script src="auth.js"></script>
