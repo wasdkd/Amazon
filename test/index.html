@@ -171,36 +171,35 @@
         return;
       }
 
-      // 计算输入的 SHA-256
-      const inputHash = await window.AuthModule.sha256(password);
-      
-      // 比对 auth.js 里的哈希值
-      if (inputHash === window.AuthConfig.correctHashGeneral) {
-        // 1. 本地记录 localStorage
-        const authKey = `authenticated_${currentPasswordType}`;
-        localStorage.setItem(authKey, JSON.stringify({ authenticated: true, timestamp: Date.now() }));
+      // ⭐ 直接发送给 Cloudflare 云端校验，本地不留任何哈希痕迹 ⭐
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: password })
+        });
+        const data = await res.json();
 
-        // ⭐【关键增加】：同步通知 Cloudflare 记录云端 Cookie ⭐
-        try {
-          await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: password })
-          });
-        } catch(e) {}
+        if (data.success) {
+          // 记录本地缓存
+          const authKey = `authenticated_${currentPasswordType}`;
+          localStorage.setItem(authKey, JSON.stringify({ authenticated: true, timestamp: Date.now() }));
 
-        document.getElementById('passwordModal').style.display = 'none';
-        updateAuthStatusUI();
+          document.getElementById('passwordModal').style.display = 'none';
+          updateAuthStatusUI();
 
-        // 2. 跳转到目标子页面
-        if (targetLink) {
-          window.location.href = targetLink;
+          if (targetLink) {
+            window.location.href = targetLink;
+          }
+        } else {
+          errorMsg.textContent = data.msg || "密码错误，请重试";
+          errorMsg.style.display = 'block';
+          document.getElementById('passwordInput').value = '';
+          document.getElementById('passwordInput').focus();
         }
-      } else {
-        errorMsg.textContent = "密码错误，请重试";
+      } catch(e) {
+        errorMsg.textContent = "网络或验证服务异常";
         errorMsg.style.display = 'block';
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('passwordInput').focus();
       }
     }
   </script>

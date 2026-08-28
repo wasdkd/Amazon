@@ -17,10 +17,7 @@
 
 (function() {
     const CONFIG = {
-        // 对应明文密码: test123456 的 SHA-256 哈希值
-        correctHashGeneral: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
-        correctHashSpecial: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
-
+        
         protectedModules: {
             general: ['ShopProductImages', 'Patent', 'AbaKeyword'],
             special: ['StoreAnalysis']
