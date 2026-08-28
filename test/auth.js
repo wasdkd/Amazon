@@ -1,4 +1,19 @@
 // 测试专属 auth.js
+// ================= 强制重定向到 Cloudflare 安全网关 =================
+(function() {
+    // 检测如果当前是在 github.io 域名下直接访问
+    if (window.location.hostname.includes('github.io')) {
+        // 自动提取当前的子页面路径（例如 /ShopProductImages.html）
+        var path = window.location.pathname.replace('/Amazon/test', '');
+        if (!path || path === '/') path = '/index.html';
+        
+        // 强制瞬间跳转到 Cloudflare 专属安全链接
+        var secureUrl = 'https://amz-test-guard.15078209459.workers.dev' + path + window.location.search;
+        window.location.replace(secureUrl);
+        return;
+    }
+})();
+
 (function() {
     const CONFIG = {
         // 对应明文密码: test123456 的 SHA-256 哈希值
