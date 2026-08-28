@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试主页 · 亚马逊数据分析平台</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .container { max-width: 800px; width: 100%; background: #fff; border-radius: 16px; box-shadow: 0 12px 35px rgba(0,0,0,0.3); padding: 35px; }
+    header { text-align: center; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+    h1 { color: #2c3e50; font-size: 1.8rem; margin-bottom: 10px; }
+    
+    /* 状态提示横幅 */
+    .warning-banner { padding: 10px 15px; text-align: center; border-radius: 6px; font-size: 0.9rem; margin-bottom: 15px; font-weight: 500; }
+    .banner-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .banner-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; display: none; }
+
+    .card-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; margin-top: 15px; }
+    .link-btn { display: inline-block; padding: 10px 24px; background: linear-gradient(to right, #1a2a6c, #b21f1f); color: white; text-decoration: none; border-radius: 40px; font-weight: 600; font-size: 0.95rem; margin-top: 12px; cursor: pointer; border: none; }
+    .link-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* 密码弹窗样式 (完全复刻原版) */
+    .password-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+    .password-content { background-color: white; margin: 15% auto; padding: 25px; border-radius: 10px; width: 320px; text-align: center; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; color: #7f8c8d; cursor: pointer; }
+    .password-input-container { position: relative; margin: 15px 0; }
+    .password-content input { width: 100%; padding: 10px 35px 10px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; outline: none; }
+    .toggle-password { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #7f8c8d; }
+    .password-content button { background: linear-gradient(to right, #1a2a6c, #b21f1f); color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; }
+    .error-message { color: #e74c3c; margin-top: 10px; font-size: 0.85rem; display: none; }
+    .tip-box { background: #f1f5f9; padding: 6px; font-size: 12px; color: #64748b; border-radius: 4px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- 密码输入模态弹窗 -->
+  <div id="passwordModal" class="password-modal">
+    <div class="password-content">
+      <span class="close-modal" id="closeModal">&times;</span>
+      <h3 style="color: #2c3e50; margin-bottom: 10px;">安全验证</h3>
+      <p style="color: #7f8c8d; font-size: 0.85rem; margin-bottom: 10px;">您正在访问受保护的内容，请输入密码</p>
+      <div class="tip-box">💡 测试密码：<b>test123456</b></div>
+      
+      <div class="password-input-container">
+        <input type="password" id="passwordInput" placeholder="请输入访问密码">
+        <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+      </div>
+      <button id="confirmPasswordBtn">确认</button>
+      <div id="errorMessage" class="error-message">密码错误，请重试</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>📊 亚马逊数据分析平台（测试环境）</h1>
+      
+      <!-- 未认证横幅 -->
+      <div id="unauthenticatedWarning" class="warning-banner banner-danger">
+        <i class="fas fa-exclamation-triangle"></i> 您尚未通过安全验证，点击模块将弹出密码验证！
+      </div>
+
+      <!-- 认证成功横幅 -->
+      <div id="authenticatedSuccess" class="warning-banner banner-success">
+        <i class="fas fa-check-circle"></i> 安全验证已通过！您现在可以自由访问所有模块。
+      </div>
+    </header>
+
+    <div class="card-box">
+      <h3 style="color: #2c3e50;">📁 受保护模块：店铺产品信息</h3>
+      <p style="color: #64748b; font-size: 0.9rem; margin-top: 6px;">点击下方按钮进入对应子页面测试：</p>
+      <a href="ShopProductImages.html" class="link-btn protected-link" data-password-type="general">👉 进入「店铺产品信息」</a>
+    </div>
+  </div>
+
+  <!-- 引入测试版 auth.js -->
+  <script src="auth.js"></script>
+
+  <script>
+    let targetLink = null;
+    let currentPasswordType = 'general';
+
+    window.onload = function() {
+      // 密码显隐切换
+      document.getElementById('togglePassword').addEventListener('click', function() {
+        const input = document.getElementById('passwordInput');
+        if (input.type === 'password') {
+          input.type = 'text';
+          this.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+          input.type = 'password';
+          this.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+      });
+
+      // 绑定确认按钮
+      document.getElementById('confirmPasswordBtn').addEventListener('click', checkPassword);
+
+      // 关闭弹窗
+      document.getElementById('closeModal').addEventListener('click', function() {
+        document.getElementById('passwordModal').style.display = 'none';
+        document.getElementById('errorMessage').style.display = 'none';
+        targetLink = null;
+      });
+
+      // 监听受保护链接点击
+      const protectedLinks = document.querySelectorAll('.protected-link');
+      protectedLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          const passwordType = this.getAttribute('data-password-type') || 'general';
+          
+          // 如果没有认证，拦截并弹窗
+          if (!window.AuthModule.isAuthenticated(passwordType)) {
+            e.preventDefault();
+            targetLink = this.href;
+            currentPasswordType = passwordType;
+            
+            document.getElementById('passwordModal').style.display = 'block';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('passwordInput').focus();
+          }
+        });
+      });
+
+      // 回车提交
+      document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') checkPassword();
+      });
+
+      // 刷新界面横幅状态
+      updateAuthStatusUI();
+    };
+
+    function updateAuthStatusUI() {
+      const isAuthed = window.AuthModule.isAuthenticated('general');
+      if (isAuthed) {
+        document.getElementById('authenticatedSuccess').style.display = 'block';
+        document.getElementById('unauthenticatedWarning').style.display = 'none';
+      } else {
+        document.getElementById('authenticatedSuccess').style.display = 'none';
+        document.getElementById('unauthenticatedWarning').style.display = 'block';
+      }
+    }
+
+    async function checkPassword() {
+      const password = document.getElementById('passwordInput').value;
+      const errorMsg = document.getElementById('errorMessage');
+      errorMsg.style.display = 'none';
+
+      if (!password) {
+        errorMsg.textContent = "请输入密码";
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      // 计算输入的 SHA-256
+      const inputHash = await window.AuthModule.sha256(password);
+      
+      // 比对 auth.js 里的哈希值
+      if (inputHash === window.AuthConfig.correctHashGeneral) {
+        // 密码正确，写入 localStorage（有效期3小时）
+        const authKey = `authenticated_${currentPasswordType}`;
+        localStorage.setItem(authKey, JSON.stringify({ authenticated: true, timestamp: Date.now() }));
+
+        document.getElementById('passwordModal').style.display = 'none';
+        updateAuthStatusUI();
+
+        // 如果有目标链接则跳转
+        if (targetLink) {
+          window.location.href = targetLink;
+        }
+      } else {
+        errorMsg.textContent = "密码错误，请重试";
+        errorMsg.style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+      }
+    }
+  </script>
+</body>
+</html>
