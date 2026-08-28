@@ -9,7 +9,7 @@
             path = '/';
         }
         
-        var secureUrl = 'https://amz-test-guard.15078209459.workers.dev' + path + window.location.search;
+        var secureUrl = 'https://amz-test-guard.wasdkd.workers.dev' + path + window.location.search;
         window.location.replace(secureUrl);
         return;
     }
