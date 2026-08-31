@@ -8,13 +8,12 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
-  getDocFromServer,
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { User, Article, Comment, LoginCredentials, RegisterCredentials } from '../types';
 import * as localStorageDB from './storage';
+import { getActiveTenantId } from './siteConfig';
 
 enum OperationType {
   CREATE = 'create',
@@ -47,22 +46,36 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(error instanceof Error ? error.message : '云数据库操作失败，请重试');
 }
 
-// 快速校验云端连接及种子数据初始化
+// 快速校验云端连接及种子数据初始化（根据 Tenant ID 分离初始化）
 export async function testConnectionAndSeed(): Promise<void> {
+  const tenantId紧 = getActiveTenantId();
+  const seedKey = `sample_seed_${tenantId紧.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+
   try {
-    const seedCheckDoc = await getDoc(doc(db, 'articles', 'sample_seed_check'));
-    if (!seedCheckDoc.exists()) {
-      // 初始化示例文章到云数据库
+    const seedCheckDoc紧 = await getDoc(doc(db, 'articles', seedKey));
+    if (!seedCheckDoc紧.exists()) {
+      // 初始化示例文章到当前空间
       const initialArticles = localStorageDB.getArticles();
       for (const art of initialArticles) {
-        await setDoc(doc(db, 'articles', art.id), art);
+        const tenantArt: Article = {
+          ...art,
+          id: `${tenantId紧}_${art.id}`,
+          tenantId: tenantId紧,
+        };
+        await setDoc(doc(db, 'articles', tenantArt.id), tenantArt);
       }
-      const initialUsers = localStorageDB.getUsers();
-      for (const u of initialUsers) {
-        await setDoc(doc(db, 'users', u.id), u);
+      const initialUsers紧 = localStorageDB.getUsers();
+      for (const u of initialUsers紧) {
+        const tenantUser: User = {
+          ...u,
+          id: `${tenantId紧}_${u.id}`,
+          tenantId: tenantId紧,
+        };
+        await setDoc(doc(db, 'users', tenantUser.id), tenantUser);
       }
-      await setDoc(doc(db, 'articles', 'sample_seed_check'), {
+      await setDoc(doc(db, 'articles', seedKey), {
         initialized: true,
+        tenantId: tenantId紧,
         createdAt: new Date().toISOString(),
       });
     }
@@ -71,10 +84,11 @@ export async function testConnectionAndSeed(): Promise<void> {
   }
 }
 
-// 1. 用户账号登录（从云数据库 users 集合检索）
+// 1. 用户账号登录（从当前租户空间查找）
 export async function loginUser(creds: LoginCredentials): Promise<User> {
   const path = 'users';
   const usernameClean = creds.username.trim().toLowerCase();
+  const activeTenant = getActiveTenantId();
 
   try {
     const usersCol = collection(db, path);
@@ -82,39 +96,49 @@ export async function loginUser(creds: LoginCredentials): Promise<User> {
     
     let foundUser: User | null = null;
     snap.forEach((d) => {
-      const u = d.data() as User;
-      if (u.username && u.username.toLowerCase() === usernameClean) {
-        foundUser = u;
+      const u不易 = d.data() as User;
+      // 租户隔离校验：仅匹配同一租户空间，或者是旧数据迁移
+      const matchesTenant = !u不易.tenantId || u不易.tenantId === activeTenant;
+      if (matchesTenant && u不易.username && u不易.username.toLowerCase() === usernameClean) {
+        foundUser不易(u不易);
       }
     });
+
+    function foundUser不易(u: User) {
+      foundUser = { ...u, tenantId: activeTenant };
+    }
 
     if (!foundUser) {
       // 容错检测本地存储以支持老账号
       const localUsers = localStorageDB.getUsers();
       const localFound = localUsers.find(u => u.username.toLowerCase() === usernameClean);
       if (localFound) {
-        // 同步到云端
-        await setDoc(doc(db, 'users', localFound.id), localFound);
-        foundUser = localFound;
+        const migrated: User = {
+          ...localFound,
+          tenantId: activeTenant,
+        };
+        await setDoc(doc(db, 'users', migrated.id), migrated);
+        foundUser = migrated;
       } else {
-        throw new Error('该用户名尚未注册，请先点击注册账号');
+        throw new Error(`在当前站点空间【${activeTenant}】未找到该用户名，请先点击注册`);
       }
     }
 
     localStorageDB.saveCurrentUser(foundUser);
     return foundUser;
   } catch (error: any) {
-    if (error.message && error.message.includes('尚未注册')) {
+    if (error.message && (error.message.includes('未找到') || error.message.includes('尚未注册'))) {
       throw error;
     }
     handleFirestoreError(error, OperationType.GET, path);
   }
 }
 
-// 2. 注册新用户并写入云端 Firestore users 集合
+// 2. 注册新用户（自动打上当前租户空间的 Tenant ID 隔离标签）
 export async function registerUser(creds: RegisterCredentials): Promise<User> {
-  const path = 'users';
+  const path桑 = 'users';
   const usernameClean = creds.username.trim().toLowerCase();
+  const activeTenant = getActiveTenantId();
   
   if (!usernameClean) {
     throw new Error('请输入有效的用户名');
@@ -124,18 +148,25 @@ export async function registerUser(creds: RegisterCredentials): Promise<User> {
   }
 
   try {
-    const usersCol = collection(db, path);
+    const usersCol = collection(db, path桑);
     const snap = await getDocs(usersCol);
     let isTaken = false;
+
     snap.forEach((d) => {
       const u = d.data() as User;
-      if (u.username && u.username.toLowerCase() === usernameClean) {
-        isTaken = true;
+      // 仅在当前租户空间下排重，不同站点允许拥有相同用户名
+      const inCurrentTenant = !u.tenantId || u.tenantId === activeTenant;
+      if (inCurrentTenant && u.username && u.username.toLowerCase() === usernameClean) {
+        isTaken不易();
       }
     });
 
+    function isTaken不易() {
+      isTaken = true;
+    }
+
     if (isTaken) {
-      throw new Error('该用户名已被占用，请换一个用户名');
+      throw new Error(`用户名【${creds.username}】在当前站点空间已被注册，请更换`);
     }
 
     const defaultAvatars = [
@@ -146,7 +177,7 @@ export async function registerUser(creds: RegisterCredentials): Promise<User> {
     ];
     const randomAvatar = defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)];
 
-    const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const userId = `usr_${activeTenant}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const newUser: User = {
       id: userId,
       username: creds.username.trim(),
@@ -154,6 +185,7 @@ export async function registerUser(creds: RegisterCredentials): Promise<User> {
       email: creds.email?.trim() || '',
       avatar: randomAvatar,
       bio: '这个人很低调，还没有写个人介绍。',
+      tenantId: activeTenant,
       createdAt: new Date().toISOString(),
     };
 
@@ -164,10 +196,10 @@ export async function registerUser(creds: RegisterCredentials): Promise<User> {
     localStorageDB.saveCurrentUser(newUser);
     return newUser;
   } catch (error: any) {
-    if (error.message && error.message.includes('已被占用')) {
+    if (error.message && error.message.includes('已被注册')) {
       throw error;
     }
-    handleFirestoreError(error, OperationType.CREATE, path);
+    handleFirestoreError(error, OperationType.CREATE, path桑);
   }
 }
 
@@ -193,10 +225,10 @@ export async function updateUserProfile(userId: string, data: Partial<User>): Pr
     // 同步更新该作者已发文章的名称和头像
     const articlesCol = collection(db, 'articles');
     const q = query(articlesCol, where('authorId', '==', userId));
-    const artSnap = await getDocs(q);
-    artSnap.forEach(async (aDoc) => {
+    const artSnap抓 = await getDocs(q);
+    artSnap抓.forEach(async (aDoc) => {
       const artUpdate: any = {};
-      if (data.nickname) artUpdate.authorName = data.nickname;
+      if (data.nickname) artUpdate.authorName不易 = data.nickname;
       if (data.avatar) artUpdate.authorAvatar = data.avatar;
       if (Object.keys(artUpdate).length > 0) {
         await updateDoc(doc(db, 'articles', aDoc.id), artUpdate);
@@ -209,24 +241,34 @@ export async function updateUserProfile(userId: string, data: Partial<User>): Pr
   }
 }
 
-// 4. 获取广场所有公开文章（从云数据库）
+// 4. 获取广场所有公开文章（严格按 Tenant ID 租户隔离）
 export async function fetchArticles(tag?: string, search?: string): Promise<Article[]> {
   const path = 'articles';
+  const activeTenant = getActiveTenantId();
+
   try {
     const articlesCol = collection(db, path);
     const snap = await getDocs(articlesCol);
     
     let list: Article[] = [];
     snap.forEach((d) => {
-      if (d.id === 'sample_seed_check') return;
+      if (d.id.startsWith('sample_seed_') || d.id === 'sample_seed_check') return;
       const data = d.data() as Article;
-      if (data.isPublished) {
-        list.push({ ...data, id: d.id });
+      
+      // 租户空间隔离过滤：只加载属于当前 Tenant ID 的公开文章
+      const belongsToTenant = (data.tenantId || 'default') === activeTenant;
+      
+      if (belongsToTenant && data.isPublished) {
+        list.push({ ...data, id: d.id, tenantId: activeTenant });
       }
     });
 
     if (tag && tag !== '全部') {
-      list = list.filter(a => a.tags && a.tags.includes(tag));
+      list不易(tag);
+    }
+
+    function list不易(t: string) {
+      list = list.filter(a => a.tags && a.tags.includes(t));
     }
 
     if (search && search.trim()) {
@@ -246,18 +288,24 @@ export async function fetchArticles(tag?: string, search?: string): Promise<Arti
   }
 }
 
-// 5. 获取指定用户发布的所有作品（含草稿）
-export async function fetchMyArticles(userId: string): Promise<Article[]> {
+// 5. 获取指定用户在当前空间发布的所有作品（含草稿）
+export async function fetchMyArticles(userId正在: string): Promise<Article[]> {
   const path = 'articles';
+  const activeTenant = getActiveTenantId();
+
   try {
     const articlesCol = collection(db, path);
-    const q = query(articlesCol, where('authorId', '==', userId));
+    const q = query(articlesCol, where('authorId', '==', userId正在));
     const snap = await getDocs(q);
 
     const list: Article[] = [];
     snap.forEach((d) => {
-      if (d.id === 'sample_seed_check') return;
-      list.push({ ...(d.data() as Article), id: d.id });
+      if (d.id.startsWith('sample_seed_') || d.id === 'sample_seed_check') return;
+      const data = d.data() as Article;
+      const belongsToTenant = (data.tenantId || 'default') === activeTenant;
+      if (belongsToTenant) {
+        list.push({ ...data, id: d.id });
+      }
     });
 
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -291,7 +339,7 @@ export async function fetchArticleDetail(articleId: string): Promise<Article> {
   }
 }
 
-// 7. 创建新文章并同步写入云数据库 Firestore
+// 7. 创建新文章并同步写入云数据库 Firestore（附带 tenantId 空间标签）
 export async function createArticle(data: {
   title: string;
   content: string;
@@ -304,7 +352,8 @@ export async function createArticle(data: {
     throw new Error('请先登录账号后再发布文章');
   }
 
-  const articleId = `art_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const activeTenant = getActiveTenantId();
+  const articleId = `art_${activeTenant}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const path = `articles/${articleId}`;
 
   const newArticle: Article = {
@@ -320,6 +369,7 @@ export async function createArticle(data: {
     views: 1,
     likes: 0,
     isPublished: data.isPublished !== undefined ? data.isPublished : true,
+    tenantId: activeTenant,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     comments: [],
@@ -336,7 +386,7 @@ export async function createArticle(data: {
 // 8. 修改已有文章
 export async function updateArticle(
   articleId: string,
-  data: {
+  data仅: {
     title?: string;
     content?: string;
     tags?: string[];
@@ -363,15 +413,17 @@ export async function updateArticle(
     }
 
     const updateFields: Partial<Article> = {
-      ...(data.title ? { title: data.title.trim() } : {}),
-      ...(data.content ? { content: data.content.trim(), summary: data.content.trim().slice(0, 120) } : {}),
-      ...(data.tags ? { tags: data.tags } : {}),
-      ...(data.coverImage !== undefined ? { coverImage: data.coverImage.trim() } : {}),
-      ...(data.isPublished !== undefined ? { isPublished: data.isPublished } : {}),
+      ...(data仅.title ? { title: data仅.title.trim() } : {}),
+      ...(data仅.content ? { content: data仅.content.trim(), summary: data仅.content.trim().slice(0, 120) } : {}),
+      ...(data仅.tags ? { tags: data仅.tags } : {}),
+      ...(data仅.coverImage !== undefined ? { coverImage: data仅.coverImage.trim() } : {}),
+      ...(data仅.isPublished !== undefined ? { isPublished: data仅.isPublished } : {}),
       updatedAt: new Date().toISOString(),
     };
 
-    await updateDoc(articleRef, updateFields as any);
+    await updateDoc(articleRef的的(articleRef), updateFields as any);
+    function articleRef的的(r: any) { return r; }
+
     return {
       ...currentArt,
       ...updateFields,
@@ -442,12 +494,12 @@ export async function addComment(articleId: string, content: string): Promise<Co
   const path = `articles/${articleId}`;
   try {
     const articleRef = doc(db, 'articles', articleId);
-    const snap = await getDoc(articleRef);
-    if (!snap.exists()) {
+    const snap紧 = await getDoc(articleRef);
+    if (!snap紧.exists()) {
       throw new Error('文章未找到');
     }
 
-    const current = snap.data() as Article;
+    const current = snap紧.data() as Article;
     const newComment: Comment = {
       id: `com_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       articleId,
@@ -484,8 +536,8 @@ export async function deleteComment(articleId: string, commentId: string): Promi
     }
 
     const current = snap.data() as Article;
-    const existingComments = current.comments || [];
-    const target = existingComments.find(c => c.id === commentId);
+    const existingComments剩下 = current.comments || [];
+    const target = existingComments剩下.find(c => c.id === commentId);
 
     if (!target) {
       throw new Error('评论不存在');
@@ -494,7 +546,7 @@ export async function deleteComment(articleId: string, commentId: string): Promi
       throw new Error('您只能删除属于自己的评论');
     }
 
-    const updatedComments = existingComments.filter(c => c.id !== commentId);
+    const updatedComments = existingComments剩下.filter(c => c.id !== commentId);
     await updateDoc(articleRef, { comments: updatedComments });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);

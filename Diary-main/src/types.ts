@@ -5,6 +5,7 @@ export interface User {
   avatar?: string;
   email?: string;
   bio?: string;
+  tenantId?: string; // 租户空间隔离 ID
   createdAt: string;
 }
 
@@ -31,6 +32,7 @@ export interface Article {
   views: number;
   likes: number;
   isPublished: boolean;
+  tenantId?: string; // 租户空间隔离 ID
   createdAt: string;
   updatedAt: string;
   comments?: Comment[];

@@ -7,9 +7,11 @@ import { ArticleEditor } from './components/ArticleEditor';
 import { ArticleDetail } from './components/ArticleDetail';
 import { ArticleCard } from './components/ArticleCard';
 import { MyArticlesView } from './components/MyArticlesView';
+import { SiteSettingsModal } from './components/SiteSettingsModal';
 import { fetchArticles, toggleLikeArticle, testConnectionAndSeed } from './lib/api';
+import { getSiteConfig, SiteConfig } from './lib/siteConfig';
 import { Article } from './types';
-import { Search, PenLine, Sparkles, Filter, BookOpen, TrendingUp } from 'lucide-react';
+import { Search, PenLine, Filter, BookOpen, TrendingUp, Layers } from 'lucide-react';
 
 function MainContent() {
   const { user } = useAuth();
@@ -17,22 +19,33 @@ function MainContent() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('全部');
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(getSiteConfig());
   
   // 弹窗与视图状态
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [siteSettingsOpen, setSiteSettingsOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [viewingArticleId, setViewingArticleId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'explore' | 'my-articles'>('explore');
 
   useEffect(() => {
+    // 监听站点配置更新
+    const handleConfigChange = () => {
+      setSiteConfig(getSiteConfig());
+    };
+    window.addEventListener('site-config-changed', handleConfigChange);
+    return () => window.removeEventListener('site-config-changed', handleConfigChange);
+  }, []);
+
+  useEffect(() => {
     // 首次启动时连接云端并同步初始数据
     testConnectionAndSeed().then(() => {
       loadArticles();
     });
-  }, []);
+  }, [siteConfig.tenantId]);
 
   const loadArticles = async () => {
     setLoading(true);
@@ -97,6 +110,7 @@ function MainContent() {
         onOpenAuth={handleOpenAuth}
         onOpenProfile={() => setProfileModalOpen(true)}
         onOpenEditor={handleCreateArticle}
+        onOpenSiteSettings={() => setSiteSettingsOpen(true)}
       />
 
       {/* 主体内容区域 */}
@@ -129,9 +143,21 @@ function MainContent() {
                   </button>
                 </form>
 
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <TrendingUp className="w-4 h-4 text-indigo-600" />
-                  <span>当前共收录 <b>{articles.length}</b> 篇公开创作品</span>
+                <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="w-4 h-4 text-indigo-600" />
+                    <span>收录 <b>{articles.length}</b> 篇公开创作品</span>
+                  </div>
+                  {siteConfig.tenantId && siteConfig.tenantId !== 'default' && (
+                    <span 
+                      onClick={() => setSiteSettingsOpen(true)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 transition-colors cursor-pointer"
+                      title="点击管理空间隔离"
+                    >
+                      <Layers className="w-3 h-3" />
+                      空间: {siteConfig.tenantId}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -179,9 +205,11 @@ function MainContent() {
                 <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <BookOpen className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-1">暂无匹配的文章内容</h3>
+                <h3 className="text-lg font-semibold text-slate-800 mb-1">
+                  当前空间【{siteConfig.tenantId || '默认'}】暂无文章
+                </h3>
                 <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
-                  还没有人发布此类内容，或者您可以换个搜索词试试。立即成为首位创作者吧！
+                  您可在当前独立空间发表文章，或通过右上角设置切换至其他租户空间。
                 </p>
                 <button
                   onClick={handleCreateArticle}
@@ -240,6 +268,15 @@ function MainContent() {
       <ProfileModal
         isOpen={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
+      />
+
+      {/* 站点名称与多租户隔离设置弹窗 */}
+      <SiteSettingsModal
+        isOpen={siteSettingsOpen}
+        onClose={() => setSiteSettingsOpen(false)}
+        onConfigUpdated={() => {
+          loadArticles();
+        }}
       />
     </div>
   );
