@@ -1,87 +1,87 @@
 // 通用认证脚本 auth.js
 (function() {
-    // 配置信息
+    // 基础配置
     const CONFIG = {
         // 通用密码哈希值
         correctHashGeneral: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
 
-        // 特殊模块密码哈希值（店铺分析的三个模块使用相同的密码）
-        correctHashSpecial: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e", // 请替换为实际哈希值
+        // 特殊模块密码哈希值
+        correctHashSpecial: "c0db16a3e0cd1891b0a6101aece25deeaa480503166768f92c34e53b88311f3e",
 
-        // 受保护的模块列表及其密码类型
-        protectedModules: {
-            // 通用密码模块
-            general: [
-                'ShopProductImages',
-                'TOP100SuperItems',
-                'CategoryMarketAnalysis',
-                'AbaKeyword',
-                'AbaKeyword2',
-                'KeywordFiltering',
-                'KeywordFiltering2',
-                'LingXABA',
-                'Outside',
-                'Patent',
-                'NewReleases',
-                'BestSellers',
-				'ImageClickRate',
-				'AbaKeyword3',
-                '月度TOP3品线',
-                '周度TOP3品线',
-				'品类趋势分析',
-				'热卖色统计',
-				'热卖色一键执行',
-				'可视化库页面',
-				'快速页面',
-				'产品打标签',
-				'飙升词月度分析',
-				'飙升词周度分析',
-				'显眼包关键词_趋势版',
-				'全量ABA月度关键词',
-				'全量ABA周度关键词'
-            ],
-
-            // 特殊密码模块（店铺分析的三个模块使用相同的特殊密码）
-            special: ['StoreAnalysis', '数据看板', ]
-        },
-
-        // 首页URL
+        // 首页URL（支持无后缀与.html后缀匹配）
         homeUrl: 'https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'
     };
 
-    // 暴露配置到全局，供首页使用
     window.AuthConfig = CONFIG;
 
-    // 检查当前URL是否指向受保护模块并返回密码类型
-    function getProtectedModuleType() {
-        const currentPath = window.location.pathname.split('/').pop();
+    // 从 localStorage 读取动态缓存的模块列表
+    function getStoredModules() {
+        try {
+            const stored = localStorage.getItem('auth_cached_modules');
+            return stored ? JSON.parse(stored) : { general: [], special: [] };
+        } catch (e) {
+            return { general: [], special: [] };
+        }
+    }
 
-        for (const [type, modules] of Object.entries(CONFIG.protectedModules)) {
-            if (modules.some(module => currentPath.includes(module))) {
-                return type;
+    // 从 HTML 内容中自动解析受保护模块列表
+    function parseModulesFromHtml(htmlText) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        const links = doc.querySelectorAll('.protected-link');
+        const modules = { general: [], special: [] };
+
+        links.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href) {
+                // 提取 URL 末尾的模块名，并进行中文解码
+                const moduleName = decodeURIComponent(href.split('/').pop().replace(/\.html$/, ''));
+                const type = link.getAttribute('data-password-type') || 'general';
+                if (modules[type] && moduleName && !modules[type].includes(moduleName)) {
+                    modules[type].push(moduleName);
+                }
             }
+        });
+
+        // 缓存到本地，供子页面后续快速读取
+        localStorage.setItem('auth_cached_modules', JSON.stringify(modules));
+        return modules;
+    }
+
+    // 检查当前 URL 属于哪个密码类型
+    function getProtectedModuleType(modulesMap) {
+        const currentPath = decodeURIComponent(window.location.pathname.split('/').pop().replace(/\.html$/, ''));
+        const homeName = CONFIG.homeUrl.split('/').pop();
+
+        // 如果是首页自身，不需要拦截
+        if (!currentPath || currentPath === homeName || currentPath === 'index') {
+            return null;
         }
 
-        return null;
+        const modules = modulesMap || getStoredModules();
+
+        // 1. 优先匹配特殊密码模块
+        if (modules.special && modules.special.some(m => currentPath.includes(m))) {
+            return 'special';
+        }
+        // 2. 匹配通用密码模块
+        if (modules.general && modules.general.some(m => currentPath.includes(m))) {
+            return 'general';
+        }
+
+        // 3. 安全兜底：凡是仓库下的其他子页面，若未在特殊列表中，默认均视为通用受保护页面
+        return 'general';
     }
 
     // SHA-256哈希函数
     async function sha256(message) {
-        // 将消息编码为UTF-8
         const msgBuffer = new TextEncoder().encode(message);
-
-        // 使用Web Crypto API计算哈希
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-
-        // 将ArrayBuffer转换为字节数组
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-
-        // 将字节转换为十六进制字符串
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // 检查用户是否已认证且未过期
+    // 检查认证状态是否有效（3小时）
     function isAuthenticated(passwordType) {
         const authKey = `authenticated_${passwordType}`;
         const authData = localStorage.getItem(authKey);
@@ -89,32 +89,41 @@
 
         try {
             const { timestamp } = JSON.parse(authData);
-            // 检查认证是否在3小时内（与首页设置的时间一致）
             const now = new Date().getTime();
-            const threeHours = 3 * 60 * 60 * 1000; // 3小时的毫秒数
+            const threeHours = 3 * 60 * 60 * 1000;
 
             if (now - timestamp < threeHours) {
                 return true;
             } else {
-                // 认证过期，清除认证信息
                 localStorage.removeItem(authKey);
                 return false;
             }
         } catch (e) {
-            // 数据格式错误，清除认证信息
             localStorage.removeItem(authKey);
             return false;
         }
     }
 
-    // 检查认证状态
-    function checkAuth() {
-        // 检查是否是受保护的模块页面
-        const moduleType = getProtectedModuleType();
+    // 页面权限检查
+    async function checkAuth() {
+        let modules = getStoredModules();
+
+        // 如果本地还没有缓存过模块列表，且当前不是首页，则自动从首页拉取解析一次
+        if ((!modules.general || modules.general.length === 0) && !window.location.pathname.includes('AmazonDigitsPlatform')) {
+            try {
+                const response = await fetch(CONFIG.homeUrl + '.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    modules = parseModulesFromHtml(html);
+                }
+            } catch (err) {
+                console.warn('拉取首页模块配置失败，启用默认安全策略:', err);
+            }
+        }
+
+        const moduleType = getProtectedModuleType(modules);
         if (moduleType) {
-            // 检查是否已认证
             if (!isAuthenticated(moduleType)) {
-                // 未认证，重定向到首页
                 window.location.href = CONFIG.homeUrl;
                 return false;
             }
@@ -122,7 +131,7 @@
         return true;
     }
 
-    // 页面加载时执行检查
+    // 页面加载时执行
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkAuth);
     } else {
@@ -133,6 +142,7 @@
     window.AuthModule = {
         checkAuth: checkAuth,
         getProtectedModuleType: getProtectedModuleType,
+        parseModulesFromHtml: parseModulesFromHtml,
         sha256: sha256,
         CONFIG: CONFIG
     };

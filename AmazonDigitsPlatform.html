@@ -569,6 +569,11 @@
 
         // 页面加载时执行
         window.onload = function() {
+			// 【新增】自动扫描当前首页的所有受保护模块并更新到缓存
+			if (window.AuthModule && window.AuthModule.parseModulesFromHtml) {
+				window.AuthModule.parseModulesFromHtml(document.documentElement.outerHTML);
+				}
+			
             // 隐藏加载遮罩层
             const loadingOverlay = document.getElementById('loadingOverlay');
             if (loadingOverlay) {
