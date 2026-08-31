@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account and profile stored in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "User identifier" },
+        "username": { "type": "string", "description": "Unique login username", "maxLength": 50 },
+        "nickname": { "type": "string", "description": "Display nickname", "maxLength": 50 },
+        "avatar": { "type": "string", "description": "Avatar image URL", "maxLength": 500 },
+        "email": { "type": "string", "description": "Email address", "maxLength": 100 },
+        "bio": { "type": "string", "description": "User bio/signature", "maxLength": 300 },
+        "passwordHash": { "type": "string", "description": "Simple password hash or string", "maxLength": 100 },
+        "createdAt": { "type": "string", "description": "ISO creation time string" }
+      },
+      "required": ["id", "username", "nickname", "createdAt"]
+    },
+    "Article": {
+      "title": "Article",
+      "description": "Article published by users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Article identifier" },
+        "title": { "type": "string", "description": "Article title", "maxLength": 200 },
+        "content": { "type": "string", "description": "Article markdown body", "maxLength": 50000 },
+        "summary": { "type": "string", "description": "Brief summary", "maxLength": 500 },
+        "tags": { "type": "array", "description": "Article tags", "items": { "type": "string" } },
+        "coverImage": { "type": "string", "description": "Cover image URL", "maxLength": 500 },
+        "authorId": { "type": "string", "description": "Author user ID" },
+        "authorName": { "type": "string", "description": "Author nickname" },
+        "authorAvatar": { "type": "string", "description": "Author avatar URL" },
+        "views": { "type": "number", "description": "View count" },
+        "likes": { "type": "number", "description": "Like count" },
+        "isPublished": { "type": "boolean", "description": "Publication status" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Last updated timestamp" }
+      },
+      "required": ["id", "title", "content", "authorId", "authorName", "createdAt", "updatedAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment on an article",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Comment ID" },
+        "articleId": { "type": "string", "description": "Parent article ID" },
+        "authorId": { "type": "string", "description": "Author user ID" },
+        "authorName": { "type": "string", "description": "Author name" },
+        "authorAvatar": { "type": "string", "description": "Author avatar URL" },
+        "content": { "type": "string", "description": "Comment content", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "articleId", "authorId", "authorName", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Registered user accounts collection"
+    },
+    "/articles/{articleId}": {
+      "schema": "Article",
+      "description": "Articles collection"
+    },
+    "/articles/{articleId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments subcollection under articles"
+    }
+  }
+}
