@@ -37,6 +37,8 @@ export const GroupsView: React.FC = () => {
     setIsCreateGroupModalOpen,
   } = useCommunity();
 
+  if (!currentUser) return null;
+
   // Create modal state
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');

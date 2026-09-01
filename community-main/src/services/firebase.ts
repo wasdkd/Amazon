@@ -47,140 +47,14 @@ function getTodayDateStr(): string {
   return `${year}-${month}-${day}`;
 }
 
-// Initial Seed Data to bootstrap Firestore if completely empty
-const initialSeedUsers: UserProfile[] = [
-  {
-    id: 'user_star_01',
-    username: 'chenguang_88',
-    password: '',
-    nickname: '晨光追梦人',
-    avatar: '🌅',
-    bio: '坚持早起第128天，用阳光开启每一个美好清晨！',
-    customStatus: '正在晨读《心流》📖',
-    joinedAt: Date.now() - 30 * 86400000,
-    lastActive: Date.now() - 5000,
-    morningStreak: 28,
-    eveningStreak: 25,
-    totalCheckIns: 53,
-  },
-  {
-    id: 'user_star_02',
-    username: 'yuanqi_lu',
-    password: '',
-    nickname: '元气小鹿',
-    avatar: '🦌',
-    bio: '早睡早起身体好，每天都要元气满满！',
-    customStatus: '早卡已完成 🏃‍♀️',
-    joinedAt: Date.now() - 20 * 86400000,
-    lastActive: Date.now() - 60000,
-    morningStreak: 19,
-    eveningStreak: 18,
-    totalCheckIns: 37,
-  },
-  {
-    id: 'user_star_03',
-    username: 'night_reader',
-    password: '',
-    nickname: '夜读守望者',
-    avatar: '🌙',
-    bio: '晚间静心阅读与复盘，探索内心的宁静。',
-    customStatus: '准备写今日晚卡总结 ✍️',
-    joinedAt: Date.now() - 15 * 86400000,
-    lastActive: Date.now() - 120000,
-    morningStreak: 12,
-    eveningStreak: 15,
-    totalCheckIns: 27,
-  },
-  {
-    id: 'user_star_04',
-    username: 'runner_ajie',
-    password: '',
-    nickname: '晨跑阿杰',
-    avatar: '🏃‍♂️',
-    bio: '风雨无阻5公里，自律给我真正的自由！',
-    customStatus: '刚跑完步，大汗淋漓！',
-    joinedAt: Date.now() - 10 * 86400000,
-    lastActive: Date.now() - 300000,
-    morningStreak: 10,
-    eveningStreak: 8,
-    totalCheckIns: 18,
-  },
-];
-
-const initialSeedGroups: CommunityGroup[] = [
-  {
-    id: 'group_early_birds',
-    name: '晨曦早起自律营',
-    description: '每天早上7:30前打卡互勉，打造自律生活方式！',
-    avatar: '☀️',
-    creatorId: 'user_star_01',
-    creatorName: '晨光追梦人',
-    members: ['user_star_01', 'user_star_02', 'user_star_04'],
-    announcement: '📢 欢迎加入早起营！进群请坚持每日早卡，连续3天未打卡将被全员“敲打提醒”哦~',
-    createdAt: Date.now() - 15 * 86400000,
-    tag: '早起打卡',
-  },
-  {
-    id: 'group_night_reading',
-    name: '星夜静读复盘会',
-    description: '睡前一小时静心阅读、记录收获与明日规划。',
-    avatar: '📚',
-    creatorId: 'user_star_03',
-    creatorName: '夜读守望者',
-    members: ['user_star_01', 'user_star_03'],
-    announcement: '📖 每晚21:30后开启静读时光，分享今日一句触动心灵的金句。',
-    createdAt: Date.now() - 12 * 86400000,
-    tag: '晚安自省',
-  },
-  {
-    id: 'group_daily_fitness',
-    name: '活力晨跑与健身社',
-    description: '挥洒汗水，用运动唤醒身心每一个细胞！',
-    avatar: '🏃‍♂️',
-    creatorId: 'user_star_04',
-    creatorName: '晨跑阿杰',
-    members: ['user_star_01', 'user_star_04'],
-    announcement: '💪 无论室内开合跳还是户外5公里，动起来就是胜利！',
-    createdAt: Date.now() - 8 * 86400000,
-    tag: '运动打卡',
-  },
-];
-
-const initialSeedMessages: ChatMessage[] = [
-  {
-    id: 'msg_seed_01',
-    senderId: 'user_star_01',
-    senderName: '晨光追梦人',
-    senderAvatar: '🌅',
-    roomId: 'public_lounge',
-    content: '欢迎来到早起与晚安自律社区！无论您在哪个设备打开，都能在这里和大家实时打卡聊天 ☀️',
-    createdAt: Date.now() - 3600000,
-    type: 'text',
-    reactions: { '🌅': ['user_star_02', 'user_star_03'], '💪': ['user_star_04'] },
-  },
-  {
-    id: 'msg_seed_02',
-    senderId: 'user_star_02',
-    senderName: '元气小鹿',
-    senderAvatar: '🦌',
-    roomId: 'public_lounge',
-    content: '新朋友好呀！快来完成今天的早起/晚安打卡，或者在上方自建一个属于你的打卡营吧 ☕',
-    createdAt: Date.now() - 1800000,
-    type: 'text',
-    reactions: { '❤️': ['user_star_01'] },
-  },
-];
-
 export class FirebaseCommunityService {
   private db: Firestore;
   private unsubscribers: (() => void)[] = [];
-  private isSeeded = false;
 
   constructor() {
     this.db = getDb();
   }
 
-  // Real-time synchronization across all devices worldwide
   subscribeAll(callbacks: {
     onUsersChange: (users: UserProfile[]) => void;
     onCheckInsChange: (checkIns: CheckInRecord[]) => void;
@@ -188,32 +62,27 @@ export class FirebaseCommunityService {
     onGroupsChange: (groups: CommunityGroup[]) => void;
     onFollowsChange: (follows: FollowRelation[]) => void;
     onNudgesChange: (nudges: NudgeEvent[]) => void;
+    onError?: (error: Error, source: string) => void;
   }) {
     this.unsubscribeAll();
 
-    // 1. Users real-time listener
     const usersUnsub = onSnapshot(
       collection(this.db, 'users'),
       (snapshot) => {
-        if (snapshot.empty && !this.isSeeded) {
-          this.seedInitialData();
-          return;
-        }
         const users: UserProfile[] = [];
         snapshot.forEach((docSnap) => {
           users.push(docSnap.data() as UserProfile);
         });
-        // Sort by lastActive desc
         users.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
         callbacks.onUsersChange(users);
       },
       (error) => {
         console.warn('Firestore users subscription error:', error);
+        callbacks.onError?.(error, 'users');
       }
     );
     this.unsubscribers.push(usersUnsub);
 
-    // 2. Check-ins real-time listener
     const checkInsUnsub = onSnapshot(
       collection(this.db, 'checkins'),
       (snapshot) => {
@@ -226,11 +95,11 @@ export class FirebaseCommunityService {
       },
       (error) => {
         console.warn('Firestore checkins subscription error:', error);
+        callbacks.onError?.(error, 'checkins');
       }
     );
     this.unsubscribers.push(checkInsUnsub);
 
-    // 3. Messages real-time listener
     const messagesUnsub = onSnapshot(
       collection(this.db, 'messages'),
       (snapshot) => {
@@ -243,11 +112,11 @@ export class FirebaseCommunityService {
       },
       (error) => {
         console.warn('Firestore messages subscription error:', error);
+        callbacks.onError?.(error, 'messages');
       }
     );
     this.unsubscribers.push(messagesUnsub);
 
-    // 4. Groups real-time listener
     const groupsUnsub = onSnapshot(
       collection(this.db, 'groups'),
       (snapshot) => {
@@ -260,11 +129,11 @@ export class FirebaseCommunityService {
       },
       (error) => {
         console.warn('Firestore groups subscription error:', error);
+        callbacks.onError?.(error, 'groups');
       }
     );
     this.unsubscribers.push(groupsUnsub);
 
-    // 5. Follows listener
     const followsUnsub = onSnapshot(
       collection(this.db, 'follows'),
       (snapshot) => {
@@ -276,11 +145,11 @@ export class FirebaseCommunityService {
       },
       (error) => {
         console.warn('Firestore follows subscription error:', error);
+        callbacks.onError?.(error, 'follows');
       }
     );
     this.unsubscribers.push(followsUnsub);
 
-    // 6. Nudges listener
     const nudgesUnsub = onSnapshot(
       collection(this.db, 'nudges'),
       (snapshot) => {
@@ -293,6 +162,7 @@ export class FirebaseCommunityService {
       },
       (error) => {
         console.warn('Firestore nudges subscription error:', error);
+        callbacks.onError?.(error, 'nudges');
       }
     );
     this.unsubscribers.push(nudgesUnsub);
@@ -303,24 +173,6 @@ export class FirebaseCommunityService {
     this.unsubscribers = [];
   }
 
-  private async seedInitialData() {
-    this.isSeeded = true;
-    try {
-      for (const u of initialSeedUsers) {
-        await setDoc(doc(this.db, 'users', u.id), u);
-      }
-      for (const g of initialSeedGroups) {
-        await setDoc(doc(this.db, 'groups', g.id), g);
-      }
-      for (const m of initialSeedMessages) {
-        await setDoc(doc(this.db, 'messages', m.id), m);
-      }
-    } catch (e) {
-      console.warn('Seed failed:', e);
-    }
-  }
-
-  // Cloud Actions
   async syncUser(user: Partial<UserProfile>): Promise<UserProfile> {
     const userId = user.id || 'user_' + Date.now();
     const userDocRef = doc(this.db, 'users', userId);
@@ -453,7 +305,6 @@ export class FirebaseCommunityService {
     };
 
     await setDoc(doc(this.db, 'messages', msgId), newMsg);
-    // Update user active time
     await setDoc(doc(this.db, 'users', params.senderId), { lastActive: Date.now() }, { merge: true });
     return newMsg;
   }
@@ -516,7 +367,6 @@ export class FirebaseCommunityService {
 
     await setDoc(doc(this.db, 'checkins', checkInId), newCheckIn);
 
-    // Update User streak in Firestore
     const userRef = doc(this.db, 'users', params.userId);
     const userSnap = await getDoc(userRef);
     let updatedUser: UserProfile | undefined;
@@ -534,7 +384,6 @@ export class FirebaseCommunityService {
       updatedUser = { ...u, morningStreak, eveningStreak, totalCheckIns, lastActive: Date.now() };
     }
 
-    // Auto broadcast message to public lounge
     const shareMessage: ChatMessage = {
       id: 'msg_auto_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       senderId: params.userId,
@@ -682,14 +531,13 @@ export class FirebaseCommunityService {
     };
     await setDoc(doc(this.db, 'nudges', nudgeId), newNudge);
 
-    // Send public message
     const nudgeChatMsg: ChatMessage = {
       id: 'msg_nudge_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       senderId: params.fromUserId,
       senderName: params.fromUserName,
       senderAvatar: params.fromUserAvatar,
       roomId: 'public_lounge',
-      content: `⚡ 敲打了 @${params.toUserName}：“${newNudge.message}”`,
+      content: `⚡ 敲打了 @${params.toUserName}："${newNudge.message}"`,
       createdAt: Date.now(),
       type: 'nudge_system',
       reactions: { '⚡': [] },

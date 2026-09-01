@@ -28,6 +28,10 @@ export const Sidebar: React.FC = () => {
     setIsAuthModalOpen,
   } = useCommunity();
 
+  if (!currentUser) {
+    return null;
+  }
+
   // Calculate some stats for sidebar
   const todayCheckIns = checkIns.filter((c) => c.date === todayDateStr);
   const myFollowingCount = follows.filter((f) => f.followerId === currentUser.id).length;

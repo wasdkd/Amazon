@@ -42,19 +42,18 @@ export const ProfileModal: React.FC = () => {
     setIsAuthModalOpen,
   } = useCommunity();
 
-  const isMe = !viewingUserProfile || viewingUserProfile.id === currentUser.id;
-  const user = isMe ? currentUser : viewingUserProfile!;
-
-  // Edit states for current user
-  const [nickname, setNickname] = useState(currentUser.nickname);
-  const [avatar, setAvatar] = useState(currentUser.avatar);
-  const [bio, setBio] = useState(currentUser.bio);
-  const [customStatus, setCustomStatus] = useState(currentUser.customStatus || '');
+  const [nickname, setNickname] = useState('');
+  const [avatar, setAvatar] = useState('🌟');
+  const [bio, setBio] = useState('');
+  const [customStatus, setCustomStatus] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'stats' | 'history'>('stats');
 
+  const isMe = !!(currentUser && (!viewingUserProfile || viewingUserProfile.id === currentUser.id));
+  const user = isMe ? currentUser : viewingUserProfile;
+
   useEffect(() => {
-    if (isProfileModalOpen) {
+    if (isProfileModalOpen && currentUser) {
       if (isMe) {
         setNickname(currentUser.nickname);
         setAvatar(currentUser.avatar);
@@ -63,9 +62,9 @@ export const ProfileModal: React.FC = () => {
       }
       setIsEditing(false);
     }
-  }, [isProfileModalOpen, isMe, currentUser]);
+  }, [isProfileModalOpen, isMe, currentUser?.id]);
 
-  if (!isProfileModalOpen || !user) return null;
+  if (!isProfileModalOpen || !user || !currentUser) return null;
 
   const userCheckIns = checkIns.filter((c) => c.userId === user.id);
   const morningCheckIns = userCheckIns.filter((c) => c.period === 'morning');

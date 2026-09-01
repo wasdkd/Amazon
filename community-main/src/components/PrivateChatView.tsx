@@ -31,6 +31,8 @@ export const PrivateChatView: React.FC = () => {
     isMutualFollow,
   } = useCommunity();
 
+  if (!currentUser) return null;
+
   const [searchQuery, setSearchQuery] = useState('');
 
   // Find users that have exchanged messages with current user or are followed

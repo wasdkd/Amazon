@@ -43,6 +43,8 @@ export const CheckInBoard: React.FC = () => {
     setIsProfileModalOpen,
   } = useCommunity();
 
+  if (!currentUser) return null;
+
   const [activeBoardTab, setActiveBoardTab] = useState<
     'all' | 'following' | 'not_checked' | 'morning_missing' | 'evening_missing' | 'perfect'
   >('all');

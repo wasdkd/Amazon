@@ -29,6 +29,8 @@ export const MembersDirectory: React.FC = () => {
     getTodayUserCheckInStatus,
   } = useCommunity();
 
+  if (!currentUser) return null;
+
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'followers' | 'mutual'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 

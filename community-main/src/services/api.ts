@@ -9,10 +9,17 @@ import {
   CheckInPeriod,
 } from '../types';
 
+export type ConnectionError = {
+  error: Error;
+  source: string;
+  timestamp: number;
+};
+
 class ApiService {
   private wsListeners: Set<(event: { type: string; data: any }) => void> = new Set();
   private isListening = false;
   private currentUserId: string = '';
+  private lastConnectionError: ConnectionError | null = null;
 
   constructor() {
     this.initFirebaseListeners();
@@ -43,10 +50,28 @@ class ApiService {
         onNudgesChange: (nudges) => {
           this.emitEvent('nudges_synced', nudges);
         },
+        onError: (error, source) => {
+          this.lastConnectionError = { error, source, timestamp: Date.now() };
+          this.emitEvent('connection_error', { message: error.message, source });
+          console.error('[Firebase Connection Error] source:', source, 'error:', error);
+        },
       });
     } catch (e) {
       console.warn('Firebase subscribe init warning:', e);
+      this.lastConnectionError = {
+        error: e instanceof Error ? e : new Error(String(e)),
+        source: 'init',
+        timestamp: Date.now(),
+      };
     }
+  }
+
+  getLastConnectionError(): ConnectionError | null {
+    return this.lastConnectionError;
+  }
+
+  clearConnectionError() {
+    this.lastConnectionError = null;
   }
 
   private emitEvent(type: string, data: any) {

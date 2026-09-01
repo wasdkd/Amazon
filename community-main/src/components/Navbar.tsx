@@ -43,6 +43,44 @@ export const Navbar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  if (!currentUser) {
+    return (
+      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/80 px-4 lg:px-8 py-3 transition-all">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 via-rose-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                    晨暮社区
+                  </span>
+                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60 shadow-2xs">
+                    早晚打卡圈
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 hidden md:block">
+                  {greeting.text} · <span className="font-mono font-semibold text-slate-700">{currentTime}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-500/20 transition-all"
+            >
+              <UserCircle2 className="w-4 h-4" />
+              登录 / 注册
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   const myStatus = getTodayUserCheckInStatus(currentUser.id);
   const hasMorning = !!myStatus.morning;
   const hasEvening = !!myStatus.evening;

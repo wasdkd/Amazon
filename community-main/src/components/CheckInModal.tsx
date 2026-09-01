@@ -71,21 +71,22 @@ export const CheckInModal: React.FC = () => {
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
       );
 
-      // Pre-fill existing note if already checked in today
-      const status = getTodayUserCheckInStatus(currentUser.id);
-      const existing = checkInModalPeriod === 'morning' ? status.morning : status.evening;
-      if (existing) {
-        setMood(existing.mood);
-        setNote(existing.note);
-        setImageUrl(existing.imageUrl || '');
-      } else {
-        setNote('');
-        setImageUrl('');
+      if (currentUser) {
+        const status = getTodayUserCheckInStatus(currentUser.id);
+        const existing = checkInModalPeriod === 'morning' ? status.morning : status.evening;
+        if (existing) {
+          setMood(existing.mood);
+          setNote(existing.note);
+          setImageUrl(existing.imageUrl || '');
+        } else {
+          setNote('');
+          setImageUrl('');
+        }
       }
     }
-  }, [isCheckInModalOpen, checkInModalPeriod, todayDateStr, currentUser.id]);
+  }, [isCheckInModalOpen, checkInModalPeriod, todayDateStr, currentUser?.id]);
 
-  if (!isCheckInModalOpen) return null;
+  if (!isCheckInModalOpen || !currentUser) return null;
 
   const currentMoods = period === 'morning' ? MOODS_MORNING : MOODS_EVENING;
   const currentQuickNotes = period === 'morning' ? QUICK_NOTES_MORNING : QUICK_NOTES_EVENING;

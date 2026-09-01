@@ -42,6 +42,8 @@ export const CommunityChat: React.FC<{ roomId?: string; roomTitle?: string; room
     getTodayUserCheckInStatus,
   } = useCommunity();
 
+  if (!currentUser) return null;
+
   const [inputContent, setInputContent] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
