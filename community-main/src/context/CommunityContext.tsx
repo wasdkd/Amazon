@@ -262,6 +262,23 @@ export const CommunityProvider: React.FC<{ children: ReactNode }> = ({ children 
       const { type, data } = event;
       if (type === 'presence_update') {
         setOnlineUserIds(data.onlineUserIds || []);
+      } else if (type === 'messages_synced') {
+        setMessages(data || []);
+      } else if (type === 'checkins_synced') {
+        setCheckIns(data || []);
+      } else if (type === 'users_synced') {
+        setUsers(data || []);
+        const me = (data as UserProfile[]).find((u) => u.id === currentUser.id);
+        if (me) {
+          setCurrentUser(me);
+          localStorage.setItem('morning_night_community_user_v1', JSON.stringify(me));
+        }
+      } else if (type === 'groups_synced') {
+        setGroups(data || []);
+      } else if (type === 'follows_synced') {
+        setFollows(data || []);
+      } else if (type === 'nudges_synced') {
+        setNudges(data || []);
       } else if (type === 'chat_message') {
         setMessages((prev) => {
           if (prev.some((m) => m.id === data.id)) return prev;

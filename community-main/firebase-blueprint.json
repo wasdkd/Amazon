@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "users": {
+      "title": "Users",
+      "description": "Community user profiles and check-in streaks",
+      "properties": {
+        "id": { "type": "string", "description": "User ID" },
+        "username": { "type": "string", "description": "Login account name" },
+        "password": { "type": "string", "description": "Password" },
+        "nickname": { "type": "string", "description": "Display name" },
+        "avatar": { "type": "string", "description": "Emoji avatar" },
+        "bio": { "type": "string", "description": "Bio manifesto" },
+        "customStatus": { "type": "string", "description": "Status text" },
+        "joinedAt": { "type": "number", "description": "Join timestamp" },
+        "lastActive": { "type": "number", "description": "Last active timestamp" },
+        "morningStreak": { "type": "number", "description": "Morning streak days" },
+        "eveningStreak": { "type": "number", "description": "Evening streak days" },
+        "totalCheckIns": { "type": "number", "description": "Total check-ins count" }
+      },
+      "required": ["id", "nickname"]
+    },
+    "checkins": {
+      "title": "Check-ins",
+      "description": "Morning and evening self-discipline check-in records",
+      "properties": {
+        "id": { "type": "string", "description": "Check-in ID" },
+        "userId": { "type": "string", "description": "User ID" },
+        "userName": { "type": "string", "description": "User nickname" },
+        "userAvatar": { "type": "string", "description": "User avatar" },
+        "date": { "type": "string", "description": "Date string YYYY-MM-DD" },
+        "period": { "type": "string", "description": "morning or evening" },
+        "time": { "type": "string", "description": "Time string HH:mm:ss" },
+        "timestamp": { "type": "number", "description": "Timestamp ms" },
+        "mood": { "type": "string", "description": "Mood tag" },
+        "note": { "type": "string", "description": "Check-in reflection note" },
+        "imageUrl": { "type": "string", "description": "Optional image URL" },
+        "likes": { "type": "array", "items": { "type": "string" }, "description": "Liked user IDs" },
+        "comments": { "type": "array", "description": "Comments list" }
+      },
+      "required": ["id", "userId", "date", "period"]
+    },
+    "messages": {
+      "title": "Messages",
+      "description": "Real-time community square and group chat messages",
+      "properties": {
+        "id": { "type": "string", "description": "Message ID" },
+        "senderId": { "type": "string", "description": "Sender User ID" },
+        "senderName": { "type": "string", "description": "Sender nickname" },
+        "senderAvatar": { "type": "string", "description": "Sender avatar" },
+        "roomId": { "type": "string", "description": "Room ID, e.g. public_lounge or group id" },
+        "content": { "type": "string", "description": "Message text" },
+        "createdAt": { "type": "number", "description": "Sent timestamp" },
+        "type": { "type": "string", "description": "Message type" },
+        "reactions": { "type": "object", "description": "Emoji reactions" }
+      },
+      "required": ["id", "senderId", "roomId", "content", "createdAt"]
+    },
+    "groups": {
+      "title": "Groups",
+      "description": "Community interest groups and accountability camps",
+      "properties": {
+        "id": { "type": "string", "description": "Group ID" },
+        "name": { "type": "string", "description": "Group name" },
+        "description": { "type": "string", "description": "Group description" },
+        "avatar": { "type": "string", "description": "Group avatar" },
+        "creatorId": { "type": "string", "description": "Creator User ID" },
+        "creatorName": { "type": "string", "description": "Creator nickname" },
+        "members": { "type": "array", "items": { "type": "string" }, "description": "Member IDs" },
+        "announcement": { "type": "string", "description": "Group announcement" },
+        "createdAt": { "type": "number", "description": "Created timestamp" },
+        "tag": { "type": "string", "description": "Tag name" }
+      },
+      "required": ["id", "name", "creatorId"]
+    },
+    "follows": {
+      "title": "Follows",
+      "description": "User follow relationships",
+      "properties": {
+        "followerId": { "type": "string", "description": "Follower User ID" },
+        "followingId": { "type": "string", "description": "Following User ID" },
+        "createdAt": { "type": "number", "description": "Followed timestamp" }
+      },
+      "required": ["followerId", "followingId"]
+    },
+    "nudges": {
+      "title": "Nudges",
+      "description": "Check-in nudge notifications between community members",
+      "properties": {
+        "id": { "type": "string", "description": "Nudge ID" },
+        "fromUserId": { "type": "string", "description": "Sender User ID" },
+        "fromUserName": { "type": "string", "description": "Sender nickname" },
+        "fromUserAvatar": { "type": "string", "description": "Sender avatar" },
+        "toUserId": { "type": "string", "description": "Target User ID" },
+        "toUserName": { "type": "string", "description": "Target nickname" },
+        "period": { "type": "string", "description": "Period" },
+        "message": { "type": "string", "description": "Custom reminder message" },
+        "timestamp": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["id", "fromUserId", "toUserId", "period"]
+    }
+  }
+}
