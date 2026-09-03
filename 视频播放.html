@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">视频播放</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 16px;
+    }
+    .container {
+      max-width: 960px;
+      width: 100%;
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      max-height: 75vh;
+      display: block;
+    }
+    .tip-box {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* 底部链接生成助手（方便你自己生成链接） */
+    .generator-box {
+      margin-top: 30px;
+      padding: 16px;
+      background: #334155;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .generator-box h3 {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #f1f5f9;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #fff;
+      outline: none;
+    }
+    button {
+      padding: 8px 16px;
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: #0369a1; }
+    .result-link {
+      margin-top: 10px;
+      word-break: break-all;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1 id="videoTitle">正在加载视频...</h1>
+
+    <div class="video-wrapper">
+      <video id="videoPlayer" controls preload="auto" playsinline>
+        您的浏览器不支持 HTML5 视频播放。
+      </video>
+    </div>
+
+    <div class="tip-box" id="statusTip">如果无法加载，请检查视频名称或网络连接</div>
+
+    <!-- 链接快速生成助手 -->
+    <div class="generator-box">
+      <h3>🔗 链接生成小助手（输入视频文件名快速获取分享链接）</h3>
+      <div class="input-row">
+        <input type="text" id="inputName" placeholder="例如：图片下载.mp4 或 产品打标签.mp4">
+        <input type="text" id="inputCustomTitle" placeholder="自定义标题（选填）">
+        <button onclick="generateLink()">生成分享链接</button>
+      </div>
+      <div class="result-link" id="resultLink"></div>
+    </div>
+  </div>
+
+  <script>
+    // 默认配置（对应你的仓库）
+    const BASE_FOLDER = './视频存储/'; // 视频所在的相对路径
+
+    // 解析 URL 参数
+    const params = new URLSearchParams(window.location.search);
+    let videoFile = params.get('v') || params.get('video');
+    let customTitle = params.get('t') || params.get('title');
+    let directUrl = params.get('url'); // 也支持直接传完整链接
+
+    const videoElement = document.getElementById('videoPlayer');
+    const titleElement = document.getElementById('videoTitle');
+    const pageTitle = document.getElementById('pageTitle');
+    const statusTip = document.getElementById('statusTip');
+
+    if (videoFile || directUrl) {
+      let finalSrc = '';
+      let displayTitle = '';
+
+      if (directUrl) {
+        // 如果传入的是 GitHub blob 链接，自动转换成 raw 视频流链接
+        finalSrc = directUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+        displayTitle = customTitle || '在线视频播放';
+      } else {
+        // 如果只传了文件名，拼接仓库内的相对路径
+        finalSrc = BASE_FOLDER + encodeURIComponent(videoFile).replace(/%2F/g, '/');
+        displayTitle = customTitle || videoFile.replace(/\.[^/.]+$/, ""); // 去掉 .mp4 后缀作为标题
+      }
+
+      titleElement.textContent = displayTitle;
+      pageTitle.textContent = displayTitle + ' - 视频播放';
+      videoElement.src = finalSrc;
+
+      videoElement.onerror = () => {
+        statusTip.textContent = '❌ 视频加载失败，请确认文件路径是否正确。';
+        statusTip.style.color = '#ef4444';
+      };
+    } else {
+      titleElement.textContent = '请在链接中指定视频参数';
+      statusTip.textContent = '提示：链接格式应为 ?v=视频文件名.mp4';
+    }
+
+    // 链接生成函数
+    function generateLink() {
+      const name = document.getElementById('inputName').value.trim();
+      const title = document.getElementById('inputCustomTitle').value.trim();
+      if (!name) return alert('请输入视频文件名！');
+
+      const baseUrl = window.location.origin + window.location.pathname;
+      let finalUrl = `${baseUrl}?v=${encodeURIComponent(name)}`;
+      if (title) {
+        finalUrl += `&t=${encodeURIComponent(title)}`;
+      }
+
+      const resultBox = document.getElementById('resultLink');
+      resultBox.innerHTML = `生成的分享链接：<br><a href="${finalUrl}" target="_blank" style="color:#38bdf8;">${finalUrl}</a>`;
+    }
+  </script>
+</body>
+</html>
