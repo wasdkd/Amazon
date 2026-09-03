@@ -21,7 +21,7 @@
             <a href="#" id="nav-brand-name" class="text-xl font-bold tracking-widest">店铺展厅</a>
             <nav class="flex items-center space-x-6 text-xs">
                 <a href="#shop" class="hover:text-gray-500 transition font-medium">选购款式</a>
-                <button onclick="openWeChatModal()" class="bg-black text-white px-4 py-2 rounded text-xs hover:bg-gray-800 transition font-medium">微信客服 / 下单</button>
+                <button onclick="openWeChatModal()" class="bg-black text-white px-4 py-2 rounded text-xs hover:bg-gray-800 transition font-medium">客服 / 下单</button>
             </nav>
         </div>
     </header>
@@ -82,7 +82,7 @@
 
                 <div class="mt-8 pt-4 border-t border-gray-100">
                     <button onclick="openWeChatModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-3.5 rounded transition font-bold flex items-center justify-center gap-2">
-                        💬 联系微信客服 / 咨询下单
+                        💬 联系客服 / 咨询下单
                     </button>
                 </div>
             </div>
@@ -93,19 +93,19 @@
     <div id="wechat-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full text-center space-y-4 relative">
             <button onclick="closeWeChatModal()" class="absolute top-3 right-3 text-gray-400 hover:text-black font-bold text-lg">&times;</button>
-            <h3 class="text-sm font-bold text-gray-800">联系微信客服</h3>
+            <h3 class="text-sm font-bold text-gray-800">联系客服</h3>
 
             <div id="wechat-qr-container" class="hidden my-2">
                 <img id="wechat-qr-img" class="w-48 h-48 mx-auto border rounded p-1">
-                <p class="text-xs text-gray-400 mt-1">长按保存二维码或微信扫一扫</p>
+                <p class="text-xs text-gray-400 mt-1">长按保存二维码或扫一扫</p>
             </div>
 
             <div class="bg-gray-50 p-3 rounded border text-xs">
-                <span class="text-gray-500 block text-xs">添加微信号</span>
+                <span class="text-gray-500 block text-xs">添加</span>
                 <span id="wechat-id-text" class="font-bold text-sm text-gray-800 select-all"></span>
             </div>
 
-            <button onclick="copyWeChatId()" class="w-full bg-black text-white text-xs py-2.5 rounded font-bold hover:bg-gray-800 transition">复制微信号</button>
+            <button onclick="copyWeChatId()" class="w-full bg-black text-white text-xs py-2.5 rounded font-bold hover:bg-gray-800 transition">复制</button>
         </div>
     </div>
 
@@ -120,9 +120,9 @@
         let appConfig = {
             shopId: "default",
             shopName: "店铺展厅",
-            wechatId: "sora_apparel",
+            wechatId: "后台私信",
             wechatQr: "",
-            announcement: "全场支持微信下单 • 全国包邮 • 现货秒发",
+            announcement: "全场支持下单 • 全国包邮 • 现货秒发",
             githubRepo: "wasdkd/Amazon",
             githubBranch: "main"
         };
@@ -385,7 +385,7 @@
 
         function openWeChatModal() { document.getElementById('wechat-modal').classList.remove('hidden'); }
         function closeWeChatModal() { document.getElementById('wechat-modal').classList.add('hidden'); }
-        function copyWeChatId() { navigator.clipboard.writeText(appConfig.wechatId); alert('微信号已复制！'); }
+        function copyWeChatId() { navigator.clipboard.writeText(appConfig.wechatId); alert('已复制！'); }
         function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
 
         window.onload = initApp;
