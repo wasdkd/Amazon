@@ -1,0 +1,1152 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--  <title>沉浸式语音朗读器（防死锁永不卡死版）</title>-->
+<!--  <style>-->
+<!--    :root {-->
+<!--      &#45;&#45;bg-color: #f8fafc;-->
+<!--      &#45;&#45;card-bg: #ffffff;-->
+<!--      &#45;&#45;text-main: #1e293b;-->
+<!--      &#45;&#45;text-muted: #64748b;-->
+<!--      &#45;&#45;primary: #2563eb;-->
+<!--      &#45;&#45;primary-hover: #1d4ed8;-->
+<!--      &#45;&#45;highlight-bg: #fef08a;-->
+<!--      &#45;&#45;highlight-text: #854d0e;-->
+<!--      &#45;&#45;border-color: #e2e8f0;-->
+<!--      &#45;&#45;shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);-->
+<!--    }-->
+
+<!--    * { box-sizing: border-box; margin: 0; padding: 0; }-->
+
+<!--    body {-->
+<!--      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;-->
+<!--      background-color: var(&#45;&#45;bg-color);-->
+<!--      color: var(&#45;&#45;text-main);-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      height: 100vh;-->
+<!--      overflow: hidden;-->
+<!--    }-->
+
+<!--    /* 顶部控制栏 */-->
+<!--    header {-->
+<!--      background: var(&#45;&#45;card-bg);-->
+<!--      border-bottom: 1px solid var(&#45;&#45;border-color);-->
+<!--      box-shadow: var(&#45;&#45;shadow);-->
+<!--      padding: 10px 20px;-->
+<!--      display: flex;-->
+<!--      flex-wrap: wrap;-->
+<!--      align-items: center;-->
+<!--      justify-content: space-between;-->
+<!--      gap: 12px;-->
+<!--      z-index: 100;-->
+<!--    }-->
+
+<!--    .ctrl-group {-->
+<!--      display: flex;-->
+<!--      align-items: center;-->
+<!--      gap: 10px;-->
+<!--      flex-wrap: wrap;-->
+<!--    }-->
+
+<!--    button {-->
+<!--      background: var(&#45;&#45;primary);-->
+<!--      color: #fff;-->
+<!--      border: none;-->
+<!--      padding: 8px 14px;-->
+<!--      border-radius: 6px;-->
+<!--      font-size: 13px;-->
+<!--      font-weight: 500;-->
+<!--      cursor: pointer;-->
+<!--      display: inline-flex;-->
+<!--      align-items: center;-->
+<!--      gap: 6px;-->
+<!--      transition: all 0.2s;-->
+<!--    }-->
+
+<!--    button:hover { background: var(&#45;&#45;primary-hover); }-->
+
+<!--    button.secondary {-->
+<!--      background: #e2e8f0;-->
+<!--      color: #334155;-->
+<!--    }-->
+
+<!--    button.secondary:hover { background: #cbd5e1; }-->
+
+<!--    /* 倍速控制模块 */-->
+<!--    .speed-container {-->
+<!--      display: flex;-->
+<!--      align-items: center;-->
+<!--      gap: 8px;-->
+<!--      background: #f1f5f9;-->
+<!--      padding: 4px 10px;-->
+<!--      border-radius: 8px;-->
+<!--      border: 1px solid var(&#45;&#45;border-color);-->
+<!--    }-->
+
+<!--    .speed-container input[type="range"] {-->
+<!--      width: 100px;-->
+<!--      cursor: pointer;-->
+<!--    }-->
+
+<!--    .speed-badge {-->
+<!--      min-width: 40px;-->
+<!--      font-weight: 700;-->
+<!--      color: var(&#45;&#45;primary);-->
+<!--      font-size: 13px;-->
+<!--    }-->
+
+<!--    .quick-speed-btn {-->
+<!--      padding: 3px 6px;-->
+<!--      font-size: 11px;-->
+<!--      background: #fff;-->
+<!--      color: #475569;-->
+<!--      border: 1px solid var(&#45;&#45;border-color);-->
+<!--      border-radius: 4px;-->
+<!--      cursor: pointer;-->
+<!--    }-->
+
+<!--    .quick-speed-btn:hover, .quick-speed-btn.active {-->
+<!--      background: var(&#45;&#45;primary);-->
+<!--      color: #fff;-->
+<!--      border-color: var(&#45;&#45;primary);-->
+<!--    }-->
+
+<!--    select {-->
+<!--      padding: 6px 10px;-->
+<!--      border-radius: 6px;-->
+<!--      border: 1px solid var(&#45;&#45;border-color);-->
+<!--      background-color: #fff;-->
+<!--      font-size: 13px;-->
+<!--      color: var(&#45;&#45;text-main);-->
+<!--      max-width: 250px;-->
+<!--      outline: none;-->
+<!--      cursor: pointer;-->
+<!--    }-->
+
+<!--    /* 主容器 */-->
+<!--    main {-->
+<!--      flex: 1;-->
+<!--      display: flex;-->
+<!--      overflow: hidden;-->
+<!--      padding: 16px;-->
+<!--      gap: 16px;-->
+<!--      max-width: 1200px;-->
+<!--      width: 100%;-->
+<!--      margin: 0 auto;-->
+<!--    }-->
+
+<!--    .input-panel {-->
+<!--      flex: 1;-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      background: var(&#45;&#45;card-bg);-->
+<!--      border-radius: 12px;-->
+<!--      border: 1px solid var(&#45;&#45;border-color);-->
+<!--      box-shadow: var(&#45;&#45;shadow);-->
+<!--      padding: 16px;-->
+<!--      gap: 12px;-->
+<!--    }-->
+
+<!--    textarea {-->
+<!--      flex: 1;-->
+<!--      border: 1px dashed var(&#45;&#45;border-color);-->
+<!--      border-radius: 8px;-->
+<!--      padding: 16px;-->
+<!--      font-size: 15px;-->
+<!--      line-height: 1.6;-->
+<!--      resize: none;-->
+<!--      outline: none;-->
+<!--      font-family: inherit;-->
+<!--      background: #fafafa;-->
+<!--    }-->
+
+<!--    textarea:focus {-->
+<!--      border-color: var(&#45;&#45;primary);-->
+<!--      background: #fff;-->
+<!--    }-->
+
+<!--    .reader-panel {-->
+<!--      flex: 1;-->
+<!--      background: var(&#45;&#45;card-bg);-->
+<!--      border-radius: 12px;-->
+<!--      border: 1px solid var(&#45;&#45;border-color);-->
+<!--      box-shadow: var(&#45;&#45;shadow);-->
+<!--      padding: 30px;-->
+<!--      overflow-y: auto;-->
+<!--      font-size: 18px;-->
+<!--      line-height: 2;-->
+<!--      color: #334155;-->
+<!--      scroll-behavior: smooth;-->
+<!--    }-->
+
+<!--    .reader-panel p {-->
+<!--      margin-bottom: 1.2em;-->
+<!--    }-->
+
+<!--    .sentence {-->
+<!--      cursor: pointer;-->
+<!--      border-radius: 4px;-->
+<!--      padding: 2px 3px;-->
+<!--      transition: background 0.15s ease, color 0.15s ease;-->
+<!--    }-->
+
+<!--    .sentence:hover {-->
+<!--      background-color: #e0f2fe;-->
+<!--      color: #0369a1;-->
+<!--    }-->
+
+<!--    .sentence.active {-->
+<!--      background-color: var(&#45;&#45;highlight-bg);-->
+<!--      color: var(&#45;&#45;highlight-text);-->
+<!--      font-weight: 600;-->
+<!--      box-shadow: 0 0 0 2px #facc15;-->
+<!--    }-->
+
+<!--    .hidden { display: none !important; }-->
+<!--    .file-input { display: none; }-->
+<!--    .tip { font-size: 13px; color: var(&#45;&#45;text-muted); }-->
+<!--  </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--  &lt;!&ndash; 控制栏 &ndash;&gt;-->
+<!--  <header>-->
+<!--    <div class="ctrl-group">-->
+<!--      <button id="playBtn">▶ 朗读</button>-->
+<!--      <button id="stopBtn" class="secondary">⏹ 停止</button>-->
+<!--      <button id="editBtn" class="secondary">✏️ 粘贴/上传文本</button>-->
+<!--    </div>-->
+
+<!--    <div class="ctrl-group">-->
+<!--      &lt;!&ndash; 0.5x - 2.0x 真实有效区间 &ndash;&gt;-->
+<!--      <div class="speed-container">-->
+<!--        <span style="font-size: 12px; color: var(&#45;&#45;text-muted);">倍速:</span>-->
+<!--        <input type="range" id="rateRange" min="0.5" max="2.0" step="0.1" value="1.0">-->
+<!--        <span id="rateVal" class="speed-badge">1.0x</span>-->
+
+<!--        <div style="display: flex; gap: 3px;">-->
+<!--          <button class="quick-speed-btn" data-speed="0.8">0.8x</button>-->
+<!--          <button class="quick-speed-btn active" data-speed="1.0">1.0x</button>-->
+<!--          <button class="quick-speed-btn" data-speed="1.3">1.3x</button>-->
+<!--          <button class="quick-speed-btn" data-speed="1.6">1.6x</button>-->
+<!--          <button class="quick-speed-btn" data-speed="2.0">2.0x</button>-->
+<!--        </div>-->
+<!--      </div>-->
+
+<!--      &lt;!&ndash; 语音角色选择 &ndash;&gt;-->
+<!--      <select id="voiceSelect" title="优先使用推荐的声音"></select>-->
+
+<!--      &lt;!&ndash; 文件上传 &ndash;&gt;-->
+<!--      <input type="file" id="fileInput" class="file-input" accept=".txt,.md,.text">-->
+<!--      <button id="uploadBtn" class="secondary">📁 上传文件</button>-->
+<!--    </div>-->
+<!--  </header>-->
+
+<!--  &lt;!&ndash; 主内容区 &ndash;&gt;-->
+<!--  <main>-->
+<!--    <div class="input-panel" id="inputPanel">-->
+<!--      <div style="display: flex; justify-content: space-between; align-items: center;">-->
+<!--        <span class="tip">粘贴长文本或上传文本文件，点击右侧进入：</span>-->
+<!--        <button id="confirmTextBtn">进入朗读模式</button>-->
+<!--      </div>-->
+<!--      <textarea id="textInput" placeholder="请在此处粘贴或输入你想朗读的长篇文字内容..."></textarea>-->
+<!--    </div>-->
+
+<!--    <div class="reader-panel hidden" id="readerPanel"></div>-->
+<!--  </main>-->
+
+<!--  <script>-->
+<!--    const synth = window.speechSynthesis;-->
+<!--    let voices = [];-->
+<!--    let sentences = [];-->
+<!--    let currentIndex = -1;-->
+<!--    let isPlaying = false;-->
+<!--    let currentRate = 1.0;-->
+<!--    let selectedVoiceURI = '';-->
+
+<!--    // 防卡死看门狗与防抖-->
+<!--    let watchdogTimer = null;-->
+<!--    let debounceTimer = null;-->
+<!--    window.activeUtterance = null; // 强引用防 GC-->
+
+<!--    const playBtn = document.getElementById('playBtn');-->
+<!--    const stopBtn = document.getElementById('stopBtn');-->
+<!--    const editBtn = document.getElementById('editBtn');-->
+<!--    const rateRange = document.getElementById('rateRange');-->
+<!--    const rateVal = document.getElementById('rateVal');-->
+<!--    const voiceSelect = document.getElementById('voiceSelect');-->
+<!--    const fileInput = document.getElementById('fileInput');-->
+<!--    const uploadBtn = document.getElementById('uploadBtn');-->
+<!--    const inputPanel = document.getElementById('inputPanel');-->
+<!--    const readerPanel = document.getElementById('readerPanel');-->
+<!--    const textInput = document.getElementById('textInput');-->
+<!--    const confirmTextBtn = document.getElementById('confirmTextBtn');-->
+
+<!--    textInput.value = `防卡死永不断音架构已生效！-->
+<!--针对浏览器朗读到一半突然没声音的问题，已完成重构：-->
+<!--1. 自动阅读下一句时，彻底移除了导致底层死锁的 cancel 信号，句子之间自然衔接。-->
+<!--2. 增加了后台“看门狗监控”，即使浏览器偶发假死，也会在设定时间内自动强行唤醒并继续向下读。-->
+<!--3. 鼠标随意点击正文中任何一句话，都能瞬间跳转过去无缝接着播放。-->
+<!--4. 现在你可以放心地粘贴上万字的长篇文章或小说，享受持续稳定的听书体验！`;-->
+
+<!--    // 1. 初始化发音人-->
+<!--    function loadVoices() {-->
+<!--      voices = synth.getVoices();-->
+<!--      if (!voices || voices.length === 0) return;-->
+
+<!--      voiceSelect.innerHTML = '';-->
+<!--      const localVoices = [];-->
+<!--      const remoteVoices = [];-->
+
+<!--      voices.forEach((v) => {-->
+<!--        if (v.localService) localVoices.push(v);-->
+<!--        else remoteVoices.push(v);-->
+<!--      });-->
+
+<!--      const sorted = [...localVoices, ...remoteVoices];-->
+<!--      let bestIndex = 0;-->
+
+<!--      sorted.forEach((voice, index) => {-->
+<!--        const option = document.createElement('option');-->
+<!--        option.value = voice.voiceURI;-->
+<!--        const tag = voice.localService ? ' [推荐/支持变速]' : ' [网络音色]';-->
+<!--        option.textContent = `${voice.name}${tag} (${voice.lang})`;-->
+<!--        voiceSelect.appendChild(option);-->
+
+<!--        if (selectedVoiceURI && voice.voiceURI === selectedVoiceURI) {-->
+<!--          bestIndex = index;-->
+<!--        } else if (!selectedVoiceURI && voice.localService && (voice.lang.includes('zh') || voice.lang.includes('CN'))) {-->
+<!--          bestIndex = index;-->
+<!--          selectedVoiceURI = voice.voiceURI;-->
+<!--        }-->
+<!--      });-->
+
+<!--      voiceSelect.selectedIndex = bestIndex;-->
+<!--      if (sorted[bestIndex]) {-->
+<!--        selectedVoiceURI = sorted[bestIndex].voiceURI;-->
+<!--      }-->
+<!--    }-->
+
+<!--    if (speechSynthesis.onvoiceschanged !== undefined) {-->
+<!--      speechSynthesis.onvoiceschanged = loadVoices;-->
+<!--    }-->
+<!--    loadVoices();-->
+
+<!--    // 2. 文本解析为句子-->
+<!--    function parseAndRenderText(rawText) {-->
+<!--      readerPanel.innerHTML = '';-->
+<!--      sentences = [];-->
+<!--      currentIndex = -1;-->
+
+<!--      const paragraphs = rawText.split(/\n+/);-->
+<!--      let count = 0;-->
+
+<!--      paragraphs.forEach(para => {-->
+<!--        if (!para.trim()) return;-->
+<!--        const p = document.createElement('p');-->
+<!--        // 按标点切分，过滤空字符-->
+<!--        const matched = para.match(/[^。！？.!?；;\n]+[。！？.!?；;\n]*|.+$/g) || [para];-->
+
+<!--        matched.forEach(str => {-->
+<!--          const trimmed = str.trim();-->
+<!--          if (!trimmed) return;-->
+
+<!--          const span = document.createElement('span');-->
+<!--          span.className = 'sentence';-->
+<!--          span.textContent = str;-->
+<!--          span.dataset.index = count;-->
+
+<!--          // 手动点击：触发手动跳转-->
+<!--          span.addEventListener('click', () => {-->
+<!--            jumpToSentence(parseInt(span.dataset.index, 10));-->
+<!--          });-->
+
+<!--          p.appendChild(span);-->
+<!--          sentences.push({ text: trimmed, elem: span });-->
+<!--          count++;-->
+<!--        });-->
+
+<!--        readerPanel.appendChild(p);-->
+<!--      });-->
+<!--    }-->
+
+<!--    // 3. 核心朗读执行（区分手动跳转还是自动连读）-->
+<!--    function executePlay(index, isManualJump = false) {-->
+<!--      if (index < 0 || index >= sentences.length) {-->
+<!--        stopReading();-->
+<!--        return;-->
+<!--      }-->
+
+<!--      // 清除之前的看门狗-->
+<!--      clearTimeout(watchdogTimer);-->
+<!--      currentIndex = index;-->
+
+<!--      // 更新高亮与自动滚动-->
+<!--      document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));-->
+<!--      const activeElem = sentences[currentIndex].elem;-->
+<!--      activeElem.classList.add('active');-->
+<!--      activeElem.scrollIntoView({ behavior: 'smooth', block: 'center' });-->
+
+<!--      // 发音逻辑封装-->
+<!--      const doSpeak = () => {-->
+<!--        const text = sentences[currentIndex].text;-->
+<!--        const utter = new SpeechSynthesisUtterance(text);-->
+<!--        window.activeUtterance = utter; // 强引用防 GC 回收-->
+
+<!--        utter.rate = Math.min(2.0, Math.max(0.1, currentRate));-->
+<!--        const currentVoice = voices.find(v => v.voiceURI === selectedVoiceURI);-->
+<!--        if (currentVoice) {-->
+<!--          utter.voice = currentVoice;-->
+<!--          utter.lang = currentVoice.lang;-->
+<!--        }-->
+
+<!--        // 正常播完：自动下一句（不执行 cancel，防止底层死锁）-->
+<!--        utter.onend = () => {-->
+<!--          clearTimeout(watchdogTimer);-->
+<!--          if (isPlaying) {-->
+<!--            executePlay(currentIndex + 1, false);-->
+<!--          }-->
+<!--        };-->
+
+<!--        // 异常处理-->
+<!--        utter.onerror = (e) => {-->
+<!--          clearTimeout(watchdogTimer);-->
+<!--          if (e.error !== 'interrupted' && e.error !== 'canceled') {-->
+<!--            console.warn('语音通道跳过:', e.error);-->
+<!--            if (isPlaying) executePlay(currentIndex + 1, false);-->
+<!--          }-->
+<!--        };-->
+
+<!--        // 启动看门狗：如果本句超过预估时间仍未触发 onend，强制自愈唤醒下一句-->
+<!--        const estimatedMs = Math.max(3000, (text.length / (2.0 * currentRate)) * 1000 + 3000);-->
+<!--        watchdogTimer = setTimeout(() => {-->
+<!--          if (isPlaying && currentIndex === index) {-->
+<!--            console.warn('看门狗触发：检测到浏览器底层停滞，自动唤醒下一句');-->
+<!--            synth.cancel();-->
+<!--            setTimeout(() => executePlay(index + 1, true), 50);-->
+<!--          }-->
+<!--        }, estimatedMs);-->
+
+<!--        // 如果浏览器由于其他原因处于暂停态，先恢复-->
+<!--        if (synth.paused) synth.resume();-->
+<!--        synth.speak(utter);-->
+<!--      };-->
+
+<!--      if (isManualJump) {-->
+<!--        // 手动跳转才需要 cancel，并预留 60ms 给底层缓冲-->
+<!--        synth.cancel();-->
+<!--        setTimeout(doSpeak, 60);-->
+<!--      } else {-->
+<!--        doSpeak();-->
+<!--      }-->
+
+<!--      isPlaying = true;-->
+<!--      playBtn.textContent = '⏸ 暂停';-->
+<!--    }-->
+
+<!--    function jumpToSentence(index) {-->
+<!--      isPlaying = true;-->
+<!--      executePlay(index, true);-->
+<!--    }-->
+
+<!--    function stopReading() {-->
+<!--      clearTimeout(watchdogTimer);-->
+<!--      synth.cancel();-->
+<!--      window.activeUtterance = null;-->
+<!--      isPlaying = false;-->
+<!--      playBtn.textContent = '▶ 朗读';-->
+<!--      document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));-->
+<!--      currentIndex = -1;-->
+<!--    }-->
+
+<!--    // 4. 倍速控制-->
+<!--    function setSpeed(val) {-->
+<!--      currentRate = parseFloat(val);-->
+<!--      rateRange.value = currentRate;-->
+<!--      rateVal.textContent = `${currentRate.toFixed(1)}x`;-->
+
+<!--      document.querySelectorAll('.quick-speed-btn').forEach(btn => {-->
+<!--        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === currentRate);-->
+<!--      });-->
+
+<!--      // 语速切换使用防抖重新加载当前句-->
+<!--      if (isPlaying && currentIndex !== -1) {-->
+<!--        clearTimeout(debounceTimer);-->
+<!--        debounceTimer = setTimeout(() => {-->
+<!--          executePlay(currentIndex, true);-->
+<!--        }, 150);-->
+<!--      }-->
+<!--    }-->
+
+<!--    rateRange.addEventListener('input', (e) => setSpeed(e.target.value));-->
+
+<!--    document.querySelectorAll('.quick-speed-btn').forEach(btn => {-->
+<!--      btn.addEventListener('click', () => setSpeed(btn.dataset.speed));-->
+<!--    });-->
+
+<!--    voiceSelect.addEventListener('change', (e) => {-->
+<!--      selectedVoiceURI = e.target.value;-->
+<!--      if (isPlaying && currentIndex !== -1) {-->
+<!--        executePlay(currentIndex, true);-->
+<!--      }-->
+<!--    });-->
+
+<!--    // 播放/暂停-->
+<!--    playBtn.addEventListener('click', () => {-->
+<!--      if (readerPanel.classList.contains('hidden')) {-->
+<!--        switchToReader();-->
+<!--      }-->
+
+<!--      if (isPlaying) {-->
+<!--        clearTimeout(watchdogTimer);-->
+<!--        synth.cancel();-->
+<!--        isPlaying = false;-->
+<!--        playBtn.textContent = '▶ 继续';-->
+<!--      } else {-->
+<!--        isPlaying = true;-->
+<!--        if (currentIndex === -1 || currentIndex >= sentences.length) {-->
+<!--          executePlay(0, true);-->
+<!--        } else {-->
+<!--          executePlay(currentIndex, true);-->
+<!--        }-->
+<!--      }-->
+<!--    });-->
+
+<!--    stopBtn.addEventListener('click', stopReading);-->
+
+<!--    function switchToReader() {-->
+<!--      const text = textInput.value;-->
+<!--      if (!text.trim()) {-->
+<!--        alert('请先输入或上传文字！');-->
+<!--        return;-->
+<!--      }-->
+<!--      parseAndRenderText(text);-->
+<!--      inputPanel.classList.add('hidden');-->
+<!--      readerPanel.classList.remove('hidden');-->
+<!--    }-->
+
+<!--    confirmTextBtn.addEventListener('click', switchToReader);-->
+
+<!--    editBtn.addEventListener('click', () => {-->
+<!--      stopReading();-->
+<!--      readerPanel.classList.add('hidden');-->
+<!--      inputPanel.classList.remove('hidden');-->
+<!--    });-->
+
+<!--    uploadBtn.addEventListener('click', () => fileInput.click());-->
+<!--    fileInput.addEventListener('change', (e) => {-->
+<!--      const file = e.target.files[0];-->
+<!--      if (!file) return;-->
+
+<!--      const reader = new FileReader();-->
+<!--      reader.onload = (event) => {-->
+<!--        textInput.value = event.target.result;-->
+<!--        switchToReader();-->
+<!--      };-->
+<!--      reader.readAsText(file, 'UTF-8');-->
+<!--      fileInput.value = '';-->
+<!--    });-->
+<!--  </script>-->
+<!--</body>-->
+<!--</html>-->
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>沉浸式语音朗读器（手机/电脑通用版）</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --highlight-bg: #fef08a;
+      --highlight-text: #854d0e;
+      --border-color: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh; /* 适配移动端动态地址栏 */
+      overflow: hidden;
+    }
+
+    /* 微信/环境不支持横幅 */
+    #envNotice {
+      display: none;
+      background: #ef4444;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.4;
+      z-index: 999;
+    }
+
+    /* 顶部控制栏 */
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      white-space: nowrap;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active { transform: scale(0.96); }
+    button:hover { background: var(--primary-hover); }
+
+    button.secondary {
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    button.secondary:hover { background: #cbd5e1; }
+
+    /* 倍速控制模块 */
+    .speed-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .speed-container input[type="range"] {
+      width: 70px;
+      cursor: pointer;
+    }
+
+    .speed-badge {
+      min-width: 36px;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 12px;
+    }
+
+    .quick-speed-btn {
+      padding: 2px 6px;
+      font-size: 11px;
+      background: #fff;
+      color: #475569;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .quick-speed-btn:hover, .quick-speed-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    select {
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: #fff;
+      font-size: 12px;
+      color: var(--text-main);
+      max-width: 150px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* 主容器 */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      padding: 12px;
+      gap: 12px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .input-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      gap: 10px;
+    }
+
+    textarea {
+      flex: 1;
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      background: #fafafa;
+      -webkit-appearance: none;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    .reader-panel {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+      padding: 20px 16px;
+      overflow-y: auto;
+      font-size: 17px;
+      line-height: 1.9;
+      color: #334155;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .reader-panel p {
+      margin-bottom: 1.2em;
+    }
+
+    .sentence {
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 2px;
+      transition: background 0.15s ease, color 0.15s ease;
+      display: inline;
+    }
+
+    .sentence:hover {
+      background-color: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .sentence.active {
+      background-color: var(--highlight-bg);
+      color: var(--highlight-text);
+      font-weight: 600;
+      box-shadow: 0 0 0 2px #facc15;
+    }
+
+    .hidden { display: none !important; }
+    .file-input { display: none; }
+    .tip { font-size: 12px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <!-- 环境检测异常提示 -->
+  <div id="envNotice"></div>
+
+  <!-- 控制栏 -->
+  <header>
+    <div class="ctrl-row">
+      <div class="ctrl-group">
+        <button id="playBtn">▶ 朗读</button>
+        <button id="stopBtn" class="secondary">⏹ 停止</button>
+        <button id="editBtn" class="secondary">✏️ 换文本</button>
+      </div>
+      <div class="ctrl-group">
+        <input type="file" id="fileInput" class="file-input" accept=".txt,.md,.text">
+        <button id="uploadBtn" class="secondary">📁 传文件</button>
+      </div>
+    </div>
+
+    <div class="ctrl-row">
+      <div class="speed-container">
+        <span style="font-size: 11px; color: var(--text-muted);">倍速:</span>
+        <input type="range" id="rateRange" min="0.5" max="2.0" step="0.1" value="1.0">
+        <span id="rateVal" class="speed-badge">1.0x</span>
+
+        <button class="quick-speed-btn" data-speed="0.8">0.8</button>
+        <button class="quick-speed-btn active" data-speed="1.0">1.0</button>
+        <button class="quick-speed-btn" data-speed="1.3">1.3</button>
+        <button class="quick-speed-btn" data-speed="1.6">1.6</button>
+      </div>
+
+      <select id="voiceSelect" title="发音角色"></select>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main>
+    <div class="input-panel" id="inputPanel">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span class="tip">粘贴文字后点击进入朗读：</span>
+        <button id="confirmTextBtn">进入朗读模式</button>
+      </div>
+      <textarea id="textInput" placeholder="在此粘贴长篇文本或小说..."></textarea>
+    </div>
+
+    <div class="reader-panel hidden" id="readerPanel"></div>
+  </main>
+
+  <script>
+    // 0. 环境检测（微信/WebView/Web Speech 支持度判断）
+    const envNotice = document.getElementById('envNotice');
+    const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+    const hasSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+    if (!hasSpeech) {
+      envNotice.style.display = 'block';
+      envNotice.innerHTML = '⚠️ 您的手机浏览器不支持文字朗读接口，请改用 <b>系统自带 Safari（苹果）</b> 或 <b>Chrome / Edge 浏览器</b> 打开。';
+    } else if (isWeChat) {
+      envNotice.style.display = 'block';
+      envNotice.innerHTML = '⚠️ 微信内置浏览器禁用了朗读功能。请点击右上角【···】，选择【在浏览器中打开】！';
+    }
+
+    const synth = window.speechSynthesis;
+    let voices = [];
+    let sentences = [];
+    let currentIndex = -1;
+    let isPlaying = false;
+    let currentRate = 1.0;
+    let selectedVoiceURI = '';
+
+    // 防卡死看门狗与强引用
+    let watchdogTimer = null;
+    let debounceTimer = null;
+    window.activeUtterance = null; // 防垃圾回收断音
+
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const editBtn = document.getElementById('editBtn');
+    const rateRange = document.getElementById('rateRange');
+    const rateVal = document.getElementById('rateVal');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const inputPanel = document.getElementById('inputPanel');
+    const readerPanel = document.getElementById('readerPanel');
+    const textInput = document.getElementById('textInput');
+    const confirmTextBtn = document.getElementById('confirmTextBtn');
+
+    textInput.value = `手机端无障碍朗读已优化生效！
+针对手机经常不读、无声的问题，已完成以下适配：
+1. 修复了手机手势信任机制：点击后立即同步触发发音，不再被手机系统静默拦截。
+2. 强制增加了中文语言兜底协议，防止系统因无法识别语种而罢工。
+3. 提示：iPhone 用户若听不到声音，请务必确认手机左侧物理“静音拨片”没有拨到静音状态。
+4. 现在可以随意点击任意段落，手机端也能丝滑连读！`;
+
+    // 1. 加载并更新发音人
+    function loadVoices() {
+      if (!synth) return;
+      voices = synth.getVoices() || [];
+      voiceSelect.innerHTML = '';
+
+      if (voices.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '默认系统中文声音';
+        voiceSelect.appendChild(opt);
+        return;
+      }
+
+      let bestIndex = 0;
+      voices.forEach((voice, index) => {
+        const isChinese = voice.lang.includes('zh') || voice.lang.includes('CN');
+        const option = document.createElement('option');
+        option.value = voice.voiceURI;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
+
+        if (selectedVoiceURI && voice.voiceURI === selectedVoiceURI) {
+          bestIndex = index;
+        } else if (!selectedVoiceURI && isChinese) {
+          bestIndex = index;
+          selectedVoiceURI = voice.voiceURI;
+        }
+      });
+
+      voiceSelect.selectedIndex = bestIndex;
+      if (voices[bestIndex]) {
+        selectedVoiceURI = voices[bestIndex].voiceURI;
+      }
+    }
+
+    if (synth) {
+      loadVoices();
+      if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+
+    // 2. 解析文本分句
+    function parseAndRenderText(rawText) {
+      readerPanel.innerHTML = '';
+      sentences = [];
+      currentIndex = -1;
+
+      const paragraphs = rawText.split(/\n+/);
+      let count = 0;
+
+      paragraphs.forEach(para => {
+        if (!para.trim()) return;
+        const p = document.createElement('p');
+        const matched = para.match(/[^。！？.!?；;\n]+[。！？.!?；;\n]*|.+$/g) || [para];
+
+        matched.forEach(str => {
+          const trimmed = str.trim();
+          if (!trimmed) return;
+
+          const span = document.createElement('span');
+          span.className = 'sentence';
+          span.textContent = str;
+          span.dataset.index = count;
+
+          span.addEventListener('click', () => {
+            jumpToSentence(parseInt(span.dataset.index, 10));
+          });
+
+          p.appendChild(span);
+          sentences.push({ text: trimmed, elem: span });
+          count++;
+        });
+
+        readerPanel.appendChild(p);
+      });
+    }
+
+    // 3. 执行朗读核心（移动端核心修复点）
+    function executePlay(index, isUserClick = false) {
+      if (!synth) {
+        alert('当前浏览器不支持朗读！');
+        return;
+      }
+
+      if (index < 0 || index >= sentences.length) {
+        stopReading();
+        return;
+      }
+
+      clearTimeout(watchdogTimer);
+      currentIndex = index;
+
+      // 高亮当前句
+      document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));
+      const activeElem = sentences[currentIndex].elem;
+      activeElem.classList.add('active');
+      activeElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      const text = sentences[currentIndex].text;
+      const utter = new SpeechSynthesisUtterance(text);
+      window.activeUtterance = utter; // 强引用防止被 GC 导致停止
+
+      utter.rate = Math.min(2.0, Math.max(0.1, currentRate));
+
+      // 关键：必须给 lang 设保底值，防止手机系统不发声
+      utter.lang = 'zh-CN';
+
+      if (voices.length > 0) {
+        const currentVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
+        if (currentVoice) {
+          utter.voice = currentVoice;
+          utter.lang = currentVoice.lang || 'zh-CN';
+        }
+      }
+
+      // 朗读结束：递归下一句
+      utter.onend = () => {
+        clearTimeout(watchdogTimer);
+        if (isPlaying) {
+          executePlay(currentIndex + 1, false);
+        }
+      };
+
+      // 错误处理
+      utter.onerror = (e) => {
+        clearTimeout(watchdogTimer);
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          console.warn('朗读跳过错误:', e.error);
+          if (isPlaying) executePlay(currentIndex + 1, false);
+        }
+      };
+
+      // 手机防死锁看门狗
+      const estimatedMs = Math.max(3000, (text.length / (2.0 * currentRate)) * 1000 + 4000);
+      watchdogTimer = setTimeout(() => {
+        if (isPlaying && currentIndex === index) {
+          console.warn('看门狗介入：强制换下一句');
+          synth.cancel();
+          executePlay(index + 1, false);
+        }
+      }, estimatedMs);
+
+      // 如果手动跳转，先清空队列，但绝对不要用 setTimeout
+      if (isUserClick) {
+        synth.cancel();
+      }
+
+      if (synth.paused) synth.resume();
+
+      // 同步触发发音，保持移动端手势链条完整
+      synth.speak(utter);
+
+      isPlaying = true;
+      playBtn.textContent = '⏸ 暂停';
+    }
+
+    function jumpToSentence(index) {
+      isPlaying = true;
+      executePlay(index, true);
+    }
+
+    function stopReading() {
+      clearTimeout(watchdogTimer);
+      if (synth) synth.cancel();
+      window.activeUtterance = null;
+      isPlaying = false;
+      playBtn.textContent = '▶ 朗读';
+      document.querySelectorAll('.sentence.active').forEach(el => el.classList.remove('active'));
+      currentIndex = -1;
+    }
+
+    // 4. 倍速
+    function setSpeed(val) {
+      currentRate = parseFloat(val);
+      rateRange.value = currentRate;
+      rateVal.textContent = `${currentRate.toFixed(1)}x`;
+
+      document.querySelectorAll('.quick-speed-btn').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === currentRate);
+      });
+
+      if (isPlaying && currentIndex !== -1) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          executePlay(currentIndex, true);
+        }, 150);
+      }
+    }
+
+    rateRange.addEventListener('input', (e) => setSpeed(e.target.value));
+
+    document.querySelectorAll('.quick-speed-btn').forEach(btn => {
+      btn.addEventListener('click', () => setSpeed(btn.dataset.speed));
+    });
+
+    voiceSelect.addEventListener('change', (e) => {
+      selectedVoiceURI = e.target.value;
+      if (isPlaying && currentIndex !== -1) {
+        executePlay(currentIndex, true);
+      }
+    });
+
+    // 播放/暂停（必须保持同步无延迟触发）
+    playBtn.addEventListener('click', () => {
+      // 若 voices 还没拉取到，趁着点击交互再拉一次
+      if (voices.length === 0) loadVoices();
+
+      if (readerPanel.classList.contains('hidden')) {
+        switchToReader();
+      }
+
+      if (isPlaying) {
+        clearTimeout(watchdogTimer);
+        synth.cancel();
+        isPlaying = false;
+        playBtn.textContent = '▶ 继续';
+      } else {
+        isPlaying = true;
+        const target = (currentIndex === -1 || currentIndex >= sentences.length) ? 0 : currentIndex;
+        executePlay(target, true);
+      }
+    });
+
+    stopBtn.addEventListener('click', stopReading);
+
+    function switchToReader() {
+      const text = textInput.value;
+      if (!text.trim()) {
+        alert('请先输入或上传文字！');
+        return;
+      }
+      parseAndRenderText(text);
+      inputPanel.classList.add('hidden');
+      readerPanel.classList.remove('hidden');
+    }
+
+    confirmTextBtn.addEventListener('click', switchToReader);
+
+    editBtn.addEventListener('click', () => {
+      stopReading();
+      readerPanel.classList.add('hidden');
+      inputPanel.classList.remove('hidden');
+    });
+
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        textInput.value = event.target.result;
+        switchToReader();
+      };
+      reader.readAsText(file, 'UTF-8');
+      fileInput.value = '';
+    });
+  </script>
+</body>
+</html>
