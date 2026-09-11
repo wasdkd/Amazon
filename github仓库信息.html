@@ -1,0 +1,1365 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--<meta charset="UTF-8">-->
+<!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--<title>Amazon 仓库文件浏览器</title>-->
+<!--<style>-->
+<!--  * { box-sizing: border-box; margin: 0; padding: 0; }-->
+<!--  body {-->
+<!--    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;-->
+<!--    background: #f6f8fa;-->
+<!--    color: #1f2328;-->
+<!--    line-height: 1.5;-->
+<!--    padding: 20px;-->
+<!--  }-->
+<!--  .container { max-width: 1100px; margin: 0 auto; }-->
+<!--  header {-->
+<!--    display: flex;-->
+<!--    align-items: center;-->
+<!--    gap: 12px;-->
+<!--    margin-bottom: 20px;-->
+<!--    flex-wrap: wrap;-->
+<!--  }-->
+<!--  header h1 { font-size: 22px; font-weight: 600; }-->
+<!--  header .badge {-->
+<!--    background: #0969da;-->
+<!--    color: #fff;-->
+<!--    font-size: 12px;-->
+<!--    padding: 2px 8px;-->
+<!--    border-radius: 20px;-->
+<!--  }-->
+<!--  #status {-->
+<!--    text-align: center;-->
+<!--    padding: 40px 0;-->
+<!--    color: #656d76;-->
+<!--    font-size: 15px;-->
+<!--  }-->
+<!--  #status.error { color: #cf222e; }-->
+
+<!--  /* 分享视图 */-->
+<!--  #share-view { display: none; }-->
+<!--  #share-view.active { display: block; }-->
+<!--  .share-card {-->
+<!--    background: #fff;-->
+<!--    border: 1px solid #d0d7de;-->
+<!--    border-radius: 8px;-->
+<!--    padding: 24px;-->
+<!--    text-align: center;-->
+<!--  }-->
+<!--  .share-card .file-icon { font-size: 48px; margin-bottom: 12px; }-->
+<!--  .share-card .file-name { font-size: 18px; font-weight: 600; word-break: break-all; }-->
+<!--  .share-card .file-meta { color: #656d76; font-size: 14px; margin: 8px 0 20px; }-->
+<!--  .share-card .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }-->
+<!--  .btn {-->
+<!--    display: inline-flex;-->
+<!--    align-items: center;-->
+<!--    gap: 6px;-->
+<!--    padding: 8px 16px;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 14px;-->
+<!--    font-weight: 500;-->
+<!--    border: 1px solid #d0d7de;-->
+<!--    background: #f6f8fa;-->
+<!--    color: #1f2328;-->
+<!--    cursor: pointer;-->
+<!--    text-decoration: none;-->
+<!--    transition: background .15s;-->
+<!--  }-->
+<!--  .btn:hover { background: #eaeef2; }-->
+<!--  .btn-primary {-->
+<!--    background: #1f883d;-->
+<!--    border-color: #1f883d;-->
+<!--    color: #fff;-->
+<!--  }-->
+<!--  .btn-primary:hover { background: #1a7f37; }-->
+<!--  .btn-sm { padding: 4px 10px; font-size: 13px; }-->
+
+<!--  /* 主视图 */-->
+<!--  #main-view { display: none; }-->
+<!--  #main-view.active { display: block; }-->
+
+<!--  .toolbar {-->
+<!--    display: flex;-->
+<!--    gap: 10px;-->
+<!--    margin-bottom: 16px;-->
+<!--    flex-wrap: wrap;-->
+<!--    align-items: center;-->
+<!--  }-->
+<!--  .toolbar input {-->
+<!--    flex: 1;-->
+<!--    min-width: 200px;-->
+<!--    padding: 8px 12px;-->
+<!--    border: 1px solid #d0d7de;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 14px;-->
+<!--  }-->
+<!--  .stats { font-size: 13px; color: #656d76; }-->
+
+<!--  .category {-->
+<!--    background: #fff;-->
+<!--    border: 1px solid #d0d7de;-->
+<!--    border-radius: 8px;-->
+<!--    margin-bottom: 12px;-->
+<!--    overflow: hidden;-->
+<!--  }-->
+<!--  .category summary {-->
+<!--    display: flex;-->
+<!--    align-items: center;-->
+<!--    gap: 8px;-->
+<!--    padding: 12px 16px;-->
+<!--    cursor: pointer;-->
+<!--    font-weight: 600;-->
+<!--    font-size: 15px;-->
+<!--    user-select: none;-->
+<!--    list-style: none;-->
+<!--  }-->
+<!--  .category summary::-webkit-details-marker { display: none; }-->
+<!--  .category summary::before {-->
+<!--    content: "▸";-->
+<!--    display: inline-block;-->
+<!--    transition: transform .2s;-->
+<!--    font-size: 12px;-->
+<!--    color: #656d76;-->
+<!--  }-->
+<!--  .category[open] summary::before { transform: rotate(90deg); }-->
+<!--  .category summary .count {-->
+<!--    margin-left: auto;-->
+<!--    font-weight: 400;-->
+<!--    font-size: 13px;-->
+<!--    color: #656d76;-->
+<!--    background: #f6f8fa;-->
+<!--    padding: 1px 8px;-->
+<!--    border-radius: 20px;-->
+<!--  }-->
+
+<!--  .file-list { border-top: 1px solid #d0d7de; }-->
+<!--  .file-item {-->
+<!--    display: flex;-->
+<!--    align-items: center;-->
+<!--    gap: 10px;-->
+<!--    padding: 10px 16px;-->
+<!--    border-bottom: 1px solid #eaeef2;-->
+<!--    font-size: 14px;-->
+<!--  }-->
+<!--  .file-item:last-child { border-bottom: none; }-->
+<!--  .file-item:hover { background: #f6f8fa; }-->
+<!--  .file-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }-->
+<!--  .file-info { flex: 1; min-width: 0; }-->
+<!--  .file-name { font-weight: 500; word-break: break-all; }-->
+<!--  .file-path { font-size: 12px; color: #656d76; word-break: break-all; }-->
+<!--  .file-size { font-size: 12px; color: #656d76; white-space: nowrap; margin-right: 8px; }-->
+<!--  .file-actions { display: flex; gap: 6px; flex-shrink: 0; }-->
+
+<!--  .empty { padding: 20px; text-align: center; color: #656d76; font-size: 14px; }-->
+
+<!--  .toast {-->
+<!--    position: fixed;-->
+<!--    bottom: 24px;-->
+<!--    left: 50%;-->
+<!--    transform: translateX(-50%);-->
+<!--    background: #1f2328;-->
+<!--    color: #fff;-->
+<!--    padding: 10px 20px;-->
+<!--    border-radius: 8px;-->
+<!--    font-size: 14px;-->
+<!--    opacity: 0;-->
+<!--    transition: opacity .3s;-->
+<!--    pointer-events: none;-->
+<!--    z-index: 999;-->
+<!--  }-->
+<!--  .toast.show { opacity: 1; }-->
+
+<!--  @media (max-width: 600px) {-->
+<!--    .file-item { flex-wrap: wrap; }-->
+<!--    .file-actions { width: 100%; justify-content: flex-end; }-->
+<!--  }-->
+<!--</style>-->
+<!--</head>-->
+<!--<body>-->
+<!--<div class="container">-->
+<!--  <header>-->
+<!--    <h1>📦 Amazon 仓库</h1>-->
+<!--    <span class="badge">wasdkd/Amazon</span>-->
+<!--  </header>-->
+
+<!--  &lt;!&ndash; 加载状态 &ndash;&gt;-->
+<!--  <div id="status">正在读取仓库文件列表…</div>-->
+
+<!--  &lt;!&ndash; 单文件分享视图 &ndash;&gt;-->
+<!--  <div id="share-view">-->
+<!--    <div class="share-card">-->
+<!--      <div class="file-icon" id="share-icon">📄</div>-->
+<!--      <div class="file-name" id="share-name"></div>-->
+<!--      <div class="file-meta" id="share-meta"></div>-->
+<!--      <div class="actions">-->
+<!--        <a class="btn btn-primary" id="share-download" download>⬇ 下载文件</a>-->
+<!--        <a class="btn" href="javascript:history.back()">← 返回完整列表</a>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+
+<!--  &lt;!&ndash; 主视图 &ndash;&gt;-->
+<!--  <div id="main-view">-->
+<!--    <div class="toolbar">-->
+<!--      <input type="text" id="search" placeholder="搜索文件名…">-->
+<!--      <span class="stats" id="stats"></span>-->
+<!--    </div>-->
+<!--    <div id="categories"></div>-->
+<!--  </div>-->
+<!--</div>-->
+
+<!--<div class="toast" id="toast"></div>-->
+
+<!--<script>-->
+<!--(function() {-->
+<!--  // ========== 配置 ==========-->
+<!--  const OWNER = 'wasdkd';-->
+<!--  const REPO = 'Amazon';-->
+<!--  const BRANCH = 'main';-->
+
+<!--  const TREE_API = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;-->
+<!--  const RAW_BASE = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}`;-->
+
+<!--  // 扩展名 → 分类映射-->
+<!--  const EXT_CATEGORY = {-->
+<!--    html: 'HTML 页面', htm: 'HTML 页面',-->
+<!--    css: '样式表',-->
+<!--    js: '脚本', mjs: '脚本', cjs: '脚本',-->
+<!--    json: '数据文件', xml: '数据文件', yml: '数据文件', yaml: '数据文件',-->
+<!--    csv: '数据表格', xlsx: '数据表格', xls: '数据表格',-->
+<!--    png: '图片', jpg: '图片', jpeg: '图片', gif: '图片', svg: '图片',-->
+<!--    webp: '图片', ico: '图片', bmp: '图片',-->
+<!--    zip: '压缩包', rar: '压缩包', '7z': '压缩包', tar: '压缩包', gz: '压缩包',-->
+<!--    pdf: 'PDF 文档',-->
+<!--    md: '文档', txt: '文档', doc: '文档', docx: '文档',-->
+<!--    mp4: '音视频', mp3: '音视频', wav: '音视频', mov: '音视频',-->
+<!--    py: '代码', java: '代码', c: '代码', cpp: '代码', go: '代码', rs: '代码',-->
+<!--    ts: '代码', jsx: '代码', tsx: '代码', vue: '代码',-->
+<!--    sql: '数据库',-->
+<!--    ttf: '字体', otf: '字体', woff: '字体', woff2: '字体',-->
+<!--  };-->
+
+<!--  // 分类排序（越靠前越优先显示）-->
+<!--  const CATEGORY_ORDER = [-->
+<!--    'HTML 页面', '样式表', '脚本', '代码', '数据文件', '数据表格',-->
+<!--    '图片', '压缩包', 'PDF 文档', '文档', '音视频', '字体', '数据库', '其他文件'-->
+<!--  ];-->
+
+<!--  // 分类图标-->
+<!--  const CATEGORY_ICON = {-->
+<!--    'HTML 页面': '🌐', '样式表': '🎨', '脚本': '⚡', '代码': '💻',-->
+<!--    '数据文件': '📋', '数据表格': '📊', '图片': '🖼️', '压缩包': '🗜️',-->
+<!--    'PDF 文档': '📕', '文档': '📝', '音视频': '🎬', '字体': '🔤',-->
+<!--    '数据库': '🗄️', '其他文件': '📄'-->
+<!--  };-->
+
+<!--  // 文本类扩展名（用于决定下载方式）-->
+<!--  const TEXT_EXTS = new Set([-->
+<!--    'html','htm','css','js','mjs','cjs','json','xml','yml','yaml',-->
+<!--    'csv','md','txt','py','java','c','cpp','go','rs','ts','jsx','tsx','vue','sql'-->
+<!--  ]);-->
+
+<!--  // ========== 工具函数 ==========-->
+<!--  function formatSize(bytes) {-->
+<!--    if (bytes === undefined || bytes === null) return '';-->
+<!--    if (bytes < 1024) return bytes + ' B';-->
+<!--    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';-->
+<!--    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';-->
+<!--    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';-->
+<!--  }-->
+
+<!--  function getExt(name) {-->
+<!--    const i = name.lastIndexOf('.');-->
+<!--    return i >= 0 ? name.slice(i + 1).toLowerCase() : '';-->
+<!--  }-->
+
+<!--  function getCategory(name) {-->
+<!--    const ext = getExt(name);-->
+<!--    return EXT_CATEGORY[ext] || '其他文件';-->
+<!--  }-->
+
+<!--  function getFileIcon(name) {-->
+<!--    const ext = getExt(name);-->
+<!--    const map = {-->
+<!--      html:'🌐', htm:'🌐', css:'🎨', js:'⚡', json:'📋',-->
+<!--      png:'🖼️', jpg:'🖼️', jpeg:'🖼️', gif:'🖼️', svg:'🖼️',-->
+<!--      zip:'🗜️', rar:'🗜️', '7z':'🗜️', pdf:'📕',-->
+<!--      md:'📝', txt:'📝', csv:'📊', xlsx:'📊',-->
+<!--      mp4:'🎬', mp3:'🎵', py:'🐍',-->
+<!--    };-->
+<!--    return map[ext] || '📄';-->
+<!--  }-->
+
+<!--  function rawUrl(path) {-->
+<!--    return `${RAW_BASE}/${path.split('/').map(encodeURIComponent).join('/')}`;-->
+<!--  }-->
+
+<!--  function showToast(msg) {-->
+<!--    const t = document.getElementById('toast');-->
+<!--    t.textContent = msg;-->
+<!--    t.classList.add('show');-->
+<!--    clearTimeout(t._timer);-->
+<!--    t._timer = setTimeout(() => t.classList.remove('show'), 2200);-->
+<!--  }-->
+
+<!--  // ========== 下载 ==========-->
+<!--  async function downloadFile(file) {-->
+<!--    const path = file.path;-->
+<!--    const name = path.split('/').pop();-->
+<!--    const url = rawUrl(path);-->
+<!--    const ext = getExt(name);-->
+
+<!--    // 小文本文件用 Blob 强制下载；大文件或二进制直接打开 raw 链接-->
+<!--    if (TEXT_EXTS.has(ext) && file.size && file.size < 5 * 1024 * 1024) {-->
+<!--      try {-->
+<!--        showToast('正在获取文件…');-->
+<!--        const res = await fetch(url);-->
+<!--        if (!res.ok) throw new Error('HTTP ' + res.status);-->
+<!--        const blob = await res.blob();-->
+<!--        const objUrl = URL.createObjectURL(blob);-->
+<!--        const a = document.createElement('a');-->
+<!--        a.href = objUrl;-->
+<!--        a.download = name;-->
+<!--        document.body.appendChild(a);-->
+<!--        a.click();-->
+<!--        document.body.removeChild(a);-->
+<!--        setTimeout(() => URL.revokeObjectURL(objUrl), 5000);-->
+<!--        showToast('已开始下载');-->
+<!--        return;-->
+<!--      } catch (e) {-->
+<!--        // 降级为直接打开-->
+<!--        window.open(url, '_blank');-->
+<!--        return;-->
+<!--      }-->
+<!--    }-->
+
+<!--    // 大文件或二进制：直接打开 raw 链接（浏览器会下载或预览）-->
+<!--    const a = document.createElement('a');-->
+<!--    a.href = url;-->
+<!--    a.download = name;-->
+<!--    a.target = '_blank';-->
+<!--    document.body.appendChild(a);-->
+<!--    a.click();-->
+<!--    document.body.removeChild(a);-->
+<!--  }-->
+
+<!--  // ========== 分享链接 ==========-->
+<!--  function makeShareUrl(filePath) {-->
+<!--    const base = location.origin + location.pathname;-->
+<!--    return base + '?file=' + encodeURIComponent(filePath);-->
+<!--  }-->
+
+<!--  async function copyShareLink(filePath) {-->
+<!--    const link = makeShareUrl(filePath);-->
+<!--    try {-->
+<!--      await navigator.clipboard.writeText(link);-->
+<!--      showToast('分享链接已复制：' + link);-->
+<!--    } catch (e) {-->
+<!--      // 降级-->
+<!--      const ta = document.createElement('textarea');-->
+<!--      ta.value = link;-->
+<!--      document.body.appendChild(ta);-->
+<!--      ta.select();-->
+<!--      document.execCommand('copy');-->
+<!--      document.body.removeChild(ta);-->
+<!--      showToast('分享链接已复制');-->
+<!--    }-->
+<!--  }-->
+
+<!--  // ========== 渲染 ==========-->
+<!--  let allFiles = [];-->
+
+<!--  function renderCategories(files) {-->
+<!--    const container = document.getElementById('categories');-->
+<!--    container.innerHTML = '';-->
+
+<!--    const groups = {};-->
+<!--    files.forEach(f => {-->
+<!--      const cat = getCategory(f.path);-->
+<!--      if (!groups[cat]) groups[cat] = [];-->
+<!--      groups[cat].push(f);-->
+<!--    });-->
+
+<!--    // 排序-->
+<!--    const sortedCats = Object.keys(groups).sort((a, b) => {-->
+<!--      const ia = CATEGORY_ORDER.indexOf(a);-->
+<!--      const ib = CATEGORY_ORDER.indexOf(b);-->
+<!--      if (ia !== -1 && ib !== -1) return ia - ib;-->
+<!--      if (ia !== -1) return -1;-->
+<!--      if (ib !== -1) return 1;-->
+<!--      return a.localeCompare(b);-->
+<!--    });-->
+
+<!--    if (sortedCats.length === 0) {-->
+<!--      container.innerHTML = '<div class="empty">没有找到文件</div>';-->
+<!--      return;-->
+<!--    }-->
+
+<!--    sortedCats.forEach(cat => {-->
+<!--      const items = groups[cat].sort((a, b) => a.path.localeCompare(b.path));-->
+<!--      const details = document.createElement('details');-->
+<!--      details.className = 'category';-->
+<!--      details.open = true;-->
+
+<!--      const summary = document.createElement('summary');-->
+<!--      summary.innerHTML = `${CATEGORY_ICON[cat] || '📁'} ${cat} <span class="count">${items.length}</span>`;-->
+<!--      details.appendChild(summary);-->
+
+<!--      const list = document.createElement('div');-->
+<!--      list.className = 'file-list';-->
+
+<!--      items.forEach(f => {-->
+<!--        const name = f.path.split('/').pop();-->
+<!--        const dir = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '';-->
+<!--        const item = document.createElement('div');-->
+<!--        item.className = 'file-item';-->
+
+<!--        const icon = document.createElement('div');-->
+<!--        icon.className = 'file-icon';-->
+<!--        icon.textContent = getFileIcon(name);-->
+
+<!--        const info = document.createElement('div');-->
+<!--        info.className = 'file-info';-->
+<!--        const nameEl = document.createElement('div');-->
+<!--        nameEl.className = 'file-name';-->
+<!--        nameEl.textContent = name;-->
+<!--        info.appendChild(nameEl);-->
+<!--        if (dir) {-->
+<!--          const pathEl = document.createElement('div');-->
+<!--          pathEl.className = 'file-path';-->
+<!--          pathEl.textContent = dir + '/';-->
+<!--          info.appendChild(pathEl);-->
+<!--        }-->
+
+<!--        const sizeEl = document.createElement('div');-->
+<!--        sizeEl.className = 'file-size';-->
+<!--        sizeEl.textContent = formatSize(f.size);-->
+
+<!--        const actions = document.createElement('div');-->
+<!--        actions.className = 'file-actions';-->
+
+<!--        const dlBtn = document.createElement('button');-->
+<!--        dlBtn.className = 'btn btn-sm btn-primary';-->
+<!--        dlBtn.textContent = '⬇ 下载';-->
+<!--        dlBtn.addEventListener('click', () => downloadFile(f));-->
+
+<!--        const shareBtn = document.createElement('button');-->
+<!--        shareBtn.className = 'btn btn-sm';-->
+<!--        shareBtn.textContent = '🔗 分享';-->
+<!--        shareBtn.addEventListener('click', () => copyShareLink(f.path));-->
+
+<!--        actions.appendChild(dlBtn);-->
+<!--        actions.appendChild(shareBtn);-->
+
+<!--        item.appendChild(icon);-->
+<!--        item.appendChild(info);-->
+<!--        item.appendChild(sizeEl);-->
+<!--        item.appendChild(actions);-->
+<!--        list.appendChild(item);-->
+<!--      });-->
+
+<!--      details.appendChild(list);-->
+<!--      container.appendChild(details);-->
+<!--    });-->
+<!--  }-->
+
+<!--  function renderShareView(filePath, files) {-->
+<!--    document.getElementById('status').style.display = 'none';-->
+<!--    document.getElementById('main-view').classList.remove('active');-->
+<!--    document.getElementById('share-view').classList.add('active');-->
+
+<!--    const file = files.find(f => f.path === filePath);-->
+<!--    const name = filePath.split('/').pop();-->
+<!--    const size = file ? file.size : null;-->
+
+<!--    document.getElementById('share-icon').textContent = getFileIcon(name);-->
+<!--    document.getElementById('share-name').textContent = name;-->
+<!--    document.getElementById('share-meta').textContent = size-->
+<!--      ? formatSize(size) + '  ·  ' + (filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) + '/' : '')-->
+<!--      : '';-->
+
+<!--    const dl = document.getElementById('share-download');-->
+<!--    dl.href = rawUrl(filePath);-->
+<!--    dl.download = name;-->
+<!--    dl.addEventListener('click', function(e) {-->
+<!--      // 允许默认行为（直接下载）-->
+<!--    });-->
+<!--  }-->
+
+<!--  // ========== 搜索 ==========-->
+<!--  function setupSearch() {-->
+<!--    const input = document.getElementById('search');-->
+<!--    input.addEventListener('input', () => {-->
+<!--      const q = input.value.trim().toLowerCase();-->
+<!--      const filtered = q-->
+<!--        ? allFiles.filter(f => f.path.toLowerCase().includes(q))-->
+<!--        : allFiles;-->
+<!--      renderCategories(filtered);-->
+<!--      updateStats(filtered.length);-->
+<!--    });-->
+<!--  }-->
+
+<!--  function updateStats(count) {-->
+<!--    document.getElementById('stats').textContent = count + ' 个文件';-->
+<!--  }-->
+
+<!--  // ========== 主流程 ==========-->
+<!--  async function init() {-->
+<!--    const status = document.getElementById('status');-->
+<!--    const sharePath = new URLSearchParams(location.search).get('file');-->
+
+<!--    try {-->
+<!--      // 一次 API 请求获取整棵文件树-->
+<!--      const res = await fetch(TREE_API);-->
+<!--      if (!res.ok) {-->
+<!--        if (res.status === 403) throw new Error('API 请求次数超限，请稍后再试。');-->
+<!--        if (res.status === 404) throw new Error('仓库或分支不存在，请检查配置。');-->
+<!--        throw new Error('HTTP ' + res.status);-->
+<!--      }-->
+<!--      const data = await res.json();-->
+<!--      if (!data.tree) throw new Error('返回数据格式异常');-->
+
+<!--      // 只保留文件（type === 'blob'），排除目录-->
+<!--      allFiles = data.tree.filter(item => item.type === 'blob');-->
+
+<!--      if (allFiles.length === 0) {-->
+<!--        status.textContent = '仓库中没有找到文件。';-->
+<!--        return;-->
+<!--      }-->
+
+<!--      if (sharePath) {-->
+<!--        // 分享模式：只显示单个文件-->
+<!--        const exists = allFiles.find(f => f.path === sharePath);-->
+<!--        if (exists) {-->
+<!--          renderShareView(sharePath, allFiles);-->
+<!--        } else {-->
+<!--          status.className = 'error';-->
+<!--          status.textContent = '找不到该文件：' + sharePath;-->
+<!--          status.style.display = 'block';-->
+<!--        }-->
+<!--        return;-->
+<!--      }-->
+
+<!--      // 主视图-->
+<!--      status.style.display = 'none';-->
+<!--      document.getElementById('main-view').classList.add('active');-->
+<!--      renderCategories(allFiles);-->
+<!--      updateStats(allFiles.length);-->
+<!--      setupSearch();-->
+
+<!--    } catch (e) {-->
+<!--      status.className = 'error';-->
+<!--      status.textContent = '加载失败：' + e.message;-->
+<!--      console.error(e);-->
+<!--    }-->
+<!--  }-->
+
+<!--  init();-->
+<!--})();-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub 仓库文件浏览器</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f6f8fa;
+    color: #1f2328;
+    line-height: 1.5;
+    padding: 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 21px; font-weight: 600; }
+  header .branch-badge {
+    background: #0969da;
+    color: #fff;
+    font-size: 12px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    display: none;
+  }
+  header .branch-badge.show { display: inline-block; }
+
+  /* ---- 仓库输入栏 ---- */
+  .repo-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .repo-bar input[type="text"] {
+    padding: 9px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 0;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .repo-bar input[type="text"]:focus {
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9,105,218,.12);
+  }
+  #repo-input { flex: 1 1 280px; }
+  #branch-input { flex: 0 1 140px; }
+  .repo-bar .btn { flex-shrink: 0; padding: 9px 18px; }
+
+  /* ---- 状态 ---- */
+  #status {
+    text-align: center;
+    padding: 40px 0;
+    color: #656d76;
+    font-size: 15px;
+  }
+  #status.error { color: #cf222e; }
+
+  /* ---- 按钮 ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #d0d7de;
+    background: #f6f8fa;
+    color: #1f2328;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .btn:hover { background: #eaeef2; }
+  .btn-primary {
+    background: #1f883d;
+    border-color: #1f883d;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #1a7f37; border-color: #1a7f37; }
+  .btn-sm { padding: 4px 11px; font-size: 13px; }
+
+  /* ---- 分享视图 ---- */
+  #share-view { display: none; }
+  #share-view.active { display: block; }
+  .share-card {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .share-card .file-icon { font-size: 52px; margin-bottom: 14px; line-height: 1; }
+  .share-card .file-name { font-size: 18px; font-weight: 600; word-break: break-all; }
+  .share-card .file-meta { color: #656d76; font-size: 13px; margin: 10px 0 22px; word-break: break-all; }
+  .share-card .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ---- 主视图 ---- */
+  #main-view { display: none; }
+  #main-view.active { display: block; }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toolbar input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .toolbar input:focus {
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9,105,218,.12);
+  }
+  .stats { font-size: 13px; color: #656d76; white-space: nowrap; }
+
+  /* ---- 分类 ---- */
+  .category {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .category summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    user-select: none;
+    list-style: none;
+    transition: background .15s;
+  }
+  .category summary:hover { background: #f6f8fa; }
+  .category summary::-webkit-details-marker { display: none; }
+  .category summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .2s;
+    font-size: 12px;
+    color: #656d76;
+    flex-shrink: 0;
+  }
+  .category[open] summary::before { transform: rotate(90deg); }
+  .category summary .count {
+    margin-left: auto;
+    font-weight: 400;
+    font-size: 12px;
+    color: #656d76;
+    background: #f0f2f5;
+    padding: 1px 9px;
+    border-radius: 20px;
+  }
+
+  .file-list { border-top: 1px solid #d0d7de; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 1px solid #eaeef2;
+    font-size: 14px;
+    transition: background .1s;
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-item:hover { background: #f6f8fa; }
+  .file-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-weight: 500; word-break: break-all; }
+  .file-path { font-size: 12px; color: #656d76; word-break: break-all; }
+  .file-size { font-size: 12px; color: #656d76; white-space: nowrap; margin-right: 4px; }
+  .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .empty { padding: 24px; text-align: center; color: #656d76; font-size: 14px; }
+
+  /* ---- Toast ---- */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2328;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    z-index: 999;
+    max-width: 90vw;
+    text-align: center;
+    word-break: break-all;
+  }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 640px) {
+    body { padding: 14px; }
+    .file-item { flex-wrap: wrap; gap: 6px; }
+    .file-actions { width: 100%; justify-content: flex-end; }
+    .file-size { margin-left: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 id="repo-title">📦 GitHub 仓库浏览器</h1>
+    <span class="branch-badge" id="branch-badge"></span>
+  </header>
+
+  <!-- 仓库输入栏 -->
+  <div class="repo-bar">
+    <input type="text" id="repo-input" placeholder="仓库地址，如 wasdkd/Amazon 或完整 GitHub URL" spellcheck="false" autocomplete="off">
+    <input type="text" id="branch-input" placeholder="分支（可选）" spellcheck="false" autocomplete="off">
+    <button class="btn btn-primary" id="load-btn">加载仓库</button>
+  </div>
+
+  <!-- 加载状态 -->
+  <div id="status">正在准备…</div>
+
+  <!-- 单文件分享视图 -->
+  <div id="share-view">
+    <div class="share-card">
+      <div class="file-icon" id="share-icon">📄</div>
+      <div class="file-name" id="share-name"></div>
+      <div class="file-meta" id="share-meta"></div>
+      <div class="actions">
+        <a class="btn btn-primary" id="share-download" download>⬇ 下载文件</a>
+        <a class="btn" id="share-back">← 查看完整仓库</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主视图 -->
+  <div id="main-view">
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="搜索文件名…" spellcheck="false" autocomplete="off">
+      <span class="stats" id="stats"></span>
+    </div>
+    <div id="categories"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===================== 配置 =====================
+  const DEFAULT_REPO = 'wasdkd/Amazon';
+  const LS_KEY = 'gh-repo-browser-last';
+
+  // 扩展名 → 分类
+  const EXT_CATEGORY = {
+    html:'HTML 页面', htm:'HTML 页面',
+    css:'样式表', scss:'样式表', less:'样式表',
+    js:'脚本', mjs:'脚本', cjs:'脚本',
+    json:'数据文件', xml:'数据文件', yml:'数据文件', yaml:'数据文件', toml:'数据文件',
+    csv:'数据表格', xlsx:'数据表格', xls:'数据表格',
+    png:'图片', jpg:'图片', jpeg:'图片', gif:'图片', svg:'图片',
+    webp:'图片', ico:'图片', bmp:'图片', avif:'图片',
+    zip:'压缩包', rar:'压缩包', '7z':'压缩包', tar:'压缩包', gz:'压缩包', bz2:'压缩包',
+    pdf:'PDF 文档',
+    md:'文档', txt:'文档', doc:'文档', docx:'文档', rtf:'文档',
+    mp4:'音视频', mp3:'音视频', wav:'音视频', mov:'音视频', avi:'音视频', mkv:'音视频', webm:'音视频',
+    py:'代码', java:'代码', c:'代码', h:'代码', cpp:'代码', go:'代码', rs:'代码',
+    ts:'代码', jsx:'代码', tsx:'代码', vue:'代码', svelte:'代码', php:'代码', rb:'代码', swift:'代码', kt:'代码',
+    sql:'数据库', db:'数据库', sqlite:'数据库',
+    ttf:'字体', otf:'字体', woff:'字体', woff2:'字体',
+    exe:'可执行文件', apk:'可执行文件', dmg:'可执行文件', msi:'可执行文件'
+  };
+
+  // 分类排序
+  const CATEGORY_ORDER = [
+    'HTML 页面','样式表','脚本','代码','数据文件','数据表格',
+    '图片','压缩包','PDF 文档','文档','音视频','字体','数据库',
+    '可执行文件','其他文件'
+  ];
+
+  // 分类图标
+  const CATEGORY_ICON = {
+    'HTML 页面':'🌐','样式表':'🎨','脚本':'⚡','代码':'💻',
+    '数据文件':'📋','数据表格':'📊','图片':'🖼️','压缩包':'🗜️',
+    'PDF 文档':'📕','文档':'📝','音视频':'🎬','字体':'🔤',
+    '数据库':'🗄️','可执行文件':'⚙️','其他文件':'📄'
+  };
+
+  // 文本类扩展名（下载时用 Blob 强制保存）
+  const TEXT_EXTS = new Set([
+    'html','htm','css','scss','less','js','mjs','cjs','json','xml','yml','yaml',
+    'toml','csv','md','txt','py','java','c','h','cpp','go','rs','ts','jsx','tsx',
+    'vue','svelte','php','rb','swift','kt','sql'
+  ]);
+
+  // ===================== 状态 =====================
+  const state = {
+    owner: '',
+    repo: '',
+    branch: '',
+    files: []
+  };
+
+  // ===================== 工具函数 =====================
+  function $(id) { return document.getElementById(id); }
+
+  function formatSize(bytes) {
+    if (bytes === undefined || bytes === null) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
+  function getExt(name) {
+    const i = name.lastIndexOf('.');
+    return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
+  }
+
+  function getCategory(name) {
+    return EXT_CATEGORY[getExt(name)] || '其他文件';
+  }
+
+  function getFileIcon(name) {
+    const map = {
+      html:'🌐', htm:'🌐', css:'🎨', scss:'🎨', js:'⚡', mjs:'⚡', json:'📋',
+      png:'🖼️', jpg:'🖼️', jpeg:'🖼️', gif:'🖼️', svg:'🖼️', webp:'🖼️', ico:'🖼️',
+      zip:'🗜️', rar:'🗜️', '7z':'🗜️', gz:'🗜️', pdf:'📕',
+      md:'📝', txt:'📝', csv:'📊', xlsx:'📊', xls:'📊',
+      mp4:'🎬', mp3:'🎵', wav:'🎵', mov:'🎬',
+      py:'🐍', java:'☕', go:'🐹', rs:'🦀', c:'🔧', cpp:'🔧',
+      ts:'📘', tsx:'📘', jsx:'📘', vue:'💚', sql:'🗄️', db:'🗄️',
+      ttf:'🔤', otf:'🔤', woff:'🔤', woff2:'🔤'
+    };
+    return map[getExt(name)] || '📄';
+  }
+
+  function rawUrl(path) {
+    const segs = path.split('/').map(encodeURIComponent).join('/');
+    return `https://raw.githubusercontent.com/${state.owner}/${state.repo}/${encodeURIComponent(state.branch)}/${segs}`;
+  }
+
+  function showToast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  function showStatus(text, isError) {
+    const s = $('status');
+    s.style.display = 'block';
+    s.className = isError ? 'error' : '';
+    s.textContent = text;
+    $('main-view').classList.remove('active');
+    $('share-view').classList.remove('active');
+  }
+
+  // 解析仓库输入：支持 owner/repo、完整 URL、SSH、带 /tree/branch 的 URL
+  function parseRepoInput(raw) {
+    if (!raw) return null;
+    let s = String(raw).trim();
+    if (!s) return null;
+    s = s.replace(/\.git$/i, '').replace(/\/+$/, '');
+
+    // https://github.com/owner/repo/tree/branch...
+    let m = s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s]+)\/tree\/([^\/\s?#]+)/i);
+    if (m) return { owner: m[1], repo: m[2], branch: m[3] };
+
+    // https://github.com/owner/repo
+    m = s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s?#]+)/i);
+    if (m) return { owner: m[1], repo: m[2] };
+
+    // git@github.com:owner/repo
+    m = s.match(/^git@github\.com:([^\/\s]+)\/([^\/\s]+)$/i);
+    if (m) return { owner: m[1], repo: m[2] };
+
+    // owner/repo
+    m = s.match(/^([^\/\s]+)\/([^\/\s]+)$/);
+    if (m) return { owner: m[1], repo: m[2] };
+
+    return null;
+  }
+
+  // ===================== GitHub API =====================
+  async function fetchRepoInfo(owner, repo) {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+    if (res.status === 404) throw new Error(`找不到仓库 ${owner}/${repo}（可能是私有仓库或名字拼写有误）`);
+    if (res.status === 403) throw new Error('GitHub API 访问次数受限，请稍后再试');
+    if (!res.ok) throw new Error('读取仓库信息失败：HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function fetchTree(owner, repo, branch) {
+    const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+    const res = await fetch(url);
+    if (res.status === 404) throw new Error(`找不到分支「${branch}」，请检查分支名是否正确`);
+    if (res.status === 403) throw new Error('GitHub API 访问次数受限，请稍后再试');
+    if (!res.ok) throw new Error('读取文件列表失败：HTTP ' + res.status);
+    const data = await res.json();
+    return (data.tree || []).filter(item => item.type === 'blob');
+  }
+
+  // ===================== URL 构建 =====================
+  function buildMainUrl() {
+    const p = new URLSearchParams();
+    p.set('repo', state.owner + '/' + state.repo);
+    if (state.branch) p.set('branch', state.branch);
+    return location.pathname + '?' + p.toString();
+  }
+
+  function buildShareUrl(filePath) {
+    const p = new URLSearchParams();
+    p.set('repo', state.owner + '/' + state.repo);
+    if (state.branch) p.set('branch', state.branch);
+    p.set('file', filePath);
+    return location.origin + location.pathname + '?' + p.toString();
+  }
+
+  // ===================== 加载仓库 =====================
+  async function loadRepo(owner, repo, branch, opts) {
+    opts = opts || {};
+    const shareFile = opts.shareFile || null;
+    const syncUrl = opts.syncUrl !== false;
+
+    try {
+      showStatus('正在读取仓库信息…');
+
+      // 未指定分支 → 读取默认分支
+      if (!branch) {
+        const info = await fetchRepoInfo(owner, repo);
+        branch = info.default_branch || 'main';
+      }
+
+      showStatus('正在读取文件列表…');
+      const files = await fetchTree(owner, repo, branch);
+
+      // 更新状态
+      state.owner = owner;
+      state.repo = repo;
+      state.branch = branch;
+      state.files = files;
+
+      // 记住上次使用的仓库
+      try { localStorage.setItem(LS_KEY, owner + '/' + repo); } catch (e) {}
+
+      // 回填输入框
+      $('repo-input').value = owner + '/' + repo;
+      $('branch-input').value = branch;
+
+      // 更新标题
+      $('repo-title').textContent = '📦 ' + owner + '/' + repo;
+      const badge = $('branch-badge');
+      badge.textContent = branch;
+      badge.classList.add('show');
+
+      if (shareFile) {
+        const exists = files.find(f => f.path === shareFile);
+        if (!exists) {
+          showStatus('找不到该文件：' + shareFile, true);
+          return;
+        }
+        renderShareView(shareFile);
+        if (syncUrl) {
+          history.replaceState(null, '', buildShareUrl(shareFile));
+        }
+      } else {
+        renderMainView();
+        if (syncUrl) {
+          history.replaceState(null, '', buildMainUrl());
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      showStatus('加载失败：' + e.message, true);
+    }
+  }
+
+  // ===================== 渲染：主视图 =====================
+  function renderMainView() {
+    $('status').style.display = 'none';
+    $('share-view').classList.remove('active');
+    $('main-view').classList.add('active');
+
+    $('search').value = '';
+    renderCategories(state.files, false);
+    updateStats(state.files.length);
+  }
+
+  function updateStats(count) {
+    $('stats').textContent = count + ' 个文件';
+  }
+
+  function renderCategories(files, expandAll) {
+    const container = $('categories');
+    container.innerHTML = '';
+
+    if (!files.length) {
+      container.innerHTML = '<div class="empty">没有找到文件</div>';
+      return;
+    }
+
+    // 分组
+    const groups = {};
+    files.forEach(f => {
+      const cat = getCategory(f.path);
+      (groups[cat] || (groups[cat] = [])).push(f);
+    });
+
+    // 排序分类
+    const sortedCats = Object.keys(groups).sort((a, b) => {
+      const ia = CATEGORY_ORDER.indexOf(a);
+      const ib = CATEGORY_ORDER.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    sortedCats.forEach(cat => {
+      const items = groups[cat].slice().sort((a, b) => a.path.localeCompare(b.path));
+
+      const details = document.createElement('details');
+      details.className = 'category';
+      details.open = !!expandAll;   // ← 默认收起
+
+      const summary = document.createElement('summary');
+      const icon = document.createElement('span');
+      icon.textContent = CATEGORY_ICON[cat] || '📁';
+      const title = document.createElement('span');
+      title.textContent = cat;
+      const count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = items.length + ' 个';
+      summary.appendChild(icon);
+      summary.appendChild(title);
+      summary.appendChild(count);
+      details.appendChild(summary);
+
+      const list = document.createElement('div');
+      list.className = 'file-list';
+
+      items.forEach(f => {
+        const name = f.path.split('/').pop();
+        const dir = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '';
+
+        const item = document.createElement('div');
+        item.className = 'file-item';
+
+        const ic = document.createElement('div');
+        ic.className = 'file-icon';
+        ic.textContent = getFileIcon(name);
+
+        const info = document.createElement('div');
+        info.className = 'file-info';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'file-name';
+        nameEl.textContent = name;
+        info.appendChild(nameEl);
+        if (dir) {
+          const pathEl = document.createElement('div');
+          pathEl.className = 'file-path';
+          pathEl.textContent = dir + '/';
+          info.appendChild(pathEl);
+        }
+
+        const sizeEl = document.createElement('div');
+        sizeEl.className = 'file-size';
+        sizeEl.textContent = formatSize(f.size);
+
+        const actions = document.createElement('div');
+        actions.className = 'file-actions';
+
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'btn btn-sm btn-primary';
+        dlBtn.textContent = '⬇ 下载';
+        dlBtn.addEventListener('click', () => downloadFile(f));
+
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'btn btn-sm';
+        shareBtn.textContent = '🔗 分享';
+        shareBtn.title = '复制该文件的专属链接';
+        shareBtn.addEventListener('click', () => copyShareLink(f.path));
+
+        actions.appendChild(dlBtn);
+        actions.appendChild(shareBtn);
+
+        item.appendChild(ic);
+        item.appendChild(info);
+        item.appendChild(sizeEl);
+        item.appendChild(actions);
+        list.appendChild(item);
+      });
+
+      details.appendChild(list);
+      container.appendChild(details);
+    });
+  }
+
+  // ===================== 渲染：分享视图 =====================
+  function renderShareView(filePath) {
+    $('status').style.display = 'none';
+    $('main-view').classList.remove('active');
+    $('share-view').classList.add('active');
+
+    const file = state.files.find(f => f.path === filePath);
+    const name = filePath.split('/').pop();
+    const size = file ? file.size : null;
+    const dir = filePath.includes('/') ? filePath.slice(0, filePath.lastIndexOf('/')) : '';
+
+    $('share-icon').textContent = getFileIcon(name);
+    $('share-name').textContent = name;
+    $('share-meta').textContent = [
+      size != null ? formatSize(size) : '',
+      dir ? dir + '/' : '',
+      state.owner + '/' + state.repo + ' @ ' + state.branch
+    ].filter(Boolean).join('  ·  ');
+
+    const dl = $('share-download');
+    dl.href = rawUrl(filePath);
+    dl.setAttribute('download', name);
+
+    $('share-back').href = buildMainUrl();
+  }
+
+  // ===================== 下载 =====================
+  async function downloadFile(file) {
+    const path = file.path;
+    const name = path.split('/').pop();
+    const url = rawUrl(path);
+    const ext = getExt(name);
+
+    // 小文本文件：用 Blob 强制下载
+    if (TEXT_EXTS.has(ext) && file.size != null && file.size < 5 * 1024 * 1024) {
+      try {
+        showToast('正在获取文件…');
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+        showToast('已开始下载：' + name);
+        return;
+      } catch (e) {
+        // 降级：直接打开 raw 链接
+      }
+    }
+
+    // 其他文件：直接打开 raw 链接
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  // ===================== 分享链接 =====================
+  async function copyShareLink(filePath) {
+    const link = buildShareUrl(filePath);
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast('分享链接已复制');
+    } catch (e) {
+      // 降级方案
+      const ta = document.createElement('textarea');
+      ta.value = link;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast('分享链接已复制'); }
+      catch (err) { showToast('复制失败，请手动复制：' + link); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ===================== 搜索 =====================
+  function setupSearch() {
+    const input = $('search');
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      if (!q) {
+        // 清空搜索 → 恢复默认收起
+        renderCategories(state.files, false);
+        updateStats(state.files.length);
+        return;
+      }
+      const filtered = state.files.filter(f => f.path.toLowerCase().includes(q));
+      // 搜索时自动展开，方便查看结果
+      renderCategories(filtered, true);
+      updateStats(filtered.length);
+    });
+  }
+
+  // ===================== 事件绑定 =====================
+  function bindEvents() {
+    $('load-btn').addEventListener('click', handleLoad);
+
+    [ 'repo-input', 'branch-input' ].forEach(id => {
+      $(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); handleLoad(); }
+      });
+    });
+  }
+
+  function handleLoad() {
+    const raw = $('repo-input').value;
+    const parsed = parseRepoInput(raw);
+    if (!parsed) {
+      showStatus('无法识别仓库地址。请输入「owner/repo」或完整 GitHub URL。', true);
+      return;
+    }
+    const branch = $('branch-input').value.trim();
+    const useBranch = branch || parsed.branch || '';
+    loadRepo(parsed.owner, parsed.repo, useBranch, {});
+  }
+
+  // ===================== 初始化 =====================
+  async function init() {
+    bindEvents();
+    setupSearch();
+
+    const params = new URLSearchParams(location.search);
+    const repoParam = params.get('repo');
+    const branchParam = params.get('branch') || '';
+    const fileParam = params.get('file') || null;
+
+    let owner = '';
+    let repo = '';
+    let branch = branchParam;
+
+    // 1. URL 中有 repo
+    if (repoParam) {
+      const parsed = parseRepoInput(repoParam);
+      if (parsed) {
+        owner = parsed.owner;
+        repo = parsed.repo;
+        if (!branch && parsed.branch) branch = parsed.branch;
+      }
+    }
+
+    // 2. 否则读取上次使用 / 默认仓库
+    if (!owner) {
+      let saved = '';
+      try { saved = localStorage.getItem(LS_KEY) || ''; } catch (e) {}
+      const parsed = parseRepoInput(saved) || parseRepoInput(DEFAULT_REPO);
+      owner = parsed.owner;
+      repo = parsed.repo;
+      if (parsed.branch) branch = parsed.branch;
+    }
+
+    // 预填输入框
+    $('repo-input').value = owner + '/' + repo;
+    if (branch) $('branch-input').value = branch;
+
+    await loadRepo(owner, repo, branch, {
+      shareFile: fileParam,
+      syncUrl: false
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
