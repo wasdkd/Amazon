@@ -3218,7 +3218,6 @@
     &lt;meta charset=&quot;UTF-8&quot;&gt;
     &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
     &lt;title&gt;数据提取_分组统计&lt;/title&gt;
-    &lt;!-- 引入 SheetJS 用于解析与导出 Excel --&gt;
     &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
     &lt;style&gt;
         :root {
@@ -3233,368 +3232,110 @@
             --border-color: #e2e8f0;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 24px 16px;
-            display: flex;
-            justify-content: center;
-        }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 24px 16px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1240px; }
 
-        .container {
-            width: 100%;
-            max-width: 1240px;
-        }
+        header { margin-bottom: 20px; text-align: center; }
+        header h1 { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+        header p { color: var(--text-sub); font-size: 14px; }
 
-        header {
-            margin-bottom: 20px;
-            text-align: center;
-        }
+        .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+        .tab-btn { background: none; border: none; padding: 11px 22px; font-size: 15px; font-weight: 600;
+            color: var(--text-sub); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
 
-        header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 6px;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-        header p {
-            color: var(--text-sub);
-            font-size: 14px;
-        }
-
-        /* 选项卡导航 */
-        .tabs {
-            display: flex;
-            gap: 8px;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 20px;
-        }
-
-        .tab-btn {
-            background: none;
-            border: none;
-            padding: 11px 22px;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-sub);
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-        }
-
-        /* 卡片模块 */
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 24px;
+        .card { background: var(--card-bg); border-radius: 12px; padding: 24px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--border-color);
-        }
+            border: 1px solid var(--border-color); }
 
-        /* 上传区域 */
-        .upload-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 8px;
-            padding: 26px 20px;
-            text-align: center;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
+        .upload-area { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 26px 20px; text-align: center;
+            background: #f8fafc; cursor: pointer; transition: all 0.2s; position: relative; }
+        .upload-area:hover { border-color: var(--primary-color); background: #eff6ff; }
+        .upload-area input[type=&quot;file&quot;] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .upload-icon { font-size: 32px; margin-bottom: 6px; }
+        .upload-text { font-size: 14px; font-weight: 500; color: var(--text-main); }
+        .upload-tip { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
 
-        .upload-area:hover {
-            border-color: var(--primary-color);
-            background: #eff6ff;
-        }
+        .actions-bar { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .file-info { font-size: 14px; color: var(--text-sub); }
+        .file-info span { font-weight: 600; color: var(--text-main); }
 
-        .upload-area input[type=&quot;file&quot;] {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
+        .btn { background-color: var(--primary-color); color: white; border: none; padding: 10px 18px;
+            border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+        .btn-download { background-color: var(--success-color); }
+        .btn-download:hover { background-color: #059669; }
+        .btn-mini { padding: 5px 12px; font-size: 12px; }
 
-        .upload-icon {
-            font-size: 32px;
-            margin-bottom: 6px;
-        }
+        .config-box { margin-top: 18px; background: #f8fafc; border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 20px; }
 
-        .upload-text {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-main);
-        }
+        .config-title { font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
-        .upload-tip {
-            font-size: 12px;
-            color: var(--text-sub);
-            margin-top: 4px;
-        }
+        .config-desc { font-size: 12px; color: var(--text-sub); margin-bottom: 12px; line-height: 1.7; }
 
-        /* 操作栏 */
-        .actions-bar {
-            margin-top: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .file-info {
-            font-size: 14px;
-            color: var(--text-sub);
-        }
-
-        .file-info span {
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn:disabled {
-            background-color: #cbd5e1;
-            cursor: not-allowed;
-        }
-
-        .btn-download {
-            background-color: var(--success-color);
-        }
-
-        .btn-download:hover {
-            background-color: #059669;
-        }
-
-        /* 表头排序/字段标签 */
-        .config-box {
-            margin-top: 18px;
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .config-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #334155;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .config-desc {
-            font-size: 12px;
-            color: var(--text-sub);
-            margin-bottom: 12px;
-        }
-
-        .column-tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .col-tag {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: grab;
-            user-select: none;
-        }
-
-        .col-tag.is-new {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            color: #1d4ed8;
-            font-weight: 500;
-        }
-
-        .col-btn-arrow {
-            background: none;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            font-size: 11px;
-        }
+        .column-tags-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .col-tag { background: #ffffff; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px;
+            font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: grab; user-select: none; }
+        .col-tag.is-new { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; font-weight: 500; }
+        .col-btn-arrow { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 11px; padding: 0 2px; }
         .col-btn-arrow:hover { color: var(--primary-color); }
 
-        /* 复选框网格 */
-        .checkbox-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 16px;
-            background: #fff;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-        }
+        .checkbox-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+            background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .checkbox-item { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
-        .checkbox-item {
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            user-select: none;
-        }
+        .order-box { background: #ffffff; border: 1px dashed #bfdbfe; border-radius: 6px;
+            padding: 10px 12px; margin-bottom: 16px; }
+        .order-box-title { font-size: 12px; color: var(--text-sub); font-weight: 600; margin-bottom: 8px; }
+        .order-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .order-item { display: inline-flex; align-items: center; gap: 5px; background: #eff6ff;
+            border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 6px; padding: 4px 8px;
+            font-size: 13px; cursor: grab; user-select: none; transition: box-shadow .15s; }
+        .order-item:hover { box-shadow: 0 1px 4px rgba(37, 99, 235, .25); }
+        .order-item.dragging { opacity: .35; }
+        .order-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;
+            border-radius: 50%; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; flex: 0 0 auto; }
+        .order-name { font-weight: 600; }
 
-        .calc-settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            background: #fff;
-            padding: 16px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 16px;
-        }
+        .metric-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+        .metric-cell { display: flex; flex-direction: column; gap: 4px; flex: 1 1 140px; min-width: 120px; }
+        .metric-cell &gt; label { font-size: 12px; color: #64748b; font-weight: 500; }
+        .metric-cell select, .metric-cell input[type=&quot;text&quot;] { width: 100%; }
 
-        .calc-field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .btn-remove { flex: 0 0 auto; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;
+            border-radius: 6px; width: 34px; height: 34px; cursor: pointer; font-size: 13px; margin-bottom: 1px; }
+        .btn-remove:hover { background: #fecaca; }
 
-        .calc-field-group label {
-            font-size: 13px;
-            font-weight: 500;
-            color: #475569;
-        }
+        select, input[type=&quot;text&quot;] { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+            font-size: 13px; outline: none; background: #fff; }
+        select:focus, input[type=&quot;text&quot;]:focus { border-color: var(--primary-color); }
 
-        select, input[type=&quot;text&quot;] {
-            padding: 8px 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 13px;
-            outline: none;
-            background: #fff;
-        }
-        select:focus, input[type=&quot;text&quot;]:focus {
-            border-color: var(--primary-color);
-        }
+        .preview-section { margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 20px; }
+        .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .preview-header h3 { font-size: 16px; font-weight: 600; }
 
-        /* 数据预览表格 */
-        .preview-section {
-            margin-top: 24px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-        }
-
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .preview-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            max-height: 420px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        th, td {
-            padding: 10px 14px;
-            border-bottom: 1px solid var(--border-color);
-            border-right: 1px solid #f1f5f9;
-        }
-
-        th {
-            background-color: #f1f5f9;
-            color: #475569;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-
+        .table-responsive { width: 100%; overflow-x: auto; border: 1px solid var(--border-color);
+            border-radius: 6px; max-height: 520px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; white-space: nowrap; }
+        th, td { padding: 10px 14px; border-bottom: 1px solid var(--border-color); border-right: 1px solid #f1f5f9; }
+        th { background-color: #f1f5f9; color: #475569; font-weight: 600; position: sticky; top: 0; z-index: 1; }
         tr:nth-child(even) td { background-color: #fafafa; }
         tr:hover td { background-color: #f1f5f9; }
 
-        .badge-new {
-            background-color: #dbeafe;
-            color: #1d4ed8;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 4px;
-        }
+        .badge-new { background-color: #dbeafe; color: #1d4ed8; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
 
-        /* 提示信息 */
-        .status-msg {
-            margin-top: 12px;
-            font-size: 13px;
-            padding: 10px 12px;
-            border-radius: 6px;
-            display: none;
-        }
+        .status-msg { margin-top: 12px; font-size: 13px; padding: 10px 12px; border-radius: 6px; display: none; }
         .status-msg.error { display: block; background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
         .status-msg.success { display: block; background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
     &lt;/style&gt;
@@ -3607,14 +3348,13 @@
         &lt;p&gt;纯本地解析 · 零依赖安全运行 · 支持两级分组透视、多表合并、全列信息首位非空匹配&lt;/p&gt;
     &lt;/header&gt;
 
-    &lt;!-- 选项卡导航 --&gt;
     &lt;div class=&quot;tabs&quot;&gt;
         &lt;button class=&quot;tab-btn active&quot; onclick=&quot;switchTab('skuTab', this)&quot;&gt;1. 提取 SKU &amp; 颜色 (多表合并)&lt;/button&gt;
         &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('fabricTab', this)&quot;&gt;2. 拆解材质(成分)&lt;/button&gt;
         &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('groupTab', this)&quot;&gt;3. 两级分组与销量均价统计&lt;/button&gt;
     &lt;/div&gt;
 
-    &lt;!-- 功能一：提取SKU &amp; 颜色 --&gt;
+    &lt;!-- 功能一：提取SKU &amp; 颜色（未改动） --&gt;
     &lt;div id=&quot;skuTab&quot; class=&quot;tab-content active&quot;&gt;
         &lt;div class=&quot;card&quot;&gt;
             &lt;div class=&quot;upload-area&quot;&gt;
@@ -3623,9 +3363,7 @@
                 &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽 Excel 文件到这里（支持多选自动合并）&lt;/div&gt;
                 &lt;div class=&quot;upload-tip&quot;&gt;按住 Ctrl/Shift 选择多表；自动对齐表头，识别「品名」及「MSKU / *SKU」&lt;/div&gt;
             &lt;/div&gt;
-
             &lt;div id=&quot;skuStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
-
             &lt;div id=&quot;skuColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
                     &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
@@ -3633,14 +3371,12 @@
                 &lt;/div&gt;
                 &lt;div class=&quot;column-tags-container&quot; id=&quot;skuColumnTags&quot;&gt;&lt;/div&gt;
             &lt;/div&gt;
-
             &lt;div class=&quot;actions-bar&quot;&gt;
                 &lt;div class=&quot;file-info&quot; id=&quot;skuFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;
                 &lt;button class=&quot;btn btn-download&quot; id=&quot;skuDownloadBtn&quot; onclick=&quot;downloadExcel('sku')&quot; disabled&gt;
                     📥 导出处理后的 Excel
                 &lt;/button&gt;
             &lt;/div&gt;
-
             &lt;div class=&quot;preview-section&quot; id=&quot;skuPreviewSection&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;preview-header&quot;&gt;
                     &lt;h3&gt;处理结果预览 (前 10 行)&lt;/h3&gt;
@@ -3653,7 +3389,7 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- 功能二：拆解材质 --&gt;
+    &lt;!-- 功能二：拆解材质（未改动） --&gt;
     &lt;div id=&quot;fabricTab&quot; class=&quot;tab-content&quot;&gt;
         &lt;div class=&quot;card&quot;&gt;
             &lt;div class=&quot;upload-area&quot;&gt;
@@ -3662,9 +3398,7 @@
                 &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽 Excel 文件到这里（支持多选合并）&lt;/div&gt;
                 &lt;div class=&quot;upload-tip&quot;&gt;需包含「详细参数」列&lt;/div&gt;
             &lt;/div&gt;
-
             &lt;div id=&quot;fabricStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
-
             &lt;div id=&quot;fabricColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
                     &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
@@ -3672,14 +3406,12 @@
                 &lt;/div&gt;
                 &lt;div class=&quot;column-tags-container&quot; id=&quot;fabricColumnTags&quot;&gt;&lt;/div&gt;
             &lt;/div&gt;
-
             &lt;div class=&quot;actions-bar&quot;&gt;
                 &lt;div class=&quot;file-info&quot; id=&quot;fabricFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;
                 &lt;button class=&quot;btn btn-download&quot; id=&quot;fabricDownloadBtn&quot; onclick=&quot;downloadExcel('fabric')&quot; disabled&gt;
                     📥 导出处理后的 Excel
                 &lt;/button&gt;
             &lt;/div&gt;
-
             &lt;div class=&quot;preview-section&quot; id=&quot;fabricPreviewSection&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;preview-header&quot;&gt;
                     &lt;h3&gt;处理结果预览 (前 10 行)&lt;/h3&gt;
@@ -3692,55 +3424,60 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- 功能三：两级分组与全表头透视统计 --&gt;
+    &lt;!-- 功能三：两级分组（优化版） --&gt;
     &lt;div id=&quot;groupTab&quot; class=&quot;tab-content&quot;&gt;
         &lt;div class=&quot;card&quot;&gt;
             &lt;div class=&quot;upload-area&quot;&gt;
                 &lt;input type=&quot;file&quot; id=&quot;groupFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'group')&quot;&gt;
                 &lt;div class=&quot;upload-icon&quot;&gt;📊&lt;/div&gt;
                 &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽任意 Excel 文件到这里进行两级分组统计&lt;/div&gt;
-                &lt;div class=&quot;upload-tip&quot;&gt;自动保留原表所有未分组列（自动取首个非空值）；支持计算大组总销量、细组销量、加权及算术均价&lt;/div&gt;
+                &lt;div class=&quot;upload-tip&quot;&gt;一级分组与二级分组都会分别计算全部指标；自动保留原表其余列（取首个非空值）&lt;/div&gt;
             &lt;/div&gt;
 
             &lt;div id=&quot;groupStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
 
-            &lt;!-- 配置区 --&gt;
             &lt;div id=&quot;groupConfigBox&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
-                &lt;!-- 1. 一级大类分组 --&gt;
+                &lt;!-- 一级分组 --&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
                     &lt;span&gt;1. 选择【一级大类分组】字段 (Large Group)&lt;/span&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;config-desc&quot;&gt;
-                    💡 大类汇总维度（例如勾选：&lt;code&gt;修正面料&lt;/code&gt;、&lt;code&gt;色号&lt;/code&gt;）。系统将计算该组合下的&lt;b&gt;【大组总销量】&lt;/b&gt;并作为第一排序依据。
+                    💡 大类汇总维度（例如：&lt;code&gt;修正面料&lt;/code&gt;、&lt;code&gt;色号&lt;/code&gt;）。勾选后可拖拽或点击 ▲▼ 调整字段优先级顺序。
+                    系统会按这些字段分组，并对每个大组计算&lt;b&gt;全部指标&lt;/b&gt;（生成 &lt;code&gt;大组_指标名&lt;/code&gt; 列）。
                 &lt;/div&gt;
                 &lt;div class=&quot;checkbox-grid&quot; id=&quot;largeGroupContainer&quot;&gt;&lt;/div&gt;
+                &lt;div class=&quot;order-box&quot; id=&quot;largeOrderBox&quot; style=&quot;display: none;&quot;&gt;
+                    &lt;div class=&quot;order-box-title&quot;&gt;📌 已选一级分组字段顺序（可拖拽排序）：&lt;/div&gt;
+                    &lt;div class=&quot;order-list&quot; id=&quot;largeOrderList&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
 
-                &lt;!-- 2. 二级细分分组 --&gt;
+                &lt;!-- 二级分组 --&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
                     &lt;span&gt;2. 选择【二级细分组】字段 (Sub Group)&lt;/span&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;config-desc&quot;&gt;
-                    💡 进一步细分的维度（例如勾选：&lt;code&gt;SKU&lt;/code&gt; 或 &lt;code&gt;子ASIN&lt;/code&gt;）。最终汇总结果的每一行代表一个细分组。
+                    💡 进一步细分的维度（例如：&lt;code&gt;SKU&lt;/code&gt;、&lt;code&gt;子ASIN&lt;/code&gt;）。最终结果的每一行代表一个细分组，
+                    并计算&lt;b&gt;全部指标&lt;/b&gt;（生成 &lt;code&gt;细组_指标名&lt;/code&gt; 列）。
                 &lt;/div&gt;
                 &lt;div class=&quot;checkbox-grid&quot; id=&quot;subGroupContainer&quot;&gt;&lt;/div&gt;
+                &lt;div class=&quot;order-box&quot; id=&quot;subOrderBox&quot; style=&quot;display: none;&quot;&gt;
+                    &lt;div class=&quot;order-box-title&quot;&gt;📌 已选二级分组字段顺序（可拖拽排序）：&lt;/div&gt;
+                    &lt;div class=&quot;order-list&quot; id=&quot;subOrderList&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
 
-                &lt;!-- 3. 计算指标映射 --&gt;
+                &lt;!-- 指标配置 --&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
-                    &lt;span&gt;3. 数值指标计算配置&lt;/span&gt;
+                    &lt;span&gt;3. 数值指标计算配置（可自由添加多个）&lt;/span&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-mini&quot; onclick=&quot;addMetricRow()&quot;&gt;➕ 添加指标&lt;/button&gt;
                 &lt;/div&gt;
-                &lt;div class=&quot;calc-settings-grid&quot;&gt;
-                    &lt;div class=&quot;calc-field-group&quot;&gt;
-                        &lt;label&gt;📊 销量字段（求和汇总）：&lt;/label&gt;
-                        &lt;select id=&quot;salesColSelect&quot;&gt;&lt;/select&gt;
-                    &lt;/div&gt;
-                    &lt;div class=&quot;calc-field-group&quot;&gt;
-                        &lt;label&gt;💰 销售单价/均价字段（计算加权/算术均价，选填）：&lt;/label&gt;
-                        &lt;select id=&quot;priceColSelect&quot;&gt;&lt;/select&gt;
-                    &lt;/div&gt;
+                &lt;div class=&quot;config-desc&quot;&gt;
+                    💡 每条指标都会同时在一级分组和二级分组两个层级计算：
+                    一级分组结果为 &lt;code&gt;大组_输出列名&lt;/code&gt;，二级分组结果为 &lt;code&gt;细组_输出列名&lt;/code&gt;。
                 &lt;/div&gt;
+                &lt;div id=&quot;metricList&quot;&gt;&lt;/div&gt;
 
                 &lt;div class=&quot;config-desc&quot; style=&quot;margin-bottom: 0;&quot;&gt;
-                    📌 &lt;b&gt;原表其余所有字段处理规则&lt;/b&gt;：自动保留原表所有未选列，并自动提取该组内&lt;b&gt;第一个不为空的真实内容&lt;/b&gt;（如图片链接、中文品类、统一颜色、备注等）。
+                    📌 &lt;b&gt;原表其余所有字段处理规则&lt;/b&gt;：自动保留原表所有未选列，并自动提取该细分组内&lt;b&gt;第一个不为空的真实内容&lt;/b&gt;。
                 &lt;/div&gt;
 
                 &lt;div style=&quot;margin-top: 18px; text-align: right;&quot;&gt;
@@ -3748,7 +3485,6 @@
                 &lt;/div&gt;
             &lt;/div&gt;
 
-            &lt;!-- 自定义表头排序模块 --&gt;
             &lt;div id=&quot;groupColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
                     &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
@@ -3766,7 +3502,7 @@
 
             &lt;div class=&quot;preview-section&quot; id=&quot;groupPreviewSection&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;preview-header&quot;&gt;
-                    &lt;h3&gt;统计结果预览 (前 10 行)&lt;/h3&gt;
+                    &lt;h3&gt;统计结果预览 (前 100 行)&lt;/h3&gt;
                     &lt;span id=&quot;groupResultCount&quot; style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;&lt;/span&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;table-responsive&quot;&gt;
@@ -3778,7 +3514,7 @@
 &lt;/div&gt;
 
 &lt;script&gt;
-    // 全局数据状态
+    /* ================= 全局状态 ================= */
     const appState = {
         sku: { rawData: null, data: null, fileName: &quot;&quot;, columns: [] },
         fabric: { rawData: null, data: null, fileName: &quot;&quot;, columns: [] },
@@ -3814,7 +3550,6 @@
         if (!files || files.length === 0) return;
 
         const statusEl = document.getElementById(`${type}Status`);
-        const fileInfoEl = document.getElementById(`${type}FileInfo`);
         const downloadBtn = document.getElementById(`${type}DownloadBtn`);
         const previewSection = document.getElementById(`${type}PreviewSection`);
 
@@ -3853,32 +3588,25 @@
         }
     }
 
-    /* -------------------------- 逻辑 1：SKU与颜色 -------------------------- */
+    /* ================= 逻辑 1：SKU &amp; 颜色（保持不变） ================= */
     function extractSku(p) {
         if (!p || typeof p !== 'string') return p || '';
         const patterns = [/_[\u4e00-\u9fa5].*/, /-[\u4e00-\u9fa5].*/, / [\u4e00-\u9fa5].*/, /[\u4e00-\u9fa5].*/];
-        for (let pat of patterns) {
-            if (pat.test(p)) return p.replace(pat, '').trim();
-        }
+        for (let pat of patterns) if (pat.test(p)) return p.replace(pat, '').trim();
         return p.trim();
     }
-
     function extractColor(p) {
         if (!p || typeof p !== 'string') return '';
         const match = p.match(/[\u4e00-\u9fa5]/g);
         return match ? match.join('') : '';
     }
-
     function extractColorEnglish(orig, sku) {
         if (!orig || typeof orig !== 'string') return '';
         let c = orig;
-        if (sku) {
-            c = c.replace(new RegExp(sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;'), 'g'), '');
-        }
+        if (sku) c = c.replace(new RegExp(sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;'), 'g'), '');
         if (c.includes('_')) c = c.substring(0, c.lastIndexOf('_'));
         return c.replace(/^[_ \s]+|[_ \s]+$/g, '');
     }
-
     function processSkuData(data, baseName, count, initialCols) {
         data.forEach(row =&gt; {
             const productName = String(row['品名'] !== undefined ? row['品名'] : '');
@@ -3893,7 +3621,6 @@
             row['颜色'] = extractColor(productName);
             row['颜色英文'] = extractColorEnglish(originalEnglish, sku);
         });
-
         let finalColumns = [...initialCols];
         ['SKU', '颜色', '颜色英文'].forEach(c =&gt; { if (!finalColumns.includes(c)) finalColumns.push(c); });
 
@@ -3910,19 +3637,16 @@
         renderPreviewTable('sku');
     }
 
-    /* -------------------------- 逻辑 2：拆解材质 -------------------------- */
+    /* ================= 逻辑 2：拆解材质（保持不变） ================= */
     function containsForbiddenWords(t) {
         return ['women', 'sexy', 'womens', 'size', 'this'].some(w =&gt; t.toLowerCase().includes(w));
     }
-
     function parseFabricType(detail) {
         if (!detail) return '';
         const match = String(detail).match(/Fabric type[:：]\s*(.*?)(?:\||$)/i);
         if (!match) return '';
-
         const content = match[1].trim();
         const matches = [...content.matchAll(/(\d+(?:\.\d+)?)%\s*([a-zA-Z]+)/g)];
-
         if (matches.length &gt; 0) {
             const parts = [];
             for (let m of matches) {
@@ -3942,12 +3666,8 @@
             return res;
         }
     }
-
     function processFabricData(data, baseName, count, initialCols) {
-        data.forEach(row =&gt; {
-            row['材质(成分)'] = parseFabricType(row['详细参数']);
-        });
-
+        data.forEach(row =&gt; { row['材质(成分)'] = parseFabricType(row['详细参数']); });
         let finalColumns = [...initialCols];
         if (!finalColumns.includes('材质(成分)')) finalColumns.push('材质(成分)');
 
@@ -3964,224 +3684,521 @@
         renderPreviewTable('fabric');
     }
 
-    /* -------------------------- 逻辑 3：两级分组透视统计 -------------------------- */
+    /* ================================================================
+       逻辑 3：两级分组统计（一级与二级分别计算全部指标）
+       ================================================================ */
+
+    let groupSelection = { large: [], sub: [] };
+    let metricSeq = 0;
+
+    const AGG_LABELS = {
+        sum: '求和',
+        avg: '算术平均',
+        wavg: '加权平均',
+        max: '最大值',
+        min: '最小值',
+        count: '计数',
+        countd: '去重计数'
+    };
+
+    function escHtml(s) {
+        return String(s).replace(/[&amp;&lt;&gt;&quot;']/g, c =&gt; ({
+            '&amp;': '&amp;amp;', '&lt;': '&amp;lt;', '&gt;': '&amp;gt;', '&quot;': '&amp;quot;', &quot;'&quot;: '&amp;#39;'
+        }[c]));
+    }
+    function round2(n) { return Math.round(n * 100) / 100; }
+    function toNumber(v) {
+        if (v === null || v === undefined || v === '') return NaN;
+        if (typeof v === 'number') return v;
+        const n = Number(String(v).replace(/,/g, '').trim());
+        return isNaN(n) ? NaN : n;
+    }
+
+    /* ---------- 初始化 ---------- */
     function initTwoLevelGroupTool(data, baseName, count, columns) {
         appState.group.rawData = data;
         appState.group.rawColumns = columns;
         appState.group.fileName = `${baseName}_两级统计结果.xlsx`;
 
-        document.getElementById('groupFileInfo').innerHTML = `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;
-        document.getElementById('groupStatus').textContent = `✅ 成功读取 ${columns.length} 个字段！请在下方选择两级分组维度。`;
+        document.getElementById('groupFileInfo').innerHTML =
+            `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;
+        document.getElementById('groupStatus').textContent =
+            `✅ 成功读取 ${columns.length} 个字段！请在下方选择两级分组维度与统计指标。`;
         document.getElementById('groupStatus').className = 'status-msg success';
 
-        // 渲染一级大类分组复选框
+        groupSelection = { large: [], sub: [] };
+        metricSeq = 0;
+
+        // 一级分组复选框
         const largeContainer = document.getElementById('largeGroupContainer');
         largeContainer.innerHTML = '';
         columns.forEach(col =&gt; {
+            const isDefault = ['修正面料', '面料', '色号', '父ASIN'].includes(col);
             const label = document.createElement('label');
             label.className = 'checkbox-item';
-            const isDefault = ['修正面料', '面料', '色号', '父ASIN'].includes(col);
-            label.innerHTML = `&lt;input type=&quot;checkbox&quot; name=&quot;largeGroupCol&quot; value=&quot;${col}&quot; ${isDefault ? 'checked' : ''}&gt; ${col}`;
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = col;
+            cb.checked = isDefault;
+            if (isDefault) groupSelection.large.push(col);
+            cb.addEventListener('change', () =&gt; onGroupCheckboxChange('large', col, cb.checked));
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(' ' + col));
             largeContainer.appendChild(label);
         });
 
-        // 渲染二级细分组复选框
+        // 二级分组复选框
         const subContainer = document.getElementById('subGroupContainer');
         subContainer.innerHTML = '';
         columns.forEach(col =&gt; {
+            const isDefault = ['SKU', 'ASIN', '子ASIN', '颜色'].includes(col);
             const label = document.createElement('label');
             label.className = 'checkbox-item';
-            const isDefault = ['SKU', 'ASIN', '子ASIN', '颜色'].includes(col);
-            label.innerHTML = `&lt;input type=&quot;checkbox&quot; name=&quot;subGroupCol&quot; value=&quot;${col}&quot; ${isDefault ? 'checked' : ''}&gt; ${col}`;
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = col;
+            cb.checked = isDefault;
+            if (isDefault) groupSelection.sub.push(col);
+            cb.addEventListener('change', () =&gt; onGroupCheckboxChange('sub', col, cb.checked));
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(' ' + col));
             subContainer.appendChild(label);
         });
 
-        // 填充销量下拉框
-        const salesSelect = document.getElementById('salesColSelect');
-        salesSelect.innerHTML = `&lt;option value=&quot;&quot;&gt;(不计算销量汇总)&lt;/option&gt;` + columns.map(c =&gt; {
-            const isMatch = ['销量', '总销量', 'SKU销量', 'Sales', 'Quantity'].includes(c);
-            return `&lt;option value=&quot;${c}&quot; ${isMatch ? 'selected' : ''}&gt;${c}&lt;/option&gt;`;
-        }).join('');
+        renderOrderList('large');
+        renderOrderList('sub');
 
-        // 填充价格下拉框
-        const priceSelect = document.getElementById('priceColSelect');
-        priceSelect.innerHTML = `&lt;option value=&quot;&quot;&gt;(不计算价格均价)&lt;/option&gt;` + columns.map(c =&gt; {
-            const isMatch = ['销售均价', '均价', '价格', 'Price', '售价'].includes(c);
-            return `&lt;option value=&quot;${c}&quot; ${isMatch ? 'selected' : ''}&gt;${c}&lt;/option&gt;`;
-        }).join('');
+        // 默认指标
+        const metricList = document.getElementById('metricList');
+        metricList.innerHTML = '';
+
+        const salesCandidate = columns.find(c =&gt; ['销量', '总销量', 'SKU销量', 'Sales', 'Quantity'].includes(c));
+        const priceCandidate = columns.find(c =&gt; ['销售均价', '均价', '价格', 'Price', '售价'].includes(c));
+
+        if (salesCandidate) addMetricRow({ col: salesCandidate, agg: 'sum' });
+        if (priceCandidate) {
+            addMetricRow({ col: priceCandidate, agg: 'wavg', weight: salesCandidate || '' });
+            addMetricRow({ col: priceCandidate, agg: 'avg' });
+        }
+        if (!salesCandidate &amp;&amp; !priceCandidate) addMetricRow({});
 
         document.getElementById('groupConfigBox').style.display = 'block';
     }
 
-    // 辅助函数：提取列表中第一个不为空的值
+    /* ---------- 分组字段勾选 / 排序 ---------- */
+    function onGroupCheckboxChange(scope, col, checked) {
+        const arr = groupSelection[scope];
+        if (checked) {
+            if (!arr.includes(col)) arr.push(col);
+        } else {
+            const i = arr.indexOf(col);
+            if (i &gt;= 0) arr.splice(i, 1);
+        }
+        renderOrderList(scope);
+    }
+
+    let dragOrderInfo = null;
+
+    function renderOrderList(scope) {
+        const listEl = document.getElementById(`${scope}OrderList`);
+        const boxEl = document.getElementById(`${scope}OrderBox`);
+        const arr = groupSelection[scope];
+
+        listEl.innerHTML = '';
+
+        if (!arr || arr.length === 0) {
+            boxEl.style.display = 'none';
+            return;
+        }
+        boxEl.style.display = 'block';
+
+        arr.forEach((col, idx) =&gt; {
+            const item = document.createElement('div');
+            item.className = 'order-item';
+            item.draggable = true;
+            item.dataset.index = idx;
+            item.dataset.scope = scope;
+            item.innerHTML =
+                `&lt;span class=&quot;order-num&quot;&gt;${idx + 1}&lt;/span&gt;` +
+                `&lt;span class=&quot;order-name&quot;&gt;${escHtml(col)}&lt;/span&gt;` +
+                `&lt;button type=&quot;button&quot; class=&quot;col-btn-arrow&quot; title=&quot;上移&quot; onclick=&quot;moveGroupOrder('${scope}', ${idx}, -1)&quot;&gt;▲&lt;/button&gt;` +
+                `&lt;button type=&quot;button&quot; class=&quot;col-btn-arrow&quot; title=&quot;下移&quot; onclick=&quot;moveGroupOrder('${scope}', ${idx}, 1)&quot;&gt;▼&lt;/button&gt;`;
+
+            item.addEventListener('dragstart', () =&gt; {
+                dragOrderInfo = { scope, index: idx };
+                item.classList.add('dragging');
+            });
+            item.addEventListener('dragend', () =&gt; {
+                item.classList.remove('dragging');
+                dragOrderInfo = null;
+            });
+            item.addEventListener('dragover', e =&gt; e.preventDefault());
+            item.addEventListener('drop', e =&gt; {
+                e.preventDefault();
+                if (!dragOrderInfo || dragOrderInfo.scope !== scope) return;
+                const from = dragOrderInfo.index;
+                const to = idx;
+                if (from === to) return;
+                const [moved] = arr.splice(from, 1);
+                arr.splice(to, 0, moved);
+                renderOrderList(scope);
+            });
+
+            listEl.appendChild(item);
+        });
+    }
+
+    function moveGroupOrder(scope, index, dir) {
+        const arr = groupSelection[scope];
+        const target = index + dir;
+        if (target &lt; 0 || target &gt;= arr.length) return;
+        const tmp = arr[index];
+        arr[index] = arr[target];
+        arr[target] = tmp;
+        renderOrderList(scope);
+    }
+
+    /* ---------- 指标行 ---------- */
+    function autoMetricName(col, agg) {
+        return `${col}_${AGG_LABELS[agg] || agg}`;
+    }
+
+    function addMetricRow(preset) {
+        preset = preset || {};
+        const list = document.getElementById('metricList');
+        const cols = appState.group.rawColumns || [];
+
+        const opts = (sel) =&gt; cols.map(c =&gt;
+            `&lt;option value=&quot;${escHtml(c)}&quot;${c === sel ? ' selected' : ''}&gt;${escHtml(c)}&lt;/option&gt;`
+        ).join('');
+
+        const row = document.createElement('div');
+        row.className = 'metric-row';
+        row.dataset.uid = ++metricSeq;
+
+        row.innerHTML = `
+            &lt;div class=&quot;metric-cell&quot;&gt;
+                &lt;label&gt;统计字段&lt;/label&gt;
+                &lt;select class=&quot;metric-col&quot;&gt;${opts(preset.col)}&lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;metric-cell&quot;&gt;
+                &lt;label&gt;计算方式&lt;/label&gt;
+                &lt;select class=&quot;metric-agg&quot;&gt;
+                    &lt;option value=&quot;sum&quot;&gt;求和&lt;/option&gt;
+                    &lt;option value=&quot;avg&quot;&gt;算术平均&lt;/option&gt;
+                    &lt;option value=&quot;wavg&quot;&gt;加权平均&lt;/option&gt;
+                    &lt;option value=&quot;max&quot;&gt;最大值&lt;/option&gt;
+                    &lt;option value=&quot;min&quot;&gt;最小值&lt;/option&gt;
+                    &lt;option value=&quot;count&quot;&gt;计数(非空)&lt;/option&gt;
+                    &lt;option value=&quot;countd&quot;&gt;去重计数&lt;/option&gt;
+                &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;metric-cell metric-weight-cell&quot;&gt;
+                &lt;label&gt;权重字段&lt;/label&gt;
+                &lt;select class=&quot;metric-weight&quot;&gt;${opts(preset.weight)}&lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;metric-cell&quot;&gt;
+                &lt;label&gt;输出列名（不含前缀）&lt;/label&gt;
+                &lt;input type=&quot;text&quot; class=&quot;metric-name&quot; placeholder=&quot;留空自动生成&quot;&gt;
+            &lt;/div&gt;
+            &lt;button type=&quot;button&quot; class=&quot;btn-remove&quot; title=&quot;删除该指标&quot;&gt;✕&lt;/button&gt;
+        `;
+
+        list.appendChild(row);
+
+        const colSel = row.querySelector('.metric-col');
+        const aggSel = row.querySelector('.metric-agg');
+        const weightSel = row.querySelector('.metric-weight');
+        const nameInput = row.querySelector('.metric-name');
+
+        if (preset.col) colSel.value = preset.col;
+        if (preset.agg) aggSel.value = preset.agg;
+        if (preset.weight) weightSel.value = preset.weight;
+        if (preset.name) {
+            nameInput.value = preset.name;
+            row.dataset.nameEdited = '1';
+        }
+
+        colSel.addEventListener('change', () =&gt; syncMetricRow(row, false));
+        aggSel.addEventListener('change', () =&gt; syncMetricRow(row, false));
+        weightSel.addEventListener('change', () =&gt; syncMetricRow(row, false));
+        nameInput.addEventListener('input', () =&gt; { row.dataset.nameEdited = '1'; });
+
+        row.querySelector('.btn-remove').addEventListener('click', () =&gt; {
+            const all = document.querySelectorAll('#metricList .metric-row');
+            if (all.length &lt;= 1) {
+                alert('至少保留一条指标配置。');
+                return;
+            }
+            row.remove();
+        });
+
+        syncMetricRow(row, !preset.name);
+        return row;
+    }
+
+    function syncMetricRow(row, forceName) {
+        const agg = row.querySelector('.metric-agg').value;
+        const col = row.querySelector('.metric-col').value;
+        row.querySelector('.metric-weight-cell').style.display = (agg === 'wavg') ? '' : 'none';
+
+        const nameInput = row.querySelector('.metric-name');
+        if (forceName || !row.dataset.nameEdited) {
+            nameInput.value = autoMetricName(col, agg);
+        }
+    }
+
+    /* ---------- 指标计算 ---------- */
+    function computeMetricValue(rows, m) {
+        if (m.agg === 'count') {
+            let c = 0;
+            rows.forEach(r =&gt; {
+                const v = r[m.col];
+                if (v !== null &amp;&amp; v !== undefined &amp;&amp; String(v).trim() !== '') c++;
+            });
+            return c;
+        }
+        if (m.agg === 'countd') {
+            const set = new Set();
+            rows.forEach(r =&gt; {
+                const v = r[m.col];
+                if (v !== null &amp;&amp; v !== undefined &amp;&amp; String(v).trim() !== '') {
+                    set.add(String(v).trim());
+                }
+            });
+            return set.size;
+        }
+
+        const pairs = [];
+        rows.forEach(r =&gt; {
+            const v = toNumber(r[m.col]);
+            if (isNaN(v)) return;
+            let w = 1;
+            if (m.agg === 'wavg') {
+                const wv = toNumber(r[m.weight]);
+                w = isNaN(wv) ? 0 : wv;
+            }
+            pairs.push([v, w]);
+        });
+
+        if (pairs.length === 0) return (m.agg === 'sum') ? 0 : '';
+
+        switch (m.agg) {
+            case 'sum':  return round2(pairs.reduce((a, p) =&gt; a + p[0], 0));
+            case 'avg':  return round2(pairs.reduce((a, p) =&gt; a + p[0], 0) / pairs.length);
+            case 'wavg': {
+                const totalW = pairs.reduce((a, p) =&gt; a + p[1], 0);
+                if (totalW &gt; 0) return round2(pairs.reduce((a, p) =&gt; a + p[0] * p[1], 0) / totalW);
+                return round2(pairs.reduce((a, p) =&gt; a + p[0], 0) / pairs.length);
+            }
+            case 'max':  return round2(Math.max(...pairs.map(p =&gt; p[0])));
+            case 'min':  return round2(Math.min(...pairs.map(p =&gt; p[0])));
+            default:     return '';
+        }
+    }
+
+    /* ---------- 收集指标配置 ---------- */
+    function collectMetrics() {
+        const rows = document.querySelectorAll('#metricList .metric-row');
+        const list = [];
+        // 防止最终列名（含前缀）与原始列、已有列冲突
+        const usedNames = new Set(appState.group.rawColumns || []);
+
+        rows.forEach(row =&gt; {
+            const col = row.querySelector('.metric-col').value;
+            if (!col) return;
+
+            const agg = row.querySelector('.metric-agg').value;
+            const weight = row.querySelector('.metric-weight').value;
+            let name = (row.querySelector('.metric-name').value || '').trim() || autoMetricName(col, agg);
+
+            // 保证 name、大组_name、细组_name 均不冲突
+            let base = name, i = 2;
+            while (
+                usedNames.has(name) ||
+                usedNames.has('大组_' + name) ||
+                usedNames.has('细组_' + name)
+            ) {
+                name = `${base}_${i++}`;
+            }
+            usedNames.add('大组_' + name);
+            usedNames.add('细组_' + name);
+
+            list.push({ col, agg, weight, name });
+        });
+
+        return list;
+    }
+
+    /* ---------- 辅助：取组内第一个非空值 ---------- */
     function getFirstNonEmptyVal(rows, col) {
         for (let r of rows) {
             const val = r[col];
-            if (val !== undefined &amp;&amp; val !== null &amp;&amp; String(val).trim() !== '') {
-                return val;
-            }
+            if (val !== undefined &amp;&amp; val !== null &amp;&amp; String(val).trim() !== '') return val;
         }
         return '';
     }
 
-    // 执行两级分组统计
+    /* ---------- 执行两级分组统计 ---------- */
     function executeAdvancedGroupAggregation() {
         const rawData = appState.group.rawData;
-        if (!rawData || rawData.length === 0) return;
-
-        // 1. 获取分组维度
-        const largeGroupCols = Array.from(document.querySelectorAll('input[name=&quot;largeGroupCol&quot;]:checked')).map(cb =&gt; cb.value);
-        const subGroupCols = Array.from(document.querySelectorAll('input[name=&quot;subGroupCol&quot;]:checked')).map(cb =&gt; cb.value);
-
-        if (largeGroupCols.length === 0 &amp;&amp; subGroupCols.length === 0) {
-            alert(&quot;请至少在一级大类或二级细分组中选择一个分组字段！&quot;);
+        if (!rawData || rawData.length === 0) {
+            alert('请先上传 Excel 文件！');
             return;
         }
 
-        // 合并所有细分组键（大组 + 细组）
+        const largeGroupCols = groupSelection.large.slice();
+        const subGroupCols = groupSelection.sub.slice();
+
+        if (largeGroupCols.length === 0 &amp;&amp; subGroupCols.length === 0) {
+            alert('请至少在一级大类或二级细分组中选择一个分组字段！');
+            return;
+        }
+
+        const metrics = collectMetrics();
+        if (metrics.length === 0) {
+            alert('请至少添加一条有效的指标配置！');
+            return;
+        }
+
         const allGroupKeys = Array.from(new Set([...largeGroupCols, ...subGroupCols]));
-        const salesCol = document.getElementById('salesColSelect').value;
-        const priceCol = document.getElementById('priceColSelect').value;
+        const GROUP_SEP = '|||';
 
-        // 2. 第一层统计：细分组聚合（按 allGroupKeys 聚类）
-        const subGroupMap = new Map();
-
+        /* ---------- 一级分组：原始行聚合，计算全部指标 ---------- */
+        const largeMap = new Map();
         rawData.forEach(row =&gt; {
-            const groupKey = allGroupKeys.map(k =&gt; String(row[k] !== undefined ? row[k] : '')).join('___|||___');
-            if (!subGroupMap.has(groupKey)) {
-                subGroupMap.set(groupKey, []);
-            }
-            subGroupMap.get(groupKey).push(row);
+            const lk = largeGroupCols
+                .map(k =&gt; String(row[k] !== undefined &amp;&amp; row[k] !== null ? row[k] : ''))
+                .join(GROUP_SEP);
+            if (!largeMap.has(lk)) largeMap.set(lk, []);
+            largeMap.get(lk).push(row);
         });
 
-        const subGroupResults = [];
+        const largeMetricMap = new Map(); // largeKey -&gt; { metricName: value }
+        largeMap.forEach((rows, lk) =&gt; {
+            const vals = {};
+            metrics.forEach(m =&gt; {
+                vals[m.name] = computeMetricValue(rows, m);
+            });
+            largeMetricMap.set(lk, vals);
+        });
 
-        subGroupMap.forEach((rows, key) =&gt; {
+        /* ---------- 二级分组：组合键聚合，计算全部指标 ---------- */
+        const subMap = new Map();
+        rawData.forEach(row =&gt; {
+            const key = allGroupKeys
+                .map(k =&gt; String(row[k] !== undefined &amp;&amp; row[k] !== null ? row[k] : ''))
+                .join(GROUP_SEP);
+            if (!subMap.has(key)) subMap.set(key, []);
+            subMap.get(key).push(row);
+        });
+
+        const subResults = [];
+        const metricSourceCols = new Set(metrics.map(m =&gt; m.col));
+
+        subMap.forEach((rows) =&gt; {
             const summaryRow = {};
 
-            // 填充分组维度值
-            allGroupKeys.forEach(k =&gt; {
+            // 一级分组字段值
+            largeGroupCols.forEach(k =&gt; {
                 summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';
             });
-
-            // 计算该细分组销量指标
-            let subSalesSum = 0;
-            let validSalesSum = 0;
-            let validAmountSum = 0;
-            let priceList = [];
-
-            rows.forEach(r =&gt; {
-                const salesVal = salesCol ? (Number(r[salesCol]) || 0) : 0;
-                subSalesSum += salesVal;
-
-                if (priceCol) {
-                    const priceVal = Number(r[priceCol]);
-                    if (!isNaN(priceVal) &amp;&amp; priceVal &gt; 0) {
-                        validSalesSum += salesVal;
-                        validAmountSum += salesVal * priceVal;
-                        priceList.push(priceVal);
-                    }
-                }
+            // 二级分组字段值
+            subGroupCols.forEach(k =&gt; {
+                if (!(k in summaryRow)) summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';
             });
 
-            if (salesCol) {
-                summaryRow['SKU销量'] = Math.round(subSalesSum * 100) / 100;
-            }
+            const lk = largeGroupCols
+                .map(k =&gt; String(rows[0][k] !== undefined &amp;&amp; rows[0][k] !== null ? rows[0][k] : ''))
+                .join(GROUP_SEP);
 
-            if (priceCol) {
-                const arithmeticMean = priceList.length &gt; 0 ? (priceList.reduce((a, b) =&gt; a + b, 0) / priceList.length) : 0;
-                const weightedMean = validSalesSum &gt; 0 ? (validAmountSum / validSalesSum) : arithmeticMean;
-                summaryRow['SKU销售均价_加权平均'] = Math.round(weightedMean * 100) / 100;
-                summaryRow['SKU销售均价_算术平均'] = Math.round(arithmeticMean * 100) / 100;
-            }
+            // 大组指标（同一大组内所有细组共享相同值）
+            const lv = largeMetricMap.get(lk) || {};
+            metrics.forEach(m =&gt; {
+                summaryRow['大组_' + m.name] = (lv[m.name] !== undefined) ? lv[m.name] : '';
+            });
 
-            // 保留原表其他所有列，匹配该组内第一个非空值
+            // 细组指标
+            metrics.forEach(m =&gt; {
+                summaryRow['细组_' + m.name] = computeMetricValue(rows, m);
+            });
+
+            // 原表其余所有列：取细组内第一个非空值
             appState.group.rawColumns.forEach(origCol =&gt; {
-                if (!allGroupKeys.includes(origCol) &amp;&amp; origCol !== salesCol &amp;&amp; origCol !== priceCol) {
+                if (!allGroupKeys.includes(origCol) &amp;&amp; !metricSourceCols.has(origCol)) {
                     summaryRow[origCol] = getFirstNonEmptyVal(rows, origCol);
                 }
             });
 
-            // 记录内部用于大组聚合的键
-            summaryRow._largeKey = largeGroupCols.map(k =&gt; String(summaryRow[k] !== undefined ? summaryRow[k] : '')).join('___|||___');
-            summaryRow._subSales = subSalesSum;
-
-            subGroupResults.push(summaryRow);
+            summaryRow.__largeKey = lk;
+            subResults.push(summaryRow);
         });
 
-        // 3. 第二层统计：计算大组层级的【大组总销量】
-        const largeGroupSalesMap = new Map();
-        if (largeGroupCols.length &gt; 0 &amp;&amp; salesCol) {
-            subGroupResults.forEach(item =&gt; {
-                const lk = item._largeKey;
-                const current = largeGroupSalesMap.get(lk) || 0;
-                largeGroupSalesMap.set(lk, current + item._subSales);
-            });
-
-            subGroupResults.forEach(item =&gt; {
-                item['大组总销量'] = Math.round((largeGroupSalesMap.get(item._largeKey) || 0) * 100) / 100;
-            });
-        }
-
-        // 4. 两级排序：大组总销量降序 -&gt; 大类分组字段升序 -&gt; 细组销量降序
-        subGroupResults.sort((a, b) =&gt; {
-            // 1. 大组总销量 降序
-            if (salesCol &amp;&amp; largeGroupCols.length &gt; 0) {
-                const lSalesA = a['大组总销量'] || 0;
-                const lSalesB = b['大组总销量'] || 0;
-                if (lSalesB !== lSalesA) return lSalesB - lSalesA;
+        /* ---------- 排序：大组指标 → 一级分组字段 → 细组指标 ---------- */
+        subResults.sort((a, b) =&gt; {
+            // 1. 大组指标（按配置顺序，依次降序）
+            for (const m of metrics) {
+                const key = '大组_' + m.name;
+                const va = Number(a[key]) || 0;
+                const vb = Number(b[key]) || 0;
+                if (vb !== va) return vb - va;
             }
 
-            // 2. 大类分组字段 升序（保证同面料色号聚集在一起）
-            for (let lk of largeGroupCols) {
-                const valA = String(a[lk] || '');
-                const valB = String(b[lk] || '');
-                const cmp = valA.localeCompare(valB);
+            // 2. 一级分组字段（按用户顺序，依次升序）
+            for (const lk of largeGroupCols) {
+                const cmp = String(a[lk] !== undefined ? a[lk] : '')
+                    .localeCompare(String(b[lk] !== undefined ? b[lk] : ''), 'zh-CN', { numeric: true });
                 if (cmp !== 0) return cmp;
             }
 
-            // 3. 细组销量 降序（组内最热卖的 SKU 排第一）
-            if (salesCol) {
-                const sSalesA = a['SKU销量'] || 0;
-                const sSalesB = b['SKU销量'] || 0;
-                if (sSalesB !== sSalesA) return sSalesB - sSalesA;
+            // 3. 细组指标（按配置顺序，依次降序）
+            for (const m of metrics) {
+                const key = '细组_' + m.name;
+                const va = Number(a[key]) || 0;
+                const vb = Number(b[key]) || 0;
+                if (vb !== va) return vb - va;
             }
 
             return 0;
         });
 
-        // 5. 整理导出表头顺序：大类字段 -&gt; 大组总销量 -&gt; 细分字段 -&gt; 细组销量 -&gt; 均价 -&gt; 原表其他所有列
+        /* ---------- 表头顺序 ---------- */
         const frontCols = [];
-        largeGroupCols.forEach(c =&gt; frontCols.push(c));
-        if (salesCol &amp;&amp; largeGroupCols.length &gt; 0) frontCols.push('大组总销量');
+        largeGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });
+        metrics.forEach(m =&gt; frontCols.push('大组_' + m.name));
         subGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });
-        if (salesCol) frontCols.push('SKU销量');
-        if (priceCol) {
-            frontCols.push('SKU销售均价_加权平均');
-            frontCols.push('SKU销售均价_算术平均');
-        }
+        metrics.forEach(m =&gt; frontCols.push('细组_' + m.name));
 
-        const remainingCols = appState.group.rawColumns.filter(c =&gt; !frontCols.includes(c) &amp;&amp; c !== salesCol &amp;&amp; c !== priceCol);
+        const remainingCols = appState.group.rawColumns.filter(c =&gt;
+            !frontCols.includes(c) &amp;&amp; !metricSourceCols.has(c)
+        );
+
         const finalColumns = [...frontCols, ...remainingCols];
 
-        // 清理内部临时辅助字段
-        subGroupResults.forEach(r =&gt; {
-            delete r._largeKey;
-            delete r._subSales;
-        });
+        // 清理临时字段
+        subResults.forEach(r =&gt; { delete r.__largeKey; });
 
-        appState.group.data = subGroupResults;
+        appState.group.data = subResults;
         appState.group.columns = finalColumns;
 
-        document.getElementById('groupResultCount').textContent = `共聚合出 ${subGroupResults.length} 个细分组`;
+        document.getElementById('groupResultCount').textContent =
+            `共聚合出 ${subResults.length} 个细分组 / ${finalColumns.length} 个字段`;
         document.getElementById('groupDownloadBtn').disabled = false;
 
         initColumnTags('group');
         renderPreviewTable('group');
     }
 
-    /* -------------------------- 通用表头拖拽 &amp; 预览与下载 -------------------------- */
+    /* ================= 通用：表头拖拽 / 预览 / 下载 ================= */
     let draggedIndex = null;
+
+    function isComputedColumn(type, col) {
+        if (type === 'group') {
+            if (/^大组_/.test(col) || /^细组_/.test(col)) return true;
+            return !(appState.group.rawColumns || []).includes(col);
+        }
+        return ['SKU', '颜色', '颜色英文', '材质(成分)'].includes(col);
+    }
 
     function initColumnTags(type) {
         const section = document.getElementById(`${type}ColumnOrderSection`);
@@ -4193,14 +4210,14 @@
 
         columns.forEach((col, index) =&gt; {
             const tag = document.createElement('div');
-            const isNew = ['SKU', '颜色', '颜色英文', '材质(成分)', '大组总销量', 'SKU销量', 'SKU销售均价_加权平均', 'SKU销售均价_算术平均'].includes(col);
+            const isNew = isComputedColumn(type, col);
             tag.className = `col-tag ${isNew ? 'is-new' : ''}`;
             tag.draggable = true;
             tag.dataset.index = index;
 
             tag.innerHTML = `
                 &lt;button class=&quot;col-btn-arrow&quot; onclick=&quot;moveColumn('${type}', ${index}, -1)&quot; title=&quot;前移&quot;&gt;◀&lt;/button&gt;
-                &lt;span&gt;${col}&lt;/span&gt;
+                &lt;span&gt;${escHtml(col)}&lt;/span&gt;
                 &lt;button class=&quot;col-btn-arrow&quot; onclick=&quot;moveColumn('${type}', ${index}, 1)&quot; title=&quot;后移&quot;&gt;▶&lt;/button&gt;
             `;
 
@@ -4246,13 +4263,14 @@
         const columns = appState[type].columns;
         if (!data || data.length === 0 || !columns) return;
 
-        const previewRows = data.slice(0, 10);
+        const limit = (type === 'group') ? 100 : 10;
+        const previewRows = data.slice(0, limit);
 
         const trHead = document.createElement('tr');
         columns.forEach(h =&gt; {
             const th = document.createElement('th');
-            if (['SKU', '颜色', '颜色英文', '材质(成分)', '大组总销量', 'SKU销量', 'SKU销售均价_加权平均', 'SKU销售均价_算术平均'].includes(h)) {
-                th.innerHTML = `${h} &lt;span class=&quot;badge-new&quot;&gt;计算字段&lt;/span&gt;`;
+            if (isComputedColumn(type, h)) {
+                th.innerHTML = `${escHtml(h)} &lt;span class=&quot;badge-new&quot;&gt;计算字段&lt;/span&gt;`;
             } else {
                 th.textContent = h;
             }
