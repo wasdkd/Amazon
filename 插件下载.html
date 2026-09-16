@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>插件下载中心</title>
+<!-- 引入 FontAwesome 图标支持操作按钮 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   :root{
     --brand:#6366f1;
@@ -29,11 +31,53 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  /* ============ 顶部 ============ */
+  /* ============ 顶部快捷控制条 ============ */
+  .admin-bar {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 0 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 13px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid rgba(99,102,241,.2);
+    background: rgba(255,255,255,.85);
+    color: #4338ca;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: all .2s;
+    text-decoration: none;
+    box-shadow: 0 2px 8px -2px rgba(99,102,241,.2);
+  }
+  .ctrl-btn:hover {
+    background: #fff;
+    border-color: var(--brand);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px rgba(99,102,241,.3);
+  }
+  .ctrl-btn.primary {
+    background: linear-gradient(135deg,#6366f1,#8b5cf6);
+    color: #fff;
+    border: none;
+  }
+  .ctrl-btn.primary:hover {
+    filter: brightness(1.08);
+  }
+
+  /* ============ 顶部 Hero ============ */
   .hero{
     max-width:1200px;
     margin:0 auto;
-    padding:68px 24px 34px;
+    padding:30px 24px 20px;
     text-align:center;
   }
 
@@ -47,12 +91,12 @@
     background:rgba(99,102,241,.10);
     border:1px solid rgba(99,102,241,.18);
     border-radius:999px;
-    margin-bottom:18px;
+    margin-bottom:14px;
   }
 
   .hero h1{
-    margin:0 0 14px;
-    font-size:clamp(28px, 5vw, 44px);
+    margin:0 0 12px;
+    font-size:clamp(28px, 5vw, 42px);
     font-weight:800;
     letter-spacing:-1px;
     background:linear-gradient(115deg,#4f46e5,#8b5cf6 52%,#06b6d4);
@@ -67,11 +111,22 @@
     color:var(--muted);
   }
 
+  .sync-badge {
+    margin-top: 10px;
+    display: inline-block;
+    font-size: 11.5px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4f46e5;
+    border: 1px solid rgba(99,102,241,.2);
+  }
+
   /* 搜索框 */
   .search-wrap{
     position:relative;
     max-width:440px;
-    margin:30px auto 0;
+    margin:24px auto 0;
   }
   .search-wrap svg{
     position:absolute;
@@ -83,7 +138,7 @@
   }
   #search{
     width:100%;
-    padding:14px 18px 14px 46px;
+    padding:13px 18px 13px 46px;
     font-size:14.5px;
     font-family:inherit;
     color:var(--text);
@@ -101,7 +156,7 @@
   }
 
   .stat{
-    margin:18px 0 0;
+    margin:14px 0 0;
     font-size:13px;
     color:var(--faint);
   }
@@ -111,13 +166,14 @@
   .grid{
     max-width:1200px;
     margin:0 auto;
-    padding:26px 24px 80px;
+    padding:20px 24px 80px;
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));
     gap:24px;
   }
 
   .card{
+    position: relative;
     display:flex;
     flex-direction:column;
     background:#fff;
@@ -151,7 +207,7 @@
     height:100%;
     object-fit:cover;
     display:block;
-    cursor:zoom-in;               /* 提示可点击放大 */
+    cursor:zoom-in;
     transition:transform .6s cubic-bezier(.2,.8,.2,1);
   }
   .card:hover .thumb img{ transform:scale(1.07); }
@@ -170,6 +226,42 @@
     border-radius:999px;
     box-shadow:0 2px 10px rgba(16,24,40,.14);
     pointer-events:none;
+  }
+
+  /* 卡片管理按键（编辑/删除） */
+  .card-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .card:hover .card-actions {
+    opacity: 1;
+  }
+  .act-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(0,0,0,.08);
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 11px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    transition: all .2s;
+  }
+  .act-btn:hover {
+    color: var(--brand);
+    transform: scale(1.1);
+  }
+  .act-btn.del:hover {
+    color: #ef4444;
   }
 
   /* 内容区 */
@@ -237,9 +329,7 @@
     color:var(--faint);
   }
 
-  /* =========================================================
-     安装说明卡片（占满整行，放第一个位置）
-     ========================================================= */
+  /* ============ 安装说明卡片 ============ */
   .guide{
     grid-column:1 / -1;
     padding:28px 28px 24px;
@@ -347,7 +437,7 @@
     color:var(--muted);
   }
 
-  /* ============ 图片放大灯箱（大图铺满屏幕） ============ */
+  /* ============ 图片放大灯箱 ============ */
   .lightbox{
     position:fixed;
     inset:0;
@@ -355,7 +445,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:12px 12px 48px;        /* 底部留出提示文字的位置 */
+    padding:12px 12px 48px;
     background:rgba(16,24,40,.9);
     backdrop-filter:blur(8px);
     opacity:0;
@@ -366,12 +456,12 @@
   .lightbox.open{ opacity:1; visibility:visible; }
 
   .lightbox img{
-    max-width:98vw;                        /* 几乎占满宽度 */
-    max-height:calc(100vh - 60px);         /* 几乎占满高度 */
-    max-height:calc(100dvh - 60px);        /* 移动端更准，支持则优先生效 */
+    max-width:98vw;
+    max-height:calc(100vh - 60px);
+    max-height:calc(100dvh - 60px);
     width:auto;
     height:auto;
-    object-fit:contain;                    /* 完整显示，不裁切 */
+    object-fit:contain;
     border-radius:10px;
     background:#fff;
     box-shadow:0 30px 90px -22px rgba(0,0,0,.9);
@@ -385,7 +475,7 @@
     position:absolute;
     top:18px;
     right:20px;
-    z-index:2;                             /* 保证按钮始终在图片上方可点 */
+    z-index:2;
     width:44px;
     height:44px;
     display:grid;
@@ -413,6 +503,121 @@
     pointer-events:none;
   }
 
+  /* ============ 模态弹窗系统 (与原版风格契合) ============ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s, visibility .2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+  .modal-card {
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    overflow: hidden;
+    border: 1px solid rgba(99,102,241,0.15);
+    animation: modalIn .25s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fafafa;
+  }
+  .modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: #94a3b8;
+    cursor: pointer;
+  }
+  .modal-close:hover { color: #334155; }
+  .modal-body {
+    padding: 20px;
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .form-control {
+    width: 100%;
+    padding: 9px 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 13.5px;
+    outline: none;
+    font-family: inherit;
+  }
+  .form-control:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+  }
+  textarea.form-control {
+    resize: vertical;
+    min-height: 70px;
+  }
+  .dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--brand);
+    background: rgba(99,102,241,0.04);
+  }
+  .dropzone img {
+    max-height: 100px;
+    border-radius: 8px;
+    margin-top: 8px;
+    display: inline-block;
+  }
+  .modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #fafafa;
+  }
+
   /* ============ 页脚 ============ */
   footer{
     padding:0 24px 52px;
@@ -422,9 +627,10 @@
   }
 
   @media (max-width:480px){
-    .hero{ padding:48px 18px 24px; }
-    .grid{ padding:20px 18px 60px; gap:18px; }
-    .guide{ padding:22px 18px 18px; }
+    .admin-bar { justify-content: center; }
+    .hero{ padding:24px 18px 20px; }
+    .grid{ padding:16px 18px 60px; gap:18px; }
+    .guide{ padding:20px 16px 16px; }
     .lightbox{ padding:8px 8px 42px; }
     .lightbox img{
       max-width:100vw;
@@ -439,13 +645,29 @@
 </head>
 <body>
 
+<!-- 顶部快捷控制条 -->
+<div class="admin-bar">
+  <button class="ctrl-btn" onclick="window.location.href='https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'">
+    <i class="fa-solid fa-arrow-left"></i> 返回平台
+  </button>
+  <button class="ctrl-btn primary" onclick="openAddModal()">
+    <i class="fa-solid fa-plus-circle"></i> 添加插件
+  </button>
+  <button class="ctrl-btn" onclick="exportStandaloneHTML()" title="打包当前包含云端数据的独立单文件">
+    <i class="fa-solid fa-file-export"></i> 导出网页备份
+  </button>
+  <button class="ctrl-btn" onclick="openGithubModal()">
+    <i class="fa-brands fa-github"></i> GitHub 授权设置
+  </button>
+</div>
+
 <header class="hero">
   <span class="pill">🔌 插件仓库</span>
-  <button class="btn btn-jump" onclick="window.location.href='https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'">
-                返回平台
-            </button>
   <h1>插件下载中心</h1>
   <p class="sub">精选实用插件，点击按钮即可下载安装包</p>
+  <div>
+    <span id="sync-status" class="sync-badge">☁️ 正在检查云端更新...</span>
+  </div>
 
   <div class="search-wrap">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -469,10 +691,154 @@
   <span class="lb-hint">点击任意处或按 Esc 关闭</span>
 </div>
 
+<!-- 添加插件模态框 -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-circle-plus" style="color:var(--brand)"></i> 添加新插件</h3>
+      <button class="modal-close" onclick="closeAddModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>插件名称 *</label>
+        <input type="text" id="add-name" class="form-control" placeholder="例如：沃尔玛前台商品排序">
+      </div>
+      <div class="form-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label>版本号 *</label>
+          <input type="text" id="add-ver" class="form-control" placeholder="v1.0" value="v1.0">
+        </div>
+        <div style="flex:1;">
+          <label>包大小</label>
+          <input type="text" id="add-size" class="form-control" placeholder="例如：250KB">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>说明与功能介绍 *</label>
+        <textarea id="add-desc" class="form-control" placeholder="简要阐述插件主要功能及用途"></textarea>
+      </div>
+      <div class="form-group">
+        <label>插件预览图 (截图/封面)</label>
+        <div class="dropzone" id="add-dropzone" onclick="document.getElementById('add-file').click()">
+          <input type="file" id="add-file" accept="image/*" style="display:none">
+          <div id="add-drop-prompt">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:24px;color:var(--faint)"></i>
+            <p style="margin:6px 0 0;font-size:12px;color:var(--muted)">拖拽图片到此，或点击选择本地图片</p>
+          </div>
+          <img id="add-preview" style="display:none">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>安装包文件 (.zip / .rar)</label>
+        <input type="file" id="add-pkg-file" accept=".zip,.rar,.7z,.crx" style="display:none">
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="add-link" class="form-control" placeholder="直接粘贴下载 URL 或点击右侧上传文件">
+          <button type="button" class="ctrl-btn" onclick="document.getElementById('add-pkg-file').click()" title="上传安装包至 GitHub">
+            <i class="fa-solid fa-upload"></i> 上传
+          </button>
+        </div>
+        <small id="add-pkg-tip" style="color:var(--faint);font-size:11px;margin-top:4px;display:block;">支持输入已有直链，或上传本地压缩包至仓库自动托管</small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="ctrl-btn" onclick="closeAddModal()">取消</button>
+      <button class="ctrl-btn primary" id="add-submit-btn" onclick="submitNewPlugin()">保存至云端</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑插件模态框 -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-pen-to-square" style="color:var(--brand)"></i> 编辑插件信息</h3>
+      <button class="modal-close" onclick="closeEditModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>插件名称 *</label>
+        <input type="text" id="edit-name" class="form-control">
+      </div>
+      <div class="form-group" style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label>版本号 *</label>
+          <input type="text" id="edit-ver" class="form-control">
+        </div>
+        <div style="flex:1;">
+          <label>包大小</label>
+          <input type="text" id="edit-size" class="form-control">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>说明与功能介绍 *</label>
+        <textarea id="edit-desc" class="form-control"></textarea>
+      </div>
+      <div class="form-group">
+        <label>更新预览截图 (点击更换，不换则保留原图)</label>
+        <div class="dropzone" id="edit-dropzone" onclick="document.getElementById('edit-file').click()">
+          <input type="file" id="edit-file" accept="image/*" style="display:none">
+          <img id="edit-preview" style="display:block;">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>安装包下载链接 (.zip / .rar)</label>
+        <input type="file" id="edit-pkg-file" accept=".zip,.rar,.7z,.crx" style="display:none">
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="edit-link" class="form-control">
+          <button type="button" class="ctrl-btn" onclick="document.getElementById('edit-pkg-file').click()">
+            <i class="fa-solid fa-upload"></i> 更换
+          </button>
+        </div>
+        <small id="edit-pkg-tip" style="color:var(--faint);font-size:11px;margin-top:4px;display:block;">支持输入已有直链或上传新包</small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="ctrl-btn" onclick="closeEditModal()">取消</button>
+      <button class="ctrl-btn primary" id="edit-submit-btn" onclick="submitEditPlugin()">更新同步</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub 授权配置模态框 -->
+<div class="modal-overlay" id="github-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="fa-brands fa-github"></i> GitHub 授权与仓库中控</h3>
+      <button class="modal-close" onclick="closeGithubModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Personal Access Token (PAT 密钥) *</label>
+        <input type="password" id="gh-token" class="form-control" placeholder="ghp_xxxxxxxxxxxx">
+        <small style="color:var(--faint);font-size:11.5px;display:block;margin-top:4px;">需要具备对应仓库的读写权限 (repo scope)。只在添加/修改/删除时才需要验证。</small>
+      </div>
+      <div class="form-group">
+        <label>仓库所有者 (Owner) *</label>
+        <input type="text" id="gh-owner" class="form-control" placeholder="wasdkd">
+      </div>
+      <div class="form-group">
+        <label>仓库名称 (Repo) *</label>
+        <input type="text" id="gh-repo" class="form-control" placeholder="Amazon">
+      </div>
+      <div class="form-group">
+        <label>分支名称 (Branch)</label>
+        <input type="text" id="gh-branch" class="form-control" placeholder="main" value="main">
+      </div>
+      <div class="form-group">
+        <label>插件数据库路径 (自动创建于指定文件夹)</label>
+        <input type="text" id="gh-path" class="form-control" value="插件/plugins.json">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="ctrl-btn" onclick="closeGithubModal()">取消</button>
+      <button class="ctrl-btn primary" onclick="saveGithubConfig()">保存并连接</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================
-   1. 生成占位预览图
-   （当真实图片加载失败时自动兜底，也可以直接用它当预览图）
+   1. 兜底占位图生成
    ========================================================= */
 function ph(text, c1, c2){
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
@@ -491,15 +857,10 @@ function ph(text, c1, c2){
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
-/* 图片加载失败时的兜底图 */
 const FALLBACK = ph("暂无预览图", "#94a3b8", "#64748b");
 
 /* =========================================================
-   2. 安装说明 —— 想改文字 / 换图片，改这里
-   ---------------------------------------------------------
-   title  步骤标题
-   text   步骤说明
-   img    配图地址（可以直接写真实图片链接）
+   2. 安装说明 (固定教程卡片)
    ========================================================= */
 const guide = {
   tag: "📖 新手必看",
@@ -530,40 +891,502 @@ const guide = {
 };
 
 /* =========================================================
-   3. 插件数据 —— 改这里就行
-   ---------------------------------------------------------
-   name    插件名称
-   version 版本号（显示在图片左上角）
-   desc    说明文字
-   img     预览图地址（本地路径或网络链接都可以）
-   size    压缩包大小
-   date    更新时间
-   link    压缩包下载链接 ★
+   3. 初始/兜底数据（与云端数据结构完全一致）
    ========================================================= */
-const plugins = [
-  {
-    name: "亚马逊前台产品排序",
-    version: "v1.0",
-    desc: "对亚马逊前台产品进行销量或BSR排序展示（需登陆卖家精灵插件加载页面数据）",
-    img: encodeURI("https://raw.githubusercontent.com/wasdkd/Amazon/main/SKU_IMG/亚马逊前台产品排序.png"),
-    size: "5.2KB",
-    date: "2026-09-15",
-    link: "https://raw.githubusercontent.com/wasdkd/Amazon/main/%E5%90%8E%E5%8F%B0%E6%9C%8D%E5%8A%A1/Wofu-Helper.rar"
-  },
-
-  {
-    name: "亚马逊前台主图批量下载",
-    version: "v2.0",
-    desc: "亚马逊前台主图批量下载，按材质命名图片名称",
-    img: encodeURI("https://raw.githubusercontent.com/wasdkd/Amazon/main/SKU_IMG/亚马逊前台主图批量下载.png"),
-    size: "251.1KB",
-    date: "2026-09-15",
-    link: "https://raw.githubusercontent.com/wasdkd/Amazon/main/%E5%90%8E%E5%8F%B0%E6%9C%8D%E5%8A%A1/%E4%B8%BB%E5%9B%BE%E4%B8%8B%E8%BD%BD_%E9%87%8D%E5%91%BD%E5%90%8D.rar"
-  },
+/*START_DATA*/
+const defaultPlugins = [
+  // {
+  //   name: "亚马逊前台产品排序",
+  //   version: "v1.0",
+  //   desc: "对亚马逊前台产品进行销量或BSR排序展示（需登陆卖家精灵插件加载页面数据）",
+  //   img: encodeURI("https://raw.githubusercontent.com/wasdkd/Amazon/main/SKU_IMG/亚马逊前台产品排序.png"),
+  //   size: "5.2KB",
+  //   date: "2026-09-15",
+  //   link: "https://raw.githubusercontent.com/wasdkd/Amazon/main/%E5%90%8E%E5%8F%B0%E6%9C%8D%E5%8A%A1/Wofu-Helper.rar"
+  // },
+  // {
+  //   name: "亚马逊前台主图批量下载",
+  //   version: "v2.0",
+  //   desc: "亚马逊前台主图批量下载，按材质命名图片名称",
+  //   img: encodeURI("https://raw.githubusercontent.com/wasdkd/Amazon/main/SKU_IMG/亚马逊前台主图批量下载.png"),
+  //   size: "251.1KB",
+  //   date: "2026-09-15",
+  //   link: "https://raw.githubusercontent.com/wasdkd/Amazon/main/%E5%90%8E%E5%8F%B0%E6%9C%8D%E5%8A%A1/%E4%B8%BB%E5%9B%BE%E4%B8%8B%E8%BD%BD_%E9%87%8D%E5%91%BD%E5%90%8D.rar"
+  // }
 ];
+/*END_DATA*/
+
+let plugins = [...defaultPlugins];
+let currentFileSha = null;
+
+let githubConfig = {
+  token: '',
+  owner: 'wasdkd',
+  repo: 'Amazon',
+  branch: 'main',
+  path: '插件/plugins.json'
+};
+
+// 选中的文件暂存
+let addImgFile = null;
+let addPkgFile = null;
+let editImgFile = null;
+let editPkgFile = null;
+let editingIndex = null;
 
 /* =========================================================
-   4. 渲染
+   4. 配置与云端通信 (免密读取，鉴权更新)
+   ========================================================= */
+function loadConfig() {
+  try {
+    const saved = localStorage.getItem('plugin_hub_gh_cfg');
+    if (saved) {
+      githubConfig = { ...githubConfig, ...JSON.parse(saved) };
+    }
+  } catch(e){}
+  document.getElementById('gh-token').value = githubConfig.token || '';
+  document.getElementById('gh-owner').value = githubConfig.owner || 'wasdkd';
+  document.getElementById('gh-repo').value = githubConfig.repo || 'Amazon';
+  document.getElementById('gh-branch').value = githubConfig.branch || 'main';
+  document.getElementById('gh-path').value = githubConfig.path || '插件/plugins.json';
+}
+
+function saveGithubConfig() {
+  githubConfig.token  = document.getElementById('gh-token').value.trim();
+  githubConfig.owner  = document.getElementById('gh-owner').value.trim() || 'wasdkd';
+  githubConfig.repo   = document.getElementById('gh-repo').value.trim() || 'Amazon';
+  githubConfig.branch = document.getElementById('gh-branch').value.trim() || 'main';
+  githubConfig.path   = document.getElementById('gh-path').value.trim() || '插件/plugins.json';
+
+  localStorage.setItem('plugin_hub_gh_cfg', JSON.stringify(githubConfig));
+  closeGithubModal();
+  loadDataFromGithub();
+}
+
+// 统一数据读取逻辑（优先通过免密 RAW 读取云端最新库）
+async function loadDataFromGithub() {
+  const statusEl = document.getElementById('sync-status');
+  statusEl.innerText = "☁️ 正在检查 GitHub 云端数据...";
+
+  // 1. 先尝试公开直链读取（游客与用户均可直接加载）
+  const rawUrl = `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${encodeURI(githubConfig.path)}?t=${Date.now()}`;
+  try {
+    let res = await fetch(rawUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        plugins = data;
+        localStorage.setItem('plugin_hub_local_cache', JSON.stringify(plugins));
+        statusEl.innerText = "✅ 已自动同步 GitHub 云端最新插件数据";
+        statusEl.style.color = "#10b981";
+        updateView();
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn("Raw 数据直读跳过，尝试 API 或本地缓存");
+  }
+
+  // 2. 若存在 Token，则通过官方 API 检查 SHA 与内容
+  if (githubConfig.token) {
+    const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${encodeURI(githubConfig.path)}`;
+    try {
+      let res = await fetch(apiUrl, {
+        headers: { 'Authorization': `token ${githubConfig.token}` }
+      });
+      if (res.ok) {
+        const fileData = await res.json();
+        currentFileSha = fileData.sha;
+        const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
+        plugins = JSON.parse(decoded);
+        localStorage.setItem('plugin_hub_local_cache', JSON.stringify(plugins));
+        statusEl.innerText = "✅ GitHub 已认证并载入数据";
+        statusEl.style.color = "#10b981";
+        updateView();
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // 3. 兜底回退为本地缓存或默认数据
+  try {
+    const local = localStorage.getItem('plugin_hub_local_cache');
+    if (local) {
+      plugins = JSON.parse(local);
+      statusEl.innerText = "⚡ 已加载本地暂存数据 (可随时提交同步至 GitHub)";
+      statusEl.style.color = "#6366f1";
+    } else {
+      plugins = [...defaultPlugins];
+      statusEl.innerText = "ℹ️ 已加载默认初始插件数据";
+      statusEl.style.color = "#64748b";
+    }
+  } catch(e) {
+    plugins = [...defaultPlugins];
+  }
+  updateView();
+}
+
+// 检查是否具备 GitHub 写入鉴权
+function ensureAuth() {
+  if (!githubConfig.token) {
+    alert("提示：进行「添加/编辑/删除」操作需要 GitHub 写入权限，请先配置个人访问令牌 (Token)！");
+    openGithubModal();
+    return false;
+  }
+  return true;
+}
+
+// 文件转换为 Base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.readAsDataURL(file);
+    r.onload = () => resolve(r.result);
+    r.onerror = error => reject(error);
+  });
+}
+
+// 通用 GitHub 上传文件函数 (图片或压缩包)
+async function uploadFileToGithub(file, targetFolder) {
+  const ext = file.name.split('.').pop() || 'bin';
+  const cleanName = `${Date.now()}_${Math.floor(Math.random()*1000)}.${ext}`;
+  const filePath = `${targetFolder}/${cleanName}`;
+  const base64Str = await fileToBase64(file);
+  const cleanBase64 = base64Str.split(',')[1];
+
+  const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${encodeURI(filePath)}`;
+  const res = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${githubConfig.token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `Upload asset: ${cleanName}`,
+      content: cleanBase64,
+      branch: githubConfig.branch
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "上传文件至 GitHub 失败");
+  }
+
+  // 返回可直接免密下载的 Raw 链接
+  return `https://raw.githubusercontent.com/${githubConfig.owner}/${githubConfig.repo}/${githubConfig.branch}/${encodeURI(filePath)}`;
+}
+
+// 将更新后的 plugins 数组同步至 GitHub 数据库
+async function syncDatabaseToGithub() {
+  const statusEl = document.getElementById('sync-status');
+  statusEl.innerText = "⏳ 正在同步写入 GitHub 仓库...";
+  statusEl.style.color = "#f59e0b";
+
+  const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${encodeURI(githubConfig.path)}`;
+
+  // 获取最新的 SHA 防冲突
+  try {
+    const chk = await fetch(apiUrl, {
+      headers: { 'Authorization': `token ${githubConfig.token}` }
+    });
+    if (chk.ok) {
+      const data = await chk.json();
+      currentFileSha = data.sha;
+    } else if (chk.status === 404) {
+      currentFileSha = null;
+    }
+  } catch(e){}
+
+  const jsonContent = JSON.stringify(plugins, null, 2);
+  const base64Content = btoa(unescape(encodeURIComponent(jsonContent)));
+
+  const payload = {
+    message: "Sync 插件/plugins.json (自动化配置管理)",
+    content: base64Content,
+    branch: githubConfig.branch
+  };
+  if (currentFileSha) payload.sha = currentFileSha;
+
+  const res = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${githubConfig.token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "提交数据库失败");
+  }
+
+  const resData = await res.json();
+  currentFileSha = resData.content.sha;
+  localStorage.setItem('plugin_hub_local_cache', JSON.stringify(plugins));
+
+  statusEl.innerText = "✅ 数据已成功同步更新至 GitHub";
+  statusEl.style.color = "#10b981";
+}
+
+/* =========================================================
+   5. 增删改具体业务逻辑
+   ========================================================= */
+
+// 添加逻辑
+function openAddModal() {
+  if (!ensureAuth()) return;
+  addImgFile = null;
+  addPkgFile = null;
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-desc').value = '';
+  document.getElementById('add-ver').value = 'v1.0';
+  document.getElementById('add-size').value = '';
+  document.getElementById('add-link').value = '';
+  document.getElementById('add-file').value = '';
+  document.getElementById('add-pkg-file').value = '';
+  document.getElementById('add-preview').style.display = 'none';
+  document.getElementById('add-drop-prompt').style.display = 'block';
+  document.getElementById('add-pkg-tip').innerText = '支持输入已有直链，或上传本地压缩包至仓库自动托管';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.remove('open');
+}
+
+async function submitNewPlugin() {
+  const name = document.getElementById('add-name').value.trim();
+  const version = document.getElementById('add-ver').value.trim() || 'v1.0';
+  const desc = document.getElementById('add-desc').value.trim();
+  let link = document.getElementById('add-link').value.trim();
+  let size = document.getElementById('add-size').value.trim() || '未知大小';
+
+  if (!name || !desc) {
+    alert("请完整填写插件名称和功能描述！");
+    return;
+  }
+  if (!link && !addPkgFile) {
+    alert("请提供插件安装包下载链接，或点击「上传」选择本地压缩包！");
+    return;
+  }
+
+  const btn = document.getElementById('add-submit-btn');
+  btn.disabled = true;
+  btn.innerText = "正在安全上传至 GitHub...";
+
+  try {
+    // 1. 如果选中了新图片，自动上传至「插件/plugin_imgs」
+    let imgUrl = "";
+    if (addImgFile) {
+      imgUrl = await uploadFileToGithub(addImgFile, "插件/plugin_imgs");
+    } else {
+      imgUrl = ph(name, "#6366f1", "#8b5cf6");
+    }
+
+    // 2. 如果选中了新安装包文件，自动上传至「插件/plugin_files」
+    if (addPkgFile) {
+      link = await uploadFileToGithub(addPkgFile, "插件/plugin_files");
+      if (!size || size === '未知大小') {
+        size = (addPkgFile.size / 1024).toFixed(1) + 'KB';
+      }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const newPlugin = { name, version, desc, img: imgUrl, size, date: today, link };
+
+    plugins.unshift(newPlugin);
+    await syncDatabaseToGithub();
+
+    closeAddModal();
+    updateView();
+  } catch (err) {
+    alert("添加失败: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "保存至云端";
+  }
+}
+
+// 编辑逻辑
+function openEditModal(index, event) {
+  if (event) event.stopPropagation();
+  if (!ensureAuth()) return;
+
+  editingIndex = index;
+  editImgFile = null;
+  editPkgFile = null;
+  const p = plugins[index];
+
+  document.getElementById('edit-name').value = p.name || '';
+  document.getElementById('edit-ver').value = p.version || '';
+  document.getElementById('edit-size').value = p.size || '';
+  document.getElementById('edit-desc').value = p.desc || '';
+  document.getElementById('edit-link').value = p.link || '';
+  document.getElementById('edit-preview').src = p.img || FALLBACK;
+  document.getElementById('edit-pkg-tip').innerText = '当前已有链接，如需换包请直接输入新 URL 或点击更换按钮';
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingIndex = null;
+}
+
+async function submitEditPlugin() {
+  if (editingIndex === null) return;
+
+  const name = document.getElementById('edit-name').value.trim();
+  const version = document.getElementById('edit-ver').value.trim();
+  const desc = document.getElementById('edit-desc').value.trim();
+  let link = document.getElementById('edit-link').value.trim();
+  let size = document.getElementById('edit-size').value.trim();
+
+  if (!name || !desc) {
+    alert("插件名称和功能描述不能为空！");
+    return;
+  }
+
+  const btn = document.getElementById('edit-submit-btn');
+  btn.disabled = true;
+  btn.innerText = "正在更新至 GitHub...";
+
+  try {
+    let imgUrl = plugins[editingIndex].img;
+
+    // 如果更新了图片
+    if (editImgFile) {
+      imgUrl = await uploadFileToGithub(editImgFile, "插件/plugin_imgs");
+    }
+
+    // 如果上传了新的安装包
+    if (editPkgFile) {
+      link = await uploadFileToGithub(editPkgFile, "插件/plugin_files");
+      if (!size) size = (editPkgFile.size / 1024).toFixed(1) + 'KB';
+    }
+
+    plugins[editingIndex] = {
+      ...plugins[editingIndex],
+      name, version, desc, img: imgUrl, size, link,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    await syncDatabaseToGithub();
+    closeEditModal();
+    updateView();
+  } catch(err) {
+    alert("修改保存失败: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "更新同步";
+  }
+}
+
+// 删除逻辑
+async function deletePlugin(index, event) {
+  if (event) event.stopPropagation();
+  if (!ensureAuth()) return;
+
+  const p = plugins[index];
+  if (!confirm(`确定要彻底删除插件【${p.name}】吗？`)) return;
+
+  try {
+    plugins.splice(index, 1);
+    await syncDatabaseToGithub();
+    updateView();
+  } catch(err) {
+    alert("删除失败: " + err.message);
+  }
+}
+
+// 模态弹窗开关
+function openGithubModal() { document.getElementById('github-modal').classList.add('open'); }
+function closeGithubModal() { document.getElementById('github-modal').classList.remove('open'); }
+
+/* 拖拽和文件选择绑定辅助 */
+function setupDropzone(dropId, fileId, previewId, promptId, onSelected) {
+  const dz = document.getElementById(dropId);
+  const fi = document.getElementById(fileId);
+  fi.addEventListener('change', (e) => {
+    if (e.target.files.length) onSelected(e.target.files[0]);
+  });
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) onSelected(e.dataTransfer.files[0]);
+  });
+}
+
+// 绑定添加图片
+setupDropzone('add-dropzone', 'add-file', 'add-preview', 'add-drop-prompt', (file) => {
+  addImgFile = file;
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById('add-preview').src = e.target.result;
+    document.getElementById('add-preview').style.display = 'block';
+    document.getElementById('add-drop-prompt').style.display = 'none';
+  };
+  r.readAsDataURL(file);
+});
+
+// 绑定编辑图片
+setupDropzone('edit-dropzone', 'edit-file', 'edit-preview', null, (file) => {
+  editImgFile = file;
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById('edit-preview').src = e.target.result;
+  };
+  r.readAsDataURL(file);
+});
+
+// 监听添加安装包文件
+document.getElementById('add-pkg-file').addEventListener('change', (e) => {
+  if (e.target.files.length) {
+    addPkgFile = e.target.files[0];
+    document.getElementById('add-link').value = addPkgFile.name;
+    document.getElementById('add-pkg-tip').innerText = `已就绪安装包: ${addPkgFile.name} (${(addPkgFile.size/1024).toFixed(1)} KB)`;
+  }
+});
+
+// 监听编辑安装包文件
+document.getElementById('edit-pkg-file').addEventListener('change', (e) => {
+  if (e.target.files.length) {
+    editPkgFile = e.target.files[0];
+    document.getElementById('edit-link').value = editPkgFile.name;
+    document.getElementById('edit-pkg-tip').innerText = `已选中新安装包: ${editPkgFile.name}`;
+  }
+});
+
+/* =========================================================
+   6. 导出单文件备份
+   ========================================================= */
+function exportStandaloneHTML() {
+  const baseHTML = document.documentElement.outerHTML;
+  let exported = "<!DOCTYPE html>\n" + baseHTML;
+
+  // 保证导出时模态弹窗处于关闭状态
+  exported = exported.replace(/class="modal-overlay open"/g, 'class="modal-overlay"');
+  exported = exported.replace(/class="lightbox open"/g, 'class="lightbox"');
+
+  const currentDataStr = JSON.stringify(plugins, null, 2);
+  const regex = /\/\*START_DATA\*\/[\s\S]*?\/\*END_DATA\*\//;
+  exported = exported.replace(regex, '/*START_DATA*/\nconst defaultPlugins = ' + currentDataStr + ';\n/*END_DATA*/');
+
+  const blob = new Blob([exported], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "插件下载中心_最新备份.html";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* =========================================================
+   7. 渲染与检索过滤
    ========================================================= */
 const grid    = document.getElementById('grid');
 const input   = document.getElementById('search');
@@ -575,7 +1398,6 @@ const downloadIcon = `
     <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
   </svg>`;
 
-/* 安装说明卡片 */
 function renderGuide(){
   return `
     <section class="guide">
@@ -599,28 +1421,35 @@ function renderGuide(){
     </section>`;
 }
 
-/* 插件卡片 */
 function renderPlugins(list){
-  return list.map((p, i) => `
+  return list.map((p, i) => {
+    // 获取元素在原 plugins 数组中的真正索引
+    const originalIndex = plugins.indexOf(p);
+    return `
     <article class="card" style="animation-delay:${i * 45}ms">
+      <!-- 快捷操作按钮 -->
+      <div class="card-actions">
+        <button class="act-btn" onclick="openEditModal(${originalIndex}, event)" title="编辑修改此插件"><i class="fa-solid fa-pen"></i></button>
+        <button class="act-btn del" onclick="deletePlugin(${originalIndex}, event)" title="删除此插件"><i class="fa-solid fa-trash"></i></button>
+      </div>
       <div class="thumb">
-        <img class="zoomable" src="${p.img}" alt="${p.name} 预览图" loading="lazy">
-        <span class="badge">${p.version}</span>
+        <img class="zoomable" src="${p.img || FALLBACK}" alt="${p.name} 预览图" loading="lazy">
+        <span class="badge">${p.version || 'v1.0'}</span>
       </div>
       <div class="card-body">
         <h3>${p.name}</h3>
         <p class="desc">${p.desc}</p>
         <div class="meta">
-          <span>📦 ${p.size}</span>
-          <span>🕒 ${p.date}</span>
+          <span>📦 ${p.size || '未知'}</span>
+          <span>🕒 ${p.date || '-'}</span>
         </div>
-        <a class="btn" href="${p.link}" download>
+        <a class="btn" href="${p.link}" download target="_blank">
           ${downloadIcon}
           <span>下载插件</span>
         </a>
       </div>
     </article>
-  `).join('');
+  `}).join('');
 }
 
 function render(list, showGuide){
@@ -631,8 +1460,17 @@ function render(list, showGuide){
   grid.innerHTML = (showGuide ? renderGuide() : '') + renderPlugins(list);
 }
 
+function updateView() {
+  const q = input.value.trim().toLowerCase();
+  const list = plugins.filter(p =>
+    (p.name + ' ' + p.desc + ' ' + (p.version || '')).toLowerCase().includes(q)
+  );
+  countEl.textContent = list.length;
+  render(list, q === '');
+}
+
 /* =========================================================
-   5. 图片点击放大（灯箱）
+   8. 灯箱大图交互
    ========================================================= */
 const lightbox = document.getElementById('lightbox');
 const lbImg    = document.getElementById('lbImg');
@@ -650,8 +1488,9 @@ function closeLightbox(){
   document.body.style.overflow = '';
 }
 
-/* 事件委托：点击任意可放大图片 */
 grid.addEventListener('click', e => {
+  // 点击图片且并非管理操作按钮时唤醒灯箱
+  if (e.target.closest('.card-actions')) return;
   const img = e.target.closest('img.zoomable');
   if(img){
     openLightbox(img.src, img.alt);
@@ -662,10 +1501,14 @@ lightbox.addEventListener('click', closeLightbox);
 lbClose.addEventListener('click', closeLightbox);
 
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape' && lightbox.classList.contains('open')) closeLightbox();
+  if(e.key === 'Escape') {
+    if (lightbox.classList.contains('open')) closeLightbox();
+    closeAddModal();
+    closeEditModal();
+    closeGithubModal();
+  }
 });
 
-/* 图片加载失败兜底（error 不冒泡，用捕获阶段） */
 grid.addEventListener('error', e => {
   const el = e.target;
   if(el.tagName === 'IMG' && !el.dataset.fallback){
@@ -674,31 +1517,13 @@ grid.addEventListener('error', e => {
   }
 }, true);
 
-/* =========================================================
-   6. 搜索过滤
-   ========================================================= */
-input.addEventListener('input', () => {
-  const q = input.value.trim().toLowerCase();
-  const list = plugins.filter(p =>
-    (p.name + ' ' + p.desc + ' ' + p.version).toLowerCase().includes(q)
-  );
-  countEl.textContent = list.length;
-  render(list, q === '');   // 有搜索词时隐藏安装说明
-});
+input.addEventListener('input', updateView);
 
-/* 初始化 */
-countEl.textContent = plugins.length;
-render(plugins, true);
+/* 初始化启动 */
+window.onload = function() {
+  loadConfig();
+  loadDataFromGithub();
+};
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
