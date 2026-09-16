@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊主副图批量汇总导出工具</title>
+    <!-- 引入 ExcelJS 库（支持图片内嵌与样式渲染） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f0f2f5;
+            color: #2c3e50;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 1050px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        .header {
+            background: #2c3e50;
+            color: #ffffff;
+            padding: 24px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .header p {
+            font-size: 13px;
+            color: #bdc3c7;
+            margin-top: 6px;
+        }
+        .content {
+            padding: 30px;
+        }
+        /* 操作说明提示卡片 */
+        .instruction-box {
+            background: #eef7fe;
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            border-radius: 4px 8px 8px 4px;
+            margin-bottom: 25px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #34495e;
+        }
+        .instruction-box strong {
+            color: #2980b9;
+        }
+        .dir-tree {
+            font-family: monospace;
+            background: #ffffff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-top: 8px;
+            border: 1px solid #d4e6f1;
+            color: #2c3e50;
+        }
+
+        /* 拖拽上传区 */
+        .drop-zone {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            background: #f8fbfe;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .drop-zone.dragover {
+            background: #e8f4fd;
+            border-color: #2980b9;
+            transform: scale(1.01);
+        }
+        .drop-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+        .drop-title {
+            font-size: 17px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .drop-desc {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .btn {
+            border: none;
+            padding: 11px 22px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-folder {
+            background: #3498db;
+            color: #fff;
+        }
+        .btn-folder:hover {
+            background: #2980b9;
+        }
+        .btn-export {
+            background: #27ae60;
+            color: #fff;
+            padding: 12px 28px;
+            font-size: 15px;
+        }
+        .btn-export:hover {
+            background: #219150;
+        }
+        .btn-export:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        .btn-clear {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .btn-clear:hover {
+            background: #c0392b;
+        }
+
+        /* 统计与操作栏 */
+        .action-bar {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .stat-badge {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-badge span {
+            color: #e67e22;
+            font-size: 18px;
+            margin: 0 4px;
+        }
+
+        /* 进度条 */
+        .progress-box {
+            margin-top: 15px;
+            display: none;
+        }
+        .progress-bar-bg {
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #27ae60;
+            width: 0%;
+            transition: width 0.2s ease;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* ASIN 识别列表 */
+        .asin-list {
+            margin-top: 20px;
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        .asin-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            border-bottom: 1px solid #f1f2f6;
+        }
+        .asin-item:last-child {
+            border-bottom: none;
+        }
+        .asin-item:hover {
+            background: #fafafa;
+        }
+        .asin-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .asin-tag {
+            background: #8e44ad;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .asin-details {
+            font-size: 13px;
+            color: #576574;
+        }
+        .badge-status {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .badge-warn {
+            background: #fff3e0;
+            color: #e65100;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>📊 亚马逊主副图批量汇总处理工具</h1>
+            <p>上传包含多个子文件夹的总文件夹，自动解析所有主副图与链接清单，生成带图 Excel</p>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- 操作说明提示 -->
+        <div class="instruction-box">
+            📌 <strong>使用说明（重点）：</strong><br>
+            请将插件下载下来的所有 <strong>【ASIN_主副图】子文件夹</strong> 放在同一个<strong>「总大文件夹」</strong>内（例如系统的「下载」文件夹，或新建一个名为「今日选品」的大文件夹）。<br>
+            然后直接选择或拖入该<strong>总大文件夹</strong>，系统会自动穿透遍历读取里面所有的子文件夹内容。
+            <div class="dir-tree">
+                📁 总文件夹 (直接上传此文件夹即可)<br>
+                ├── 📁 B0FNCY1LFP_主副图/ (内含主图、副图、CSV)<br>
+                ├── 📁 B08XYZ1234_主副图/ (内含主图、副图、CSV)<br>
+                └── 📁 B09ABC5678_主副图/ (内含主图、副图、CSV)
+            </div>
+        </div>
+
+        <!-- 拖拽/上传区域 -->
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-icon">🗂️</div>
+            <div class="drop-title">直接把含有多个子文件夹的【总大文件夹】拖入此区域</div>
+            <div class="drop-desc">也可以直接点击下方按钮，在弹出窗口中选中该总大文件夹</div>
+            <div class="btn-group">
+                <button class="btn btn-folder" onclick="document.getElementById('folderInput').click()">
+                    📁 点击选择包含所有子文件夹的总大文件夹
+                </button>
+            </div>
+            <!-- 文件夹选择 Input -->
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;" />
+        </div>
+
+        <!-- 统计与操作栏 -->
+        <div class="action-bar" id="actionBar" style="display: none;">
+            <div class="stat-badge">
+                已成功读取 ASIN 子文件夹：<span id="asinCount">0</span> 个
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-clear" onclick="clearData()">清空重新上传</button>
+                <button class="btn btn-export" id="exportBtn" onclick="generateExcel()">
+                    📥 一键生成并导出 Excel 汇总报表
+                </button>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-box" id="progressBox">
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">准备中...</div>
+        </div>
+
+        <!-- ASIN 预览列表 -->
+        <div class="asin-list" id="asinList" style="display: none;"></div>
+    </div>
+</div>
+
+<script>
+    let groupedData = {};
+
+    const dropZone = document.getElementById('dropZone');
+    const folderInput = document.getElementById('folderInput');
+
+    // === 1. 拖拽大文件夹支持 ===
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+
+        const items = e.dataTransfer.items;
+        if (!items || items.length === 0) return;
+
+        const files = [];
+        showProgress(true, '正在深度扫描总文件夹内部所有子文件夹...', 20);
+
+        for (let i = 0; i < items.length; i++) {
+            const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+            if (entry) {
+                await readEntryRecursively(entry, files);
+            }
+        }
+
+        await processAllFiles(files);
+        showProgress(false);
+    });
+
+    // 递归穿透大文件夹，读取所有子文件夹文件
+    async function readEntryRecursively(entry, fileList) {
+        if (entry.isFile) {
+            const file = await new Promise((resolve) => entry.file(resolve));
+            fileList.push(file);
+        } else if (entry.isDirectory) {
+            const reader = entry.createReader();
+            let entries = [];
+            const readBatch = async () => {
+                const results = await new Promise((resolve) => reader.readEntries(resolve));
+                if (results.length > 0) {
+                    entries.push(...results);
+                    await readBatch();
+                }
+            };
+            await readBatch();
+            for (let subEntry of entries) {
+                await readEntryRecursively(subEntry, fileList);
+            }
+        }
+    }
+
+    // === 2. 文件夹选择按钮 ===
+    folderInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        showProgress(true, '正在解析总文件夹内容...', 20);
+        await processAllFiles(files);
+        showProgress(false);
+    });
+
+    // === 3. 数据分类与归组 ===
+    async function processAllFiles(files) {
+        for (let file of files) {
+            const path = file.webkitRelativePath || file.name;
+            const asinMatch = path.match(/([A-Z0-9]{10})/i);
+            if (!asinMatch) continue;
+
+            const asin = asinMatch[1].toUpperCase();
+            if (!groupedData[asin]) {
+                groupedData[asin] = {
+                    asin: asin,
+                    mainImgFile: null,
+                    subImgs: {},
+                    csvMap: {}
+                };
+            }
+
+            const fileName = file.name;
+
+            // 识别主图
+            if (fileName.includes('主图') && /\.(jpg|jpeg|png|webp)$/i.test(fileName)) {
+                groupedData[asin].mainImgFile = file;
+            }
+            // 识别副图 1~10
+            else if (fileName.includes('副图') && /\.(jpg|jpeg|png|webp)$/i.test(fileName)) {
+                const subIndexMatch = fileName.match(/副图(\d+)/);
+                if (subIndexMatch) {
+                    const idx = parseInt(subIndexMatch[1]);
+                    if (idx >= 1 && idx <= 10) {
+                        groupedData[asin].subImgs[idx] = file;
+                    }
+                }
+            }
+            // 识别对应 CSV 清单
+            else if (fileName.endsWith('.csv') || fileName.includes('图片链接清单')) {
+                const csvText = await file.text();
+                groupedData[asin].csvMap = parseCsvContent(csvText);
+            }
+        }
+
+        renderAsinList();
+    }
+
+    // 解析 CSV 文件提取名称与链接映射
+    function parseCsvContent(text) {
+        const map = {};
+        const lines = text.split(/\r?\n/);
+        for (let line of lines) {
+            if (!line.trim()) continue;
+            const parts = line.match(/^"?(.*?)"?,"?(.*?)"?$/);
+            if (parts && parts[2] && parts[2].startsWith('http')) {
+                const fName = parts[1].trim();
+                const url = parts[2].trim();
+                map[fName] = url;
+            }
+        }
+        return map;
+    }
+
+    // 渲染预览列表
+    function renderAsinList() {
+        const asins = Object.keys(groupedData);
+        const countSpan = document.getElementById('asinCount');
+        const actionBar = document.getElementById('actionBar');
+        const asinList = document.getElementById('asinList');
+
+        countSpan.innerText = asins.length;
+
+        if (asins.length > 0) {
+            actionBar.style.display = 'flex';
+            asinList.style.display = 'block';
+        } else {
+            actionBar.style.display = 'none';
+            asinList.style.display = 'none';
+            return;
+        }
+
+        asinList.innerHTML = asins.map(asin => {
+            const item = groupedData[asin];
+            const subCount = Object.keys(item.subImgs).length;
+            const hasMain = item.mainImgFile ? '✅ 主图' : '❌ 无主图';
+            const hasCsv = Object.keys(item.csvMap).length > 0 ? '📄 链接清单已载入' : '⚠️ 无CSV';
+
+            return `
+                <div class="asin-item">
+                    <div class="asin-info">
+                        <span class="asin-tag">${asin}</span>
+                        <span class="asin-details">包含 ${hasMain} ｜ 副图 ${subCount} 张</span>
+                    </div>
+                    <div>
+                        <span class="badge-status ${Object.keys(item.csvMap).length === 0 ? 'badge-warn' : ''}">${hasCsv}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function clearData() {
+        groupedData = {};
+        folderInput.value = '';
+        renderAsinList();
+    }
+
+    function showProgress(show, text = '', percent = 0) {
+        const box = document.getElementById('progressBox');
+        const bar = document.getElementById('progressBarFill');
+        const pText = document.getElementById('progressText');
+        box.style.display = show ? 'block' : 'none';
+        bar.style.width = percent + '%';
+        pText.innerText = text;
+    }
+
+    function getImageDimensions(file) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const maxDim = 72;
+                let w = img.naturalWidth;
+                let h = img.naturalHeight;
+                if (w > h) {
+                    h = Math.round((h / w) * maxDim);
+                    w = maxDim;
+                } else {
+                    w = Math.round((w / h) * maxDim);
+                    h = maxDim;
+                }
+                URL.revokeObjectURL(img.src);
+                resolve({ width: w, height: h });
+            };
+            img.onerror = () => {
+                resolve({ width: 70, height: 70 });
+            };
+        });
+    }
+
+    // === 4. 生成 Excel 汇总报表 ===
+    async function generateExcel() {
+        const asins = Object.keys(groupedData);
+        if (asins.length === 0) {
+            alert('未检测到有效数据，请先上传包含子文件夹的总大文件夹！');
+            return;
+        }
+
+        const exportBtn = document.getElementById('exportBtn');
+        exportBtn.disabled = true;
+        showProgress(true, '正在构建 Excel 表格结构...', 10);
+
+        try {
+            const workbook = new ExcelJS.Workbook();
+            workbook.creator = '亚马逊主副图处理工具';
+
+            // -------------------------------------------------------------
+            // 【子表 1】直接嵌入图片的画廊表
+            // 表头：ASIN，主图，副图1 ~ 副图10
+            // -------------------------------------------------------------
+            const ws1 = workbook.addWorksheet('主副图展示');
+            ws1.columns = [
+                { header: 'ASIN', key: 'asin', width: 16 },
+                { header: '主图', key: 'main', width: 14 },
+                { header: '副图1', key: 'sub1', width: 14 },
+                { header: '副图2', key: 'sub2', width: 14 },
+                { header: '副图3', key: 'sub3', width: 14 },
+                { header: '副图4', key: 'sub4', width: 14 },
+                { header: '副图5', key: 'sub5', width: 14 },
+                { header: '副图6', key: 'sub6', width: 14 },
+                { header: '副图7', key: 'sub7', width: 14 },
+                { header: '副图8', key: 'sub8', width: 14 },
+                { header: '副图9', key: 'sub9', width: 14 },
+                { header: '副图10', key: 'sub10', width: 14 }
+            ];
+
+            const headerRow1 = ws1.getRow(1);
+            headerRow1.height = 28;
+            headerRow1.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            });
+
+            // -------------------------------------------------------------
+            // 【子表 2】图片名称与链接清单表
+            // 表头：ASIN，主图，主图链接，副图1，链接1 ... 副图10，链接10
+            // -------------------------------------------------------------
+            const ws2 = workbook.addWorksheet('图片名称与链接清单');
+            ws2.columns = [
+                { header: 'ASIN', key: 'asin', width: 16 },
+                { header: '主图', key: 'main', width: 25 },
+                { header: '主图链接', key: 'mainUrl', width: 40 }, // 新增：主图链接列
+                { header: '副图1', key: 'sub1', width: 22 },
+                { header: '链接1', key: 'url1', width: 38 },
+                { header: '副图2', key: 'sub2', width: 22 },
+                { header: '链接2', key: 'url2', width: 38 },
+                { header: '副图3', key: 'sub3', width: 22 },
+                { header: '链接3', key: 'url3', width: 38 },
+                { header: '副图4', key: 'sub4', width: 22 },
+                { header: '链接4', key: 'url4', width: 38 },
+                { header: '副图5', key: 'sub5', width: 22 },
+                { header: '链接5', key: 'url5', width: 38 },
+                { header: '副图6', key: 'sub6', width: 22 },
+                { header: '链接6', key: 'url6', width: 38 },
+                { header: '副图7', key: 'sub7', width: 22 },
+                { header: '链接7', key: 'url7', width: 38 },
+                { header: '副图8', key: 'sub8', width: 22 },
+                { header: '链接8', key: 'url8', width: 38 },
+                { header: '副图9', key: 'sub9', width: 22 },
+                { header: '链接9', key: 'url9', width: 38 },
+                { header: '副图10', key: 'sub10', width: 22 },
+                { header: '链接10', key: 'url10', width: 38 }
+            ];
+
+            const headerRow2 = ws2.getRow(1);
+            headerRow2.height = 28;
+            headerRow2.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            });
+
+            // -------------------------------------------------------------
+            // 循环遍历每个 ASIN 写入数据
+            // -------------------------------------------------------------
+            for (let i = 0; i < asins.length; i++) {
+                const asin = asins[i];
+                const item = groupedData[asin];
+                const rowNum = i + 2;
+
+                const currentPercent = Math.round(10 + (i / asins.length) * 80);
+                showProgress(true, `正在处理 ASIN: ${asin} (${i + 1}/${asins.length})...`, currentPercent);
+
+                // --- 1. 写入子表 1 (图片) ---
+                const row1 = ws1.getRow(rowNum);
+                row1.height = 68;
+                ws1.getCell(`A${rowNum}`).value = asin;
+                ws1.getCell(`A${rowNum}`).alignment = { vertical: 'middle', horizontal: 'center' };
+
+                if (item.mainImgFile) {
+                    await embedImageToCell(workbook, ws1, item.mainImgFile, 1, rowNum - 1);
+                }
+
+                for (let k = 1; k <= 10; k++) {
+                    if (item.subImgs[k]) {
+                        await embedImageToCell(workbook, ws1, item.subImgs[k], k + 1, rowNum - 1);
+                    }
+                }
+
+                for (let col = 1; col <= 12; col++) {
+                    row1.getCell(col).border = {
+                        top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                        left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                        bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                        right: { style: 'thin', color: { argb: 'FFE0E0E0' } }
+                    };
+                }
+
+                // --- 2. 写入子表 2 (名称与链接) ---
+                const row2Data = { asin: asin };
+
+                // 主图名称与主图对应链接
+                if (item.mainImgFile) {
+                    row2Data.main = item.mainImgFile.name;
+                    // 从 CSV 中精准匹配主图链接
+                    let mainLink = item.csvMap[item.mainImgFile.name] || '';
+                    if (!mainLink) {
+                        for (let key in item.csvMap) {
+                            if (key.includes('主图')) {
+                                mainLink = item.csvMap[key];
+                                break;
+                            }
+                        }
+                    }
+                    row2Data.mainUrl = mainLink;
+                } else {
+                    row2Data.main = '';
+                    row2Data.mainUrl = '';
+                }
+
+                // 副图 1~10 名称与对应链接
+                for (let k = 1; k <= 10; k++) {
+                    const subFile = item.subImgs[k];
+                    if (subFile) {
+                        row2Data[`sub${k}`] = subFile.name;
+                        let link = item.csvMap[subFile.name] || '';
+                        if (!link) {
+                            for (let key in item.csvMap) {
+                                if (key.includes(`副图${k}.`) || key.includes(`副图${k}_`)) {
+                                    link = item.csvMap[key];
+                                    break;
+                                }
+                            }
+                        }
+                        row2Data[`url${k}`] = link;
+                    } else {
+                        row2Data[`sub${k}`] = '';
+                        row2Data[`url${k}`] = '';
+                    }
+                }
+
+                const row2 = ws2.addRow(row2Data);
+                row2.height = 24;
+                row2.alignment = { vertical: 'middle' };
+                row2.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+                // 格式化主图链接为蓝色可点击超链接 (第3列)
+                const mainLinkCell = row2.getCell(3);
+                if (mainLinkCell.value && typeof mainLinkCell.value === 'string' && mainLinkCell.value.startsWith('http')) {
+                    const urlStr = mainLinkCell.value;
+                    mainLinkCell.value = { text: urlStr, hyperlink: urlStr };
+                    mainLinkCell.font = { color: { argb: 'FF2980B9' }, underline: true };
+                }
+
+                // 格式化副图1~10链接为超链接 (第 5, 7, 9 ... 23 列)
+                for (let k = 1; k <= 10; k++) {
+                    const colIndex = 3 + (k * 2);
+                    const linkCell = row2.getCell(colIndex);
+                    if (linkCell.value && typeof linkCell.value === 'string' && linkCell.value.startsWith('http')) {
+                        const urlStr = linkCell.value;
+                        linkCell.value = { text: urlStr, hyperlink: urlStr };
+                        linkCell.font = { color: { argb: 'FF2980B9' }, underline: true };
+                    }
+                }
+            }
+
+            showProgress(true, '正在打包生成最终 Excel 报表...', 95);
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+            a.download = `亚马逊主副图汇总表_${timeStr}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+
+            showProgress(true, '✅ 汇总报表导出成功！', 100);
+            setTimeout(() => showProgress(false), 3000);
+
+        } catch (err) {
+            console.error(err);
+            alert(`生成 Excel 失败: ${err.message}`);
+            showProgress(false);
+        } finally {
+            exportBtn.disabled = false;
+        }
+    }
+
+    async function embedImageToCell(workbook, worksheet, file, colIndex, rowIndex) {
+        const buffer = await file.arrayBuffer();
+        const dim = await getImageDimensions(file);
+
+        let ext = 'jpeg';
+        if (file.type.includes('png') || file.name.endsWith('.png')) ext = 'png';
+        if (file.type.includes('webp') || file.name.endsWith('.webp')) ext = 'png';
+
+        const imageId = workbook.addImage({
+            buffer: buffer,
+            extension: ext
+        });
+
+        worksheet.addImage(imageId, {
+            tl: { col: colIndex + 0.1, row: rowIndex + 0.08 },
+            ext: { width: dim.width, height: dim.height },
+            editAs: 'oneCell'
+        });
+    }
+</script>
+
+</body>
+</html>
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>亚马逊主副图批量汇总导出工具</title>-->
+<!--    &lt;!&ndash; 引入支持向 Excel 单元格内嵌图片的 ExcelJS 核心库 &ndash;&gt;-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>-->
+<!--    <style>-->
+<!--        * {-->
+<!--            box-sizing: border-box;-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--        }-->
+<!--        body {-->
+<!--            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;-->
+<!--            background: #f0f2f5;-->
+<!--            color: #2c3e50;-->
+<!--            padding: 30px 20px;-->
+<!--        }-->
+<!--        .container {-->
+<!--            max-width: 1000px;-->
+<!--            margin: 0 auto;-->
+<!--            background: #fff;-->
+<!--            border-radius: 12px;-->
+<!--            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);-->
+<!--            overflow: hidden;-->
+<!--        }-->
+<!--        .header {-->
+<!--            background: #2c3e50;-->
+<!--            color: #ffffff;-->
+<!--            padding: 24px 30px;-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--        }-->
+<!--        .header h1 {-->
+<!--            font-size: 20px;-->
+<!--            font-weight: 700;-->
+<!--        }-->
+<!--        .header p {-->
+<!--            font-size: 13px;-->
+<!--            color: #bdc3c7;-->
+<!--            margin-top: 5px;-->
+<!--        }-->
+<!--        .content {-->
+<!--            padding: 30px;-->
+<!--        }-->
+<!--        /* 拖拽上传区 */-->
+<!--        .drop-zone {-->
+<!--            border: 2px dashed #3498db;-->
+<!--            border-radius: 10px;-->
+<!--            background: #f8fbfe;-->
+<!--            padding: 40px 20px;-->
+<!--            text-align: center;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.2s ease;-->
+<!--        }-->
+<!--        .drop-zone.dragover {-->
+<!--            background: #e8f4fd;-->
+<!--            border-color: #2980b9;-->
+<!--            transform: scale(1.01);-->
+<!--        }-->
+<!--        .drop-icon {-->
+<!--            font-size: 48px;-->
+<!--            margin-bottom: 12px;-->
+<!--        }-->
+<!--        .drop-title {-->
+<!--            font-size: 16px;-->
+<!--            font-weight: bold;-->
+<!--            color: #2c3e50;-->
+<!--            margin-bottom: 8px;-->
+<!--        }-->
+<!--        .drop-desc {-->
+<!--            font-size: 13px;-->
+<!--            color: #7f8c8d;-->
+<!--            margin-bottom: 18px;-->
+<!--        }-->
+<!--        .btn-group {-->
+<!--            display: flex;-->
+<!--            gap: 12px;-->
+<!--            justify-content: center;-->
+<!--        }-->
+<!--        .btn {-->
+<!--            border: none;-->
+<!--            padding: 10px 20px;-->
+<!--            border-radius: 6px;-->
+<!--            font-size: 14px;-->
+<!--            font-weight: bold;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.2s;-->
+<!--            display: inline-flex;-->
+<!--            align-items: center;-->
+<!--            gap: 6px;-->
+<!--        }-->
+<!--        .btn-folder {-->
+<!--            background: #3498db;-->
+<!--            color: #fff;-->
+<!--        }-->
+<!--        .btn-folder:hover {-->
+<!--            background: #2980b9;-->
+<!--        }-->
+<!--        .btn-export {-->
+<!--            background: #27ae60;-->
+<!--            color: #fff;-->
+<!--            padding: 12px 28px;-->
+<!--            font-size: 15px;-->
+<!--        }-->
+<!--        .btn-export:hover {-->
+<!--            background: #219150;-->
+<!--        }-->
+<!--        .btn-export:disabled {-->
+<!--            background: #95a5a6;-->
+<!--            cursor: not-allowed;-->
+<!--        }-->
+<!--        .btn-clear {-->
+<!--            background: #e74c3c;-->
+<!--            color: #fff;-->
+<!--        }-->
+<!--        .btn-clear:hover {-->
+<!--            background: #c0392b;-->
+<!--        }-->
+
+<!--        /* 统计与操作栏 */-->
+<!--        .action-bar {-->
+<!--            margin-top: 25px;-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--            padding: 15px 20px;-->
+<!--            background: #f8f9fa;-->
+<!--            border-radius: 8px;-->
+<!--            border: 1px solid #e9ecef;-->
+<!--        }-->
+<!--        .stat-badge {-->
+<!--            font-size: 14px;-->
+<!--            font-weight: bold;-->
+<!--            color: #2c3e50;-->
+<!--        }-->
+<!--        .stat-badge span {-->
+<!--            color: #e67e22;-->
+<!--            font-size: 18px;-->
+<!--            margin: 0 4px;-->
+<!--        }-->
+
+<!--        /* 进度条 */-->
+<!--        .progress-box {-->
+<!--            margin-top: 15px;-->
+<!--            display: none;-->
+<!--        }-->
+<!--        .progress-bar-bg {-->
+<!--            height: 10px;-->
+<!--            background: #e9ecef;-->
+<!--            border-radius: 5px;-->
+<!--            overflow: hidden;-->
+<!--        }-->
+<!--        .progress-bar-fill {-->
+<!--            height: 100%;-->
+<!--            background: #27ae60;-->
+<!--            width: 0%;-->
+<!--            transition: width 0.2s ease;-->
+<!--        }-->
+<!--        .progress-text {-->
+<!--            font-size: 12px;-->
+<!--            color: #7f8c8d;-->
+<!--            margin-top: 6px;-->
+<!--            text-align: right;-->
+<!--        }-->
+
+<!--        /* ASIN 识别列表展示 */-->
+<!--        .asin-list {-->
+<!--            margin-top: 20px;-->
+<!--            max-height: 380px;-->
+<!--            overflow-y: auto;-->
+<!--            border: 1px solid #e9ecef;-->
+<!--            border-radius: 8px;-->
+<!--        }-->
+<!--        .asin-item {-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--            padding: 12px 18px;-->
+<!--            border-bottom: 1px solid #f1f2f6;-->
+<!--        }-->
+<!--        .asin-item:last-child {-->
+<!--            border-bottom: none;-->
+<!--        }-->
+<!--        .asin-item:hover {-->
+<!--            background: #fafafa;-->
+<!--        }-->
+<!--        .asin-info {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 12px;-->
+<!--        }-->
+<!--        .asin-tag {-->
+<!--            background: #8e44ad;-->
+<!--            color: #fff;-->
+<!--            padding: 4px 10px;-->
+<!--            border-radius: 4px;-->
+<!--            font-weight: bold;-->
+<!--            font-size: 13px;-->
+<!--        }-->
+<!--        .asin-details {-->
+<!--            font-size: 13px;-->
+<!--            color: #576574;-->
+<!--        }-->
+<!--        .badge-status {-->
+<!--            font-size: 12px;-->
+<!--            padding: 3px 8px;-->
+<!--            border-radius: 4px;-->
+<!--            background: #e8f5e9;-->
+<!--            color: #2e7d32;-->
+<!--            font-weight: bold;-->
+<!--        }-->
+<!--        .badge-warn {-->
+<!--            background: #fff3e0;-->
+<!--            color: #e65100;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<div class="container">-->
+<!--    <div class="header">-->
+<!--        <div>-->
+<!--            <h1>📊 亚马逊主副图批量汇总处理工具</h1>-->
+<!--            <p>自动识别多文件夹中的高清主副图与CSV清单，直接嵌入图片导出 Excel 汇总报表</p>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div class="content">-->
+<!--        &lt;!&ndash; 拖拽上传区域 &ndash;&gt;-->
+<!--        <div class="drop-zone" id="dropZone">-->
+<!--            <div class="drop-icon">📂</div>-->
+<!--            <div class="drop-title">方式一：直接将多个【ASIN_主副图】文件夹拖入此区域</div>-->
+<!--            <div class="drop-desc">支持一次性选中 10~100+ 个文件夹整体拖拽上传，无需解压缩</div>-->
+<!--            <div class="btn-group">-->
+<!--                <button class="btn btn-folder" onclick="document.getElementById('folderInput').click()">-->
+<!--                    📁 方式二：点击选择父文件夹 (自动读取里面所有子文件夹)-->
+<!--                </button>-->
+<!--            </div>-->
+<!--            &lt;!&ndash; 文件夹选择 Input &ndash;&gt;-->
+<!--            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;" />-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 统计与操作栏 &ndash;&gt;-->
+<!--        <div class="action-bar" id="actionBar" style="display: none;">-->
+<!--            <div class="stat-badge">-->
+<!--                已识别有效 ASIN：<span id="asinCount">0</span> 个-->
+<!--            </div>-->
+<!--            <div style="display: flex; gap: 10px;">-->
+<!--                <button class="btn btn-clear" onclick="clearData()">清空</button>-->
+<!--                <button class="btn btn-export" id="exportBtn" onclick="generateExcel()">-->
+<!--                    📥 一键生成并导出 Excel 表格-->
+<!--                </button>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 进度条 &ndash;&gt;-->
+<!--        <div class="progress-box" id="progressBox">-->
+<!--            <div class="progress-bar-bg">-->
+<!--                <div class="progress-bar-fill" id="progressBarFill"></div>-->
+<!--            </div>-->
+<!--            <div class="progress-text" id="progressText">准备中...</div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; ASIN 预览列表 &ndash;&gt;-->
+<!--        <div class="asin-list" id="asinList" style="display: none;"></div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<script>-->
+<!--    // 存储所有解析出来的数据，按 ASIN 分组-->
+<!--    // 结构：{ [asin]: { asin, mainImgFile, subImgs: { 1: file, 2: file... }, csvData: { '文件名': '链接' } } }-->
+<!--    let groupedData = {};-->
+
+<!--    const dropZone = document.getElementById('dropZone');-->
+<!--    const folderInput = document.getElementById('folderInput');-->
+
+<!--    // === 1. 拖拽支持（支持批量拖拽多个文件夹） ===-->
+<!--    dropZone.addEventListener('dragover', (e) => {-->
+<!--        e.preventDefault();-->
+<!--        dropZone.classList.add('dragover');-->
+<!--    });-->
+
+<!--    dropZone.addEventListener('dragleave', () => {-->
+<!--        dropZone.classList.remove('dragover');-->
+<!--    });-->
+
+<!--    dropZone.addEventListener('drop', async (e) => {-->
+<!--        e.preventDefault();-->
+<!--        dropZone.classList.remove('dragover');-->
+
+<!--        const items = e.dataTransfer.items;-->
+<!--        if (!items || items.length === 0) return;-->
+
+<!--        const files = [];-->
+<!--        showProgress(true, '正在扫描并读取拖入的文件夹...');-->
+
+<!--        for (let i = 0; i < items.length; i++) {-->
+<!--            const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;-->
+<!--            if (entry) {-->
+<!--                await readEntryRecursively(entry, files);-->
+<!--            }-->
+<!--        }-->
+
+<!--        await processAllFiles(files);-->
+<!--        showProgress(false);-->
+<!--    });-->
+
+<!--    // 递归读取文件夹内部所有层级文件-->
+<!--    async function readEntryRecursively(entry, fileList) {-->
+<!--        if (entry.isFile) {-->
+<!--            const file = await new Promise((resolve) => entry.file(resolve));-->
+<!--            fileList.push(file);-->
+<!--        } else if (entry.isDirectory) {-->
+<!--            const reader = entry.createReader();-->
+<!--            let entries = [];-->
+<!--            // readEntries 每次最多返回 100 项，需循环读取完-->
+<!--            const readBatch = async () => {-->
+<!--                const results = await new Promise((resolve) => reader.readEntries(resolve));-->
+<!--                if (results.length > 0) {-->
+<!--                    entries.push(...results);-->
+<!--                    await readBatch();-->
+<!--                }-->
+<!--            };-->
+<!--            await readBatch();-->
+<!--            for (let subEntry of entries) {-->
+<!--                await readEntryRecursively(subEntry, fileList);-->
+<!--            }-->
+<!--        }-->
+<!--    }-->
+
+<!--    // === 2. 文件夹 Input 选择支持 ===-->
+<!--    folderInput.addEventListener('change', async (e) => {-->
+<!--        const files = Array.from(e.target.files);-->
+<!--        if (files.length === 0) return;-->
+
+<!--        showProgress(true, '正在读取所选文件夹内容...');-->
+<!--        await processAllFiles(files);-->
+<!--        showProgress(false);-->
+<!--    });-->
+
+<!--    // === 3. 文件解析与分类归组 ===-->
+<!--    async function processAllFiles(files) {-->
+<!--        for (let file of files) {-->
+<!--            const path = file.webkitRelativePath || file.name;-->
+<!--            // 提取 ASIN（匹配常见的 10 位亚马逊大写字母+数字编码）-->
+<!--            const asinMatch = path.match(/([A-Z0-9]{10})/i);-->
+<!--            if (!asinMatch) continue;-->
+
+<!--            const asin = asinMatch[1].toUpperCase();-->
+<!--            if (!groupedData[asin]) {-->
+<!--                groupedData[asin] = {-->
+<!--                    asin: asin,-->
+<!--                    mainImgFile: null,-->
+<!--                    subImgs: {},-->
+<!--                    csvMap: {}-->
+<!--                };-->
+<!--            }-->
+
+<!--            const fileName = file.name;-->
+
+<!--            // 判断是否是主图-->
+<!--            if (fileName.includes('主图') && /\.(jpg|jpeg|png|webp)$/i.test(fileName)) {-->
+<!--                groupedData[asin].mainImgFile = file;-->
+<!--            }-->
+<!--            // 判断是否是副图-->
+<!--            else if (fileName.includes('副图') && /\.(jpg|jpeg|png|webp)$/i.test(fileName)) {-->
+<!--                const subIndexMatch = fileName.match(/副图(\d+)/);-->
+<!--                if (subIndexMatch) {-->
+<!--                    const idx = parseInt(subIndexMatch[1]);-->
+<!--                    if (idx >= 1 && idx <= 10) {-->
+<!--                        groupedData[asin].subImgs[idx] = file;-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+<!--            // 判断是否是 CSV 清单-->
+<!--            else if (fileName.endsWith('.csv') || fileName.includes('图片链接清单')) {-->
+<!--                const csvText = await file.text();-->
+<!--                groupedData[asin].csvMap = parseCsvContent(csvText);-->
+<!--            }-->
+<!--        }-->
+
+<!--        renderAsinList();-->
+<!--    }-->
+
+<!--    // 解析 CSV 提取文件名与对应链接映射-->
+<!--    function parseCsvContent(text) {-->
+<!--        const map = {};-->
+<!--        const lines = text.split(/\r?\n/);-->
+<!--        for (let line of lines) {-->
+<!--            if (!line.trim()) continue;-->
+<!--            // 拆分 "图片名称","图片链接"-->
+<!--            const parts = line.match(/^"?(.*?)"?,"?(.*?)"?$/);-->
+<!--            if (parts && parts[2] && parts[2].startsWith('http')) {-->
+<!--                const fName = parts[1].trim();-->
+<!--                const url = parts[2].trim();-->
+<!--                map[fName] = url;-->
+<!--            }-->
+<!--        }-->
+<!--        return map;-->
+<!--    }-->
+
+<!--    // 渲染页面已识别列表-->
+<!--    function renderAsinList() {-->
+<!--        const asins = Object.keys(groupedData);-->
+<!--        const countSpan = document.getElementById('asinCount');-->
+<!--        const actionBar = document.getElementById('actionBar');-->
+<!--        const asinList = document.getElementById('asinList');-->
+
+<!--        countSpan.innerText = asins.length;-->
+
+<!--        if (asins.length > 0) {-->
+<!--            actionBar.style.display = 'flex';-->
+<!--            asinList.style.display = 'block';-->
+<!--        } else {-->
+<!--            actionBar.style.display = 'none';-->
+<!--            asinList.style.display = 'none';-->
+<!--            return;-->
+<!--        }-->
+
+<!--        asinList.innerHTML = asins.map(asin => {-->
+<!--            const item = groupedData[asin];-->
+<!--            const subCount = Object.keys(item.subImgs).length;-->
+<!--            const hasMain = item.mainImgFile ? '✅ 主图' : '❌ 无主图';-->
+<!--            const hasCsv = Object.keys(item.csvMap).length > 0 ? '📄 链接清单已载入' : '⚠️ 无CSV';-->
+
+<!--            return `-->
+<!--                <div class="asin-item">-->
+<!--                    <div class="asin-info">-->
+<!--                        <span class="asin-tag">${asin}</span>-->
+<!--                        <span class="asin-details">包含 ${hasMain} ｜ 副图 ${subCount} 张</span>-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <span class="badge-status ${Object.keys(item.csvMap).length === 0 ? 'badge-warn' : ''}">${hasCsv}</span>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            `;-->
+<!--        }).join('');-->
+<!--    }-->
+
+<!--    // 清空数据-->
+<!--    function clearData() {-->
+<!--        groupedData = {};-->
+<!--        folderInput.value = '';-->
+<!--        renderAsinList();-->
+<!--    }-->
+
+<!--    function showProgress(show, text = '', percent = 0) {-->
+<!--        const box = document.getElementById('progressBox');-->
+<!--        const bar = document.getElementById('progressBarFill');-->
+<!--        const pText = document.getElementById('progressText');-->
+<!--        box.style.display = show ? 'block' : 'none';-->
+<!--        bar.style.width = percent + '%';-->
+<!--        pText.innerText = text;-->
+<!--    }-->
+
+<!--    // 获取图片的宽高比并缩放适配单元格-->
+<!--    function getImageDimensions(file) {-->
+<!--        return new Promise((resolve) => {-->
+<!--            const img = new Image();-->
+<!--            img.src = URL.createObjectURL(file);-->
+<!--            img.onload = () => {-->
+<!--                const maxDim = 72; // 单元格内缩略图最大边长 (px)-->
+<!--                let w = img.naturalWidth;-->
+<!--                let h = img.naturalHeight;-->
+<!--                if (w > h) {-->
+<!--                    h = Math.round((h / w) * maxDim);-->
+<!--                    w = maxDim;-->
+<!--                } else {-->
+<!--                    w = Math.round((w / h) * maxDim);-->
+<!--                    h = maxDim;-->
+<!--                }-->
+<!--                URL.revokeObjectURL(img.src);-->
+<!--                resolve({ width: w, height: h });-->
+<!--            };-->
+<!--            img.onerror = () => {-->
+<!--                resolve({ width: 70, height: 70 });-->
+<!--            };-->
+<!--        });-->
+<!--    }-->
+
+<!--    // === 4. 生成带有嵌入图片的双子表 Excel ===-->
+<!--    async function generateExcel() {-->
+<!--        const asins = Object.keys(groupedData);-->
+<!--        if (asins.length === 0) {-->
+<!--            alert('请先拖入或上传包含图片的 ASIN 文件夹！');-->
+<!--            return;-->
+<!--        }-->
+
+<!--        const exportBtn = document.getElementById('exportBtn');-->
+<!--        exportBtn.disabled = true;-->
+<!--        showProgress(true, '正在构建 Excel 表格结构...', 10);-->
+
+<!--        try {-->
+<!--            const workbook = new ExcelJS.Workbook();-->
+<!--            workbook.creator = '亚马逊主副图提取器';-->
+
+<!--            // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--            // 【子表 1】直接嵌入图片的画廊表-->
+<!--            // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--            const ws1 = workbook.addWorksheet('主副图展示');-->
+
+<!--            // 表头定义-->
+<!--            ws1.columns = [-->
+<!--                { header: 'ASIN', key: 'asin', width: 16 },-->
+<!--                { header: '主图', key: 'main', width: 14 },-->
+<!--                { header: '副图1', key: 'sub1', width: 14 },-->
+<!--                { header: '副图2', key: 'sub2', width: 14 },-->
+<!--                { header: '副图3', key: 'sub3', width: 14 },-->
+<!--                { header: '副图4', key: 'sub4', width: 14 },-->
+<!--                { header: '副图5', key: 'sub5', width: 14 },-->
+<!--                { header: '副图6', key: 'sub6', width: 14 },-->
+<!--                { header: '副图7', key: 'sub7', width: 14 },-->
+<!--                { header: '副图8', key: 'sub8', width: 14 },-->
+<!--                { header: '副图9', key: 'sub9', width: 14 },-->
+<!--                { header: '副图10', key: 'sub10', width: 14 }-->
+<!--            ];-->
+
+<!--            // 样式化表头-->
+<!--            const headerRow1 = ws1.getRow(1);-->
+<!--            headerRow1.height = 28;-->
+<!--            headerRow1.eachCell((cell) => {-->
+<!--                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };-->
+<!--                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };-->
+<!--                cell.alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--            });-->
+
+<!--            // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--            // 【子表 2】图片名称与对应链接表-->
+<!--            // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--            const ws2 = workbook.addWorksheet('图片名称与链接清单');-->
+
+<!--            ws2.columns = [-->
+<!--                { header: 'ASIN', key: 'asin', width: 16 },-->
+<!--                { header: '主图', key: 'main', width: 25 },-->
+<!--                { header: '副图1', key: 'sub1', width: 22 },-->
+<!--                { header: '链接1', key: 'url1', width: 38 },-->
+<!--                { header: '副图2', key: 'sub2', width: 22 },-->
+<!--                { header: '链接2', key: 'url2', width: 38 },-->
+<!--                { header: '副图3', key: 'sub3', width: 22 },-->
+<!--                { header: '链接3', key: 'url3', width: 38 },-->
+<!--                { header: '副图4', key: 'sub4', width: 22 },-->
+<!--                { header: '链接4', key: 'url4', width: 38 },-->
+<!--                { header: '副图5', key: 'sub5', width: 22 },-->
+<!--                { header: '链接5', key: 'url5', width: 38 },-->
+<!--                { header: '副图6', key: 'sub6', width: 22 },-->
+<!--                { header: '链接6', key: 'url6', width: 38 },-->
+<!--                { header: '副图7', key: 'sub7', width: 22 },-->
+<!--                { header: '链接7', key: 'url7', width: 38 },-->
+<!--                { header: '副图8', key: 'sub8', width: 22 },-->
+<!--                { header: '链接8', key: 'url8', width: 38 },-->
+<!--                { header: '副图9', key: 'sub9', width: 22 },-->
+<!--                { header: '链接9', key: 'url9', width: 38 },-->
+<!--                { header: '副图10', key: 'sub10', width: 22 },-->
+<!--                { header: '链接10', key: 'url10', width: 38 }-->
+<!--            ];-->
+
+<!--            const headerRow2 = ws2.getRow(1);-->
+<!--            headerRow2.height = 28;-->
+<!--            headerRow2.eachCell((cell) => {-->
+<!--                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };-->
+<!--                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF34495E' } };-->
+<!--                cell.alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--            });-->
+
+<!--            // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--            // 循环遍历每个 ASIN，插入图片与数据行-->
+<!--            // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--            for (let i = 0; i < asins.length; i++) {-->
+<!--                const asin = asins[i];-->
+<!--                const item = groupedData[asin];-->
+<!--                const rowNum = i + 2; // Excel 实际行号（第1行为表头）-->
+
+<!--                const currentPercent = Math.round(10 + (i / asins.length) * 80);-->
+<!--                showProgress(true, `正在处理 ASIN: ${asin} (${i + 1}/${asins.length})...`, currentPercent);-->
+
+<!--                // -&#45;&#45; 写入子表 1 (图片) -&#45;&#45;-->
+<!--                const row1 = ws1.getRow(rowNum);-->
+<!--                row1.height = 68; // 保证行高足够展示缩略图-->
+<!--                ws1.getCell(`A${rowNum}`).value = asin;-->
+<!--                ws1.getCell(`A${rowNum}`).alignment = { vertical: 'middle', horizontal: 'center' };-->
+
+<!--                // 嵌入主图-->
+<!--                if (item.mainImgFile) {-->
+<!--                    await embedImageToCell(workbook, ws1, item.mainImgFile, 1, rowNum - 1);-->
+<!--                }-->
+
+<!--                // 嵌入副图1~10-->
+<!--                for (let k = 1; k <= 10; k++) {-->
+<!--                    if (item.subImgs[k]) {-->
+<!--                        await embedImageToCell(workbook, ws1, item.subImgs[k], k + 1, rowNum - 1);-->
+<!--                    }-->
+<!--                }-->
+
+<!--                // 边框美化-->
+<!--                for (let col = 1; col <= 12; col++) {-->
+<!--                    const c = row1.getCell(col);-->
+<!--                    c.border = {-->
+<!--                        top: { style: 'thin', color: { argb: 'FFE0E0E0' } },-->
+<!--                        left: { style: 'thin', color: { argb: 'FFE0E0E0' } },-->
+<!--                        bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },-->
+<!--                        right: { style: 'thin', color: { argb: 'FFE0E0E0' } }-->
+<!--                    };-->
+<!--                }-->
+
+<!--                // -&#45;&#45; 写入子表 2 (名称与链接) -&#45;&#45;-->
+<!--                const row2Data = { asin: asin };-->
+
+<!--                // 主图名称与主图链接-->
+<!--                if (item.mainImgFile) {-->
+<!--                    row2Data.main = item.mainImgFile.name;-->
+<!--                }-->
+
+<!--                // 副图1~10名称与对应链接-->
+<!--                for (let k = 1; k <= 10; k++) {-->
+<!--                    const subFile = item.subImgs[k];-->
+<!--                    if (subFile) {-->
+<!--                        row2Data[`sub${k}`] = subFile.name;-->
+<!--                        // 从 CSV map 中查找对应的真实下载链接-->
+<!--                        const link = item.csvMap[subFile.name] || '';-->
+<!--                        row2Data[`url${k}`] = link;-->
+<!--                    } else {-->
+<!--                        row2Data[`sub${k}`] = '';-->
+<!--                        row2Data[`url${k}`] = '';-->
+<!--                    }-->
+<!--                }-->
+
+<!--                const row2 = ws2.addRow(row2Data);-->
+<!--                row2.height = 24;-->
+<!--                row2.alignment = { vertical: 'middle' };-->
+<!--                row2.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };-->
+
+<!--                // 将链接单元格设为蓝色超链接格式-->
+<!--                for (let k = 1; k <= 10; k++) {-->
+<!--                    const colIndex = 2 + (k * 2); // 链接列对应 4, 6, 8, 10...-->
+<!--                    const linkCell = row2.getCell(colIndex);-->
+<!--                    if (linkCell.value && typeof linkCell.value === 'string' && linkCell.value.startsWith('http')) {-->
+<!--                        const urlStr = linkCell.value;-->
+<!--                        linkCell.value = { text: urlStr, hyperlink: urlStr };-->
+<!--                        linkCell.font = { color: { argb: 'FF2980B9' }, underline: true };-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+
+<!--            showProgress(true, '正在打包生成最终 Excel 文件...', 95);-->
+
+<!--            // 生成二进制文件并触发下载-->
+<!--            const buffer = await workbook.xlsx.writeBuffer();-->
+<!--            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });-->
+<!--            const downloadUrl = URL.createObjectURL(blob);-->
+<!--            const a = document.createElement('a');-->
+<!--            a.href = downloadUrl;-->
+<!--            const now = new Date();-->
+<!--            const timeStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;-->
+<!--            a.download = `亚马逊主副图汇总表_${timeStr}.xlsx`;-->
+<!--            document.body.appendChild(a);-->
+<!--            a.click();-->
+<!--            document.body.removeChild(a);-->
+<!--            URL.revokeObjectURL(downloadUrl);-->
+
+<!--            showProgress(true, '✅ Excel 导出成功！', 100);-->
+<!--            setTimeout(() => showProgress(false), 3000);-->
+
+<!--        } catch (err) {-->
+<!--            console.error(err);-->
+<!--            alert(`生成 Excel 失败: ${err.message}`);-->
+<!--            showProgress(false);-->
+<!--        } finally {-->
+<!--            exportBtn.disabled = false;-->
+<!--        }-->
+<!--    }-->
+
+<!--    // 辅助函数：把 File 对象转成二进制插入指定单元格-->
+<!--    async function embedImageToCell(workbook, worksheet, file, colIndex, rowIndex) {-->
+<!--        const buffer = await file.arrayBuffer();-->
+<!--        const dim = await getImageDimensions(file);-->
+
+<!--        let ext = 'jpeg';-->
+<!--        if (file.type.includes('png') || file.name.endsWith('.png')) ext = 'png';-->
+<!--        if (file.type.includes('webp') || file.name.endsWith('.webp')) ext = 'png';-->
+
+<!--        const imageId = workbook.addImage({-->
+<!--            buffer: buffer,-->
+<!--            extension: ext-->
+<!--        });-->
+
+<!--        // 计算居中偏移量-->
+<!--        worksheet.addImage(imageId, {-->
+<!--            tl: { col: colIndex + 0.1, row: rowIndex + 0.08 },-->
+<!--            ext: { width: dim.width, height: dim.height },-->
+<!--            editAs: 'oneCell'-->
+<!--        });-->
+<!--    }-->
+<!--</script>-->
+
+<!--</body>-->
+<!--</html>-->
