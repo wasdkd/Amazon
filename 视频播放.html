@@ -1,182 +1,745 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--  <title id="pageTitle">视频播放</title>-->
+<!--  <style>-->
+<!--    * { box-sizing: border-box; margin: 0; padding: 0; }-->
+<!--    body {-->
+<!--      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;-->
+<!--      background: #0f172a;-->
+<!--      color: #f8fafc;-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      align-items: center;-->
+<!--      min-height: 100vh;-->
+<!--      padding: 30px 16px;-->
+<!--    }-->
+<!--    .container {-->
+<!--      max-width: 960px;-->
+<!--      width: 100%;-->
+<!--      background: #1e293b;-->
+<!--      border-radius: 12px;-->
+<!--      padding: 24px;-->
+<!--      box-shadow: 0 10px 25px rgba(0,0,0,0.4);-->
+<!--    }-->
+<!--    h1 {-->
+<!--      font-size: 22px;-->
+<!--      margin-bottom: 20px;-->
+<!--      text-align: center;-->
+<!--      color: #38bdf8;-->
+<!--      word-break: break-all;-->
+<!--    }-->
+<!--    .video-wrapper {-->
+<!--      position: relative;-->
+<!--      width: 100%;-->
+<!--      background: #000;-->
+<!--      border-radius: 8px;-->
+<!--      overflow: hidden;-->
+<!--    }-->
+<!--    video {-->
+<!--      width: 100%;-->
+<!--      height: auto;-->
+<!--      max-height: 75vh;-->
+<!--      display: block;-->
+<!--    }-->
+<!--    .tip-box {-->
+<!--      margin-top: 15px;-->
+<!--      font-size: 13px;-->
+<!--      color: #94a3b8;-->
+<!--      text-align: center;-->
+<!--    }-->
+
+<!--    /* 底部链接生成助手（方便你自己生成链接） */-->
+<!--    .generator-box {-->
+<!--      margin-top: 30px;-->
+<!--      padding: 16px;-->
+<!--      background: #334155;-->
+<!--      border-radius: 8px;-->
+<!--      font-size: 13px;-->
+<!--    }-->
+<!--    .generator-box h3 {-->
+<!--      font-size: 14px;-->
+<!--      margin-bottom: 10px;-->
+<!--      color: #f1f5f9;-->
+<!--    }-->
+<!--    .input-row {-->
+<!--      display: flex;-->
+<!--      gap: 8px;-->
+<!--      flex-wrap: wrap;-->
+<!--    }-->
+<!--    input {-->
+<!--      flex: 1;-->
+<!--      min-width: 200px;-->
+<!--      padding: 8px 12px;-->
+<!--      border-radius: 6px;-->
+<!--      border: 1px solid #475569;-->
+<!--      background: #0f172a;-->
+<!--      color: #fff;-->
+<!--      outline: none;-->
+<!--    }-->
+<!--    button {-->
+<!--      padding: 8px 16px;-->
+<!--      background: #0284c7;-->
+<!--      color: #fff;-->
+<!--      border: none;-->
+<!--      border-radius: 6px;-->
+<!--      cursor: pointer;-->
+<!--    }-->
+<!--    button:hover { background: #0369a1; }-->
+<!--    .result-link {-->
+<!--      margin-top: 10px;-->
+<!--      word-break: break-all;-->
+<!--      color: #38bdf8;-->
+<!--    }-->
+<!--  </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--  <div class="container">-->
+<!--    <h1 id="videoTitle">正在加载视频...</h1>-->
+
+<!--    <div class="video-wrapper">-->
+<!--      <video id="videoPlayer" controls preload="auto" playsinline>-->
+<!--        您的浏览器不支持 HTML5 视频播放。-->
+<!--      </video>-->
+<!--    </div>-->
+
+<!--    <div class="tip-box" id="statusTip">如果无法加载，请检查视频名称或网络连接</div>-->
+
+<!--    &lt;!&ndash; 链接快速生成助手 &ndash;&gt;-->
+<!--    <div class="generator-box">-->
+<!--      <h3>🔗 链接生成小助手（输入视频文件名快速获取分享链接）</h3>-->
+<!--      <div class="input-row">-->
+<!--        <input type="text" id="inputName" placeholder="例如：图片下载.mp4 或 产品打标签.mp4">-->
+<!--        <input type="text" id="inputCustomTitle" placeholder="自定义标题（选填）">-->
+<!--        <button onclick="generateLink()">生成分享链接</button>-->
+<!--      </div>-->
+<!--      <div class="result-link" id="resultLink"></div>-->
+<!--    </div>-->
+<!--  </div>-->
+
+<!--  <script>-->
+<!--    // 默认配置（对应你的仓库）-->
+<!--    const BASE_FOLDER = './视频存储/'; // 视频所在的相对路径-->
+
+<!--    // 解析 URL 参数-->
+<!--    const params = new URLSearchParams(window.location.search);-->
+<!--    let videoFile = params.get('v') || params.get('video');-->
+<!--    let customTitle = params.get('t') || params.get('title');-->
+<!--    let directUrl = params.get('url'); // 也支持直接传完整链接-->
+
+<!--    const videoElement = document.getElementById('videoPlayer');-->
+<!--    const titleElement = document.getElementById('videoTitle');-->
+<!--    const pageTitle = document.getElementById('pageTitle');-->
+<!--    const statusTip = document.getElementById('statusTip');-->
+
+<!--    if (videoFile || directUrl) {-->
+<!--      let finalSrc = '';-->
+<!--      let displayTitle = '';-->
+
+<!--      if (directUrl) {-->
+<!--        // 如果传入的是 GitHub blob 链接，自动转换成 raw 视频流链接-->
+<!--        finalSrc = directUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');-->
+<!--        displayTitle = customTitle || '在线视频播放';-->
+<!--      } else {-->
+<!--        // 如果只传了文件名，拼接仓库内的相对路径-->
+<!--        finalSrc = BASE_FOLDER + encodeURIComponent(videoFile).replace(/%2F/g, '/');-->
+<!--        displayTitle = customTitle || videoFile.replace(/\.[^/.]+$/, ""); // 去掉 .mp4 后缀作为标题-->
+<!--      }-->
+
+<!--      titleElement.textContent = displayTitle;-->
+<!--      pageTitle.textContent = displayTitle + ' - 视频播放';-->
+<!--      videoElement.src = finalSrc;-->
+
+<!--      videoElement.onerror = () => {-->
+<!--        statusTip.textContent = '❌ 视频加载失败，请确认文件路径是否正确。';-->
+<!--        statusTip.style.color = '#ef4444';-->
+<!--      };-->
+<!--    } else {-->
+<!--      titleElement.textContent = '请在链接中指定视频参数';-->
+<!--      statusTip.textContent = '提示：链接格式应为 ?v=视频文件名.mp4';-->
+<!--    }-->
+
+<!--    // 链接生成函数-->
+<!--    function generateLink() {-->
+<!--      const name = document.getElementById('inputName').value.trim();-->
+<!--      const title = document.getElementById('inputCustomTitle').value.trim();-->
+<!--      if (!name) return alert('请输入视频文件名！');-->
+
+<!--      const baseUrl = window.location.origin + window.location.pathname;-->
+<!--      let finalUrl = `${baseUrl}?v=${encodeURIComponent(name)}`;-->
+<!--      if (title) {-->
+<!--        finalUrl += `&t=${encodeURIComponent(title)}`;-->
+<!--      }-->
+
+<!--      const resultBox = document.getElementById('resultLink');-->
+<!--      resultBox.innerHTML = `生成的分享链接：<br><a href="${finalUrl}" target="_blank" style="color:#38bdf8;">${finalUrl}</a>`;-->
+<!--    }-->
+<!--  </script>-->
+<!--</body>-->
+<!--</html>-->
+
+
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title id="pageTitle">视频播放</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 30px 16px;
-    }
-    .container {
-      max-width: 960px;
-      width: 100%;
-      background: #1e293b;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    }
-    h1 {
-      font-size: 22px;
-      margin-bottom: 20px;
-      text-align: center;
-      color: #38bdf8;
-      word-break: break-all;
-    }
-    .video-wrapper {
-      position: relative;
-      width: 100%;
-      background: #000;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    video {
-      width: 100%;
-      height: auto;
-      max-height: 75vh;
-      display: block;
-    }
-    .tip-box {
-      margin-top: 15px;
-      font-size: 13px;
-      color: #94a3b8;
-      text-align: center;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">视频播放</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --panel:#1e293b;
+    --panel-2:#273449;
+    --line:#334155;
+    --text:#f8fafc;
+    --muted:#94a3b8;
+    --accent:#38bdf8;
+  }
+  html,body { min-height:100%; }
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(1200px 700px at 50% -15%, #1e293b, #0b1220 65%) fixed;
+    color: var(--text);
+    padding: 18px;
+  }
+  .wrap{ max-width:1300px; margin:0 auto; }
 
-    /* 底部链接生成助手（方便你自己生成链接） */
-    .generator-box {
-      margin-top: 30px;
-      padding: 16px;
-      background: #334155;
-      border-radius: 8px;
-      font-size: 13px;
-    }
-    .generator-box h3 {
-      font-size: 14px;
-      margin-bottom: 10px;
-      color: #f1f5f9;
-    }
-    .input-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    input {
-      flex: 1;
-      min-width: 200px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #475569;
-      background: #0f172a;
-      color: #fff;
-      outline: none;
-    }
-    button {
-      padding: 8px 16px;
-      background: #0284c7;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover { background: #0369a1; }
-    .result-link {
-      margin-top: 10px;
-      word-break: break-all;
-      color: #38bdf8;
-    }
-  </style>
+  /* ---------- 顶部 ---------- */
+  header{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  header h1{ font-size:20px; font-weight:600; color:var(--accent); word-break:break-all; }
+  .badge{
+    font-size:12px; background:#0ea5e9; color:#04283a;
+    padding:2px 10px; border-radius:20px; font-weight:700; display:none;
+  }
+  .badge.show{ display:inline-block; }
+
+  .repo-bar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .repo-bar input{
+    padding:9px 12px; border-radius:8px; border:1px solid var(--line);
+    background:#0b1220; color:#fff; font-size:14px; outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .repo-bar input:focus{ border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.15); }
+  #repo-input{ flex:1 1 260px; min-width:0; }
+  #branch-input{ flex:0 1 150px; }
+
+  /* ---------- 按钮 ---------- */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 16px; border-radius:8px; font-size:14px; font-weight:500;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    cursor:pointer; text-decoration:none; white-space:nowrap; font-family:inherit;
+    transition:background .15s, border-color .15s;
+  }
+  .btn:hover{ background:#334155; }
+  .btn-primary{ background:#0284c7; border-color:#0284c7; color:#fff; }
+  .btn-primary:hover{ background:#0369a1; border-color:#0369a1; }
+  .btn-sm{ padding:6px 12px; font-size:13px; }
+
+  /* ---------- 状态 ---------- */
+  .status{ text-align:center; padding:36px 0; color:var(--muted); font-size:15px; }
+  .status.error{ color:#f87171; }
+
+  /* ---------- 布局 ---------- */
+  main{ display:none; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
+  main.show{ display:grid; }
+  @media (max-width:900px){ main.show{ grid-template-columns:1fr; } }
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.35);
+  }
+
+  /* ---------- 播放器 ---------- */
+  .video-wrapper{ width:100%; background:#000; border-radius:10px; overflow:hidden; }
+  video{ width:100%; height:auto; max-height:68vh; display:block; background:#000; }
+  .player-info{ margin-top:12px; }
+  .video-name{ font-size:16px; font-weight:600; word-break:break-all; }
+  .video-meta{ font-size:12.5px; color:var(--muted); margin-top:4px; word-break:break-all; }
+  .video-meta.error{ color:#f87171; }
+  .player-actions{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+
+  /* ---------- 播放列表 ---------- */
+  .list-panel{ display:flex; flex-direction:column; max-height:calc(100vh - 170px); }
+  @media (max-width:900px){ .list-panel{ max-height:none; } }
+  .list-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .list-head input{
+    flex:1; min-width:0; padding:8px 12px; border-radius:8px;
+    border:1px solid var(--line); background:#0b1220; color:#fff;
+    font-size:13.5px; outline:none;
+  }
+  .list-head input:focus{ border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.15); }
+  .count{ font-size:12px; color:var(--muted); white-space:nowrap; }
+
+  .list{ overflow-y:auto; flex:1; margin:-4px; padding:4px; }
+  .list::-webkit-scrollbar{ width:8px; }
+  .list::-webkit-scrollbar-thumb{ background:#334155; border-radius:8px; }
+  .list::-webkit-scrollbar-thumb:hover{ background:#475569; }
+
+  .video-item{
+    display:flex; gap:10px; align-items:center; padding:8px 10px;
+    border-radius:10px; cursor:pointer; border:1px solid transparent;
+    transition:background .12s, border-color .12s;
+  }
+  .video-item:hover{ background:var(--panel-2); }
+  .video-item.active{ background:rgba(56,189,248,.14); border-color:#0ea5e9; }
+  .vi-icon{ flex-shrink:0; font-size:16px; }
+  .vi-info{ min-width:0; flex:1; }
+  .vi-name{ font-size:13.5px; font-weight:500; word-break:break-all; }
+  .video-item.active .vi-name{ color:var(--accent); }
+  .vi-sub{ font-size:11.5px; color:var(--muted); word-break:break-all; margin-top:1px; }
+
+  .empty{ padding:20px 10px; text-align:center; color:var(--muted); font-size:13.5px; }
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+    background:#0b1220; border:1px solid var(--line); color:#fff;
+    padding:10px 20px; border-radius:10px; font-size:13.5px;
+    opacity:0; transition:opacity .25s; pointer-events:none; z-index:999;
+    max-width:90vw; text-align:center; word-break:break-all;
+  }
+  .toast.show{ opacity:1; }
+</style>
 </head>
 <body>
+<div class="wrap">
+  <header>
+    <h1 id="repo-title">🎬 视频播放</h1>
+    <span class="badge" id="branch-badge"></span>
+  </header>
 
-  <div class="container">
-    <h1 id="videoTitle">正在加载视频...</h1>
-
-    <div class="video-wrapper">
-      <video id="videoPlayer" controls preload="auto" playsinline>
-        您的浏览器不支持 HTML5 视频播放。
-      </video>
-    </div>
-
-    <div class="tip-box" id="statusTip">如果无法加载，请检查视频名称或网络连接</div>
-
-    <!-- 链接快速生成助手 -->
-    <div class="generator-box">
-      <h3>🔗 链接生成小助手（输入视频文件名快速获取分享链接）</h3>
-      <div class="input-row">
-        <input type="text" id="inputName" placeholder="例如：图片下载.mp4 或 产品打标签.mp4">
-        <input type="text" id="inputCustomTitle" placeholder="自定义标题（选填）">
-        <button onclick="generateLink()">生成分享链接</button>
-      </div>
-      <div class="result-link" id="resultLink"></div>
-    </div>
+  <div class="repo-bar">
+    <input type="text" id="repo-input" placeholder="仓库，如 wasdkd/Amazon" spellcheck="false" autocomplete="off">
+    <input type="text" id="branch-input" placeholder="分支（可选）" spellcheck="false" autocomplete="off">
+    <button class="btn btn-primary" id="load-btn">加载视频</button>
   </div>
 
-  <script>
-    // 默认配置（对应你的仓库）
-    const BASE_FOLDER = './视频存储/'; // 视频所在的相对路径
+  <div id="status" class="status">正在准备…</div>
 
-    // 解析 URL 参数
-    const params = new URLSearchParams(window.location.search);
-    let videoFile = params.get('v') || params.get('video');
-    let customTitle = params.get('t') || params.get('title');
-    let directUrl = params.get('url'); // 也支持直接传完整链接
+  <main id="main">
+    <!-- 播放器 -->
+    <section class="panel player-panel">
+      <div class="video-wrapper">
+        <video id="videoPlayer" controls playsinline preload="metadata"></video>
+      </div>
+      <div class="player-info">
+        <div class="video-name" id="videoTitle">请选择视频</div>
+        <div class="video-meta" id="statusTip"></div>
+        <div class="player-actions">
+          <a class="btn btn-sm" id="openRaw" target="_blank" rel="noopener">↗ 新窗口打开</a>
+          <button class="btn btn-sm" id="copyLink">🔗 复制分享链接</button>
+        </div>
+      </div>
+    </section>
 
-    const videoElement = document.getElementById('videoPlayer');
-    const titleElement = document.getElementById('videoTitle');
-    const pageTitle = document.getElementById('pageTitle');
-    const statusTip = document.getElementById('statusTip');
+    <!-- 播放列表 -->
+    <aside class="panel list-panel">
+      <div class="list-head">
+        <input type="text" id="search" placeholder="搜索视频…" spellcheck="false" autocomplete="off">
+        <span class="count" id="count"></span>
+      </div>
+      <div class="list" id="list"></div>
+    </aside>
+  </main>
+</div>
 
-    if (videoFile || directUrl) {
-      let finalSrc = '';
-      let displayTitle = '';
+<div class="toast" id="toast"></div>
 
-      if (directUrl) {
-        // 如果传入的是 GitHub blob 链接，自动转换成 raw 视频流链接
-        finalSrc = directUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
-        displayTitle = customTitle || '在线视频播放';
-      } else {
-        // 如果只传了文件名，拼接仓库内的相对路径
-        finalSrc = BASE_FOLDER + encodeURIComponent(videoFile).replace(/%2F/g, '/');
-        displayTitle = customTitle || videoFile.replace(/\.[^/.]+$/, ""); // 去掉 .mp4 后缀作为标题
+<script>
+(function () {
+  'use strict';
+
+  /* ===================== 配置 ===================== */
+  const DEFAULT_REPO = 'wasdkd/Amazon';   // 默认仓库
+  const LS_KEY = 'gh-video-player-last';
+
+  const VIDEO_EXTS = new Set([
+    'mp4','webm','ogv','ogg','mov','m4v','mkv','avi',
+    'flv','wmv','3gp','mpg','mpeg','ts','m2ts'
+  ]);
+
+  const state = { owner:'', repo:'', branch:'', videos:[], current:null };
+  const $ = id => document.getElementById(id);
+
+  /* ===================== 工具函数 ===================== */
+  function getExt(name) {
+    const i = name.lastIndexOf('.');
+    return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
+  }
+  function isVideoPath(path) {
+    return VIDEO_EXTS.has(getExt(path));
+  }
+  function formatSize(bytes) {
+    if (bytes === undefined || bytes === null) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+  function encodePath(path) {
+    return path.split('/').map(encodeURIComponent).join('/');
+  }
+  /* jsDelivr CDN：速度快、支持 Range 请求（拖动进度条） */
+  function cdnUrl(path) {
+    return 'https://cdn.jsdelivr.net/gh/' + state.owner + '/' + state.repo +
+           '@' + state.branch + '/' + encodePath(path);
+  }
+  /* GitHub 原始链接：CDN 失败时的兜底 */
+  function rawUrl(path) {
+    return 'https://raw.githubusercontent.com/' + state.owner + '/' + state.repo +
+           '/' + encodeURIComponent(state.branch) + '/' + encodePath(path);
+  }
+  function showToast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+  function setStatus(text, isError) {
+    const s = $('status');
+    s.style.display = 'block';
+    s.className = 'status' + (isError ? ' error' : '');
+    s.textContent = text;
+    $('main').classList.remove('show');
+  }
+
+  /* 解析仓库输入 */
+  function parseRepoInput(raw) {
+    if (!raw) return null;
+    let s = String(raw).trim();
+    if (!s) return null;
+    s = s.replace(/\.git$/i, '').replace(/\/+$/, '');
+
+    let m = s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s]+)\/tree\/([^\/\s?#]+)/i);
+    if (m) return { owner: m[1], repo: m[2], branch: m[3] };
+
+    m = s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s?#]+)/i);
+    if (m) return { owner: m[1], repo: m[2] };
+
+    m = s.match(/^git@github\.com:([^\/\s]+)\/([^\/\s]+)$/i);
+    if (m) return { owner: m[1], repo: m[2] };
+
+    m = s.match(/^([^\/\s]+)\/([^\/\s]+)$/);
+    if (m) return { owner: m[1], repo: m[2] };
+
+    return null;
+  }
+
+  /* ===================== GitHub API ===================== */
+  async function fetchRepoInfo(owner, repo) {
+    const res = await fetch('https://api.github.com/repos/' + owner + '/' + repo);
+    if (res.status === 404) throw new Error('找不到仓库 ' + owner + '/' + repo + '（可能是私有仓库或名字有误）');
+    if (res.status === 403) throw new Error('GitHub API 访问次数受限，请稍后再试');
+    if (!res.ok) throw new Error('读取仓库信息失败：HTTP ' + res.status);
+    return res.json();
+  }
+  async function fetchTree(owner, repo, branch) {
+    const url = 'https://api.github.com/repos/' + owner + '/' + repo +
+                '/git/trees/' + encodeURIComponent(branch) + '?recursive=1';
+    const res = await fetch(url);
+    if (res.status === 404) throw new Error('找不到分支「' + branch + '」');
+    if (res.status === 403) throw new Error('GitHub API 访问次数受限，请稍后再试');
+    if (!res.ok) throw new Error('读取文件列表失败：HTTP ' + res.status);
+    const data = await res.json();
+    return (data.tree || []).filter(it => it.type === 'blob');
+  }
+
+  /* ===================== 加载仓库视频 ===================== */
+  async function loadVideos(owner, repo, branch, wantFile) {
+    try {
+      setStatus('正在读取仓库信息…');
+
+      if (!branch) {
+        const info = await fetchRepoInfo(owner, repo);
+        branch = info.default_branch || 'main';
       }
 
-      titleElement.textContent = displayTitle;
-      pageTitle.textContent = displayTitle + ' - 视频播放';
-      videoElement.src = finalSrc;
+      setStatus('正在读取文件列表…');
+      const files = await fetchTree(owner, repo, branch);
 
-      videoElement.onerror = () => {
-        statusTip.textContent = '❌ 视频加载失败，请确认文件路径是否正确。';
-        statusTip.style.color = '#ef4444';
-      };
-    } else {
-      titleElement.textContent = '请在链接中指定视频参数';
-      statusTip.textContent = '提示：链接格式应为 ?v=视频文件名.mp4';
-    }
+      state.owner = owner;
+      state.repo = repo;
+      state.branch = branch;
+      state.videos = files
+        .filter(f => isVideoPath(f.path))
+        .sort((a, b) => a.path.localeCompare(b.path));
 
-    // 链接生成函数
-    function generateLink() {
-      const name = document.getElementById('inputName').value.trim();
-      const title = document.getElementById('inputCustomTitle').value.trim();
-      if (!name) return alert('请输入视频文件名！');
+      try { localStorage.setItem(LS_KEY, owner + '/' + repo); } catch (e) {}
 
-      const baseUrl = window.location.origin + window.location.pathname;
-      let finalUrl = `${baseUrl}?v=${encodeURIComponent(name)}`;
-      if (title) {
-        finalUrl += `&t=${encodeURIComponent(title)}`;
+      $('repo-input').value = owner + '/' + repo;
+      $('branch-input').value = branch;
+      $('repo-title').textContent = '🎬 ' + owner + '/' + repo;
+      const badge = $('branch-badge');
+      badge.textContent = branch;
+      badge.classList.add('show');
+
+      if (!state.videos.length) {
+        setStatus('该仓库中没有找到视频文件。', true);
+        return;
       }
 
-      const resultBox = document.getElementById('resultLink');
-      resultBox.innerHTML = `生成的分享链接：<br><a href="${finalUrl}" target="_blank" style="color:#38bdf8;">${finalUrl}</a>`;
+      $('status').style.display = 'none';
+      $('main').classList.add('show');
+      renderList();
+
+      /* 定位要播放的视频：完整路径 → 文件名 → 后缀匹配 */
+      let target = null;
+      if (wantFile) {
+        target = state.videos.find(v => v.path === wantFile)
+              || state.videos.find(v => v.path.split('/').pop() === wantFile)
+              || state.videos.find(v => v.path.toLowerCase().endsWith('/' + wantFile.toLowerCase()));
+      }
+      if (!target) target = state.videos[0];
+      selectVideo(target, !!wantFile);
+
+    } catch (e) {
+      console.error(e);
+      setStatus('加载失败：' + e.message, true);
     }
-  </script>
+  }
+
+  /* ===================== 播放 ===================== */
+  function selectVideo(file, autoplay) {
+    if (!file) return;
+    state.current = file;
+
+    const player = $('videoPlayer');
+    const name = file.path.split('/').pop();
+    const dir = file.path.includes('/') ? file.path.slice(0, file.path.lastIndexOf('/')) : '';
+
+    $('videoTitle').textContent = name;
+    document.title = name + ' - 视频播放';
+    $('statusTip').className = 'video-meta';
+    $('statusTip').textContent = [formatSize(file.size), dir ? dir + '/' : '']
+      .filter(Boolean).join('  ·  ');
+
+    /* 先走 CDN，失败自动切 raw */
+    player.dataset.fallback = rawUrl(file.path);
+    player.dataset.triedFallback = '0';
+    player.src = cdnUrl(file.path);
+    player.load();
+    if (autoplay) player.play().catch(function () {});
+
+    $('openRaw').href = rawUrl(file.path);
+
+    /* 同步地址栏，方便复制分享 */
+    const p = new URLSearchParams();
+    p.set('repo', state.owner + '/' + state.repo);
+    if (state.branch) p.set('branch', state.branch);
+    p.set('v', file.path);
+    history.replaceState(null, '', location.pathname + '?' + p.toString());
+
+    highlightCurrent();
+  }
+
+  /* 播放错误 → 回退 raw */
+  $('videoPlayer').addEventListener('error', function () {
+    if (this.dataset.triedFallback === '1') {
+      $('statusTip').className = 'video-meta error';
+      $('statusTip').textContent = '❌ 该视频无法播放（可能文件过大或格式不受支持），可点「新窗口打开」试试。';
+      return;
+    }
+    this.dataset.triedFallback = '1';
+    this.src = this.dataset.fallback;
+    this.load();
+    this.play().catch(function () {});
+  });
+
+  $('videoPlayer').addEventListener('loadeddata', function () {
+    if (this.dataset.triedFallback === '1' && state.current) {
+      $('statusTip').className = 'video-meta';
+      const dir = state.current.path.includes('/')
+        ? state.current.path.slice(0, state.current.path.lastIndexOf('/')) + '/' : '';
+      $('statusTip').textContent = [formatSize(state.current.size), dir]
+        .filter(Boolean).join('  ·  ') + '  （已切换备用源）';
+    }
+  });
+
+  /* ===================== 渲染列表 ===================== */
+  function renderList() {
+    const q = ($('search').value || '').trim().toLowerCase();
+    const list = $('list');
+    list.innerHTML = '';
+
+    const items = state.videos.filter(v => !q || v.path.toLowerCase().includes(q));
+    $('count').textContent = items.length + ' / ' + state.videos.length + ' 个';
+
+    if (!items.length) {
+      const d = document.createElement('div');
+      d.className = 'empty';
+      d.textContent = '没有匹配的视频';
+      list.appendChild(d);
+      return;
+    }
+
+    items.forEach(function (v) {
+      const name = v.path.split('/').pop();
+      const dir = v.path.includes('/') ? v.path.slice(0, v.path.lastIndexOf('/')) : '';
+
+      const el = document.createElement('div');
+      el.className = 'video-item';
+      el.dataset.path = v.path;
+
+      const icon = document.createElement('div');
+      icon.className = 'vi-icon';
+      icon.textContent = '🎬';
+
+      const info = document.createElement('div');
+      info.className = 'vi-info';
+      const n = document.createElement('div');
+      n.className = 'vi-name';
+      n.textContent = name;
+      const sub = document.createElement('div');
+      sub.className = 'vi-sub';
+      sub.textContent = [dir ? dir + '/' : '', formatSize(v.size)].filter(Boolean).join('  ·  ');
+      info.appendChild(n);
+      info.appendChild(sub);
+
+      el.appendChild(icon);
+      el.appendChild(info);
+      el.addEventListener('click', function () { selectVideo(v, true); });
+
+      list.appendChild(el);
+    });
+
+    highlightCurrent();
+  }
+
+  function highlightCurrent() {
+    const cur = state.current ? state.current.path : null;
+    let activeEl = null;
+    document.querySelectorAll('.video-item').forEach(function (el) {
+      const on = el.dataset.path === cur;
+      el.classList.toggle('active', on);
+      if (on) activeEl = el;
+    });
+    if (activeEl && activeEl.scrollIntoView) {
+      activeEl.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  /* ===================== 复制分享链接 ===================== */
+  async function copyCurrentLink() {
+    if (!state.current) { showToast('请先选择一个视频'); return; }
+    const p = new URLSearchParams();
+    p.set('repo', state.owner + '/' + state.repo);
+    if (state.branch) p.set('branch', state.branch);
+    p.set('v', state.current.path);
+    const link = location.origin + location.pathname + '?' + p.toString();
+
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast('分享链接已复制');
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = link;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast('分享链接已复制'); }
+      catch (err) { showToast('复制失败，请手动复制'); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  /* ===================== 直接链接模式 ===================== */
+  function playDirectLink(url, title) {
+    const src = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+    $('status').style.display = 'none';
+    $('main').classList.add('show');
+
+    const player = $('videoPlayer');
+    player.dataset.fallback = '';
+    player.dataset.triedFallback = '1';
+    player.src = src;
+
+    let name = title;
+    if (!name) {
+      try { name = decodeURIComponent(src.split('/').pop().split('?')[0]); }
+      catch (e) { name = '在线视频'; }
+    }
+    $('videoTitle').textContent = name;
+    document.title = name + ' - 视频播放';
+    $('statusTip').textContent = '直接链接播放模式';
+    $('openRaw').href = src;
+    $('list').innerHTML = '<div class="empty">直接链接播放模式<br>（未加载仓库列表）</div>';
+    $('count').textContent = '';
+  }
+
+  /* ===================== 事件 ===================== */
+  function handleLoad() {
+    const parsed = parseRepoInput($('repo-input').value);
+    if (!parsed) {
+      setStatus('无法识别仓库地址。请输入「owner/repo」或完整 GitHub URL。', true);
+      return;
+    }
+    const branch = $('branch-input').value.trim() || parsed.branch || '';
+    loadVideos(parsed.owner, parsed.repo, branch, null);
+  }
+
+  function bindEvents() {
+    $('load-btn').addEventListener('click', handleLoad);
+    ['repo-input', 'branch-input'].forEach(function (id) {
+      $(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); handleLoad(); }
+      });
+    });
+    $('search').addEventListener('input', renderList);
+    $('copyLink').addEventListener('click', copyCurrentLink);
+  }
+
+  /* ===================== 初始化 ===================== */
+  async function init() {
+    bindEvents();
+
+    const params = new URLSearchParams(location.search);
+    const repoParam   = params.get('repo');
+    const branchParam = params.get('branch') || '';
+    const fileParam   = params.get('v') || params.get('video') || null;
+    const urlParam    = params.get('url');
+    const titleParam  = params.get('t') || params.get('title') || null;
+
+    /* 兼容旧的 ?url= 直接链接写法 */
+    if (urlParam) {
+      playDirectLink(urlParam, titleParam);
+      return;
+    }
+
+    let owner = '', repo = '', branch = branchParam;
+
+    if (repoParam) {
+      const parsed = parseRepoInput(repoParam);
+      if (parsed) {
+        owner = parsed.owner;
+        repo = parsed.repo;
+        if (!branch && parsed.branch) branch = parsed.branch;
+      }
+    }
+
+    if (!owner) {
+      let saved = '';
+      try { saved = localStorage.getItem(LS_KEY) || ''; } catch (e) {}
+      const parsed = parseRepoInput(saved) || parseRepoInput(DEFAULT_REPO);
+      owner = parsed.owner;
+      repo = parsed.repo;
+      if (!branch && parsed.branch) branch = parsed.branch;
+    }
+
+    $('repo-input').value = owner + '/' + repo;
+    if (branch) $('branch-input').value = branch;
+
+    await loadVideos(owner, repo, branch, fileParam);
+  }
+
+  init();
+})();
+</script>
 </body>
 </html>
