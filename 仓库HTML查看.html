@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Pages HTML 目录可视化浏览器</title>
+<script>
+  try {
+    var theme = localStorage.getItem('gh-preview-theme') ||
+      (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {}
+</script>
+<style>
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-dim: #64748b;
+  --text-faint: #94a3b8;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --accent-ring: rgba(37, 99, 235, 0.16);
+  --radius-lg: 14px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 35px rgba(15, 23, 42, 0.16);
+}
+
+html[data-theme="dark"] {
+  --bg: #090d16;
+  --surface: #111827;
+  --surface-2: #1e293b;
+  --surface-3: #334155;
+  --border: #1f293d;
+  --border-strong: #374151;
+  --text: #f8fafc;
+  --text-dim: #94a3b8;
+  --text-faint: #64748b;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent-ring: rgba(59, 130, 246, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.45);
+  --shadow-lg: 0 20px 35px rgba(0,0,0,0.7);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; line-height: 1.5;
+  transition: background .2s ease, color .2s ease;
+}
+
+.container {
+  max-width: 1100px; margin: 0 auto;
+  padding: 30px 20px 80px;
+}
+
+/* 顶栏 */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 20px;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  display: grid; place-items: center; font-size: 22px;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+.brand-title h1 {
+  font-size: 18px; font-weight: 700; margin: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.branch-pill {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+  background: var(--accent-soft); color: var(--accent); display: none;
+}
+.branch-pill.show { display: inline-block; }
+.brand-title p { margin: 2px 0 0; font-size: 13px; color: var(--text-dim); }
+
+.theme-toggle {
+  width: 40px; height: 40px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 17px; cursor: pointer;
+  display: grid; place-items: center; transition: all .15s;
+  box-shadow: var(--shadow-sm);
+}
+.theme-toggle:hover { background: var(--surface-2); }
+
+/* 仓库配置栏 */
+.config-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 10px 14px; margin-bottom: 20px;
+  display: flex; gap: 10px; flex-wrap: wrap; box-shadow: var(--shadow-sm);
+}
+.input-box {
+  position: relative; display: flex; align-items: center; flex: 1 1 240px;
+}
+.input-box span { position: absolute; left: 12px; color: var(--text-faint); font-size: 14px; pointer-events: none; }
+.input-box input {
+  width: 100%; padding: 9px 12px 9px 34px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface-2); color: var(--text); font-size: 13.5px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.input-box input:focus {
+  border-color: var(--accent); background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+#branch-input { flex: 0 1 120px; padding-left: 12px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-md); font-size: 13px;
+  font-weight: 600; border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text); cursor: pointer; text-decoration: none;
+  transition: all .15s; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-3); }
+.btn:active { transform: scale(.98); }
+.btn-primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 4px 12px var(--accent-ring);
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* 工具栏 */
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.search-wrap { position: relative; flex: 1 1 240px; max-width: 360px; }
+.search-wrap input {
+  width: 100%; padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface); color: var(--text); font-size: 13px; outline: none;
+}
+.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap span { position: absolute; left: 10px; top: 9px; font-size: 13px; opacity: .5; }
+
+.toolbar-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mode-select {
+  padding: 7px 10px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 12.5px; outline: none; cursor: pointer;
+}
+.stats { font-size: 12.5px; color: var(--text-dim); }
+
+/* 目录分级树容器 */
+.tree-container {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow-sm);
+  min-height: 120px;
+}
+
+/* 目录分组 */
+details.folder-group { margin: 3px 0; }
+summary.folder-header {
+  list-style: none; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: var(--radius-md);
+  cursor: pointer; user-select: none; font-weight: 600; font-size: 13.5px;
+  transition: background .12s ease;
+}
+summary.folder-header::-webkit-details-marker { display: none; }
+summary.folder-header:hover { background: var(--surface-2); }
+
+.folder-arrow {
+  display: inline-block; font-size: 10px; color: var(--text-faint);
+  transition: transform .18s ease; width: 14px; text-align: center;
+}
+details[open] > summary > .folder-arrow { transform: rotate(90deg); }
+
+.folder-icon { font-size: 16px; }
+.folder-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-count {
+  font-size: 11.5px; font-weight: 500; color: var(--text-faint);
+  background: var(--surface-2); padding: 2px 8px; border-radius: 99px;
+}
+
+/* 目录缩进 */
+.folder-content {
+  padding-left: 22px;
+  border-left: 1.5px dashed var(--border);
+  margin-left: 16px; margin-top: 2px; margin-bottom: 4px;
+}
+
+/* 文件行卡片 */
+.file-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 7px 10px; margin: 2px 0; border-radius: var(--radius-md);
+  transition: background .12s ease; cursor: pointer;
+}
+.file-item:hover { background: var(--surface-2); }
+.file-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.file-icon { font-size: 15px; color: var(--accent); flex-shrink: 0; }
+.file-name {
+  font-size: 13.5px; font-weight: 500; word-break: break-all;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file-meta { font-size: 11.5px; color: var(--text-faint); margin-left: 6px; flex-shrink: 0; }
+
+.file-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.action-btn {
+  padding: 4px 9px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-dim); font-size: 12px;
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+  transition: all .12s;
+}
+.action-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+/* 模态弹窗 */
+.preview-modal {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; padding: 18px;
+}
+.preview-modal.active { display: flex; }
+.modal-window {
+  background: var(--surface); width: 100%; height: 100%; max-width: 1300px;
+  border-radius: var(--radius-lg); border: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg);
+}
+.modal-header {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface-2);
+}
+.modal-title { font-size: 13px; font-weight: 600; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-actions { display: flex; align-items: center; gap: 8px; }
+.modal-iframe { flex: 1; border: none; width: 100%; height: 100%; background: #ffffff; }
+
+/* 状态提示 */
+.status { text-align: center; padding: 50px 20px; color: var(--text-dim); font-size: 14px; }
+.status.error { color: #ef4444; }
+.spinner {
+  width: 26px; height: 26px; margin: 0 auto 12px; border-radius: 50%;
+  border: 2.5px solid var(--border); border-top-color: var(--accent);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: #0f172a; color: #fff; padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 1100;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">🌐</div>
+      <div class="brand-title">
+        <h1>
+          <span>GitHub Pages HTML 浏览器</span>
+          <span class="branch-pill" id="branch-badge"></span>
+        </h1>
+        <p id="repo-desc">读取仓库目录树，点击即可直接通过 GitHub Pages 在线浏览</p>
+      </div>
+    </div>
+    <button class="theme-toggle" id="theme-btn" title="切换深浅色">🌙</button>
+  </header>
+
+  <!-- 仓库输入栏 -->
+  <section class="config-bar">
+    <div class="input-box">
+      <span>🔍</span>
+      <input type="text" id="repo-input" placeholder="输入 GitHub 仓库名 (如 owner/repo) 或完整地址" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="input-box" style="flex:0 1 120px;">
+      <input type="text" id="branch-input" placeholder="分支 (可选)" autocomplete="off" spellcheck="false">
+    </div>
+    <button class="btn btn-primary" id="load-btn">加载页面</button>
+  </section>
+
+  <!-- 工具栏 -->
+  <section class="toolbar" id="toolbar" style="display:none;">
+    <div class="search-wrap">
+      <span>🔍</span>
+      <input type="text" id="search-input" placeholder="搜索文件名或目录 (自动展开)..." autocomplete="off">
+    </div>
+    <div class="toolbar-controls">
+      <!-- 预览模式选择：默认 GitHub Pages -->
+      <select class="mode-select" id="mode-select" title="选择访问所使用的服务">
+        <option value="pages" selected>模式: GitHub Pages (推荐)</option>
+        <option value="preview">模式: HTMLPreview (备用)</option>
+      </select>
+      <button class="btn" id="btn-expand-all" style="padding:6px 10px;font-size:12px;">全部展开</button>
+      <button class="btn" id="btn-collapse-all" style="padding:6px 10px;font-size:12px;">全部收起</button>
+      <div class="stats" id="stats"></div>
+    </div>
+  </section>
+
+  <!-- 加载状态 -->
+  <div class="status" id="status" style="display:none;">
+    <div class="spinner" id="spinner"></div>
+    <div id="status-text">正在读取仓库中...</div>
+  </div>
+
+  <!-- 分级目录树容器 -->
+  <main class="tree-container" id="tree-container" style="display:none;"></main>
+</div>
+
+<!-- 弹窗预览窗口 -->
+<div class="preview-modal" id="preview-modal">
+  <div class="modal-window">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">HTML 页面预览</span>
+      <div class="modal-actions">
+        <a class="btn" id="modal-open-new" target="_blank" rel="noopener">独立新窗口打开 ↗</a>
+        <button class="btn" id="modal-close">✕ 关闭</button>
+      </div>
+    </div>
+    <iframe class="modal-iframe" id="modal-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  const DEFAULT_REPO = 'wasdkd/Amazon';
+  const LS_REPO_KEY  = 'gh_pages_saved_repo';
+  const LS_THEME_KEY = 'gh-preview-theme';
+
+  const state = {
+    owner: '',
+    repo: '',
+    branch: '',
+    htmlFiles: [],
+    searchQuery: '',
+    mode: 'pages' // 'pages' | 'preview'
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function formatSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  function showToast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function showStatus(text, isError = false, showSpinner = true) {
+    const s = $('status');
+    s.style.display = 'block';
+    s.className = 'status' + (isError ? ' error' : '');
+    $('status-text').textContent = text;
+    $('spinner').style.display = showSpinner ? 'block' : 'none';
+  }
+
+  function hideStatus() {
+    $('status').style.display = 'none';
+  }
+
+  // ⭐️ 核心：生成 GitHub Pages 链接（带 URL 转义编码）
+  function getPagesUrl(filePath) {
+    // 逐段对中文或特殊字符进行编码（如 商家 -> %E5%95%86%E5%AE%B6）
+    const encodedSegments = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+    return `https://${state.owner.toLowerCase()}.github.io/${state.repo}/${encodedSegments}`;
+  }
+
+  // 备用：HTMLPreview 模式
+  function getPreviewUrl(filePath) {
+    const rawGitHubUrl = `https://github.com/${state.owner}/${state.repo}/blob/${state.branch}/${filePath}`;
+    return `https://htmlpreview.github.io/?${encodeURI(rawGitHubUrl)}`;
+  }
+
+  // 获取当前选择模式下的可访问 URL
+  function getActiveUrl(filePath) {
+    return state.mode === 'pages' ? getPagesUrl(filePath) : getPreviewUrl(filePath);
+  }
+
+  function parseRepoInput(raw) {
+    if (!raw) return null;
+    let s = String(raw).trim().replace(/\.git$/i, '').replace(/\/+$/, '');
+    let m = s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s]+)\/tree\/([^\/\s?#]+)/i);
+    if (m) return { owner: m[1], repo: m[2], branch: m[3] };
+    m = s.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s?#]+)/i);
+    if (m) return { owner: m[1], repo: m[2] };
+    m = s.match(/^([^\/\s]+)\/([^\/\s]+)$/);
+    if (m) return { owner: m[1], repo: m[2] };
+    return null;
+  }
+
+  // 请求 GitHub API 树结构，仅抓取 HTML
+  async function fetchRepoTree(owner, repo, branch) {
+    if (!branch) {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+      if (res.status === 404) throw new Error('仓库不存在或为私有仓库');
+      if (res.status === 403) throw new Error('GitHub API 调用次数受限，请稍候');
+      if (!res.ok) throw new Error(`连接仓库失败: HTTP ${res.status}`);
+      const repoInfo = await res.json();
+      branch = repoInfo.default_branch || 'main';
+    }
+
+    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+    if (treeRes.status === 404) throw new Error(`找不到分支「${branch}」`);
+    if (treeRes.status === 403) throw new Error('GitHub API 调用次数受限，请稍候');
+    if (!treeRes.ok) throw new Error(`读取目录失败: HTTP ${treeRes.status}`);
+
+    const data = await treeRes.json();
+    const htmlFiles = (data.tree || []).filter(item => {
+      return item.type === 'blob' && /\.(html|htm)$/i.test(item.path);
+    });
+
+    return { branch, htmlFiles };
+  }
+
+  // 构造嵌套目录树
+  function buildFileTree(files) {
+    const root = { name: 'root', folders: {}, files: [], totalCount: 0 };
+
+    files.forEach(file => {
+      const parts = file.path.split('/');
+      const fileName = parts.pop();
+      let current = root;
+
+      parts.forEach(part => {
+        if (!current.folders[part]) {
+          current.folders[part] = { name: part, folders: {}, files: [], totalCount: 0 };
+        }
+        current = current.folders[part];
+      });
+
+      current.files.push({ ...file, fileName });
+    });
+
+    function calcCount(node) {
+      let count = node.files.length;
+      for (const key in node.folders) {
+        count += calcCount(node.folders[key]);
+      }
+      node.totalCount = count;
+      return count;
+    }
+    calcCount(root);
+    return root;
+  }
+
+  // 加载仓库
+  async function loadRepository(owner, repo, branch = '') {
+    try {
+      showStatus('正在检索仓库 HTML 页面与目录结构...', false, true);
+      $('toolbar').style.display = 'none';
+      $('tree-container').style.display = 'none';
+
+      const { branch: curBranch, htmlFiles } = await fetchRepoTree(owner, repo, branch);
+
+      state.owner = owner;
+      state.repo = repo;
+      state.branch = curBranch;
+      state.htmlFiles = htmlFiles;
+
+      try { localStorage.setItem(LS_REPO_KEY, `${owner}/${repo}`); } catch(e){}
+
+      $('repo-input').value = `${owner}/${repo}`;
+      $('branch-input').value = curBranch;
+      $('branch-badge').textContent = curBranch;
+      $('branch-badge').classList.add('show');
+      $('repo-desc').textContent = `${owner}/${repo} · 找到 ${htmlFiles.length} 个 HTML 页面`;
+
+      hideStatus();
+      $('toolbar').style.display = 'flex';
+      $('tree-container').style.display = 'block';
+
+      renderTree();
+
+      const p = new URLSearchParams();
+      p.set('repo', `${owner}/${repo}`);
+      p.set('branch', curBranch);
+      history.replaceState(null, '', `${location.pathname}?${p.toString()}`);
+    } catch (err) {
+      showStatus(err.message, true, false);
+      $('branch-badge').classList.remove('show');
+    }
+  }
+
+  // 递归渲染目录 DOM
+  function createFolderDom(folderNode, isRoot = false, defaultOpen = false) {
+    const wrapper = document.createDocumentFragment();
+
+    // 1. 递归文件夹
+    const sortedFolderKeys = Object.keys(folderNode.folders).sort((a, b) => a.localeCompare(b, 'zh'));
+    sortedFolderKeys.forEach(folderName => {
+      const subFolder = folderNode.folders[folderName];
+      if (subFolder.totalCount === 0) return;
+
+      const details = document.createElement('details');
+      details.className = 'folder-group';
+      if (defaultOpen) details.open = true;
+
+      const summary = document.createElement('summary');
+      summary.className = 'folder-header';
+      summary.innerHTML = `
+        <span class="folder-arrow">▶</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name">${folderName}</span>
+        <span class="folder-count">${subFolder.totalCount} 项</span>
+      `;
+      details.appendChild(summary);
+
+      const content = document.createElement('div');
+      content.className = 'folder-content';
+      content.appendChild(createFolderDom(subFolder, false, defaultOpen));
+      details.appendChild(content);
+
+      wrapper.appendChild(details);
+    });
+
+    // 2. 渲染当前目录下的 HTML
+    const sortedFiles = folderNode.files.slice().sort((a, b) => a.fileName.localeCompare(b.fileName, 'zh'));
+    sortedFiles.forEach(file => {
+      const fileEl = document.createElement('div');
+      fileEl.className = 'file-item';
+      const visitUrl = getActiveUrl(file.path);
+
+      fileEl.innerHTML = `
+        <div class="file-left">
+          <span class="file-icon">🌐</span>
+          <span class="file-name" title="${file.path}">${file.fileName}</span>
+          <span class="file-meta">${formatSize(file.size)}</span>
+        </div>
+        <div class="file-actions">
+          <button class="action-btn btn-copy" title="复制在线访问链接">🔗 复制链接</button>
+          <a class="action-btn" href="${visitUrl}" target="_blank" rel="noopener" title="直接在新窗口打开该页面">独立窗口 ↗</a>
+        </div>
+      `;
+
+      // 点击该行支持模态框即时渲染
+      fileEl.addEventListener('click', () => {
+        openModalPreview(file.fileName, file.path, visitUrl);
+      });
+
+      // 复制链接
+      const copyBtn = fileEl.querySelector('.btn-copy');
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(visitUrl).then(() => {
+          showToast('已复制访问链接到剪贴板！');
+        }).catch(() => {
+          showToast('复制失败，请手动复制');
+        });
+      });
+
+      const outLink = fileEl.querySelector('a');
+      outLink.addEventListener('click', (e) => e.stopPropagation());
+
+      wrapper.appendChild(fileEl);
+    });
+
+    return wrapper;
+  }
+
+  // 渲染整棵树
+  function renderTree() {
+    const container = $('tree-container');
+    container.innerHTML = '';
+
+    const query = state.searchQuery.trim().toLowerCase();
+    let displayFiles = state.htmlFiles;
+
+    if (query) {
+      displayFiles = displayFiles.filter(f => f.path.toLowerCase().includes(query));
+    }
+
+    $('stats').textContent = `显示 ${displayFiles.length} / ${state.htmlFiles.length} 个`;
+
+    if (!displayFiles.length) {
+      container.innerHTML = `<div style="text-align:center;padding:36px;color:var(--text-faint);">未找到匹配的 HTML 文件</div>`;
+      return;
+    }
+
+    const treeData = buildFileTree(displayFiles);
+    const dom = createFolderDom(treeData, true, !!query);
+    container.appendChild(dom);
+  }
+
+  // 弹窗预览
+  function openModalPreview(name, path, url) {
+    $('modal-title').textContent = `${name} (${path})`;
+    $('modal-open-new').href = url;
+    $('modal-iframe').src = url;
+    $('preview-modal').classList.add('active');
+  }
+
+  function closeModalPreview() {
+    $('preview-modal').classList.remove('active');
+    $('modal-iframe').src = 'about:blank';
+  }
+
+  function toggleAllFolders(open) {
+    const allDetails = $('tree-container').querySelectorAll('details.folder-group');
+    allDetails.forEach(d => d.open = open);
+  }
+
+  function initEvents() {
+    $('load-btn').addEventListener('click', () => {
+      const parsed = parseRepoInput($('repo-input').value);
+      if (!parsed) {
+        showStatus('无法解析仓库地址，请输入如 "owner/repo" 或完整链接', true, false);
+        return;
+      }
+      loadRepository(parsed.owner, parsed.repo, $('branch-input').value.trim() || parsed.branch || '');
+    });
+
+    $('repo-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('load-btn').click(); });
+    $('branch-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('load-btn').click(); });
+
+    $('search-input').addEventListener('input', e => {
+      state.searchQuery = e.target.value;
+      renderTree();
+    });
+
+    $('mode-select').addEventListener('change', e => {
+      state.mode = e.target.value;
+      renderTree(); // 重新渲染更新所有链接
+    });
+
+    $('btn-expand-all').addEventListener('click', () => toggleAllFolders(true));
+    $('btn-collapse-all').addEventListener('click', () => toggleAllFolders(false));
+
+    $('modal-close').addEventListener('click', closeModalPreview);
+    $('preview-modal').addEventListener('click', e => {
+      if (e.target === $('preview-modal')) closeModalPreview();
+    });
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModalPreview();
+    });
+
+    $('theme-btn').addEventListener('click', () => {
+      const nowTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nowTheme);
+      $('theme-btn').textContent = nowTheme === 'dark' ? '☀️' : '🌙';
+      try { localStorage.setItem(LS_THEME_KEY, nowTheme); } catch(e){}
+    });
+    $('theme-btn').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+  }
+
+  function bootstrap() {
+    initEvents();
+
+    const params = new URLSearchParams(location.search);
+    const repoParam = params.get('repo');
+    const branchParam = params.get('branch') || '';
+
+    let parsed = parseRepoInput(repoParam);
+    if (!parsed) {
+      let saved = '';
+      try { saved = localStorage.getItem(LS_REPO_KEY) || ''; } catch(e){}
+      parsed = parseRepoInput(saved) || parseRepoInput(DEFAULT_REPO);
+    }
+
+    if (parsed) {
+      loadRepository(parsed.owner, parsed.repo, branchParam || parsed.branch || '');
+    }
+  }
+
+  bootstrap();
+})();
+</script>
+</body>
+</html>
