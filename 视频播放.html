@@ -1,188 +1,3 @@
-<!--<!DOCTYPE html>-->
-<!--<html lang="zh-CN">-->
-<!--<head>-->
-<!--  <meta charset="UTF-8">-->
-<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
-<!--  <title id="pageTitle">视频播放</title>-->
-<!--  <style>-->
-<!--    * { box-sizing: border-box; margin: 0; padding: 0; }-->
-<!--    body {-->
-<!--      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;-->
-<!--      background: #0f172a;-->
-<!--      color: #f8fafc;-->
-<!--      display: flex;-->
-<!--      flex-direction: column;-->
-<!--      align-items: center;-->
-<!--      min-height: 100vh;-->
-<!--      padding: 30px 16px;-->
-<!--    }-->
-<!--    .container {-->
-<!--      max-width: 960px;-->
-<!--      width: 100%;-->
-<!--      background: #1e293b;-->
-<!--      border-radius: 12px;-->
-<!--      padding: 24px;-->
-<!--      box-shadow: 0 10px 25px rgba(0,0,0,0.4);-->
-<!--    }-->
-<!--    h1 {-->
-<!--      font-size: 22px;-->
-<!--      margin-bottom: 20px;-->
-<!--      text-align: center;-->
-<!--      color: #38bdf8;-->
-<!--      word-break: break-all;-->
-<!--    }-->
-<!--    .video-wrapper {-->
-<!--      position: relative;-->
-<!--      width: 100%;-->
-<!--      background: #000;-->
-<!--      border-radius: 8px;-->
-<!--      overflow: hidden;-->
-<!--    }-->
-<!--    video {-->
-<!--      width: 100%;-->
-<!--      height: auto;-->
-<!--      max-height: 75vh;-->
-<!--      display: block;-->
-<!--    }-->
-<!--    .tip-box {-->
-<!--      margin-top: 15px;-->
-<!--      font-size: 13px;-->
-<!--      color: #94a3b8;-->
-<!--      text-align: center;-->
-<!--    }-->
-
-<!--    /* 底部链接生成助手（方便你自己生成链接） */-->
-<!--    .generator-box {-->
-<!--      margin-top: 30px;-->
-<!--      padding: 16px;-->
-<!--      background: #334155;-->
-<!--      border-radius: 8px;-->
-<!--      font-size: 13px;-->
-<!--    }-->
-<!--    .generator-box h3 {-->
-<!--      font-size: 14px;-->
-<!--      margin-bottom: 10px;-->
-<!--      color: #f1f5f9;-->
-<!--    }-->
-<!--    .input-row {-->
-<!--      display: flex;-->
-<!--      gap: 8px;-->
-<!--      flex-wrap: wrap;-->
-<!--    }-->
-<!--    input {-->
-<!--      flex: 1;-->
-<!--      min-width: 200px;-->
-<!--      padding: 8px 12px;-->
-<!--      border-radius: 6px;-->
-<!--      border: 1px solid #475569;-->
-<!--      background: #0f172a;-->
-<!--      color: #fff;-->
-<!--      outline: none;-->
-<!--    }-->
-<!--    button {-->
-<!--      padding: 8px 16px;-->
-<!--      background: #0284c7;-->
-<!--      color: #fff;-->
-<!--      border: none;-->
-<!--      border-radius: 6px;-->
-<!--      cursor: pointer;-->
-<!--    }-->
-<!--    button:hover { background: #0369a1; }-->
-<!--    .result-link {-->
-<!--      margin-top: 10px;-->
-<!--      word-break: break-all;-->
-<!--      color: #38bdf8;-->
-<!--    }-->
-<!--  </style>-->
-<!--</head>-->
-<!--<body>-->
-
-<!--  <div class="container">-->
-<!--    <h1 id="videoTitle">正在加载视频...</h1>-->
-
-<!--    <div class="video-wrapper">-->
-<!--      <video id="videoPlayer" controls preload="auto" playsinline>-->
-<!--        您的浏览器不支持 HTML5 视频播放。-->
-<!--      </video>-->
-<!--    </div>-->
-
-<!--    <div class="tip-box" id="statusTip">如果无法加载，请检查视频名称或网络连接</div>-->
-
-<!--    &lt;!&ndash; 链接快速生成助手 &ndash;&gt;-->
-<!--    <div class="generator-box">-->
-<!--      <h3>🔗 链接生成小助手（输入视频文件名快速获取分享链接）</h3>-->
-<!--      <div class="input-row">-->
-<!--        <input type="text" id="inputName" placeholder="例如：图片下载.mp4 或 产品打标签.mp4">-->
-<!--        <input type="text" id="inputCustomTitle" placeholder="自定义标题（选填）">-->
-<!--        <button onclick="generateLink()">生成分享链接</button>-->
-<!--      </div>-->
-<!--      <div class="result-link" id="resultLink"></div>-->
-<!--    </div>-->
-<!--  </div>-->
-
-<!--  <script>-->
-<!--    // 默认配置（对应你的仓库）-->
-<!--    const BASE_FOLDER = './视频存储/'; // 视频所在的相对路径-->
-
-<!--    // 解析 URL 参数-->
-<!--    const params = new URLSearchParams(window.location.search);-->
-<!--    let videoFile = params.get('v') || params.get('video');-->
-<!--    let customTitle = params.get('t') || params.get('title');-->
-<!--    let directUrl = params.get('url'); // 也支持直接传完整链接-->
-
-<!--    const videoElement = document.getElementById('videoPlayer');-->
-<!--    const titleElement = document.getElementById('videoTitle');-->
-<!--    const pageTitle = document.getElementById('pageTitle');-->
-<!--    const statusTip = document.getElementById('statusTip');-->
-
-<!--    if (videoFile || directUrl) {-->
-<!--      let finalSrc = '';-->
-<!--      let displayTitle = '';-->
-
-<!--      if (directUrl) {-->
-<!--        // 如果传入的是 GitHub blob 链接，自动转换成 raw 视频流链接-->
-<!--        finalSrc = directUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');-->
-<!--        displayTitle = customTitle || '在线视频播放';-->
-<!--      } else {-->
-<!--        // 如果只传了文件名，拼接仓库内的相对路径-->
-<!--        finalSrc = BASE_FOLDER + encodeURIComponent(videoFile).replace(/%2F/g, '/');-->
-<!--        displayTitle = customTitle || videoFile.replace(/\.[^/.]+$/, ""); // 去掉 .mp4 后缀作为标题-->
-<!--      }-->
-
-<!--      titleElement.textContent = displayTitle;-->
-<!--      pageTitle.textContent = displayTitle + ' - 视频播放';-->
-<!--      videoElement.src = finalSrc;-->
-
-<!--      videoElement.onerror = () => {-->
-<!--        statusTip.textContent = '❌ 视频加载失败，请确认文件路径是否正确。';-->
-<!--        statusTip.style.color = '#ef4444';-->
-<!--      };-->
-<!--    } else {-->
-<!--      titleElement.textContent = '请在链接中指定视频参数';-->
-<!--      statusTip.textContent = '提示：链接格式应为 ?v=视频文件名.mp4';-->
-<!--    }-->
-
-<!--    // 链接生成函数-->
-<!--    function generateLink() {-->
-<!--      const name = document.getElementById('inputName').value.trim();-->
-<!--      const title = document.getElementById('inputCustomTitle').value.trim();-->
-<!--      if (!name) return alert('请输入视频文件名！');-->
-
-<!--      const baseUrl = window.location.origin + window.location.pathname;-->
-<!--      let finalUrl = `${baseUrl}?v=${encodeURIComponent(name)}`;-->
-<!--      if (title) {-->
-<!--        finalUrl += `&t=${encodeURIComponent(title)}`;-->
-<!--      }-->
-
-<!--      const resultBox = document.getElementById('resultLink');-->
-<!--      resultBox.innerHTML = `生成的分享链接：<br><a href="${finalUrl}" target="_blank" style="color:#38bdf8;">${finalUrl}</a>`;-->
-<!--    }-->
-<!--  </script>-->
-<!--</body>-->
-<!--</html>-->
-
-
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -208,7 +23,6 @@
   }
   .wrap{ max-width:1300px; margin:0 auto; }
 
-  /* ---------- 顶部 ---------- */
   header{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
   header h1{ font-size:20px; font-weight:600; color:var(--accent); word-break:break-all; }
   .badge{
@@ -227,7 +41,6 @@
   #repo-input{ flex:1 1 260px; min-width:0; }
   #branch-input{ flex:0 1 150px; }
 
-  /* ---------- 按钮 ---------- */
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:6px;
     padding:9px 16px; border-radius:8px; font-size:14px; font-weight:500;
@@ -240,21 +53,24 @@
   .btn-primary:hover{ background:#0369a1; border-color:#0369a1; }
   .btn-sm{ padding:6px 12px; font-size:13px; }
 
-  /* ---------- 状态 ---------- */
   .status{ text-align:center; padding:36px 0; color:var(--muted); font-size:15px; }
   .status.error{ color:#f87171; }
 
-  /* ---------- 布局 ---------- */
   main{ display:none; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
   main.show{ display:grid; }
   @media (max-width:900px){ main.show{ grid-template-columns:1fr; } }
+
+  /* ---------- 单独视频模式（只显示播放器） ---------- */
+  main.solo{ grid-template-columns: minmax(0,1fr); }
+  main.solo .list-panel{ display:none !important; }
+  body.solo .repo-bar{ display:none; }
+  body.solo header{ justify-content:center; }
 
   .panel{
     background:var(--panel); border:1px solid var(--line); border-radius:14px;
     padding:14px; box-shadow:0 12px 30px rgba(0,0,0,.35);
   }
 
-  /* ---------- 播放器 ---------- */
   .video-wrapper{ width:100%; background:#000; border-radius:10px; overflow:hidden; }
   video{ width:100%; height:auto; max-height:68vh; display:block; background:#000; }
   .player-info{ margin-top:12px; }
@@ -263,7 +79,6 @@
   .video-meta.error{ color:#f87171; }
   .player-actions{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
 
-  /* ---------- 播放列表 ---------- */
   .list-panel{ display:flex; flex-direction:column; max-height:calc(100vh - 170px); }
   @media (max-width:900px){ .list-panel{ max-height:none; } }
   .list-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
@@ -295,7 +110,6 @@
 
   .empty{ padding:20px 10px; text-align:center; color:var(--muted); font-size:13.5px; }
 
-  /* ---------- Toast ---------- */
   .toast{
     position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
     background:#0b1220; border:1px solid var(--line); color:#fff;
@@ -322,7 +136,6 @@
   <div id="status" class="status">正在准备…</div>
 
   <main id="main">
-    <!-- 播放器 -->
     <section class="panel player-panel">
       <div class="video-wrapper">
         <video id="videoPlayer" controls playsinline preload="metadata"></video>
@@ -337,7 +150,6 @@
       </div>
     </section>
 
-    <!-- 播放列表 -->
     <aside class="panel list-panel">
       <div class="list-head">
         <input type="text" id="search" placeholder="搜索视频…" spellcheck="false" autocomplete="off">
@@ -355,16 +167,47 @@
   'use strict';
 
   /* ===================== 配置 ===================== */
-  const DEFAULT_REPO = 'wasdkd/Amazon';   // 默认仓库
+  const DEFAULT_REPO = 'wasdkd/Amazon';
   const LS_KEY = 'gh-video-player-last';
 
+  /* 只保留真正的视频扩展名，不含 ts / m2ts / mts（避免和 TypeScript 源码混淆） */
   const VIDEO_EXTS = new Set([
     'mp4','webm','ogv','ogg','mov','m4v','mkv','avi',
-    'flv','wmv','3gp','mpg','mpeg','ts','m2ts'
+    'flv','wmv','3gp','mpg','mpeg'
   ]);
 
-  const state = { owner:'', repo:'', branch:'', videos:[], current:null };
+  const state = {
+    owner:'', repo:'', branch:'',
+    videos:[], current:null,
+    soloMode:false          // 单视频分享模式
+  };
   const $ = id => document.getElementById(id);
+
+  /* ===================== 环境判断 ===================== */
+  function isSandboxed() {
+    try {
+      return location.origin === 'null'
+          || location.protocol === 'blob:'
+          || location.protocol === 'file:'
+          || location.protocol === 'data:';
+    } catch (e) {
+      return true;
+    }
+  }
+  function safeReplaceState(queryString) {
+    if (isSandboxed()) return;
+    try {
+      history.replaceState(null, '', location.pathname + (queryString || ''));
+    } catch (e) {}
+  }
+  function buildShareUrl(queryString) {
+    if (isSandboxed()) return null;
+    try {
+      return location.origin + location.pathname + queryString;
+    } catch (e) {
+      return null;
+    }
+  }
 
   /* ===================== 工具函数 ===================== */
   function getExt(name) {
@@ -384,12 +227,12 @@
   function encodePath(path) {
     return path.split('/').map(encodeURIComponent).join('/');
   }
-  /* jsDelivr CDN：速度快、支持 Range 请求（拖动进度条） */
+  /* CDN：带正确 Content-Type，浏览器直接播放 */
   function cdnUrl(path) {
     return 'https://cdn.jsdelivr.net/gh/' + state.owner + '/' + state.repo +
            '@' + state.branch + '/' + encodePath(path);
   }
-  /* GitHub 原始链接：CDN 失败时的兜底 */
+  /* raw：兜底源 */
   function rawUrl(path) {
     return 'https://raw.githubusercontent.com/' + state.owner + '/' + state.repo +
            '/' + encodeURIComponent(state.branch) + '/' + encodePath(path);
@@ -399,7 +242,7 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2600);
   }
   function setStatus(text, isError) {
     const s = $('status');
@@ -409,7 +252,6 @@
     $('main').classList.remove('show');
   }
 
-  /* 解析仓库输入 */
   function parseRepoInput(raw) {
     if (!raw) return null;
     let s = String(raw).trim();
@@ -451,8 +293,34 @@
   }
 
   /* ===================== 加载仓库视频 ===================== */
-  async function loadVideos(owner, repo, branch, wantFile) {
+  async function loadVideos(owner, repo, branch, wantFile, soloMode) {
     try {
+      state.soloMode = !!soloMode;
+
+      /* 单视频模式：不需要显示仓库列表，只加载一个文件即可 */
+      if (state.soloMode && wantFile) {
+        document.body.classList.add('solo');
+        setStatus('正在加载视频…');
+
+        if (!branch) {
+          const info = await fetchRepoInfo(owner, repo);
+          branch = info.default_branch || 'main';
+        }
+
+        state.owner = owner;
+        state.repo = repo;
+        state.branch = branch;
+        state.videos = [{ path: wantFile, size: null }];
+
+        $('status').style.display = 'none';
+        $('main').classList.add('show');
+        $('main').classList.add('solo');
+
+        selectVideo(state.videos[0], true);
+        return;
+      }
+
+      /* 完整仓库浏览模式 */
       setStatus('正在读取仓库信息…');
 
       if (!branch) {
@@ -488,7 +356,6 @@
       $('main').classList.add('show');
       renderList();
 
-      /* 定位要播放的视频：完整路径 → 文件名 → 后缀匹配 */
       let target = null;
       if (wantFile) {
         target = state.videos.find(v => v.path === wantFile)
@@ -519,26 +386,31 @@
     $('statusTip').textContent = [formatSize(file.size), dir ? dir + '/' : '']
       .filter(Boolean).join('  ·  ');
 
-    /* 先走 CDN，失败自动切 raw */
     player.dataset.fallback = rawUrl(file.path);
     player.dataset.triedFallback = '0';
     player.src = cdnUrl(file.path);
     player.load();
     if (autoplay) player.play().catch(function () {});
 
-    $('openRaw').href = rawUrl(file.path);
+    /* 「新窗口打开」直接指向视频文件本身，浏览器会打开原生播放器，看不到本页面 */
+    $('openRaw').href = cdnUrl(file.path);
 
-    /* 同步地址栏，方便复制分享 */
+    /* 同步地址栏；单视频模式保留 solo=1 */
+    const qs = '?' + buildQueryString(file.path, state.soloMode);
+    safeReplaceState(qs);
+
+    if (!state.soloMode) highlightCurrent();
+  }
+
+  function buildQueryString(videoPath, solo) {
     const p = new URLSearchParams();
     p.set('repo', state.owner + '/' + state.repo);
     if (state.branch) p.set('branch', state.branch);
-    p.set('v', file.path);
-    history.replaceState(null, '', location.pathname + '?' + p.toString());
-
-    highlightCurrent();
+    if (videoPath) p.set('v', videoPath);
+    if (solo) p.set('solo', '1');
+    return p.toString();
   }
 
-  /* 播放错误 → 回退 raw */
   $('videoPlayer').addEventListener('error', function () {
     if (this.dataset.triedFallback === '1') {
       $('statusTip').className = 'video-meta error';
@@ -627,24 +499,33 @@
   /* ===================== 复制分享链接 ===================== */
   async function copyCurrentLink() {
     if (!state.current) { showToast('请先选择一个视频'); return; }
-    const p = new URLSearchParams();
-    p.set('repo', state.owner + '/' + state.repo);
-    if (state.branch) p.set('branch', state.branch);
-    p.set('v', state.current.path);
-    const link = location.origin + location.pathname + '?' + p.toString();
+
+    /* 分享链接一律带 solo=1：打开的人只会看到这一个视频，看不到整个仓库列表 */
+    const qs = '?' + buildQueryString(state.current.path, true);
+    const link = buildShareUrl(qs);
+
+    let copyText = link;
+    if (!link) {
+      copyText = qs;
+      showToast('本地预览环境无法生成完整链接，已复制参数，请拼到线上地址后使用');
+    }
 
     try {
-      await navigator.clipboard.writeText(link);
-      showToast('分享链接已复制');
+      await navigator.clipboard.writeText(copyText);
+      if (link) showToast('分享链接已复制（对方只会看到这个视频）');
     } catch (e) {
       const ta = document.createElement('textarea');
-      ta.value = link;
+      ta.value = copyText;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand('copy'); showToast('分享链接已复制'); }
-      catch (err) { showToast('复制失败，请手动复制'); }
+      try {
+        document.execCommand('copy');
+        if (link) showToast('分享链接已复制（对方只会看到这个视频）');
+      } catch (err) {
+        showToast('复制失败，请手动复制');
+      }
       document.body.removeChild(ta);
     }
   }
@@ -652,8 +533,10 @@
   /* ===================== 直接链接模式 ===================== */
   function playDirectLink(url, title) {
     const src = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+    document.body.classList.add('solo');
     $('status').style.display = 'none';
     $('main').classList.add('show');
+    $('main').classList.add('solo');
 
     const player = $('videoPlayer');
     player.dataset.fallback = '';
@@ -669,7 +552,7 @@
     document.title = name + ' - 视频播放';
     $('statusTip').textContent = '直接链接播放模式';
     $('openRaw').href = src;
-    $('list').innerHTML = '<div class="empty">直接链接播放模式<br>（未加载仓库列表）</div>';
+    $('list').innerHTML = '<div class="empty">直接链接播放模式</div>';
     $('count').textContent = '';
   }
 
@@ -681,7 +564,7 @@
       return;
     }
     const branch = $('branch-input').value.trim() || parsed.branch || '';
-    loadVideos(parsed.owner, parsed.repo, branch, null);
+    loadVideos(parsed.owner, parsed.repo, branch, null, false);
   }
 
   function bindEvents() {
@@ -699,14 +582,17 @@
   async function init() {
     bindEvents();
 
-    const params = new URLSearchParams(location.search);
+    let params;
+    try { params = new URLSearchParams(location.search); }
+    catch (e) { params = new URLSearchParams(''); }
+
     const repoParam   = params.get('repo');
     const branchParam = params.get('branch') || '';
     const fileParam   = params.get('v') || params.get('video') || null;
     const urlParam    = params.get('url');
     const titleParam  = params.get('t') || params.get('title') || null;
+    const soloParam   = params.get('solo') === '1';
 
-    /* 兼容旧的 ?url= 直接链接写法 */
     if (urlParam) {
       playDirectLink(urlParam, titleParam);
       return;
@@ -723,6 +609,12 @@
       }
     }
 
+    /* 单视频模式：必须有 v 参数，不需要回落到默认仓库 */
+    if (soloParam && fileParam && owner && repo) {
+      await loadVideos(owner, repo, branch, fileParam, true);
+      return;
+    }
+
     if (!owner) {
       let saved = '';
       try { saved = localStorage.getItem(LS_KEY) || ''; } catch (e) {}
@@ -735,7 +627,7 @@
     $('repo-input').value = owner + '/' + repo;
     if (branch) $('branch-input').value = branch;
 
-    await loadVideos(owner, repo, branch, fileParam);
+    await loadVideos(owner, repo, branch, fileParam, false);
   }
 
   init();
