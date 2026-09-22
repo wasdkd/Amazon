@@ -41,6 +41,20 @@
         tr.sku-group-end td { border-bottom: 3px solid #94a3b8 !important; }
         tr:nth-child(even) td:not(.sku-cell) { background-color: #f8fafc; }
 
+        /* ----------------- 搜索 ASIN/父ASIN 时的颜色行高亮 ----------------- */
+        tr.row-matched td:not(.sku-cell) {
+            background-color: #fef08a !important; /* 明显的明黄色高亮 */
+            transition: background-color 0.3s ease;
+        }
+        tr.row-matched td.color-name-cell {
+            color: #854d0e !important;
+            font-weight: 800 !important;
+        }
+        tr.row-matched .asin-link {
+            color: #1e40af;
+            font-weight: 700;
+        }
+
         /* ASIN 及超链接样式 */
         td.asin-text { font-family: inherit; font-size: 13px; font-weight: 600; color: #334155; }
         .asin-link {
@@ -172,12 +186,10 @@
             }, 2500);
         }
 
-        // 辅助函数：生成可点击的亚马逊跳转链接
         function createAsinCell(asinValue) {
             const td = document.createElement('td');
             td.className = 'asin-text';
 
-            // 过滤有效 ASIN，排除空值、横杠或未知
             if (asinValue && asinValue !== '-' && asinValue !== '未知' && asinValue.trim() !== '') {
                 const a = document.createElement('a');
                 a.href = 'https://www.amazon.com/dp/' + encodeURIComponent(asinValue.trim());
@@ -197,6 +209,8 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
+            const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
             const totalSKUs = activeData.length;
             const totalPages = Math.ceil(totalSKUs / pageSize) || 1;
 
@@ -215,9 +229,19 @@
 
                     rows.forEach(function(r, i) {
                         const tr = document.createElement('tr');
-                        if (i === rCount - 1) {
-                            tr.className = 'sku-group-end';
-                        }
+
+                        // 判断是否匹配到 ASIN / 父ASIN
+                        const isAsinMatched = Boolean(
+                            q && (
+                                (r.asin && r.asin.toLowerCase().includes(q)) ||
+                                (r.parent_asin && r.parent_asin.toLowerCase().includes(q))
+                            )
+                        );
+
+                        const classes = [];
+                        if (isAsinMatched) classes.push('row-matched');
+                        if (i === rCount - 1) classes.push('sku-group-end');
+                        if (classes.length > 0) tr.className = classes.join(' ');
 
                         if (i === 0) {
                             const tdSku = document.createElement('td');
@@ -232,13 +256,13 @@
                             tr.appendChild(tdSku);
                         }
 
-                        // 1. 父ASIN (可点击跳转)
+                        // 1. 父ASIN
                         tr.appendChild(createAsinCell(r.parent_asin));
 
-                        // 2. ASIN (可点击跳转)
+                        // 2. ASIN
                         tr.appendChild(createAsinCell(r.asin));
 
-                        // 3. 图片 (固定在盒子内部)
+                        // 3. 图片
                         const tdImg = document.createElement('td');
                         tdImg.className = 'img-cell';
                         if (r.img) {
@@ -265,6 +289,7 @@
 
                         // 5. 颜色 (中)
                         const tdColCn = document.createElement('td');
+                        tdColCn.className = 'color-name-cell';
                         tdColCn.style.fontWeight = '600';
                         tdColCn.textContent = r.color_cn;
                         tr.appendChild(tdColCn);
@@ -304,6 +329,7 @@
             document.getElementById('btnNext').disabled = (curPage === totalPages || totalPages === 0);
         }
 
+        // 搜索处理：过滤数据并自动定位到视野正中央
         function onSearch() {
             const q = document.getElementById('searchInput').value.trim().toLowerCase();
             if (!q) {
@@ -319,6 +345,18 @@
             }
             curPage = 1;
             renderTable();
+
+            // 自动平滑滚动到视野中央（解决掉在底部的核心）
+            requestAnimationFrame(function() {
+                const matchedRow = document.querySelector('tr.row-matched');
+                if (matchedRow) {
+                    // 有匹配高亮行：平滑将该行置于屏幕正中间
+                    matchedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    // 仅搜索SKU或清空搜索：平滑回到页面顶部
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
         }
 
         function movePage(delta) {
