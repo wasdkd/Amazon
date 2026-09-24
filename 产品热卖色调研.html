@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -17,6 +16,8 @@
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   label { font-weight: 600; font-size: 13px; }
   input[type=number], input[type=text] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+  input[type=month] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+  select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background:#fff; }
   input[type=file] { padding: 4px; font-size: 12px; }
   textarea { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; resize: vertical; font-family: inherit; }
   button { padding: 8px 12px; border: 1px solid #e5e7eb; background: linear-gradient(180deg, #fff, #f3f4f6); border-radius: 8px; cursor: pointer; font-size: 13px; color: #1f2937; box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: background .15s, transform .05s; }
@@ -175,10 +176,65 @@
     color: #9ca3af;
     font-style: italic;
   }
+
+  /* 右侧浮动快速跳转导航 */
+  .side-nav {
+    position: fixed;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,.96);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 8px 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.1);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    width: 96px;
+    backdrop-filter: blur(6px);
+    transition: opacity .2s;
+  }
+  .side-nav-title {
+    font-size: 10px;
+    color: #9ca3af;
+    text-align: center;
+    padding: 2px 0 4px;
+    border-bottom: 1px solid #f3f4f6;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+  .side-nav a {
+    display: block;
+    padding: 5px 6px;
+    border-radius: 6px;
+    color: #374151;
+    text-decoration: none;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.3;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .side-nav a:hover {
+    background: #e0f2fe;
+    color: #0c4a6e;
+  }
+  .side-nav a.side-nav-active {
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 700;
+  }
+  @media (max-width: 900px) {
+    .side-nav { display: none; }
+  }
 </style>
 </head>
 <body>
-
 
 <h1 style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
   产品热卖色统计
@@ -197,6 +253,12 @@
     使用教程
   </a>
 </h1>
+
+<!-- 右侧浮动快速跳转导航 -->
+<div class="side-nav" id="sideNav">
+  <div class="side-nav-title">快速跳转</div>
+</div>
+
 <div class="section" id="sec-main">
   <h2>① 主数据（子体销量数据）</h2>
   <div class="row">
@@ -208,6 +270,18 @@
   <div class="row" style="margin-top:6px;">
     <label>子表关键字：</label><input id="sheetKeyword" type="text" value="变体对比" style="width:130px;">
     <label>表头行：</label><input id="headerRow" type="number" min="1" value="1" style="width:60px;">
+  </div>
+
+  <div class="row" style="margin-top:10px; padding:8px 10px; background:#f9fafb; border:1px dashed #cbd5e1; border-radius:8px;">
+    <label>销量计算范围：</label>
+    <button id="btnLast12m" class="primary">近12个月</button>
+    <button id="btnAllSales" class="primary">全部销量</button>
+    <label>从：</label>
+    <select id="rangeStart" style="width:140px;"><option value="">（先上传数据）</option></select>
+    <label>到：</label>
+    <select id="rangeEnd" style="width:140px;"><option value="">（先上传数据）</option></select>
+    <button id="btnApplyRange" class="green">应用范围</button>
+    <span class="summary" id="rangeSummary">当前：全部销量（所有以 20xx 开头的月份列 + 含“销量”的列）</span>
   </div>
 
   <div class="row" style="margin-top:10px; align-items:flex-start;">
@@ -374,6 +448,61 @@ function sortSizes(sizes) {
 }
 
 /* ==================================================================
+   月份解析 & 范围筛选
+================================================================== */
+/* 从列名解析年月（支持 2024-01 / 2024/01 / 2024.01 / 202401 / 2024年01月 等） */
+function parseMonthLabel(h) {
+  const s = String(h || '');
+  const m = s.match(/(20\d\d)\s*[\-\/\.\年]?\s*(\d{1,2})/);
+  if (!m) return null;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10);
+  if (mo < 1 || mo > 12) return null;
+  return { year: y, month: mo };
+}
+function fmtMonthStr(y, m) {
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+function monthStrToDate(v) {
+  if (!v) return null;
+  const parts = String(v).split('-').map(n => parseInt(n, 10));
+  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+  return new Date(parts[0], parts[1] - 1, 1);
+}
+
+/* 从工作簿里收集所有可用的月份（YYYY-MM 字符串，去重升序） */
+function collectAvailableMonths(books, keyword, headerRowNum) {
+  const monthSet = new Set();
+  const defaultHeaderIdx = Math.max(0, (headerRowNum || 1) - 1);
+  for (const bk of books) {
+    for (const sn of (bk.workbook.SheetNames || [])) {
+      if (keyword && !String(sn).includes(keyword)) continue;
+      const ws = bk.workbook.Sheets[sn];
+      if (!ws) continue;
+      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: true, defval: '' });
+      if (!arr.length) continue;
+      let hIdx = defaultHeaderIdx;
+      if (hIdx >= arr.length) continue;
+      let headers = (arr[hIdx] || []).map(h => String(h || '').trim());
+      const looksHeader = hs => hs.some(h => /^(sku|asin|父\s*asin|parent\s*asin)$/i.test(h));
+      if (!looksHeader(headers)) {
+        let found = -1;
+        for (let i = 0; i < Math.min(arr.length, 30); i++) {
+          const hs = (arr[i] || []).map(h => String(h || '').trim());
+          if (looksHeader(hs)) { found = i; headers = hs; break; }
+        }
+        if (found >= 0) hIdx = found;
+      }
+      for (const h of headers) {
+        const p = parseMonthLabel(h);
+        if (p) monthSet.add(fmtMonthStr(p.year, p.month));
+      }
+    }
+  }
+  return Array.from(monthSet).sort();
+}
+
+/* ==================================================================
    颜色关键词
 ================================================================== */
 const COLOR_KEYWORDS = [
@@ -405,9 +534,71 @@ const state = {
   asinGroups: [],
   allAsins: [],
   sortMode: 'color',
+  monthRange: null,
+  availableMonths: [],
 };
 
 const $ = id => document.getElementById(id);
+
+/* ==================================================================
+   右侧浮动导航
+================================================================== */
+const SIDE_NAV_ITEMS = [
+  { id: 'sec-main', label: '① 主数据' },
+  { id: 'sec-asin', label: '② ASIN 分组' },
+  { id: 'sec-img', label: '③ 主图文件' },
+  { id: 'sec-process', label: '④ 开始处理' },
+  { id: 'sec-single', label: '⑤ 单款视图' },
+  { id: 'sec-summary', label: '⑥ 汇总视图' },
+  { id: 'sec-export', label: '⑦ 导出' },
+];
+function updateSideNav() {
+  const nav = $('sideNav');
+  if (!nav) return;
+  nav.innerHTML = '<div class="side-nav-title">快速跳转</div>';
+  SIDE_NAV_ITEMS.forEach(it => {
+    const el = document.getElementById(it.id);
+    if (!el) return;
+    if (el.classList.contains('hidden')) return;
+    const a = document.createElement('a');
+    a.href = '#' + it.id;
+    a.textContent = it.label;
+    a.dataset.target = it.id;
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    nav.appendChild(a);
+  });
+  updateSideNavHighlight();
+}
+let sideNavScrollTimer = null;
+function updateSideNavHighlight() {
+  const nav = $('sideNav');
+  if (!nav) return;
+  const links = nav.querySelectorAll('a[data-target]');
+  if (!links.length) return;
+  let best = null, bestDist = Infinity;
+  const triggerY = 120;
+  links.forEach(a => {
+    const el = document.getElementById(a.dataset.target);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const dist = Math.abs(rect.top - triggerY);
+    if (rect.bottom > 0 && rect.top < window.innerHeight && dist < bestDist) {
+      bestDist = dist;
+      best = a;
+    }
+  });
+  links.forEach(a => a.classList.toggle('side-nav-active', a === best));
+}
+window.addEventListener('scroll', () => {
+  if (sideNavScrollTimer) return;
+  sideNavScrollTimer = setTimeout(() => {
+    sideNavScrollTimer = null;
+    updateSideNavHighlight();
+  }, 80);
+}, { passive: true });
 
 /* ==================================================================
    本地存储
@@ -495,6 +686,7 @@ function renderAfterRestore() {
   if (state.records.length && (state.singleView.length || state.colorGroups.length)) {
     $('processSummary').textContent = '已从浏览器恢复上次处理进度。';
   }
+  updateSideNav();
 }
 
 /* ==================================================================
@@ -523,7 +715,7 @@ async function readAllWorkbooks(files) {
 /* ==================================================================
    提取记录
 ================================================================== */
-function extractRecords(books, keyword, headerRowNum) {
+function extractRecords(books, keyword, headerRowNum, monthRange) {
   const records = [];
   const defaultHeaderIdx = Math.max(0, (headerRowNum || 1) - 1);
   for (const bk of books) {
@@ -559,7 +751,15 @@ function extractRecords(books, keyword, headerRowNum) {
 
       const salesCols = [];
       headers.forEach((h, i) => {
-        if (/^20\d\d/.test(h) || /(销量|sales|units)/i.test(h)) salesCols.push(i);
+        if (monthRange) {
+          const p = parseMonthLabel(h);
+          if (p) {
+            const d = new Date(p.year, p.month - 1, 1);
+            if (d >= monthRange.start && d <= monthRange.end) salesCols.push(i);
+          }
+        } else {
+          if (/^20\d\d/.test(h) || /(销量|sales|units)/i.test(h)) salesCols.push(i);
+        }
       });
 
       const parentFromSheet = extractAsin(sn) || extractAsin(bk.path) || extractAsin(bk.name);
@@ -638,10 +838,9 @@ function buildImageMap(imgBooks) {
 }
 
 /* ==================================================================
-   单款视图（含 item.sizeData 供汇总聚合）
+   单款视图
 ================================================================== */
 function buildSingleView(records) {
-  // 按 (parent|colorKey) 聚合尺码，用于挂到 item 上
   const pcSizeMap = new Map();
   for (const rec of records) {
     if (!rec.parent || !rec.size || rec.sales <= 0) continue;
@@ -686,14 +885,12 @@ function buildSingleView(records) {
       it.ratio = total > 0 ? (it.sales * 100 / total) : 0;
       it.link = it.repAsin ? `https://www.amazon.com/dp/${it.repAsin}` : '';
       it.parent = p.parent;
-      // 挂上尺码数据（供汇总分组使用）
       const k = p.parent + '|' + it.key;
       const m = pcSizeMap.get(k);
       it.sizeData = m ? Array.from(m.entries()).map(([size, sales]) => ({ size, sales })) : [];
     }
     items.sort((a, b) => b.sales - a.sales);
 
-    // 单款视图的尺码（按销量降序）
     const szMap = new Map();
     for (const it of items) {
       for (const s of it.sizeData) {
@@ -709,7 +906,7 @@ function buildSingleView(records) {
 }
 
 /* ==================================================================
-   汇总分组（尺码从 items 聚合，移动后自动更新）
+   汇总分组
 ================================================================== */
 function buildColorGroups(singleView) {
   const map = new Map();
@@ -752,14 +949,12 @@ function buildColorGroups(singleView) {
     for (const it of g.items) {
       it.groupRatio = g.total > 0 ? (it.sales * 100 / g.total) : 0;
     }
-    // 尺码从 items 聚合（按销量降序）
     g.sizes = aggregateSizesFromItems(g.items);
     g.nameCount = null;
   }
   return groups;
 }
 
-/* 从 items 聚合尺码（按销量降序） */
 function aggregateSizesFromItems(items) {
   const szMap = new Map();
   for (const it of items) {
@@ -782,7 +977,6 @@ function recomputeGroupRatios() {
     for (const it of g.items) {
       it.groupRatio = g.total > 0 ? (it.sales * 100 / g.total) : 0;
     }
-    // 尺码随 items 自动重算
     g.sizes = aggregateSizesFromItems(g.items);
   }
 }
@@ -910,7 +1104,7 @@ function renderAsinGroups() {
 }
 
 /* ==================================================================
-   渲染尺码行（按销量降序）
+   渲染尺码行
 ================================================================== */
 function makeSizeRow(sizes) {
   const d = document.createElement('div');
@@ -1022,7 +1216,7 @@ document.addEventListener('dragover', (e) => {
 });
 
 /* ==================================================================
-   导航联动（支持拖拽到导航项）
+   导航联动
 ================================================================== */
 function buildSummaryNav() {
   const nav = $('summaryNav');
@@ -1283,7 +1477,7 @@ function renderSummaryView() {
 }
 
 /* ==================================================================
-   移动产品（空组自动删除，新增组保留）
+   移动产品
 ================================================================== */
 function moveItemToGroup(item, targetGroupKey) {
   for (const g of state.colorGroups) {
@@ -1299,7 +1493,6 @@ function moveItemToGroup(item, targetGroupKey) {
     target.items.push(item);
     target.total = target.items.reduce((s, it) => s + it.sales, 0);
   }
-  // 空组自动删除（但用户手动新增的空组保留）
   state.colorGroups = state.colorGroups.filter(g => g.items.length > 0 || g.custom);
   recomputeGroupRatios();
   applyDisplayNames();
@@ -1308,7 +1501,7 @@ function moveItemToGroup(item, targetGroupKey) {
 }
 
 /* ==================================================================
-   新增分组（标记 custom，移动后不自动删除）
+   新增分组
 ================================================================== */
 function addNewGroup() {
   const name = prompt('请输入新颜色分组名称：', '');
@@ -1414,7 +1607,6 @@ async function exportSingleZip() {
           });
         }
       }
-      // 尺码行
       ws.getCell(startRow + 4, 2).value = '尺码排名';
       const sizeText = (p.sizes && p.sizes.length)
         ? p.sizes.map((s, i) => `${i+1}.${s.size}:${s.sales}`).join(' | ')
@@ -1524,7 +1716,6 @@ async function exportSummaryZip() {
         }
       }
 
-      // 尺码行
       ws.getCell(startRow + 3, 4).value = '尺码排名';
       ws.getCell(startRow + 3, 4).font = { bold: true };
       ws.getCell(startRow + 3, 4).alignment = { vertical: 'middle', horizontal: 'center' };
@@ -1685,6 +1876,7 @@ function applyAsinFilter() {
   $('processSummary').textContent = '数据已更新，请重新点击“开始处理”。';
 
   saveStateDebounced();
+  updateSideNav();
 }
 
 /* ==================================================================
@@ -1705,6 +1897,8 @@ function clearAll() {
   state.asinGroups = [];
   state.allAsins = [];
   state.sortMode = 'color';
+  state.monthRange = null;
+  state.availableMonths = [];
   imgFilesCache = [];
   imgCache.clear();
 
@@ -1714,6 +1908,9 @@ function clearAll() {
   $('processSummary').textContent = '';
   $('exportSummary').textContent = '';
   $('keepAsinText').value = '';
+  $('rangeStart').innerHTML = '<option value="">（先上传数据）</option>';
+  $('rangeEnd').innerHTML = '<option value="">（先上传数据）</option>';
+  $('rangeSummary').textContent = '当前：全部销量（所有以 20xx 开头的月份列 + 含“销量”的列）';
   $('singleView').innerHTML = '';
   $('summaryView').innerHTML = '';
   $('asinGroups').innerHTML = '';
@@ -1728,6 +1925,33 @@ function clearAll() {
   $('mainFiles').value = '';
   $('imgFolder').value = '';
   $('imgFiles').value = '';
+
+  updateSideNav();
+}
+
+/* ==================================================================
+   填充月份下拉框
+================================================================== */
+function fillMonthSelects() {
+  const startSel = $('rangeStart');
+  const endSel = $('rangeEnd');
+  startSel.innerHTML = '';
+  endSel.innerHTML = '';
+  if (!state.availableMonths.length) {
+    startSel.innerHTML = '<option value="">（无月份）</option>';
+    endSel.innerHTML = '<option value="">（无月份）</option>';
+    return;
+  }
+  state.availableMonths.forEach(m => {
+    const o1 = document.createElement('option');
+    o1.value = m; o1.textContent = m;
+    startSel.appendChild(o1);
+    const o2 = document.createElement('option');
+    o2.value = m; o2.textContent = m;
+    endSel.appendChild(o2);
+  });
+  startSel.value = state.availableMonths[0];
+  endSel.value = state.availableMonths[state.availableMonths.length - 1];
 }
 
 /* ==================================================================
@@ -1743,18 +1967,56 @@ async function handleMainFiles(files) {
   const keyword = ($('sheetKeyword').value || '').trim();
   const headerRow = parseInt($('headerRow').value, 10) || 1;
 
-  state.allRecords = extractRecords(books, keyword, headerRow);
+  // 收集所有可用月份
+  state.availableMonths = collectAvailableMonths(books, keyword, headerRow);
+  fillMonthSelects();
+
+  // 如果当前有范围设置，则清空（因为换数据了）
+  if (state.monthRange) {
+    state.monthRange = null;
+  }
+  if (state.availableMonths.length) {
+    $('rangeStart').value = state.availableMonths[0];
+    $('rangeEnd').value = state.availableMonths[state.availableMonths.length - 1];
+    $('rangeSummary').textContent = `已识别 ${state.availableMonths.length} 个月份列（${state.availableMonths[0]} ~ ${state.availableMonths[state.availableMonths.length - 1]}），当前使用：全部销量`;
+  } else {
+    $('rangeSummary').textContent = '未识别到月份列，将使用含“销量/sales/units”的列作为销量来源。';
+  }
+
+  reextractFromMainBooks();
+}
+
+/* 从已存储的主数据工作簿重新提取 */
+function reextractFromMainBooks() {
+  if (!state.mainBooks.length) return;
+  const keyword = ($('sheetKeyword').value || '').trim();
+  const headerRow = parseInt($('headerRow').value, 10) || 1;
+
+  state.allRecords = extractRecords(state.mainBooks, keyword, headerRow, state.monthRange);
   if (!state.allRecords.length) {
-    $('mainSummary').textContent = '没有提取到任何记录，请检查“子表关键字”与“表头行”设置。';
+    $('mainSummary').textContent = '没有提取到任何记录，请检查“子表关键字”、“表头行”与销量范围设置。';
     return;
   }
 
-  const asinSet = new Set();
-  for (const rec of state.allRecords) if (rec.asin) asinSet.add(rec.asin);
-  state.allAsins = Array.from(asinSet);
-  state.records = state.allRecords.slice();
+  const text = $('keepAsinText').value || '';
+  const tokens = text.split(/[\s,，;；、|]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+  if (tokens.length) {
+    const keepSet = new Set(tokens);
+    state.records = state.allRecords.filter(r => keepSet.has(r.asin));
+    const asinSet = new Set();
+    for (const rec of state.records) if (rec.asin) asinSet.add(rec.asin);
+    state.allAsins = Array.from(asinSet);
+  } else {
+    state.records = state.allRecords.slice();
+    const asinSet = new Set();
+    for (const rec of state.allRecords) if (rec.asin) asinSet.add(rec.asin);
+    state.allAsins = Array.from(asinSet);
+  }
 
-  $('mainSummary').textContent = `主数据解析完成：共 ${state.allRecords.length} 条记录，${state.allAsins.length} 个唯一 ASIN。可上传主图后下载合并表格（含图片）。`;
+  const rangeText = state.monthRange
+    ? `范围：${fmtMonthStr(state.monthRange.start.getFullYear(), state.monthRange.start.getMonth() + 1)} ~ ${fmtMonthStr(state.monthRange.end.getFullYear(), state.monthRange.end.getMonth() + 1)}`
+    : '范围：全部销量';
+  $('mainSummary').textContent = `主数据解析完成：共 ${state.allRecords.length} 条记录，${state.allAsins.length} 个唯一 ASIN。${rangeText}。可上传主图后下载合并表格（含图片）。`;
   $('filterSummary').textContent = '可粘贴要保留的 ASIN 并点击“应用筛选”。';
   $('filterSummary').className = 'summary';
 
@@ -1772,6 +2034,7 @@ async function handleMainFiles(files) {
   $('processSummary').textContent = '';
 
   saveStateDebounced();
+  updateSideNav();
 }
 
 $('mainFolder').addEventListener('change', async e => {
@@ -1781,6 +2044,57 @@ $('mainFolder').addEventListener('change', async e => {
 $('mainFiles').addEventListener('change', async e => {
   const files = collectFiles([e.target.files]);
   await handleMainFiles(files);
+});
+
+/* 销量范围按钮 */
+$('btnLast12m').addEventListener('click', () => {
+  if (!state.availableMonths.length) {
+    alert('请先上传主数据文件，系统会自动识别可用的月份列。');
+    return;
+  }
+  const latest = state.availableMonths[state.availableMonths.length - 1];
+  const [ly, lm] = latest.split('-').map(n => parseInt(n, 10));
+  const endDate = new Date(ly, lm - 1, 1);
+  const startDate = new Date(ly, lm - 12, 1);
+
+  const inRange = state.availableMonths.filter(m => {
+    const [y, mo] = m.split('-').map(n => parseInt(n, 10));
+    const d = new Date(y, mo - 1, 1);
+    return d >= startDate && d <= endDate;
+  });
+  if (!inRange.length) { alert('数据中没有找到近12个月的月份列。'); return; }
+  const s = inRange[0], e = inRange[inRange.length - 1];
+  $('rangeStart').value = s;
+  $('rangeEnd').value = e;
+  state.monthRange = { start: monthStrToDate(s), end: monthStrToDate(e) };
+  $('rangeSummary').textContent = `当前范围：${s} ~ ${e}（从数据中最新月份 ${latest} 起算，共 ${inRange.length} 个月）`;
+  reextractFromMainBooks();
+});
+
+$('btnAllSales').addEventListener('click', () => {
+  state.monthRange = null;
+  if (state.availableMonths.length) {
+    $('rangeStart').value = state.availableMonths[0];
+    $('rangeEnd').value = state.availableMonths[state.availableMonths.length - 1];
+  }
+  $('rangeSummary').textContent = '当前：全部销量（所有以 20xx 开头的月份列 + 含“销量”的列）';
+  if (state.mainBooks.length) reextractFromMainBooks();
+});
+
+$('btnApplyRange').addEventListener('click', () => {
+  const s = $('rangeStart').value;
+  const e = $('rangeEnd').value;
+  if (!s || !e) {
+    alert('请先选择“从”和“到”的月份，或直接点击“近12个月”/“全部销量”。');
+    return;
+  }
+  const start = monthStrToDate(s);
+  const end = monthStrToDate(e);
+  if (!start || !end) { alert('月份格式不正确。'); return; }
+  if (start > end) { alert('起始月份不能晚于结束月份。'); return; }
+  state.monthRange = { start, end };
+  $('rangeSummary').textContent = `当前范围：${s} ~ ${e}`;
+  if (state.mainBooks.length) reextractFromMainBooks();
 });
 
 $('btnDownloadMerged').addEventListener('click', downloadMergedTable);
@@ -1838,6 +2152,7 @@ $('btnProcess').addEventListener('click', async () => {
     status.textContent = `✅ 处理完成：父ASIN ${parentCount} 个；单款颜色条目 ${totalItems} 条；汇总颜色分组 ${state.colorGroups.length} 个；主图映射 ${state.asinImageMap.size} 个 ASIN。`;
 
     saveStateDebounced();
+    updateSideNav();
   } catch (e) {
     console.error(e);
     status.textContent = '处理失败：' + e.message;
@@ -1869,6 +2184,7 @@ window.addEventListener('DOMContentLoaded', () => {
     renderAfterRestore();
     showSaveHint();
   }
+  updateSideNav();
 });
 window.addEventListener('beforeunload', () => {
   if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
@@ -1878,3 +2194,2210 @@ window.addEventListener('beforeunload', () => {
 </script>
 </body>
 </html>
+
+
+<!--  增加调整产品后自动排序，但是不好用    -->
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--<meta charset="UTF-8">-->
+<!--<meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--<title>产品热卖色统计</title>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>-->
+<!--<style>-->
+<!--  * { box-sizing: border-box; }-->
+<!--  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans SC", sans-serif; padding: 16px; color: #1f2937; background: linear-gradient(180deg, #f8fafc, #f7faff); margin: 0; }-->
+<!--  h1 { font-size: 20px; margin: 0 0 12px; color: #0ea5e9; }-->
+<!--  h2 { font-size: 15px; margin: 0 0 8px; color: #9333ea; }-->
+<!--  .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-top: 12px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.05); }-->
+<!--  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }-->
+<!--  label { font-weight: 600; font-size: 13px; }-->
+<!--  input[type=number], input[type=text] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }-->
+<!--  input[type=month] { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }-->
+<!--  select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background:#fff; }-->
+<!--  input[type=file] { padding: 4px; font-size: 12px; }-->
+<!--  textarea { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; resize: vertical; font-family: inherit; }-->
+<!--  button { padding: 8px 12px; border: 1px solid #e5e7eb; background: linear-gradient(180deg, #fff, #f3f4f6); border-radius: 8px; cursor: pointer; font-size: 13px; color: #1f2937; box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: background .15s, transform .05s; }-->
+<!--  button:hover { background: linear-gradient(180deg, #f9fafb, #e5e7eb); }-->
+<!--  button:active { transform: scale(.98); }-->
+<!--  button.primary { border-color: #60a5fa; background: linear-gradient(180deg, #e0f2fe, #dbeafe); color: #0c4a6e; }-->
+<!--  button.primary:hover { background: linear-gradient(180deg, #bae6fd, #bfdbfe); }-->
+<!--  button.green { border-color: #86efac; background: linear-gradient(180deg, #d1fae5, #a7f3d0); color: #064e3b; }-->
+<!--  button.green:hover { background: linear-gradient(180deg, #bbf7d0, #86efac); }-->
+<!--  button.danger { border-color: #fca5a5; background: linear-gradient(180deg, #fee2e2, #fecaca); color: #991b1b; }-->
+<!--  button.danger:hover { background: linear-gradient(180deg, #fecaca, #fca5a5); }-->
+<!--  button:disabled { opacity: .5; cursor: not-allowed; }-->
+<!--  .summary { font-size: 13px; color: #6b7280; margin-top: 6px; line-height: 1.6; }-->
+<!--  .summary.ok { color: #047857; }-->
+<!--  .summary.warn { color: #b45309; }-->
+<!--  .hidden { display: none !important; }-->
+<!--  .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-top: 12px; background: #fff; }-->
+<!--  .card-title { font-weight: 700; font-size: 14px; color: #111827; margin-bottom: 8px; }-->
+<!--  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; transition: background .15s; padding: 4px; border-radius: 8px; }-->
+<!--  .grid.drop-hover { background: #e0f2fe; outline: 2px dashed #60a5fa; }-->
+<!--  .color-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px; background: #fff; overflow: hidden; cursor: grab; transition: box-shadow .15s, transform .1s; }-->
+<!--  .color-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.12); }-->
+<!--  .color-card.dragging { opacity: .4; cursor: grabbing; }-->
+<!--  .thumb { width: 100%; aspect-ratio: 3 / 4; background: #f9fafb; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px; overflow: hidden; }-->
+<!--  .thumb img { width: 100%; height: 100%; object-fit: contain; }-->
+<!--  .name { font-size: 12px; font-weight: 600; margin-top: 4px; word-break: break-all; color: #1f2937; }-->
+<!--  .info { font-size: 11px; color: #4b5563; margin-top: 2px; }-->
+<!--  .sub { font-size: 11px; color: #9ca3af; word-break: break-all; }-->
+<!--  .color-name-input { width: 200px; font-weight: 700; color: #0c4a6e; border: 1px solid #93c5fd; background: #f0f9ff; padding: 6px 8px; border-radius: 6px; font-size: 13px; }-->
+<!--  .asin-group { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin-top: 10px; background: #fff; }-->
+<!--  .asin-head { font-size: 13px; margin-bottom: 6px; color: #111827; }-->
+<!--  .asin-group textarea { width: 100%; height: 70px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; }-->
+<!--  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; margin-right: 6px; }-->
+<!--  .group-section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-top: 14px; background: #fff; scroll-margin-top: 380px; }-->
+<!--  .group-header { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }-->
+<!--  .group-title { font-weight: 700; font-size: 14px; color: #111827; }-->
+<!--  .group-meta { font-size: 12px; color: #6b7280; }-->
+<!--  .save-hint { position: fixed; right: 16px; bottom: 16px; font-size: 12px; color: #047857; background: #ecfdf5; border: 1px solid #86efac; padding: 6px 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.08); opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }-->
+<!--  .save-hint.show { opacity: 1; }-->
+
+<!--  .sticky-nav-wrap {-->
+<!--    position: sticky;-->
+<!--    top: 0;-->
+<!--    z-index: 50;-->
+<!--    background: #fff;-->
+<!--    padding: 8px 8px 6px;-->
+<!--    border-bottom: 1px solid #e5e7eb;-->
+<!--    border-radius: 8px;-->
+<!--    margin-bottom: 10px;-->
+<!--    box-shadow: 0 4px 12px -4px rgba(0,0,0,.1);-->
+<!--    max-height: 360px;-->
+<!--    overflow-y: auto;-->
+<!--  }-->
+<!--  .sticky-nav-wrap::-webkit-scrollbar { width: 8px; }-->
+<!--  .sticky-nav-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }-->
+<!--  .sticky-nav-label {-->
+<!--    font-size: 11px;-->
+<!--    color: #6b7280;-->
+<!--    margin-bottom: 6px;-->
+<!--    padding-left: 4px;-->
+<!--  }-->
+<!--  .summary-nav {-->
+<!--    display: flex;-->
+<!--    flex-wrap: wrap;-->
+<!--    gap: 8px;-->
+<!--    padding: 2px 2px 4px;-->
+<!--  }-->
+<!--  .nav-item {-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--    align-items: center;-->
+<!--    width: 104px;-->
+<!--    padding: 6px 4px;-->
+<!--    border-radius: 8px;-->
+<!--    cursor: pointer;-->
+<!--    border: 2px solid transparent;-->
+<!--    background: #f9fafb;-->
+<!--    transition: background .15s, border-color .15s, transform .1s;-->
+<!--    user-select: none;-->
+<!--  }-->
+<!--  .nav-item:hover { background: #eff6ff; }-->
+<!--  .nav-item.active {-->
+<!--    background: #dbeafe;-->
+<!--    border-color: #3b82f6;-->
+<!--    box-shadow: 0 0 0 2px rgba(59,130,246,.18);-->
+<!--  }-->
+<!--  .nav-item.nav-drop-hover {-->
+<!--    background: #fef3c7;-->
+<!--    border-color: #f59e0b;-->
+<!--    box-shadow: 0 0 0 3px rgba(245,158,11,.3);-->
+<!--  }-->
+<!--  .nav-item img {-->
+<!--    width: 88px;-->
+<!--    height: 117px;-->
+<!--    object-fit: contain;-->
+<!--    background: #fff;-->
+<!--    border-radius: 4px;-->
+<!--    display: block;-->
+<!--  }-->
+<!--  .nav-item .nav-no-img {-->
+<!--    width: 88px;-->
+<!--    height: 117px;-->
+<!--    background: #f3f4f6;-->
+<!--    border-radius: 4px;-->
+<!--    display: flex;-->
+<!--    align-items: center;-->
+<!--    justify-content: center;-->
+<!--    font-size: 11px;-->
+<!--    color: #9ca3af;-->
+<!--  }-->
+<!--  .nav-item .nav-name {-->
+<!--    font-size: 12px;-->
+<!--    font-weight: 700;-->
+<!--    color: #1f2937;-->
+<!--    margin-top: 4px;-->
+<!--    text-align: center;-->
+<!--    width: 100%;-->
+<!--    word-break: break-word;-->
+<!--    white-space: normal;-->
+<!--    line-height: 1.25;-->
+<!--  }-->
+<!--  .nav-item.active .nav-name { color: #1d4ed8; }-->
+<!--  .nav-item .nav-count {-->
+<!--    font-size: 11px;-->
+<!--    color: #6b7280;-->
+<!--    line-height: 1.2;-->
+<!--    margin-top: 2px;-->
+<!--  }-->
+
+<!--  .size-row {-->
+<!--    margin-top: 10px;-->
+<!--    padding: 8px 10px;-->
+<!--    background: #f0fdf4;-->
+<!--    border: 1px solid #bbf7d0;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 12px;-->
+<!--    line-height: 1.9;-->
+<!--  }-->
+<!--  .size-row .size-title {-->
+<!--    font-weight: 700;-->
+<!--    color: #047857;-->
+<!--    margin-right: 6px;-->
+<!--  }-->
+<!--  .size-row .size-item {-->
+<!--    display: inline-block;-->
+<!--    padding: 1px 8px;-->
+<!--    margin: 2px 4px 2px 0;-->
+<!--    background: #fff;-->
+<!--    border: 1px solid #86efac;-->
+<!--    border-radius: 4px;-->
+<!--    color: #065f46;-->
+<!--  }-->
+<!--  .size-row .size-item .sz { font-weight: 600; }-->
+<!--  .size-row .size-item .sv { color: #047857; margin-left: 4px; }-->
+<!--  .size-row .size-empty {-->
+<!--    color: #9ca3af;-->
+<!--    font-style: italic;-->
+<!--  }-->
+
+<!--  /* 右侧浮动快速跳转导航 */-->
+<!--  .side-nav {-->
+<!--    position: fixed;-->
+<!--    right: 12px;-->
+<!--    top: 50%;-->
+<!--    transform: translateY(-50%);-->
+<!--    background: rgba(255,255,255,.96);-->
+<!--    border: 1px solid #e5e7eb;-->
+<!--    border-radius: 12px;-->
+<!--    padding: 8px 6px;-->
+<!--    box-shadow: 0 6px 20px rgba(0,0,0,.1);-->
+<!--    z-index: 200;-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--    gap: 3px;-->
+<!--    font-size: 11px;-->
+<!--    width: 96px;-->
+<!--    backdrop-filter: blur(6px);-->
+<!--    transition: opacity .2s;-->
+<!--  }-->
+<!--  .side-nav-title {-->
+<!--    font-size: 10px;-->
+<!--    color: #9ca3af;-->
+<!--    text-align: center;-->
+<!--    padding: 2px 0 4px;-->
+<!--    border-bottom: 1px solid #f3f4f6;-->
+<!--    margin-bottom: 3px;-->
+<!--    font-weight: 600;-->
+<!--  }-->
+<!--  .side-nav a {-->
+<!--    display: block;-->
+<!--    padding: 5px 6px;-->
+<!--    border-radius: 6px;-->
+<!--    color: #374151;-->
+<!--    text-decoration: none;-->
+<!--    text-align: center;-->
+<!--    font-size: 11px;-->
+<!--    line-height: 1.3;-->
+<!--    transition: background .15s, color .15s;-->
+<!--    white-space: nowrap;-->
+<!--    overflow: hidden;-->
+<!--    text-overflow: ellipsis;-->
+<!--  }-->
+<!--  .side-nav a:hover {-->
+<!--    background: #e0f2fe;-->
+<!--    color: #0c4a6e;-->
+<!--  }-->
+<!--  .side-nav a.side-nav-active {-->
+<!--    background: #dbeafe;-->
+<!--    color: #1d4ed8;-->
+<!--    font-weight: 700;-->
+<!--  }-->
+<!--  @media (max-width: 900px) {-->
+<!--    .side-nav { display: none; }-->
+<!--  }-->
+<!--</style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<h1 style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">-->
+<!--  产品热卖色统计-->
+<!--  <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" target="_blank"-->
+<!--     style="font-size:13px; padding:6px 12px; border:1px solid #60a5fa;-->
+<!--            background:linear-gradient(180deg,#e0f2fe,#dbeafe); color:#0c4a6e;-->
+<!--            border-radius:8px; text-decoration:none; font-weight:600;-->
+<!--            box-shadow:0 1px 2px rgba(0,0,0,.04);">-->
+<!--    返回平台-->
+<!--  </a>-->
+<!--  <a href="https://wasdkd.github.io/Amazon/%E8%A7%86%E9%A2%91%E6%92%AD%E6%94%BE?repo=wasdkd%2FAmazon&branch=main&v=%E8%A7%86%E9%A2%91%E5%AD%98%E5%82%A8%2F%E4%BA%A7%E5%93%81%E9%A2%9C%E8%89%B2%E8%B0%83%E7%A0%94%E8%A7%86%E9%A2%91.mp4&solo=1" target="_blank"-->
+<!--     style="font-size:13px; padding:6px 12px; border:1px solid #86efac;-->
+<!--            background:linear-gradient(180deg,#d1fae5,#a7f3d0); color:#064e3b;-->
+<!--            border-radius:8px; text-decoration:none; font-weight:600;-->
+<!--            box-shadow:0 1px 2px rgba(0,0,0,.04);">-->
+<!--    使用教程-->
+<!--  </a>-->
+<!--</h1>-->
+
+<!--&lt;!&ndash; 右侧浮动快速跳转导航 &ndash;&gt;-->
+<!--<div class="side-nav" id="sideNav">-->
+<!--  <div class="side-nav-title">快速跳转</div>-->
+<!--</div>-->
+
+<!--<div class="section" id="sec-main">-->
+<!--  <h2>① 主数据（子体销量数据）</h2>-->
+<!--  <div class="row">-->
+<!--    <label>选择文件夹：</label>-->
+<!--    <input id="mainFolder" type="file" webkitdirectory directory multiple accept=".xlsx,.xls,.csv">-->
+<!--    <label>或文件：</label>-->
+<!--    <input id="mainFiles" type="file" multiple accept=".xlsx,.xls,.csv">-->
+<!--  </div>-->
+<!--  <div class="row" style="margin-top:6px;">-->
+<!--    <label>子表关键字：</label><input id="sheetKeyword" type="text" value="变体对比" style="width:130px;">-->
+<!--    <label>表头行：</label><input id="headerRow" type="number" min="1" value="1" style="width:60px;">-->
+<!--  </div>-->
+
+<!--  <div class="row" style="margin-top:10px; padding:8px 10px; background:#f9fafb; border:1px dashed #cbd5e1; border-radius:8px;">-->
+<!--    <label>销量计算范围：</label>-->
+<!--    <button id="btnLast12m" class="primary">近12个月</button>-->
+<!--    <button id="btnAllSales" class="primary">全部销量</button>-->
+<!--    <label>从：</label>-->
+<!--    <select id="rangeStart" style="width:140px;"><option value="">（先上传数据）</option></select>-->
+<!--    <label>到：</label>-->
+<!--    <select id="rangeEnd" style="width:140px;"><option value="">（先上传数据）</option></select>-->
+<!--    <button id="btnApplyRange" class="green">应用范围</button>-->
+<!--    <span class="summary" id="rangeSummary">当前：全部销量（所有以 20xx 开头的月份列 + 含“销量”的列）</span>-->
+<!--  </div>-->
+
+<!--  <div class="row" style="margin-top:10px; align-items:flex-start;">-->
+<!--    <button id="btnDownloadMerged" class="primary" disabled>下载合并表格（含图片）</button>-->
+<!--    <button id="btnClearAll" class="danger">清空全部数据</button>-->
+<!--    <div style="display:flex;flex-direction:column;gap:4px;">-->
+<!--      <label>保留 ASIN（逗号 / 空格 / 换行分隔；留空=全部保留）：</label>-->
+<!--      <textarea id="keepAsinText" placeholder="粘贴要保留的 ASIN，例如：B0XXXXXXXX,B0YYYYYYYY ..." style="width:400px;height:60px;"></textarea>-->
+<!--    </div>-->
+<!--    <button id="btnApplyFilter" class="primary" disabled style="margin-top:22px;">应用筛选</button>-->
+<!--  </div>-->
+
+<!--  <div class="summary" id="mainSummary"></div>-->
+<!--  <div class="summary" id="filterSummary"></div>-->
+<!--</div>-->
+
+<!--<div class="section hidden" id="sec-asin">-->
+<!--  <h2>② ASIN 分组（去重后每 N 个一组，可直接复制到卖家精灵）</h2>-->
+<!--  <div class="row">-->
+<!--    <label>每组数量：</label>-->
+<!--    <input id="groupSize" type="number" min="1" value="1000" style="width:80px;">-->
+<!--    <button id="btnRegroup">重新分组</button>-->
+<!--    <span class="summary" id="asinSummary"></span>-->
+<!--  </div>-->
+<!--  <div id="asinGroups"></div>-->
+<!--</div>-->
+
+<!--<div class="section" id="sec-img">-->
+<!--  <h2>③ 主图文件（卖家精灵下载的数据）</h2>-->
+<!--  <div class="row">-->
+<!--    <label>选择文件夹：</label>-->
+<!--    <input id="imgFolder" type="file" webkitdirectory directory multiple accept=".xlsx,.xls,.csv">-->
+<!--    <label>或文件：</label>-->
+<!--    <input id="imgFiles" type="file" multiple accept=".xlsx,.xls,.csv">-->
+<!--  </div>-->
+<!--  <div class="summary" id="imgSummary"></div>-->
+<!--</div>-->
+
+<!--<div class="section" id="sec-process">-->
+<!--  <h2>④ 开始处理</h2>-->
+<!--  <div class="row">-->
+<!--    <button id="btnProcess" class="green">开始处理（单款视图 + 汇总视图）</button>-->
+<!--  </div>-->
+<!--  <div class="summary" id="processSummary"></div>-->
+<!--</div>-->
+
+<!--<div class="section hidden" id="sec-single">-->
+<!--  <h2>⑤ 单款视图（每个父ASIN的颜色排名 + 尺码排名）</h2>-->
+<!--  <div id="singleView"></div>-->
+<!--</div>-->
+
+<!--<div class="section hidden" id="sec-summary">-->
+<!--  <h2>⑥ 汇总视图（全部父ASIN按颜色合并，可自由改名 / 拖动卡片移动分组）</h2>-->
+<!--  <div class="sticky-nav-wrap">-->
+<!--    <div class="sticky-nav-label">颜色导航（点击跳转；鼠标悬停分组自动高亮；拖拽卡片到导航项可直接放入该组）</div>-->
+<!--    <div class="summary-nav" id="summaryNav"></div>-->
+<!--  </div>-->
+<!--  <div class="row" style="margin-bottom:10px;">-->
+<!--    <button id="btnSortColor">按颜色相近排序</button>-->
+<!--    <button id="btnSortSales">按销量排序</button>-->
+<!--    <button id="btnAddGroup" class="primary">+ 新增颜色分组</button>-->
+<!--    <label style="font-weight:600; font-size:13px; display:flex; align-items:center; gap:4px; cursor:pointer; margin-left:6px;">-->
+<!--      <input type="checkbox" id="chkAutoSort" checked style="width:auto; cursor:pointer;">-->
+<!--      调整后自动按销量排序-->
+<!--    </label>-->
+<!--    <span class="summary">提示：拖拽卡片到视口边缘会自动滚动；可直接拖到顶部导航项放入对应分组；空组会自动删除（新增组除外）。</span>-->
+<!--  </div>-->
+<!--  <div id="summaryView"></div>-->
+<!--</div>-->
+
+<!--<div class="section hidden" id="sec-export">-->
+<!--  <h2>⑦ 导出</h2>-->
+<!--  <div class="row">-->
+<!--    <button id="btnExportSingle" class="green">导出单款视图（Excel + 图片文件夹）</button>-->
+<!--    <button id="btnExportSummary" class="green">导出汇总视图（Excel + 图片文件夹）</button>-->
+<!--  </div>-->
+<!--  <div class="summary" id="exportSummary"></div>-->
+<!--</div>-->
+
+<!--<div id="saveHint" class="save-hint">进度已保存到浏览器</div>-->
+
+<!--<script>-->
+<!--/* ==================================================================-->
+<!--   工具函数-->
+<!--================================================================== */-->
+<!--function isRowEmpty(row) {-->
+<!--  if (!row || !Array.isArray(row)) return true;-->
+<!--  return row.every(c => String(c == null ? '' : c).trim() === '');-->
+<!--}-->
+<!--function toNumber(v) {-->
+<!--  if (v == null) return 0;-->
+<!--  const s = String(v).replace(/,/g, '').trim();-->
+<!--  const n = Number(s);-->
+<!--  return isNaN(n) ? 0 : n;-->
+<!--}-->
+<!--function extractAsin(str) {-->
+<!--  if (!str) return '';-->
+<!--  const s = String(str);-->
+<!--  const m1 = s.match(/\b(B0[A-Z0-9]{8})\b/i);-->
+<!--  if (m1) return m1[1].toUpperCase();-->
+<!--  const m2 = s.match(/\b([A-Z0-9]{10})\b/);-->
+<!--  return m2 ? m2[1].toUpperCase() : '';-->
+<!--}-->
+<!--function parseSku(skuStr) {-->
+<!--  const result = { color: '', size: '' };-->
+<!--  if (!skuStr) return result;-->
+<!--  const tokens = String(skuStr).split('|').map(t => t.trim()).filter(Boolean);-->
+<!--  for (const t of tokens) {-->
+<!--    const idx = t.indexOf(':');-->
+<!--    if (idx < 0) continue;-->
+<!--    const key = t.slice(0, idx).trim().toLowerCase();-->
+<!--    const val = t.slice(idx + 1).trim();-->
+<!--    if (key.includes('color') || key.includes('colour') || key.includes('颜色')) result.color = val;-->
+<!--    else if (key.includes('size') || key.includes('尺码') || key.includes('尺寸')) result.size = val;-->
+<!--  }-->
+<!--  return result;-->
+<!--}-->
+<!--function normalizeImgUrl(url) {-->
+<!--  if (!url) return '';-->
+<!--  const s = String(url).trim();-->
+<!--  if (!/^https?:/i.test(s)) return '';-->
+<!--  const r1 = s.replace(/(\/I\/[A-Za-z0-9%_-]+)\.[^\/]*\.(jpe?g|png|webp)(?:\?.*)?$/i, '$1.$2');-->
+<!--  if (r1 !== s) return r1;-->
+<!--  return s.replace(/\._[^\/]*\.(jpe?g|png|webp)(?:\?.*)?$/i, '.$1');-->
+<!--}-->
+<!--function sanitizeName(n) {-->
+<!--  return String(n || '').replace(/[\\\/:*?"<>|]/g, '_').trim() || 'unknown';-->
+<!--}-->
+<!--function downloadBlob(blob, filename) {-->
+<!--  const url = URL.createObjectURL(blob);-->
+<!--  const a = document.createElement('a');-->
+<!--  a.href = url; a.download = filename;-->
+<!--  document.body.appendChild(a); a.click();-->
+<!--  document.body.removeChild(a);-->
+<!--  setTimeout(() => URL.revokeObjectURL(url), 8000);-->
+<!--}-->
+<!--function collectFiles(fileLists) {-->
+<!--  const out = [], seen = new Set();-->
+<!--  for (const list of fileLists) {-->
+<!--    if (!list) continue;-->
+<!--    for (const f of list) {-->
+<!--      const key = f.webkitRelativePath || (f.name + '_' + f.size);-->
+<!--      if (seen.has(key)) continue;-->
+<!--      seen.add(key);-->
+<!--      if (/\.(xlsx|xls|csv)$/i.test(f.name)) out.push(f);-->
+<!--    }-->
+<!--  }-->
+<!--  return out;-->
+<!--}-->
+<!--/* 尺码排序权重（作为销量相同时的次级排序） */-->
+<!--const SIZE_ORDER = ['XXS','XS','S','M','L','XL','XXL','XXXL','2XL','3XL','4XL','5XL','均码','F','FREE'];-->
+<!--function sizeWeight(sz) {-->
+<!--  const s = String(sz || '').toUpperCase().trim();-->
+<!--  const idx = SIZE_ORDER.indexOf(s);-->
+<!--  if (idx >= 0) return idx;-->
+<!--  const numMatch = s.match(/^(\d+(\.\d+)?)/);-->
+<!--  if (numMatch) return 100 + parseFloat(numMatch[1]);-->
+<!--  return 999;-->
+<!--}-->
+<!--/* 按销量降序排序（销量相同时按尺码顺序） */-->
+<!--function sortSizes(sizes) {-->
+<!--  return sizes.slice().sort((a, b) => {-->
+<!--    const sa = Number(a.sales) || 0;-->
+<!--    const sb = Number(b.sales) || 0;-->
+<!--    if (sb !== sa) return sb - sa;-->
+<!--    return sizeWeight(a.size) - sizeWeight(b.size);-->
+<!--  });-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   月份解析 & 范围筛选-->
+<!--================================================================== */-->
+<!--function parseMonthLabel(h) {-->
+<!--  const s = String(h || '');-->
+<!--  const m = s.match(/(20\d\d)\s*[\-\/\.\年]?\s*(\d{1,2})/);-->
+<!--  if (!m) return null;-->
+<!--  const y = parseInt(m[1], 10);-->
+<!--  const mo = parseInt(m[2], 10);-->
+<!--  if (mo < 1 || mo > 12) return null;-->
+<!--  return { year: y, month: mo };-->
+<!--}-->
+<!--function fmtMonthStr(y, m) {-->
+<!--  return `${y}-${String(m).padStart(2, '0')}`;-->
+<!--}-->
+<!--function monthStrToDate(v) {-->
+<!--  if (!v) return null;-->
+<!--  const parts = String(v).split('-').map(n => parseInt(n, 10));-->
+<!--  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;-->
+<!--  return new Date(parts[0], parts[1] - 1, 1);-->
+<!--}-->
+<!--function collectAvailableMonths(books, keyword, headerRowNum) {-->
+<!--  const monthSet = new Set();-->
+<!--  const defaultHeaderIdx = Math.max(0, (headerRowNum || 1) - 1);-->
+<!--  for (const bk of books) {-->
+<!--    for (const sn of (bk.workbook.SheetNames || [])) {-->
+<!--      if (keyword && !String(sn).includes(keyword)) continue;-->
+<!--      const ws = bk.workbook.Sheets[sn];-->
+<!--      if (!ws) continue;-->
+<!--      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: true, defval: '' });-->
+<!--      if (!arr.length) continue;-->
+<!--      let hIdx = defaultHeaderIdx;-->
+<!--      if (hIdx >= arr.length) continue;-->
+<!--      let headers = (arr[hIdx] || []).map(h => String(h || '').trim());-->
+<!--      const looksHeader = hs => hs.some(h => /^(sku|asin|父\s*asin|parent\s*asin)$/i.test(h));-->
+<!--      if (!looksHeader(headers)) {-->
+<!--        let found = -1;-->
+<!--        for (let i = 0; i < Math.min(arr.length, 30); i++) {-->
+<!--          const hs = (arr[i] || []).map(h => String(h || '').trim());-->
+<!--          if (looksHeader(hs)) { found = i; headers = hs; break; }-->
+<!--        }-->
+<!--        if (found >= 0) hIdx = found;-->
+<!--      }-->
+<!--      for (const h of headers) {-->
+<!--        const p = parseMonthLabel(h);-->
+<!--        if (p) monthSet.add(fmtMonthStr(p.year, p.month));-->
+<!--      }-->
+<!--    }-->
+<!--  }-->
+<!--  return Array.from(monthSet).sort();-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   颜色关键词-->
+<!--================================================================== */-->
+<!--const COLOR_KEYWORDS = [-->
+<!--  'black', 'blue', 'green', 'brown', 'burgundy', 'red', 'pink', 'white', 'grey', 'gray',-->
+<!--  'navy', 'purple', 'yellow', 'orange', 'beige', 'khaki', 'gold', 'silver', 'ivory',-->
+<!--  'teal', 'coral', 'wine', 'rose', 'tan', 'cream', 'apricot', 'mauve', 'floral', 'leopard',-->
+<!--  'polka', 'tie dye', 'solid', 'multi'-->
+<!--];-->
+<!--function getColorGroupKey(colorName) {-->
+<!--  const lower = String(colorName || '').toLowerCase();-->
+<!--  for (const kw of COLOR_KEYWORDS) {-->
+<!--    if (lower.includes(kw)) return kw;-->
+<!--  }-->
+<!--  return lower.split(/\s+/)[0] || 'other';-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   全局状态-->
+<!--================================================================== */-->
+<!--const state = {-->
+<!--  mainBooks: [],-->
+<!--  imgBooks: [],-->
+<!--  allRecords: [],-->
+<!--  records: [],-->
+<!--  asinImageMap: new Map(),-->
+<!--  singleView: [],-->
+<!--  colorGroups: [],-->
+<!--  colorOverrides: new Map(),-->
+<!--  asinGroups: [],-->
+<!--  allAsins: [],-->
+<!--  sortMode: 'color',-->
+<!--  monthRange: null,-->
+<!--  availableMonths: [],-->
+<!--};-->
+
+<!--const $ = id => document.getElementById(id);-->
+
+<!--/* ==================================================================-->
+<!--   右侧浮动导航-->
+<!--================================================================== */-->
+<!--const SIDE_NAV_ITEMS = [-->
+<!--  { id: 'sec-main', label: '① 主数据' },-->
+<!--  { id: 'sec-asin', label: '② ASIN 分组' },-->
+<!--  { id: 'sec-img', label: '③ 主图文件' },-->
+<!--  { id: 'sec-process', label: '④ 开始处理' },-->
+<!--  { id: 'sec-single', label: '⑤ 单款视图' },-->
+<!--  { id: 'sec-summary', label: '⑥ 汇总视图' },-->
+<!--  { id: 'sec-export', label: '⑦ 导出' },-->
+<!--];-->
+<!--function updateSideNav() {-->
+<!--  const nav = $('sideNav');-->
+<!--  if (!nav) return;-->
+<!--  nav.innerHTML = '<div class="side-nav-title">快速跳转</div>';-->
+<!--  SIDE_NAV_ITEMS.forEach(it => {-->
+<!--    const el = document.getElementById(it.id);-->
+<!--    if (!el) return;-->
+<!--    if (el.classList.contains('hidden')) return;-->
+<!--    const a = document.createElement('a');-->
+<!--    a.href = '#' + it.id;-->
+<!--    a.textContent = it.label;-->
+<!--    a.dataset.target = it.id;-->
+<!--    a.addEventListener('click', e => {-->
+<!--      e.preventDefault();-->
+<!--      el.scrollIntoView({ behavior: 'smooth', block: 'start' });-->
+<!--    });-->
+<!--    nav.appendChild(a);-->
+<!--  });-->
+<!--  updateSideNavHighlight();-->
+<!--}-->
+<!--let sideNavScrollTimer = null;-->
+<!--function updateSideNavHighlight() {-->
+<!--  const nav = $('sideNav');-->
+<!--  if (!nav) return;-->
+<!--  const links = nav.querySelectorAll('a[data-target]');-->
+<!--  if (!links.length) return;-->
+<!--  let best = null, bestDist = Infinity;-->
+<!--  const triggerY = 120;-->
+<!--  links.forEach(a => {-->
+<!--    const el = document.getElementById(a.dataset.target);-->
+<!--    if (!el) return;-->
+<!--    const rect = el.getBoundingClientRect();-->
+<!--    const dist = Math.abs(rect.top - triggerY);-->
+<!--    if (rect.bottom > 0 && rect.top < window.innerHeight && dist < bestDist) {-->
+<!--      bestDist = dist;-->
+<!--      best = a;-->
+<!--    }-->
+<!--  });-->
+<!--  links.forEach(a => a.classList.toggle('side-nav-active', a === best));-->
+<!--}-->
+<!--window.addEventListener('scroll', () => {-->
+<!--  if (sideNavScrollTimer) return;-->
+<!--  sideNavScrollTimer = setTimeout(() => {-->
+<!--    sideNavScrollTimer = null;-->
+<!--    updateSideNavHighlight();-->
+<!--  }, 80);-->
+<!--}, { passive: true });-->
+
+<!--/* ==================================================================-->
+<!--   本地存储-->
+<!--================================================================== */-->
+<!--const STORAGE_KEY = 'hot_color_state_v3';-->
+<!--let saveTimer = null;-->
+
+<!--function showSaveHint() {-->
+<!--  const hint = $('saveHint');-->
+<!--  if (!hint) return;-->
+<!--  hint.classList.add('show');-->
+<!--  clearTimeout(showSaveHint._t);-->
+<!--  showSaveHint._t = setTimeout(() => hint.classList.remove('show'), 1200);-->
+<!--}-->
+<!--function saveState() {-->
+<!--  try {-->
+<!--    const data = {-->
+<!--      allRecords: state.allRecords,-->
+<!--      records: state.records,-->
+<!--      allAsins: state.allAsins,-->
+<!--      asinImageMap: Array.from(state.asinImageMap.entries()),-->
+<!--      singleView: state.singleView,-->
+<!--      colorGroups: state.colorGroups,-->
+<!--      colorOverrides: Array.from(state.colorOverrides.entries()),-->
+<!--      sortMode: state.sortMode,-->
+<!--      asinGroups: state.asinGroups,-->
+<!--      savedAt: Date.now(),-->
+<!--    };-->
+<!--    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));-->
+<!--    showSaveHint();-->
+<!--  } catch (e) {-->
+<!--    console.warn('保存失败（可能超出浏览器存储限制）', e);-->
+<!--  }-->
+<!--}-->
+<!--function saveStateDebounced() {-->
+<!--  if (saveTimer) clearTimeout(saveTimer);-->
+<!--  saveTimer = setTimeout(saveState, 300);-->
+<!--}-->
+<!--function clearState() {-->
+<!--  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}-->
+<!--}-->
+<!--function loadState() {-->
+<!--  try {-->
+<!--    const raw = localStorage.getItem(STORAGE_KEY);-->
+<!--    if (!raw) return false;-->
+<!--    const data = JSON.parse(raw);-->
+<!--    state.allRecords = data.allRecords || [];-->
+<!--    state.records = data.records || [];-->
+<!--    state.allAsins = data.allAsins || [];-->
+<!--    state.asinImageMap = new Map(data.asinImageMap || []);-->
+<!--    state.singleView = data.singleView || [];-->
+<!--    state.colorGroups = data.colorGroups || [];-->
+<!--    state.colorOverrides = new Map(data.colorOverrides || []);-->
+<!--    state.sortMode = data.sortMode || 'color';-->
+<!--    state.asinGroups = data.asinGroups || [];-->
+<!--    return state.allRecords.length > 0 || state.colorGroups.length > 0;-->
+<!--  } catch (e) {-->
+<!--    console.warn('恢复失败', e);-->
+<!--    return false;-->
+<!--  }-->
+<!--}-->
+
+<!--function renderAfterRestore() {-->
+<!--  if (state.allRecords.length) {-->
+<!--    $('btnDownloadMerged').disabled = false;-->
+<!--    $('btnApplyFilter').disabled = false;-->
+<!--    $('mainSummary').textContent = `已从浏览器恢复：${state.allRecords.length} 条记录，${state.allAsins.length} 个唯一 ASIN。`;-->
+<!--    $('filterSummary').textContent = `当前生效：${state.records.length} 条记录，${state.allAsins.length} 个 ASIN。`;-->
+<!--    $('filterSummary').className = 'summary';-->
+<!--  }-->
+<!--  if (state.asinGroups.length) {-->
+<!--    renderAsinGroups();-->
+<!--    $('sec-asin').classList.remove('hidden');-->
+<!--  }-->
+<!--  if (state.singleView.length) {-->
+<!--    renderSingleView();-->
+<!--    $('sec-single').classList.remove('hidden');-->
+<!--  }-->
+<!--  if (state.colorGroups.length) {-->
+<!--    recomputeGroupRatios();-->
+<!--    renderSummaryView();-->
+<!--    $('sec-summary').classList.remove('hidden');-->
+<!--    $('sec-export').classList.remove('hidden');-->
+<!--  }-->
+<!--  if (state.records.length && (state.singleView.length || state.colorGroups.length)) {-->
+<!--    $('processSummary').textContent = '已从浏览器恢复上次处理进度。';-->
+<!--  }-->
+<!--  updateSideNav();-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   读取工作簿-->
+<!--================================================================== */-->
+<!--async function readAllWorkbooks(files) {-->
+<!--  const out = [];-->
+<!--  for (const f of files) {-->
+<!--    try {-->
+<!--      let wb;-->
+<!--      if (/\.csv$/i.test(f.name)) {-->
+<!--        const text = await f.text();-->
+<!--        wb = XLSX.read(text, { type: 'string' });-->
+<!--      } else {-->
+<!--        const buf = await f.arrayBuffer();-->
+<!--        wb = XLSX.read(buf, { type: 'array' });-->
+<!--      }-->
+<!--      out.push({ name: f.name, path: f.webkitRelativePath || f.name, workbook: wb });-->
+<!--    } catch (e) {-->
+<!--      console.error('解析失败:', f.name, e);-->
+<!--    }-->
+<!--  }-->
+<!--  return out;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   提取记录-->
+<!--================================================================== */-->
+<!--function extractRecords(books, keyword, headerRowNum, monthRange) {-->
+<!--  const records = [];-->
+<!--  const defaultHeaderIdx = Math.max(0, (headerRowNum || 1) - 1);-->
+<!--  for (const bk of books) {-->
+<!--    for (const sn of (bk.workbook.SheetNames || [])) {-->
+<!--      if (keyword && !String(sn).includes(keyword)) continue;-->
+<!--      const ws = bk.workbook.Sheets[sn];-->
+<!--      if (!ws) continue;-->
+<!--      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: true, defval: '' });-->
+<!--      if (!arr.length) continue;-->
+
+<!--      let hIdx = defaultHeaderIdx;-->
+<!--      if (hIdx >= arr.length) continue;-->
+<!--      let headers = (arr[hIdx] || []).map(h => String(h || '').trim());-->
+<!--      const looksHeader = hs => hs.some(h => /^(sku|asin|父\s*asin|parent\s*asin)$/i.test(h));-->
+<!--      if (!looksHeader(headers)) {-->
+<!--        let found = -1;-->
+<!--        for (let i = 0; i < Math.min(arr.length, 30); i++) {-->
+<!--          const hs = (arr[i] || []).map(h => String(h || '').trim());-->
+<!--          if (looksHeader(hs)) { found = i; headers = hs; break; }-->
+<!--        }-->
+<!--        if (found >= 0) hIdx = found;-->
+<!--      }-->
+
+<!--      const colOf = regex => {-->
+<!--        for (let i = 0; i < headers.length; i++) if (regex.test(headers[i])) return i;-->
+<!--        return -1;-->
+<!--      };-->
+<!--      const skuCol = colOf(/^sku$/i);-->
+<!--      const asinCol = colOf(/^asin$/i);-->
+<!--      const parentCol = colOf(/^(父\s*asin|parent\s*asin)$/i);-->
+<!--      const colorCol = colOf(/^(颜色|color|colour)$/i);-->
+<!--      const sizeCol = colOf(/^(尺码|尺寸|size)$/i);-->
+
+<!--      const salesCols = [];-->
+<!--      headers.forEach((h, i) => {-->
+<!--        if (monthRange) {-->
+<!--          const p = parseMonthLabel(h);-->
+<!--          if (p) {-->
+<!--            const d = new Date(p.year, p.month - 1, 1);-->
+<!--            if (d >= monthRange.start && d <= monthRange.end) salesCols.push(i);-->
+<!--          }-->
+<!--        } else {-->
+<!--          if (/^20\d\d/.test(h) || /(销量|sales|units)/i.test(h)) salesCols.push(i);-->
+<!--        }-->
+<!--      });-->
+
+<!--      const parentFromSheet = extractAsin(sn) || extractAsin(bk.path) || extractAsin(bk.name);-->
+
+<!--      for (let r = hIdx + 1; r < arr.length; r++) {-->
+<!--        const row = arr[r];-->
+<!--        if (!row || isRowEmpty(row)) continue;-->
+<!--        const asinRaw = asinCol >= 0 ? String(row[asinCol] || '').trim() : '';-->
+<!--        const skuStr = skuCol >= 0 ? String(row[skuCol] || '').trim() : '';-->
+<!--        let asin = asinRaw.toUpperCase();-->
+<!--        if (!asin) asin = extractAsin(skuStr);-->
+<!--        if (!asin) continue;-->
+
+<!--        let color = colorCol >= 0 ? String(row[colorCol] || '').trim() : '';-->
+<!--        let size = sizeCol >= 0 ? String(row[sizeCol] || '').trim() : '';-->
+<!--        if (!color && skuStr) {-->
+<!--          const p = parseSku(skuStr);-->
+<!--          color = p.color;-->
+<!--          if (!size) size = p.size;-->
+<!--        }-->
+
+<!--        const parent = ((parentCol >= 0 ? String(row[parentCol] || '').trim().toUpperCase() : '') || parentFromSheet || '');-->
+
+<!--        let sales = 0;-->
+<!--        for (const ci of salesCols) sales += toNumber(row[ci]);-->
+
+<!--        records.push({-->
+<!--          parent, asin,-->
+<!--          colorRaw: color,-->
+<!--          size, sales,-->
+<!--          sourceFile: bk.name,-->
+<!--          sourceSheet: sn,-->
+<!--        });-->
+<!--      }-->
+<!--    }-->
+<!--  }-->
+<!--  return records;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   主图映射-->
+<!--================================================================== */-->
+<!--function buildImageMap(imgBooks) {-->
+<!--  const map = new Map();-->
+<!--  for (const bk of imgBooks) {-->
+<!--    for (const sn of (bk.workbook.SheetNames || [])) {-->
+<!--      const ws = bk.workbook.Sheets[sn];-->
+<!--      if (!ws) continue;-->
+<!--      const arr = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });-->
+<!--      if (!arr.length) continue;-->
+<!--      const headers = (arr[0] || []).map(h => String(h || '').trim());-->
+<!--      const findIdx = cands => {-->
+<!--        for (const c of cands) {-->
+<!--          const i = headers.findIndex(h => h.toLowerCase() === c.toLowerCase());-->
+<!--          if (i >= 0) return i;-->
+<!--        }-->
+<!--        for (const c of cands) {-->
+<!--          const i = headers.findIndex(h => h.toLowerCase().includes(c.toLowerCase()));-->
+<!--          if (i >= 0) return i;-->
+<!--        }-->
+<!--        return -1;-->
+<!--      };-->
+<!--      const asinIdx = findIdx(['ASIN', 'asin', '子ASIN', '子asin']);-->
+<!--      const imgIdx = findIdx(['商品主图', '主图', 'Main Image', 'Image URL', 'ImageURL', '主图链接', '图片链接', '图片', 'Image', 'MainImage']);-->
+<!--      if (asinIdx < 0 || imgIdx < 0) continue;-->
+<!--      for (let r = 1; r < arr.length; r++) {-->
+<!--        const row = arr[r];-->
+<!--        if (!row || isRowEmpty(row)) continue;-->
+<!--        const asin = String(row[asinIdx] || '').trim().toUpperCase();-->
+<!--        const img = normalizeImgUrl(String(row[imgIdx] || '').trim());-->
+<!--        if (asin && img && !map.has(asin)) map.set(asin, img);-->
+<!--      }-->
+<!--    }-->
+<!--  }-->
+<!--  return map;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   单款视图-->
+<!--================================================================== */-->
+<!--function buildSingleView(records) {-->
+<!--  const pcSizeMap = new Map();-->
+<!--  for (const rec of records) {-->
+<!--    if (!rec.parent || !rec.size || rec.sales <= 0) continue;-->
+<!--    const ck = getColorGroupKey(rec.colorRaw);-->
+<!--    const k = rec.parent + '|' + ck;-->
+<!--    if (!pcSizeMap.has(k)) pcSizeMap.set(k, new Map());-->
+<!--    const m = pcSizeMap.get(k);-->
+<!--    m.set(rec.size, (m.get(rec.size) || 0) + rec.sales);-->
+<!--  }-->
+
+<!--  const byAsin = new Map();-->
+<!--  for (const rec of records) {-->
+<!--    if (!rec.asin) continue;-->
+<!--    let o = byAsin.get(rec.asin);-->
+<!--    if (!o) {-->
+<!--      o = { asin: rec.asin, parent: rec.parent || '', colorRaw: rec.colorRaw || '', colorKey: getColorGroupKey(rec.colorRaw), sales: 0 };-->
+<!--      byAsin.set(rec.asin, o);-->
+<!--    }-->
+<!--    o.sales += rec.sales;-->
+<!--    if (!o.parent && rec.parent) o.parent = rec.parent;-->
+<!--    if (!o.colorRaw && rec.colorRaw) { o.colorRaw = rec.colorRaw; o.colorKey = getColorGroupKey(rec.colorRaw); }-->
+<!--  }-->
+
+<!--  const parentMap = new Map();-->
+<!--  for (const o of byAsin.values()) {-->
+<!--    if (!o.parent || !o.colorKey) continue;-->
+<!--    let p = parentMap.get(o.parent);-->
+<!--    if (!p) { p = { parent: o.parent, colorMap: new Map(), totalSales: 0 }; parentMap.set(o.parent, p); }-->
+<!--    let c = p.colorMap.get(o.colorKey);-->
+<!--    if (!c) { c = { key: o.colorKey, raw: o.colorRaw, sales: 0, asins: [] }; p.colorMap.set(o.colorKey, c); }-->
+<!--    c.sales += o.sales;-->
+<!--    c.asins.push({ asin: o.asin, sales: o.sales });-->
+<!--  }-->
+
+<!--  const singleView = [];-->
+<!--  for (const p of parentMap.values()) {-->
+<!--    const items = Array.from(p.colorMap.values());-->
+<!--    const total = items.reduce((s, it) => s + it.sales, 0);-->
+<!--    for (const it of items) {-->
+<!--      it.asins.sort((a, b) => b.sales - a.sales);-->
+<!--      it.repAsin = it.asins[0] ? it.asins[0].asin : '';-->
+<!--      it.ratio = total > 0 ? (it.sales * 100 / total) : 0;-->
+<!--      it.link = it.repAsin ? `https://www.amazon.com/dp/${it.repAsin}` : '';-->
+<!--      it.parent = p.parent;-->
+<!--      const k = p.parent + '|' + it.key;-->
+<!--      const m = pcSizeMap.get(k);-->
+<!--      it.sizeData = m ? Array.from(m.entries()).map(([size, sales]) => ({ size, sales })) : [];-->
+<!--    }-->
+<!--    items.sort((a, b) => b.sales - a.sales);-->
+
+<!--    const szMap = new Map();-->
+<!--    for (const it of items) {-->
+<!--      for (const s of it.sizeData) {-->
+<!--        szMap.set(s.size, (szMap.get(s.size) || 0) + s.sales);-->
+<!--      }-->
+<!--    }-->
+<!--    const sizes = sortSizes(Array.from(szMap.entries()).map(([size, sales]) => ({ size, sales })));-->
+
+<!--    singleView.push({ parent: p.parent, items, total, sizes });-->
+<!--  }-->
+<!--  singleView.sort((a, b) => a.parent.localeCompare(b.parent));-->
+<!--  return singleView;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   汇总分组-->
+<!--================================================================== */-->
+<!--function buildColorGroups(singleView) {-->
+<!--  const map = new Map();-->
+<!--  for (const p of singleView) {-->
+<!--    for (const it of p.items) {-->
+<!--      if (it.sales === 0) continue;-->
+<!--      const key = getColorGroupKey(it.raw);-->
+<!--      let g = map.get(key);-->
+<!--      if (!g) {-->
+<!--        g = { key, topName: key, displayName: key, items: [], total: 0, nameCount: new Map() };-->
+<!--        map.set(key, g);-->
+<!--      }-->
+<!--      const nm = it.raw || '(未命名)';-->
+<!--      g.nameCount.set(nm, (g.nameCount.get(nm) || 0) + 1);-->
+<!--      g.total += it.sales;-->
+<!--      g.items.push({-->
+<!--        parent: p.parent,-->
+<!--        raw: it.raw,-->
+<!--        sales: it.sales,-->
+<!--        parentRatio: it.ratio,-->
+<!--        groupRatio: 0,-->
+<!--        repAsin: it.repAsin,-->
+<!--        link: it.link,-->
+<!--        img: '',-->
+<!--        sizeData: it.sizeData ? it.sizeData.slice() : [],-->
+<!--      });-->
+<!--    }-->
+<!--  }-->
+<!--  const groups = Array.from(map.values());-->
+<!--  const grandTotal = groups.reduce((s, g) => s + g.total, 0);-->
+<!--  for (const g of groups) {-->
+<!--    let best = '', bestN = -1;-->
+<!--    for (const [nm, n] of g.nameCount) {-->
+<!--      if (n > bestN || (n === bestN && nm.length < best.length)) { best = nm; bestN = n; }-->
+<!--    }-->
+<!--    g.topName = best || g.key;-->
+<!--    g.displayName = g.topName;-->
+<!--    g.grandTotal = grandTotal;-->
+<!--    g.items.sort((a, b) => b.sales - a.sales);-->
+<!--    for (const it of g.items) {-->
+<!--      it.groupRatio = g.total > 0 ? (it.sales * 100 / g.total) : 0;-->
+<!--    }-->
+<!--    g.sizes = aggregateSizesFromItems(g.items);-->
+<!--    g.nameCount = null;-->
+<!--  }-->
+<!--  return groups;-->
+<!--}-->
+
+<!--function aggregateSizesFromItems(items) {-->
+<!--  const szMap = new Map();-->
+<!--  for (const it of items) {-->
+<!--    if (!it.sizeData) continue;-->
+<!--    for (const s of it.sizeData) {-->
+<!--      szMap.set(s.size, (szMap.get(s.size) || 0) + s.sales);-->
+<!--    }-->
+<!--  }-->
+<!--  return sortSizes(Array.from(szMap.entries()).map(([size, sales]) => ({ size, sales })));-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   重算 & 排序-->
+<!--================================================================== */-->
+<!--function recomputeGroupRatios() {-->
+<!--  const grandTotal = state.colorGroups.reduce((s, g) => s + g.total, 0);-->
+<!--  for (const g of state.colorGroups) {-->
+<!--    g.grandTotal = grandTotal;-->
+<!--    g.items.sort((a, b) => b.sales - a.sales);-->
+<!--    for (const it of g.items) {-->
+<!--      it.groupRatio = g.total > 0 ? (it.sales * 100 / g.total) : 0;-->
+<!--    }-->
+<!--    g.sizes = aggregateSizesFromItems(g.items);-->
+<!--  }-->
+<!--}-->
+<!--function applyDisplayNames() {-->
+<!--  const used = new Set();-->
+<!--  for (const g of state.colorGroups) {-->
+<!--    let base = state.colorOverrides.has(g.key) ? state.colorOverrides.get(g.key) : g.topName;-->
+<!--    base = String(base || '').trim() || g.topName || '未命名';-->
+<!--    let name = base, n = 1;-->
+<!--    while (used.has(name)) { n++; name = `${base}-${n}`; }-->
+<!--    used.add(name);-->
+<!--    g.displayName = name;-->
+<!--  }-->
+<!--}-->
+<!--function nameSimilarity(a, b) {-->
+<!--  a = String(a || '').toLowerCase();-->
+<!--  b = String(b || '').toLowerCase();-->
+<!--  if (!a && !b) return 0;-->
+<!--  if (!a || !b) return -1;-->
+<!--  let maxLen = 0;-->
+<!--  for (let i = 0; i < a.length; i++) {-->
+<!--    for (let j = 0; j < b.length; j++) {-->
+<!--      let k = 0;-->
+<!--      while (i + k < a.length && j + k < b.length && a[i + k] === b[j + k]) k++;-->
+<!--      if (k > maxLen) maxLen = k;-->
+<!--    }-->
+<!--  }-->
+<!--  const bonus = (a[0] === b[0]) ? 2 : 0;-->
+<!--  return maxLen + bonus;-->
+<!--}-->
+<!--function sortGroupsByColorSimilarity() {-->
+<!--  const groups = state.colorGroups.slice();-->
+<!--  if (groups.length <= 1) return groups;-->
+<!--  groups.sort((a, b) => String(a.displayName).localeCompare(String(b.displayName)));-->
+<!--  const remaining = groups.slice();-->
+<!--  const result = [remaining.shift()];-->
+<!--  while (remaining.length) {-->
+<!--    const last = result[result.length - 1];-->
+<!--    let bestIdx = 0, bestScore = -Infinity;-->
+<!--    for (let i = 0; i < remaining.length; i++) {-->
+<!--      const score = nameSimilarity(last.displayName, remaining[i].displayName);-->
+<!--      if (score > bestScore) { bestScore = score; bestIdx = i; }-->
+<!--    }-->
+<!--    result.push(remaining.splice(bestIdx, 1)[0]);-->
+<!--  }-->
+<!--  return result;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   附图片-->
+<!--================================================================== */-->
+<!--function attachImages() {-->
+<!--  const get = asin => (asin ? (state.asinImageMap.get(asin) || '') : '');-->
+<!--  for (const p of state.singleView) {-->
+<!--    for (const it of p.items) it.img = get(it.repAsin);-->
+<!--  }-->
+<!--  for (const g of state.colorGroups) {-->
+<!--    for (const it of g.items) it.img = get(it.repAsin);-->
+<!--  }-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   卖家精灵 URL-->
+<!--================================================================== */-->
+<!--const SELLER_SPRITE_BASE = 'https://www.sellersprite.com/v3/competitor-lookup?market=US&monthName=bsr_sales_nearly&asins=';-->
+<!--const SELLER_SPRITE_TAIL = '&page=1&nodeIdPaths=%5B%5D&symbolFlag=false&size=60&order%5Bfield%5D=amz_unit&order%5Bdesc%5D=true&lowPrice=N&salesGrowthType=30d';-->
+<!--function buildSellerSpriteUrl(asins) {-->
+<!--  return SELLER_SPRITE_BASE + encodeURIComponent(JSON.stringify(asins)) + SELLER_SPRITE_TAIL;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   ASIN 分组-->
+<!--================================================================== */-->
+<!--function buildAsinGroups() {-->
+<!--  const size = Math.max(1, parseInt($('groupSize').value, 10) || 1000);-->
+<!--  const asins = state.allAsins;-->
+<!--  const groups = [];-->
+<!--  for (let i = 0; i < asins.length; i += size) {-->
+<!--    groups.push({ asins: asins.slice(i, i + size) });-->
+<!--  }-->
+<!--  state.asinGroups = groups;-->
+<!--  renderAsinGroups();-->
+<!--  saveStateDebounced();-->
+<!--}-->
+<!--function renderAsinGroups() {-->
+<!--  const el = $('asinGroups');-->
+<!--  el.innerHTML = '';-->
+<!--  if (!state.asinGroups.length) { el.textContent = '没有提取到 ASIN。'; return; }-->
+<!--  const total = state.asinGroups.reduce((s, g) => s + g.asins.length, 0);-->
+<!--  $('asinSummary').textContent = `共 ${state.asinGroups.length} 组 / ${total} 个 ASIN`;-->
+<!--  state.asinGroups.forEach((g, idx) => {-->
+<!--    const box = document.createElement('div');-->
+<!--    box.className = 'asin-group';-->
+<!--    const head = document.createElement('div');-->
+<!--    head.className = 'asin-head';-->
+<!--    head.innerHTML = `<span class="tag">第 ${idx + 1} 组</span> ${g.asins.length} 个 ASIN`;-->
+<!--    box.appendChild(head);-->
+<!--    const ta = document.createElement('textarea');-->
+<!--    ta.value = g.asins.join(',');-->
+<!--    ta.readOnly = true;-->
+<!--    box.appendChild(ta);-->
+<!--    const btns = document.createElement('div');-->
+<!--    btns.className = 'row';-->
+<!--    btns.style.marginTop = '6px';-->
+<!--    const copyBtn = document.createElement('button');-->
+<!--    copyBtn.textContent = '复制这组 ASIN';-->
+<!--    copyBtn.onclick = async () => {-->
+<!--      try { await navigator.clipboard.writeText(ta.value); } catch (e) { ta.select(); document.execCommand('copy'); }-->
+<!--      copyBtn.textContent = '✓ 已复制';-->
+<!--      setTimeout(() => copyBtn.textContent = '复制这组 ASIN', 1500);-->
+<!--    };-->
+<!--    btns.appendChild(copyBtn);-->
+<!--    const openBtn = document.createElement('button');-->
+<!--    openBtn.className = 'primary';-->
+<!--    openBtn.textContent = '打开卖家精灵并填入';-->
+<!--    openBtn.onclick = () => {-->
+<!--      const a = document.createElement('a');-->
+<!--      a.href = buildSellerSpriteUrl(g.asins); a.target = '_blank'; a.rel = 'noopener';-->
+<!--      document.body.appendChild(a); a.click(); document.body.removeChild(a);-->
+<!--    };-->
+<!--    btns.appendChild(openBtn);-->
+<!--    box.appendChild(btns);-->
+<!--    el.appendChild(box);-->
+<!--  });-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   渲染尺码行-->
+<!--================================================================== */-->
+<!--function makeSizeRow(sizes) {-->
+<!--  const d = document.createElement('div');-->
+<!--  d.className = 'size-row';-->
+<!--  const t = document.createElement('span');-->
+<!--  t.className = 'size-title';-->
+<!--  t.textContent = '尺码销量排名（按销量降序）：';-->
+<!--  d.appendChild(t);-->
+<!--  if (!sizes || !sizes.length) {-->
+<!--    const empty = document.createElement('span');-->
+<!--    empty.className = 'size-empty';-->
+<!--    empty.textContent = '（无尺码数据）';-->
+<!--    d.appendChild(empty);-->
+<!--  } else {-->
+<!--    sizes.forEach((s, i) => {-->
+<!--      const span = document.createElement('span');-->
+<!--      span.className = 'size-item';-->
+<!--      span.innerHTML = `<span class="sz">${i+1}. ${s.size || '未知'}</span><span class="sv">${s.sales}</span>`;-->
+<!--      span.title = `销量 ${s.sales}`;-->
+<!--      d.appendChild(span);-->
+<!--    });-->
+<!--  }-->
+<!--  return d;-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   渲染单款视图-->
+<!--================================================================== */-->
+<!--function renderSingleView() {-->
+<!--  const el = $('singleView');-->
+<!--  el.innerHTML = '';-->
+<!--  if (!state.singleView.length) { el.textContent = '无数据'; return; }-->
+<!--  for (const p of state.singleView) {-->
+<!--    const card = document.createElement('div');-->
+<!--    card.className = 'card';-->
+<!--    const h = document.createElement('div');-->
+<!--    h.className = 'card-title';-->
+<!--    h.textContent = `父ASIN：${p.parent}　|　${p.items.length} 个颜色　|　总销量 ${p.total}`;-->
+<!--    card.appendChild(h);-->
+<!--    const grid = document.createElement('div');-->
+<!--    grid.className = 'grid';-->
+<!--    p.items.forEach((it, i) => {-->
+<!--      const d = document.createElement('div');-->
+<!--      d.className = 'color-card';-->
+<!--      const thumb = document.createElement('div');-->
+<!--      thumb.className = 'thumb';-->
+<!--      if (it.img) {-->
+<!--        const img = document.createElement('img');-->
+<!--        img.src = it.img; img.loading = 'lazy';-->
+<!--        img.onerror = () => { thumb.textContent = '加载失败'; };-->
+<!--        thumb.appendChild(img);-->
+<!--      } else { thumb.textContent = '无主图'; }-->
+<!--      d.appendChild(thumb);-->
+<!--      const name = document.createElement('div');-->
+<!--      name.className = 'name';-->
+<!--      name.textContent = `#${i + 1} ${it.raw || '(未命名)'}`;-->
+<!--      d.appendChild(name);-->
+<!--      const info = document.createElement('div');-->
+<!--      info.className = 'info';-->
+<!--      info.textContent = `销量 ${it.sales} ｜ 占比 ${it.ratio.toFixed(2)}%`;-->
+<!--      d.appendChild(info);-->
+<!--      const sub = document.createElement('div');-->
+<!--      sub.className = 'sub';-->
+<!--      sub.textContent = it.repAsin || '';-->
+<!--      d.appendChild(sub);-->
+<!--      grid.appendChild(d);-->
+<!--    });-->
+<!--    card.appendChild(grid);-->
+<!--    card.appendChild(makeSizeRow(p.sizes));-->
+<!--    el.appendChild(card);-->
+<!--  }-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   拖拽自动滚动-->
+<!--================================================================== */-->
+<!--let autoScrollRaf = null;-->
+<!--let lastDragY = 0;-->
+
+<!--function autoScrollStep() {-->
+<!--  const navWrap = document.querySelector('.sticky-nav-wrap');-->
+<!--  if (navWrap) {-->
+<!--    const rect = navWrap.getBoundingClientRect();-->
+<!--    if (lastDragY >= rect.top && lastDragY <= rect.bottom) {-->
+<!--      autoScrollRaf = null;-->
+<!--      return;-->
+<!--    }-->
+<!--  }-->
+<!--  const edge = 120;-->
+<!--  const speed = 22;-->
+<!--  const y = lastDragY;-->
+<!--  const vh = window.innerHeight;-->
+<!--  let delta = 0;-->
+<!--  if (y < edge) delta = -((edge - y) / edge) * speed;-->
+<!--  else if (y > vh - edge) delta = ((y - (vh - edge)) / edge) * speed;-->
+<!--  if (delta !== 0 && dragItem) {-->
+<!--    window.scrollBy(0, delta);-->
+<!--    autoScrollRaf = requestAnimationFrame(autoScrollStep);-->
+<!--  } else {-->
+<!--    autoScrollRaf = null;-->
+<!--  }-->
+<!--}-->
+<!--document.addEventListener('dragover', (e) => {-->
+<!--  if (!dragItem) return;-->
+<!--  lastDragY = e.clientY;-->
+<!--  if (!autoScrollRaf) {-->
+<!--    autoScrollRaf = requestAnimationFrame(autoScrollStep);-->
+<!--  }-->
+<!--});-->
+
+<!--/* ==================================================================-->
+<!--   导航联动-->
+<!--================================================================== */-->
+<!--function buildSummaryNav() {-->
+<!--  const nav = $('summaryNav');-->
+<!--  if (!nav) return;-->
+<!--  nav.innerHTML = '';-->
+<!--  state.colorGroups.forEach(g => {-->
+<!--    const item = document.createElement('div');-->
+<!--    item.className = 'nav-item';-->
+<!--    item.dataset.key = g.key;-->
+<!--    item.title = g.displayName;-->
+
+<!--    const firstImg = (g.items.find(it => it.img) || {}).img || '';-->
+<!--    if (firstImg) {-->
+<!--      const img = document.createElement('img');-->
+<!--      img.src = firstImg;-->
+<!--      img.alt = g.displayName;-->
+<!--      img.onerror = () => {-->
+<!--        const ph = document.createElement('div');-->
+<!--        ph.className = 'nav-no-img';-->
+<!--        ph.textContent = '无图';-->
+<!--        img.replaceWith(ph);-->
+<!--      };-->
+<!--      item.appendChild(img);-->
+<!--    } else {-->
+<!--      const ph = document.createElement('div');-->
+<!--      ph.className = 'nav-no-img';-->
+<!--      ph.textContent = '无图';-->
+<!--      item.appendChild(ph);-->
+<!--    }-->
+
+<!--    const nm = document.createElement('div');-->
+<!--    nm.className = 'nav-name';-->
+<!--    nm.textContent = g.displayName;-->
+<!--    item.appendChild(nm);-->
+
+<!--    const cnt = document.createElement('div');-->
+<!--    cnt.className = 'nav-count';-->
+<!--    cnt.textContent = g.items.length + ' 条';-->
+<!--    item.appendChild(cnt);-->
+
+<!--    item.addEventListener('click', () => {-->
+<!--      const target = document.getElementById('group-' + g.key);-->
+<!--      if (target) {-->
+<!--        target.scrollIntoView({ behavior: 'smooth', block: 'start' });-->
+<!--        setActiveNav(g.key);-->
+<!--        setTimeout(() => {-->
+<!--          const navWrap = document.querySelector('.sticky-nav-wrap');-->
+<!--          if (!navWrap) return;-->
+<!--          const navH = navWrap.getBoundingClientRect().height;-->
+<!--          const rect = target.getBoundingClientRect();-->
+<!--          if (rect.top < navH) {-->
+<!--            window.scrollBy(0, rect.top - navH - 4);-->
+<!--          }-->
+<!--        }, 320);-->
+<!--      }-->
+<!--    });-->
+
+<!--    item.addEventListener('dragover', e => {-->
+<!--      if (!dragItem) return;-->
+<!--      e.preventDefault();-->
+<!--      e.dataTransfer.dropEffect = 'move';-->
+<!--      item.classList.add('nav-drop-hover');-->
+<!--    });-->
+<!--    item.addEventListener('dragleave', () => {-->
+<!--      item.classList.remove('nav-drop-hover');-->
+<!--    });-->
+<!--    item.addEventListener('drop', e => {-->
+<!--      e.preventDefault();-->
+<!--      item.classList.remove('nav-drop-hover');-->
+<!--      if (!dragItem || !dragFromGroupKey) return;-->
+<!--      if (dragFromGroupKey === g.key) return;-->
+<!--      const targetKey = g.key;-->
+<!--      moveItemToGroup(dragItem, targetKey);-->
+<!--      setTimeout(() => {-->
+<!--        const target = document.getElementById('group-' + targetKey);-->
+<!--        if (target) {-->
+<!--          target.scrollIntoView({ behavior: 'smooth', block: 'start' });-->
+<!--          setActiveNav(targetKey);-->
+<!--        }-->
+<!--      }, 120);-->
+<!--    });-->
+
+<!--    nav.appendChild(item);-->
+<!--  });-->
+<!--}-->
+<!--function setActiveNav(key) {-->
+<!--  const nav = $('summaryNav');-->
+<!--  if (!nav) return;-->
+<!--  let found = null;-->
+<!--  nav.querySelectorAll('.nav-item').forEach(item => {-->
+<!--    const isActive = item.dataset.key === key;-->
+<!--    item.classList.toggle('active', isActive);-->
+<!--    if (isActive) found = item;-->
+<!--  });-->
+<!--  if (found) {-->
+<!--    found.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });-->
+<!--  }-->
+<!--}-->
+<!--let scrollThrottle = null;-->
+<!--function updateNavByScroll() {-->
+<!--  if (scrollThrottle) return;-->
+<!--  scrollThrottle = setTimeout(() => {-->
+<!--    scrollThrottle = null;-->
+<!--    const secSum = $('sec-summary');-->
+<!--    if (!secSum || secSum.classList.contains('hidden')) return;-->
+<!--    const navWrap = document.querySelector('.sticky-nav-wrap');-->
+<!--    if (!navWrap) return;-->
+<!--    const navBottom = navWrap.getBoundingClientRect().bottom;-->
+<!--    const sections = document.querySelectorAll('#summaryView .group-section');-->
+<!--    let bestKey = '';-->
+<!--    let bestDist = Infinity;-->
+<!--    sections.forEach(sec => {-->
+<!--      const rect = sec.getBoundingClientRect();-->
+<!--      if (rect.bottom < navBottom) return;-->
+<!--      if (rect.top > window.innerHeight) return;-->
+<!--      const dist = Math.abs(rect.top - navBottom);-->
+<!--      if (dist < bestDist) {-->
+<!--        bestDist = dist;-->
+<!--        bestKey = sec.id.replace('group-', '');-->
+<!--      }-->
+<!--    });-->
+<!--    if (bestKey) setActiveNav(bestKey);-->
+<!--  }, 60);-->
+<!--}-->
+<!--window.addEventListener('scroll', updateNavByScroll, { passive: true });-->
+
+<!--/* ==================================================================-->
+<!--   渲染汇总视图-->
+<!--================================================================== */-->
+<!--let dragItem = null;-->
+<!--let dragFromGroupKey = null;-->
+
+<!--function renderSummaryView() {-->
+<!--  const el = $('summaryView');-->
+<!--  el.innerHTML = '';-->
+<!--  if (!state.colorGroups.length) {-->
+<!--    el.textContent = '无数据';-->
+<!--    buildSummaryNav();-->
+<!--    return;-->
+<!--  }-->
+
+<!--  state.colorGroups.forEach(g => {-->
+<!--    const section = document.createElement('div');-->
+<!--    section.className = 'group-section';-->
+<!--    section.id = `group-${g.key}`;-->
+
+<!--    const header = document.createElement('div');-->
+<!--    header.className = 'group-header';-->
+
+<!--    const title = document.createElement('span');-->
+<!--    title.className = 'group-title';-->
+<!--    title.textContent = '颜色分组：';-->
+<!--    header.appendChild(title);-->
+
+<!--    const input = document.createElement('input');-->
+<!--    input.type = 'text';-->
+<!--    input.className = 'color-name-input';-->
+<!--    input.value = g.displayName;-->
+<!--    input.dataset.key = g.key;-->
+<!--    input.addEventListener('change', () => {-->
+<!--      state.colorOverrides.set(g.key, input.value.trim());-->
+<!--      applyDisplayNames();-->
+<!--      saveStateDebounced();-->
+<!--      renderSummaryView();-->
+<!--    });-->
+<!--    header.appendChild(input);-->
+
+<!--    const meta = document.createElement('span');-->
+<!--    meta.className = 'group-meta';-->
+<!--    const pct = g.grandTotal > 0 ? (g.total * 100 / g.grandTotal).toFixed(2) : '0.00';-->
+<!--    meta.textContent = `总销量 ${g.total} ｜ 整体占比 ${pct}% ｜ ${g.items.length} 条`;-->
+<!--    header.appendChild(meta);-->
+<!--    section.appendChild(header);-->
+
+<!--    const grid = document.createElement('div');-->
+<!--    grid.className = 'grid';-->
+
+<!--    grid.addEventListener('dragover', e => {-->
+<!--      e.preventDefault();-->
+<!--      e.dataTransfer.dropEffect = 'move';-->
+<!--      grid.classList.add('drop-hover');-->
+<!--    });-->
+<!--    grid.addEventListener('dragleave', e => {-->
+<!--      if (e.target === grid) grid.classList.remove('drop-hover');-->
+<!--    });-->
+<!--    grid.addEventListener('drop', e => {-->
+<!--      e.preventDefault();-->
+<!--      grid.classList.remove('drop-hover');-->
+<!--      if (!dragItem || !dragFromGroupKey) return;-->
+<!--      if (dragFromGroupKey === g.key) return;-->
+<!--      moveItemToGroup(dragItem, g.key);-->
+<!--    });-->
+
+<!--    for (const it of g.items) {-->
+<!--      const d = document.createElement('div');-->
+<!--      d.className = 'color-card';-->
+<!--      d.draggable = true;-->
+<!--      d.dataset.fromGroup = g.key;-->
+
+<!--      d.addEventListener('dragstart', e => {-->
+<!--        dragItem = it;-->
+<!--        dragFromGroupKey = g.key;-->
+<!--        lastDragY = e.clientY;-->
+<!--        e.dataTransfer.effectAllowed = 'move';-->
+<!--        try { e.dataTransfer.setData('text/plain', it.repAsin || 'item'); } catch (_) {}-->
+<!--        d.classList.add('dragging');-->
+<!--      });-->
+<!--      d.addEventListener('dragend', () => {-->
+<!--        d.classList.remove('dragging');-->
+<!--        dragItem = null;-->
+<!--        dragFromGroupKey = null;-->
+<!--        if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = null; }-->
+<!--        document.querySelectorAll('.grid.drop-hover').forEach(x => x.classList.remove('drop-hover'));-->
+<!--        document.querySelectorAll('.nav-item.nav-drop-hover').forEach(x => x.classList.remove('nav-drop-hover'));-->
+<!--      });-->
+<!--      d.addEventListener('dragover', e => { e.preventDefault(); });-->
+
+<!--      const thumb = document.createElement('div');-->
+<!--      thumb.className = 'thumb';-->
+<!--      if (it.img) {-->
+<!--        const img = document.createElement('img');-->
+<!--        img.src = it.img; img.loading = 'lazy';-->
+<!--        img.onerror = () => { thumb.textContent = '加载失败'; };-->
+<!--        thumb.appendChild(img);-->
+<!--      } else { thumb.textContent = '无主图'; }-->
+<!--      d.appendChild(thumb);-->
+
+<!--      const name = document.createElement('div');-->
+<!--      name.className = 'name';-->
+<!--      name.textContent = it.raw || '(未命名)';-->
+<!--      d.appendChild(name);-->
+
+<!--      const info = document.createElement('div');-->
+<!--      info.className = 'info';-->
+<!--      info.textContent = `销量 ${it.sales} ｜ 组内 ${it.groupRatio.toFixed(1)}%`;-->
+<!--      d.appendChild(info);-->
+
+<!--      const sub = document.createElement('div');-->
+<!--      sub.className = 'sub';-->
+<!--      sub.textContent = `${it.parent}｜${it.repAsin}`;-->
+<!--      d.appendChild(sub);-->
+
+<!--      grid.appendChild(d);-->
+<!--    }-->
+<!--    section.appendChild(grid);-->
+<!--    section.appendChild(makeSizeRow(g.sizes));-->
+
+<!--    section.addEventListener('mouseenter', () => setActiveNav(g.key));-->
+<!--    section.addEventListener('mouseleave', () => {-->
+<!--      updateNavByScroll();-->
+<!--    });-->
+
+<!--    el.appendChild(section);-->
+<!--  });-->
+
+<!--  buildSummaryNav();-->
+<!--  setTimeout(updateNavByScroll, 50);-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   移动产品-->
+<!--================================================================== */-->
+<!--function moveItemToGroup(item, targetGroupKey) {-->
+<!--  for (const g of state.colorGroups) {-->
+<!--    const idx = g.items.indexOf(item);-->
+<!--    if (idx >= 0) {-->
+<!--      g.items.splice(idx, 1);-->
+<!--      g.total = g.items.reduce((s, it) => s + it.sales, 0);-->
+<!--      break;-->
+<!--    }-->
+<!--  }-->
+<!--  const target = state.colorGroups.find(g => g.key === targetGroupKey);-->
+<!--  if (target) {-->
+<!--    target.items.push(item);-->
+<!--    target.total = target.items.reduce((s, it) => s + it.sales, 0);-->
+<!--  }-->
+<!--  state.colorGroups = state.colorGroups.filter(g => g.items.length > 0 || g.custom);-->
+<!--  recomputeGroupRatios();-->
+<!--  applyDisplayNames();-->
+<!--  // 如果勾选了“调整后自动按销量排序”，则自动按销量降序重排-->
+<!--  const chk = document.getElementById('chkAutoSort');-->
+<!--  if (chk && chk.checked) {-->
+<!--    state.sortMode = 'sales';-->
+<!--    state.colorGroups.sort((a, b) => b.total - a.total);-->
+<!--  }-->
+<!--  renderSummaryView();-->
+<!--  saveStateDebounced();-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   新增分组-->
+<!--================================================================== */-->
+<!--function addNewGroup() {-->
+<!--  const name = prompt('请输入新颜色分组名称：', '');-->
+<!--  if (name == null) return;-->
+<!--  const trimmed = String(name).trim();-->
+<!--  if (!trimmed) return;-->
+<!--  const key = 'custom_' + Date.now();-->
+<!--  state.colorGroups.push({-->
+<!--    key,-->
+<!--    topName: trimmed,-->
+<!--    displayName: trimmed,-->
+<!--    items: [],-->
+<!--    total: 0,-->
+<!--    grandTotal: 0,-->
+<!--    sizes: [],-->
+<!--    custom: true,-->
+<!--  });-->
+<!--  recomputeGroupRatios();-->
+<!--  applyDisplayNames();-->
+<!--  renderSummaryView();-->
+<!--  saveStateDebounced();-->
+<!--  setTimeout(() => {-->
+<!--    const target = document.getElementById('group-' + key);-->
+<!--    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });-->
+<!--  }, 100);-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   图片抓取-->
+<!--================================================================== */-->
+<!--const imgCache = new Map();-->
+<!--async function fetchImage(url) {-->
+<!--  if (!url) return null;-->
+<!--  try {-->
+<!--    const resp = await fetch(url, { mode: 'cors', cache: 'force-cache' });-->
+<!--    if (!resp.ok) return null;-->
+<!--    const blob = await resp.blob();-->
+<!--    const buf = await blob.arrayBuffer();-->
+<!--    let ext = 'jpeg';-->
+<!--    const ct = (blob.type || '').toLowerCase();-->
+<!--    if (ct.includes('png')) ext = 'png';-->
+<!--    else if (ct.includes('gif')) ext = 'gif';-->
+<!--    else if (ct.includes('jpeg') || ct.includes('jpg')) ext = 'jpeg';-->
+<!--    else if (/\.png(\?|$)/i.test(url)) ext = 'png';-->
+<!--    return { buffer: new Uint8Array(buf), ext };-->
+<!--  } catch (e) { return null; }-->
+<!--}-->
+<!--function getImageBuffer(url) {-->
+<!--  if (!url) return Promise.resolve(null);-->
+<!--  if (!imgCache.has(url)) imgCache.set(url, fetchImage(url));-->
+<!--  return imgCache.get(url);-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   导出单款视图-->
+<!--================================================================== */-->
+<!--async function exportSingleZip() {-->
+<!--  const status = $('exportSummary');-->
+<!--  if (!state.singleView.length) { status.textContent = '没有单款视图数据。'; return; }-->
+<!--  try {-->
+<!--    status.textContent = '准备单款视图导出...';-->
+<!--    const wb = new ExcelJS.Workbook();-->
+<!--    const ws = wb.addWorksheet('单款视图');-->
+<!--    let maxColors = 0;-->
+<!--    for (const p of state.singleView) maxColors = Math.max(maxColors, p.items.length);-->
+<!--    ws.getColumn(1).width = 18;-->
+<!--    ws.getColumn(2).width = 10;-->
+<!--    for (let i = 0; i < maxColors; i++) ws.getColumn(3 + i).width = 14;-->
+<!--    ws.getCell(1, 1).value = 'ASIN';-->
+<!--    ws.getCell(1, 2).value = '数据指标';-->
+<!--    for (let i = 0; i < maxColors; i++) ws.getCell(1, 3 + i).value = `top${i + 1}`;-->
+<!--    ws.getRow(1).font = { bold: true };-->
+
+<!--    const imageIdCache = new Map();-->
+<!--    let row = 2;-->
+<!--    for (const p of state.singleView) {-->
+<!--      const startRow = row;-->
+<!--      ws.mergeCells(startRow, 1, startRow + 3, 1);-->
+<!--      ws.getCell(startRow, 1).value = p.parent;-->
+<!--      ws.getCell(startRow, 1).alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--      ws.getCell(startRow, 2).value = '颜色';-->
+<!--      ws.getCell(startRow + 2, 2).value = '销量';-->
+<!--      ws.getCell(startRow + 3, 2).value = '占比';-->
+<!--      for (let i = 0; i < p.items.length; i++) {-->
+<!--        const it = p.items[i];-->
+<!--        const col = 3 + i;-->
+<!--        ws.getCell(startRow + 1, col).value = it.raw || '';-->
+<!--        ws.getCell(startRow + 2, col).value = it.sales;-->
+<!--        const rc = ws.getCell(startRow + 3, col);-->
+<!--        rc.value = it.ratio / 100;-->
+<!--        rc.numFmt = '0.0%';-->
+<!--        const data = await getImageBuffer(it.img);-->
+<!--        if (data) {-->
+<!--          let imgId = imageIdCache.get(it.img);-->
+<!--          if (imgId === undefined) {-->
+<!--            imgId = wb.addImage({ buffer: data.buffer, extension: data.ext });-->
+<!--            imageIdCache.set(it.img, imgId);-->
+<!--          }-->
+<!--          ws.addImage(imgId, {-->
+<!--            tl: { col: col - 1 + 0.05, row: startRow - 1 + 0.05 },-->
+<!--            ext: { width: 90, height: 120 },-->
+<!--            editAs: 'oneCell',-->
+<!--          });-->
+<!--        }-->
+<!--      }-->
+<!--      ws.getCell(startRow + 4, 2).value = '尺码排名';-->
+<!--      const sizeText = (p.sizes && p.sizes.length)-->
+<!--        ? p.sizes.map((s, i) => `${i+1}.${s.size}:${s.sales}`).join(' | ')-->
+<!--        : '（无尺码数据）';-->
+<!--      ws.mergeCells(startRow + 4, 3, startRow + 4, 3 + Math.max(0, maxColors - 1));-->
+<!--      ws.getCell(startRow + 4, 3).value = sizeText;-->
+<!--      ws.getCell(startRow + 4, 3).alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };-->
+<!--      ws.getCell(startRow + 4, 2).font = { bold: true };-->
+
+<!--      ws.getRow(startRow).height = 125;-->
+<!--      ws.getRow(startRow + 1).height = 20;-->
+<!--      ws.getRow(startRow + 2).height = 20;-->
+<!--      ws.getRow(startRow + 3).height = 20;-->
+<!--      ws.getRow(startRow + 4).height = 22;-->
+<!--      row += 5;-->
+<!--    }-->
+
+<!--    const xlsxBuf = await wb.xlsx.writeBuffer();-->
+<!--    const zip = new JSZip();-->
+<!--    zip.file('单款视图.xlsx', xlsxBuf);-->
+<!--    const imgRoot = zip.folder('图片');-->
+<!--    for (const p of state.singleView) {-->
+<!--      const sub = imgRoot.folder(sanitizeName(p.parent));-->
+<!--      let n = 0;-->
+<!--      for (const it of p.items) {-->
+<!--        const data = await getImageBuffer(it.img);-->
+<!--        if (!data) continue;-->
+<!--        n++;-->
+<!--        sub.file(String(n).padStart(2, '0') + '.' + data.ext, data.buffer);-->
+<!--      }-->
+<!--    }-->
+<!--    status.textContent = '打包 zip 中...';-->
+<!--    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });-->
+<!--    downloadBlob(blob, '单款视图.zip');-->
+<!--    status.textContent = '✅ 单款视图导出完成（Excel + 图片文件夹）';-->
+<!--  } catch (e) {-->
+<!--    console.error(e);-->
+<!--    status.textContent = '导出失败：' + e.message;-->
+<!--  }-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   导出汇总视图（强制按销量降序）-->
+<!--================================================================== */-->
+<!--async function exportSummaryZip() {-->
+<!--  const status = $('exportSummary');-->
+<!--  if (!state.colorGroups.length) { status.textContent = '没有汇总视图数据。'; return; }-->
+<!--  try {-->
+<!--    status.textContent = '准备汇总视图导出...';-->
+<!--    const wb = new ExcelJS.Workbook();-->
+<!--    const ws = wb.addWorksheet('汇总视图');-->
+
+<!--    // 导出时无论页面上是哪种排序，都强制按销量降序输出-->
+<!--    const exportGroups = state.colorGroups.slice().sort((a, b) => b.total - a.total);-->
+
+<!--    ws.getCell(1, 1).value = '排序';-->
+<!--    ws.getCell(1, 2).value = '颜色整体销量';-->
+<!--    ws.getCell(1, 3).value = '颜色整体占比';-->
+<!--    ws.getCell(1, 4).value = '颜色';-->
+<!--    ws.getRow(1).font = { bold: true };-->
+<!--    ws.getRow(1).height = 30;-->
+
+<!--    const colWidths = [6, 14, 14, 16];-->
+<!--    colWidths.forEach((w, i) => ws.getColumn(i + 1).width = w);-->
+<!--    let maxProducts = 0;-->
+<!--    for (const g of exportGroups) maxProducts = Math.max(maxProducts, g.items.length);-->
+<!--    for (let i = 0; i < maxProducts; i++) ws.getColumn(5 + i).width = 14;-->
+
+<!--    const imageIdCache = new Map();-->
+<!--    let row = 2;-->
+<!--    let sortIdx = 1;-->
+
+<!--    for (const g of exportGroups) {-->
+<!--      const startRow = row;-->
+<!--      ws.mergeCells(startRow, 1, startRow + 2, 1);-->
+<!--      ws.mergeCells(startRow, 2, startRow + 2, 2);-->
+<!--      ws.mergeCells(startRow, 3, startRow + 2, 3);-->
+<!--      ws.mergeCells(startRow, 4, startRow + 2, 4);-->
+
+<!--      ws.getCell(startRow, 1).value = sortIdx++;-->
+<!--      ws.getCell(startRow, 1).alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--      ws.getCell(startRow, 2).value = g.total;-->
+<!--      ws.getCell(startRow, 2).alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--      const pctCell = ws.getCell(startRow, 3);-->
+<!--      pctCell.value = g.grandTotal > 0 ? g.total / g.grandTotal : 0;-->
+<!--      pctCell.numFmt = '0.00%';-->
+<!--      pctCell.alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--      ws.getCell(startRow, 4).value = g.displayName;-->
+<!--      ws.getCell(startRow, 4).alignment = { vertical: 'middle', horizontal: 'center' };-->
+
+<!--      for (let i = 0; i < g.items.length; i++) {-->
+<!--        const it = g.items[i];-->
+<!--        const col = 5 + i;-->
+<!--        ws.getCell(startRow + 1, col).value = it.raw || '';-->
+<!--        ws.getCell(startRow + 1, col).alignment = { horizontal: 'center' };-->
+<!--        ws.getCell(startRow + 2, col).value = it.sales;-->
+<!--        ws.getCell(startRow + 2, col).alignment = { horizontal: 'center' };-->
+<!--        const data = await getImageBuffer(it.img);-->
+<!--        if (data) {-->
+<!--          let imgId = imageIdCache.get(it.img);-->
+<!--          if (imgId === undefined) {-->
+<!--            imgId = wb.addImage({ buffer: data.buffer, extension: data.ext });-->
+<!--            imageIdCache.set(it.img, imgId);-->
+<!--          }-->
+<!--          ws.addImage(imgId, {-->
+<!--            tl: { col: col - 1 + 0.05, row: startRow - 1 + 0.05 },-->
+<!--            ext: { width: 90, height: 120 },-->
+<!--            editAs: 'oneCell',-->
+<!--          });-->
+<!--        }-->
+<!--      }-->
+
+<!--      ws.getCell(startRow + 3, 4).value = '尺码排名';-->
+<!--      ws.getCell(startRow + 3, 4).font = { bold: true };-->
+<!--      ws.getCell(startRow + 3, 4).alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--      const sizeText = (g.sizes && g.sizes.length)-->
+<!--        ? g.sizes.map((s, i) => `${i+1}.${s.size}:${s.sales}`).join(' | ')-->
+<!--        : '（无尺码数据）';-->
+<!--      ws.mergeCells(startRow + 3, 5, startRow + 3, 5 + Math.max(0, maxProducts - 1));-->
+<!--      ws.getCell(startRow + 3, 5).value = sizeText;-->
+<!--      ws.getCell(startRow + 3, 5).alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };-->
+
+<!--      ws.getRow(startRow).height = 125;-->
+<!--      ws.getRow(startRow + 1).height = 20;-->
+<!--      ws.getRow(startRow + 2).height = 20;-->
+<!--      ws.getRow(startRow + 3).height = 22;-->
+<!--      row += 4;-->
+<!--    }-->
+
+<!--    const xlsxBuf = await wb.xlsx.writeBuffer();-->
+<!--    const zip = new JSZip();-->
+<!--    zip.file('汇总视图.xlsx', xlsxBuf);-->
+
+<!--    const imgRoot = zip.folder('图片');-->
+<!--    const usedNames = new Set();-->
+<!--    for (const g of exportGroups) {-->
+<!--      let fname = sanitizeName(g.displayName);-->
+<!--      let n = 1;-->
+<!--      const base = fname;-->
+<!--      while (usedNames.has(fname)) { n++; fname = `${base}_${n}`; }-->
+<!--      usedNames.add(fname);-->
+<!--      const sub = imgRoot.folder(fname);-->
+<!--      let idx = 0;-->
+<!--      for (const it of g.items) {-->
+<!--        const data = await getImageBuffer(it.img);-->
+<!--        if (!data) continue;-->
+<!--        idx++;-->
+<!--        sub.file(String(idx).padStart(2, '0') + '.' + data.ext, data.buffer);-->
+<!--      }-->
+<!--    }-->
+
+<!--    status.textContent = '打包 zip 中...';-->
+<!--    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });-->
+<!--    downloadBlob(blob, '汇总视图.zip');-->
+<!--    status.textContent = '✅ 汇总视图导出完成（Excel + 按颜色分组的图片文件夹，已按销量降序）';-->
+<!--  } catch (e) {-->
+<!--    console.error(e);-->
+<!--    status.textContent = '导出失败：' + e.message;-->
+<!--  }-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   下载合并表格（含图片）-->
+<!--================================================================== */-->
+<!--async function downloadMergedTable() {-->
+<!--  if (!state.allRecords.length) return;-->
+<!--  const status = $('mainSummary');-->
+<!--  const totalRows = state.allRecords.length;-->
+<!--  const hasImg = state.asinImageMap.size > 0;-->
+<!--  if (!hasImg) {-->
+<!--    if (!confirm('当前还没有加载主图数据（请先上传③主图文件）。\n是否继续下载（图片列将为空）？')) return;-->
+<!--  }-->
+<!--  status.textContent = `正在生成合并表格（共 ${totalRows} 行，含图片，可能需要一些时间）...`;-->
+
+<!--  try {-->
+<!--    const wb = new ExcelJS.Workbook();-->
+<!--    const ws = wb.addWorksheet('合并数据');-->
+<!--    const headers = ['父ASIN','子ASIN','颜色','尺码','销量','来源文件','来源子表','商品主图'];-->
+<!--    headers.forEach((h, i) => {-->
+<!--      const c = ws.getCell(1, i + 1);-->
+<!--      c.value = h;-->
+<!--      c.font = { bold: true };-->
+<!--      c.alignment = { vertical: 'middle', horizontal: 'center' };-->
+<!--    });-->
+<!--    ws.getRow(1).height = 24;-->
+<!--    const widths = [14, 14, 20, 10, 10, 26, 22, 14];-->
+<!--    widths.forEach((w, i) => ws.getColumn(i + 1).width = w);-->
+
+<!--    const imageIdCache = new Map();-->
+<!--    let imgCount = 0;-->
+<!--    for (let i = 0; i < state.allRecords.length; i++) {-->
+<!--      const r = state.allRecords[i];-->
+<!--      const rowIdx = i + 2;-->
+<!--      ws.getCell(rowIdx, 1).value = r.parent || '';-->
+<!--      ws.getCell(rowIdx, 2).value = r.asin || '';-->
+<!--      ws.getCell(rowIdx, 3).value = r.colorRaw || '';-->
+<!--      ws.getCell(rowIdx, 4).value = r.size || '';-->
+<!--      ws.getCell(rowIdx, 5).value = r.sales || 0;-->
+<!--      ws.getCell(rowIdx, 6).value = r.sourceFile || '';-->
+<!--      ws.getCell(rowIdx, 7).value = r.sourceSheet || '';-->
+<!--      ws.getRow(rowIdx).height = 62;-->
+
+<!--      const imgUrl = r.asin ? state.asinImageMap.get(r.asin) : '';-->
+<!--      if (imgUrl) {-->
+<!--        const data = await getImageBuffer(imgUrl);-->
+<!--        if (data) {-->
+<!--          let imgId = imageIdCache.get(imgUrl);-->
+<!--          if (imgId === undefined) {-->
+<!--            imgId = wb.addImage({ buffer: data.buffer, extension: data.ext });-->
+<!--            imageIdCache.set(imgUrl, imgId);-->
+<!--          }-->
+<!--          ws.addImage(imgId, {-->
+<!--            tl: { col: 7 + 0.05, row: rowIdx - 1 + 0.05 },-->
+<!--            ext: { width: 76, height: 96 },-->
+<!--            editAs: 'oneCell',-->
+<!--          });-->
+<!--          imgCount++;-->
+<!--        }-->
+<!--      }-->
+
+<!--      if ((i + 1) % 50 === 0) {-->
+<!--        status.textContent = `正在生成合并表格... ${i + 1}/${totalRows} 行（图片 ${imgCount} 张）`;-->
+<!--        await new Promise(res => setTimeout(res, 0));-->
+<!--      }-->
+<!--    }-->
+
+<!--    status.textContent = '写入 Excel 中...';-->
+<!--    const buf = await wb.xlsx.writeBuffer();-->
+<!--    downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), '合并数据.xlsx');-->
+<!--    status.textContent = `✅ 合并表格已生成：${totalRows} 行，${imgCount} 张图片。`;-->
+<!--  } catch (e) {-->
+<!--    console.error(e);-->
+<!--    status.textContent = '生成合并表格失败：' + e.message;-->
+<!--  }-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   应用 ASIN 筛选-->
+<!--================================================================== */-->
+<!--function applyAsinFilter() {-->
+<!--  const text = $('keepAsinText').value || '';-->
+<!--  const tokens = text.split(/[\s,，;；、|]+/).map(s => s.trim().toUpperCase()).filter(Boolean);-->
+
+<!--  if (!tokens.length) {-->
+<!--    state.records = state.allRecords.slice();-->
+<!--    const asinSet = new Set();-->
+<!--    for (const rec of state.allRecords) if (rec.asin) asinSet.add(rec.asin);-->
+<!--    state.allAsins = Array.from(asinSet);-->
+<!--    $('filterSummary').textContent = `未输入 ASIN，保留全部 ${state.allAsins.length} 个 ASIN（${state.records.length} 条记录）。`;-->
+<!--    $('filterSummary').className = 'summary';-->
+<!--  } else {-->
+<!--    const keepSet = new Set(tokens);-->
+<!--    state.records = state.allRecords.filter(r => keepSet.has(r.asin));-->
+<!--    const asinSet = new Set();-->
+<!--    for (const rec of state.records) if (rec.asin) asinSet.add(rec.asin);-->
+<!--    state.allAsins = Array.from(asinSet);-->
+<!--    const matched = state.allAsins.length;-->
+<!--    const missed = tokens.length - matched;-->
+<!--    $('filterSummary').textContent = `已筛选：输入 ${tokens.length} 个 ASIN，匹配 ${matched} 个，未匹配 ${missed} 个；共 ${state.records.length} 条记录。`;-->
+<!--    $('filterSummary').className = missed > 0 ? 'summary warn' : 'summary ok';-->
+<!--  }-->
+
+<!--  buildAsinGroups();-->
+
+<!--  state.singleView = [];-->
+<!--  state.colorGroups = [];-->
+<!--  $('sec-single').classList.add('hidden');-->
+<!--  $('sec-summary').classList.add('hidden');-->
+<!--  $('sec-export').classList.add('hidden');-->
+<!--  $('processSummary').textContent = '数据已更新，请重新点击“开始处理”。';-->
+
+<!--  saveStateDebounced();-->
+<!--  updateSideNav();-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   清空全部数据-->
+<!--================================================================== */-->
+<!--function clearAll() {-->
+<!--  if (!confirm('确定要清空全部数据吗？\n（包括已解析记录、分组、视图、主图映射，此操作不可撤销）')) return;-->
+
+<!--  clearState();-->
+<!--  state.mainBooks = [];-->
+<!--  state.imgBooks = [];-->
+<!--  state.allRecords = [];-->
+<!--  state.records = [];-->
+<!--  state.asinImageMap = new Map();-->
+<!--  state.singleView = [];-->
+<!--  state.colorGroups = [];-->
+<!--  state.colorOverrides = new Map();-->
+<!--  state.asinGroups = [];-->
+<!--  state.allAsins = [];-->
+<!--  state.sortMode = 'color';-->
+<!--  state.monthRange = null;-->
+<!--  state.availableMonths = [];-->
+<!--  imgFilesCache = [];-->
+<!--  imgCache.clear();-->
+
+<!--  $('mainSummary').textContent = '';-->
+<!--  $('filterSummary').textContent = '';-->
+<!--  $('imgSummary').textContent = '';-->
+<!--  $('processSummary').textContent = '';-->
+<!--  $('exportSummary').textContent = '';-->
+<!--  $('keepAsinText').value = '';-->
+<!--  $('rangeStart').innerHTML = '<option value="">（先上传数据）</option>';-->
+<!--  $('rangeEnd').innerHTML = '<option value="">（先上传数据）</option>';-->
+<!--  $('rangeSummary').textContent = '当前：全部销量（所有以 20xx 开头的月份列 + 含“销量”的列）';-->
+<!--  $('singleView').innerHTML = '';-->
+<!--  $('summaryView').innerHTML = '';-->
+<!--  $('asinGroups').innerHTML = '';-->
+<!--  $('asinSummary').textContent = '';-->
+<!--  const nav = $('summaryNav');-->
+<!--  if (nav) nav.innerHTML = '';-->
+<!--  $('btnDownloadMerged').disabled = true;-->
+<!--  $('btnApplyFilter').disabled = true;-->
+<!--  ['sec-asin','sec-single','sec-summary','sec-export'].forEach(id => $(id).classList.add('hidden'));-->
+
+<!--  $('mainFolder').value = '';-->
+<!--  $('mainFiles').value = '';-->
+<!--  $('imgFolder').value = '';-->
+<!--  $('imgFiles').value = '';-->
+
+<!--  updateSideNav();-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   填充月份下拉框-->
+<!--================================================================== */-->
+<!--function fillMonthSelects() {-->
+<!--  const startSel = $('rangeStart');-->
+<!--  const endSel = $('rangeEnd');-->
+<!--  startSel.innerHTML = '';-->
+<!--  endSel.innerHTML = '';-->
+<!--  if (!state.availableMonths.length) {-->
+<!--    startSel.innerHTML = '<option value="">（无月份）</option>';-->
+<!--    endSel.innerHTML = '<option value="">（无月份）</option>';-->
+<!--    return;-->
+<!--  }-->
+<!--  state.availableMonths.forEach(m => {-->
+<!--    const o1 = document.createElement('option');-->
+<!--    o1.value = m; o1.textContent = m;-->
+<!--    startSel.appendChild(o1);-->
+<!--    const o2 = document.createElement('option');-->
+<!--    o2.value = m; o2.textContent = m;-->
+<!--    endSel.appendChild(o2);-->
+<!--  });-->
+<!--  startSel.value = state.availableMonths[0];-->
+<!--  endSel.value = state.availableMonths[state.availableMonths.length - 1];-->
+<!--}-->
+
+<!--/* ==================================================================-->
+<!--   事件绑定-->
+<!--================================================================== */-->
+<!--async function handleMainFiles(files) {-->
+<!--  if (!files.length) return;-->
+<!--  $('mainSummary').textContent = `已选择 ${files.length} 个文件，正在解析...`;-->
+
+<!--  const books = await readAllWorkbooks(files);-->
+<!--  state.mainBooks = books;-->
+
+<!--  const keyword = ($('sheetKeyword').value || '').trim();-->
+<!--  const headerRow = parseInt($('headerRow').value, 10) || 1;-->
+
+<!--  state.availableMonths = collectAvailableMonths(books, keyword, headerRow);-->
+<!--  fillMonthSelects();-->
+
+<!--  if (state.monthRange) {-->
+<!--    state.monthRange = null;-->
+<!--  }-->
+<!--  if (state.availableMonths.length) {-->
+<!--    $('rangeStart').value = state.availableMonths[0];-->
+<!--    $('rangeEnd').value = state.availableMonths[state.availableMonths.length - 1];-->
+<!--    $('rangeSummary').textContent = `已识别 ${state.availableMonths.length} 个月份列（${state.availableMonths[0]} ~ ${state.availableMonths[state.availableMonths.length - 1]}），当前使用：全部销量`;-->
+<!--  } else {-->
+<!--    $('rangeSummary').textContent = '未识别到月份列，将使用含“销量/sales/units”的列作为销量来源。';-->
+<!--  }-->
+
+<!--  reextractFromMainBooks();-->
+<!--}-->
+
+<!--/* 从已存储的主数据工作簿重新提取 */-->
+<!--function reextractFromMainBooks() {-->
+<!--  if (!state.mainBooks.length) return;-->
+<!--  const keyword = ($('sheetKeyword').value || '').trim();-->
+<!--  const headerRow = parseInt($('headerRow').value, 10) || 1;-->
+
+<!--  state.allRecords = extractRecords(state.mainBooks, keyword, headerRow, state.monthRange);-->
+<!--  if (!state.allRecords.length) {-->
+<!--    $('mainSummary').textContent = '没有提取到任何记录，请检查“子表关键字”、“表头行”与销量范围设置。';-->
+<!--    return;-->
+<!--  }-->
+
+<!--  const text = $('keepAsinText').value || '';-->
+<!--  const tokens = text.split(/[\s,，;；、|]+/).map(s => s.trim().toUpperCase()).filter(Boolean);-->
+<!--  if (tokens.length) {-->
+<!--    const keepSet = new Set(tokens);-->
+<!--    state.records = state.allRecords.filter(r => keepSet.has(r.asin));-->
+<!--    const asinSet = new Set();-->
+<!--    for (const rec of state.records) if (rec.asin) asinSet.add(rec.asin);-->
+<!--    state.allAsins = Array.from(asinSet);-->
+<!--  } else {-->
+<!--    state.records = state.allRecords.slice();-->
+<!--    const asinSet = new Set();-->
+<!--    for (const rec of state.allRecords) if (rec.asin) asinSet.add(rec.asin);-->
+<!--    state.allAsins = Array.from(asinSet);-->
+<!--  }-->
+
+<!--  const rangeText = state.monthRange-->
+<!--    ? `范围：${fmtMonthStr(state.monthRange.start.getFullYear(), state.monthRange.start.getMonth() + 1)} ~ ${fmtMonthStr(state.monthRange.end.getFullYear(), state.monthRange.end.getMonth() + 1)}`-->
+<!--    : '范围：全部销量';-->
+<!--  $('mainSummary').textContent = `主数据解析完成：共 ${state.allRecords.length} 条记录，${state.allAsins.length} 个唯一 ASIN。${rangeText}。可上传主图后下载合并表格（含图片）。`;-->
+<!--  $('filterSummary').textContent = '可粘贴要保留的 ASIN 并点击“应用筛选”。';-->
+<!--  $('filterSummary').className = 'summary';-->
+
+<!--  $('btnDownloadMerged').disabled = false;-->
+<!--  $('btnApplyFilter').disabled = false;-->
+
+<!--  buildAsinGroups();-->
+<!--  $('sec-asin').classList.remove('hidden');-->
+
+<!--  state.singleView = [];-->
+<!--  state.colorGroups = [];-->
+<!--  $('sec-single').classList.add('hidden');-->
+<!--  $('sec-summary').classList.add('hidden');-->
+<!--  $('sec-export').classList.add('hidden');-->
+<!--  $('processSummary').textContent = '';-->
+
+<!--  saveStateDebounced();-->
+<!--  updateSideNav();-->
+<!--}-->
+
+<!--$('mainFolder').addEventListener('change', async e => {-->
+<!--  const files = collectFiles([e.target.files]);-->
+<!--  await handleMainFiles(files);-->
+<!--});-->
+<!--$('mainFiles').addEventListener('change', async e => {-->
+<!--  const files = collectFiles([e.target.files]);-->
+<!--  await handleMainFiles(files);-->
+<!--});-->
+
+<!--/* 销量范围按钮 */-->
+<!--$('btnLast12m').addEventListener('click', () => {-->
+<!--  if (!state.availableMonths.length) {-->
+<!--    alert('请先上传主数据文件，系统会自动识别可用的月份列。');-->
+<!--    return;-->
+<!--  }-->
+<!--  const latest = state.availableMonths[state.availableMonths.length - 1];-->
+<!--  const [ly, lm] = latest.split('-').map(n => parseInt(n, 10));-->
+<!--  const endDate = new Date(ly, lm - 1, 1);-->
+<!--  const startDate = new Date(ly, lm - 12, 1);-->
+
+<!--  const inRange = state.availableMonths.filter(m => {-->
+<!--    const [y, mo] = m.split('-').map(n => parseInt(n, 10));-->
+<!--    const d = new Date(y, mo - 1, 1);-->
+<!--    return d >= startDate && d <= endDate;-->
+<!--  });-->
+<!--  if (!inRange.length) { alert('数据中没有找到近12个月的月份列。'); return; }-->
+<!--  const s = inRange[0], e = inRange[inRange.length - 1];-->
+<!--  $('rangeStart').value = s;-->
+<!--  $('rangeEnd').value = e;-->
+<!--  state.monthRange = { start: monthStrToDate(s), end: monthStrToDate(e) };-->
+<!--  $('rangeSummary').textContent = `当前范围：${s} ~ ${e}（从数据中最新月份 ${latest} 起算，共 ${inRange.length} 个月）`;-->
+<!--  reextractFromMainBooks();-->
+<!--});-->
+
+<!--$('btnAllSales').addEventListener('click', () => {-->
+<!--  state.monthRange = null;-->
+<!--  if (state.availableMonths.length) {-->
+<!--    $('rangeStart').value = state.availableMonths[0];-->
+<!--    $('rangeEnd').value = state.availableMonths[state.availableMonths.length - 1];-->
+<!--  }-->
+<!--  $('rangeSummary').textContent = '当前：全部销量（所有以 20xx 开头的月份列 + 含“销量”的列）';-->
+<!--  if (state.mainBooks.length) reextractFromMainBooks();-->
+<!--});-->
+
+<!--$('btnApplyRange').addEventListener('click', () => {-->
+<!--  const s = $('rangeStart').value;-->
+<!--  const e = $('rangeEnd').value;-->
+<!--  if (!s || !e) {-->
+<!--    alert('请先选择“从”和“到”的月份，或直接点击“近12个月”/“全部销量”。');-->
+<!--    return;-->
+<!--  }-->
+<!--  const start = monthStrToDate(s);-->
+<!--  const end = monthStrToDate(e);-->
+<!--  if (!start || !end) { alert('月份格式不正确。'); return; }-->
+<!--  if (start > end) { alert('起始月份不能晚于结束月份。'); return; }-->
+<!--  state.monthRange = { start, end };-->
+<!--  $('rangeSummary').textContent = `当前范围：${s} ~ ${e}`;-->
+<!--  if (state.mainBooks.length) reextractFromMainBooks();-->
+<!--});-->
+
+<!--$('btnDownloadMerged').addEventListener('click', downloadMergedTable);-->
+<!--$('btnApplyFilter').addEventListener('click', applyAsinFilter);-->
+<!--$('btnClearAll').addEventListener('click', clearAll);-->
+
+<!--let imgFilesCache = [];-->
+<!--$('imgFolder').addEventListener('change', e => {-->
+<!--  imgFilesCache = collectFiles([e.target.files]);-->
+<!--  $('imgSummary').textContent = `已选择 ${imgFilesCache.length} 个主图文件。`;-->
+<!--});-->
+<!--$('imgFiles').addEventListener('change', e => {-->
+<!--  imgFilesCache = collectFiles([e.target.files]);-->
+<!--  $('imgSummary').textContent = `已选择 ${imgFilesCache.length} 个主图文件。`;-->
+<!--});-->
+
+<!--$('btnRegroup').addEventListener('click', buildAsinGroups);-->
+<!--$('btnAddGroup').addEventListener('click', addNewGroup);-->
+
+<!--$('btnProcess').addEventListener('click', async () => {-->
+<!--  const status = $('processSummary');-->
+<!--  if (!state.records.length) {-->
+<!--    status.textContent = '请先上传主数据，并按需应用 ASIN 筛选。';-->
+<!--    return;-->
+<!--  }-->
+<!--  try {-->
+<!--    status.textContent = '解析主图文件...';-->
+<!--    if (imgFilesCache.length) {-->
+<!--      const imgBooks = await readAllWorkbooks(imgFilesCache);-->
+<!--      state.asinImageMap = buildImageMap(imgBooks);-->
+<!--    } else if (state.asinImageMap.size > 0) {-->
+<!--      // 恢复时保留-->
+<!--    } else {-->
+<!--      state.asinImageMap = new Map();-->
+<!--    }-->
+
+<!--    status.textContent = '构建视图...';-->
+<!--    state.singleView = buildSingleView(state.records);-->
+<!--    state.colorGroups = buildColorGroups(state.singleView);-->
+<!--    state.colorOverrides = new Map();-->
+<!--    applyDisplayNames();-->
+<!--    state.sortMode = 'sales';-->
+<!--    state.colorGroups.sort((a, b) => b.total - a.total);-->
+<!--    attachImages();-->
+
+<!--    renderSingleView();-->
+<!--    renderSummaryView();-->
+
+<!--    $('sec-single').classList.remove('hidden');-->
+<!--    $('sec-summary').classList.remove('hidden');-->
+<!--    $('sec-export').classList.remove('hidden');-->
+
+<!--    const parentCount = state.singleView.length;-->
+<!--    const totalItems = state.singleView.reduce((s, p) => s + p.items.length, 0);-->
+<!--    status.textContent = `✅ 处理完成：父ASIN ${parentCount} 个；单款颜色条目 ${totalItems} 条；汇总颜色分组 ${state.colorGroups.length} 个；主图映射 ${state.asinImageMap.size} 个 ASIN。`;-->
+
+<!--    saveStateDebounced();-->
+<!--    updateSideNav();-->
+<!--  } catch (e) {-->
+<!--    console.error(e);-->
+<!--    status.textContent = '处理失败：' + e.message;-->
+<!--  }-->
+<!--});-->
+
+<!--$('btnSortColor').addEventListener('click', () => {-->
+<!--  state.sortMode = 'color';-->
+<!--  state.colorGroups = sortGroupsByColorSimilarity();-->
+<!--  renderSummaryView();-->
+<!--  saveStateDebounced();-->
+<!--});-->
+<!--$('btnSortSales').addEventListener('click', () => {-->
+<!--  state.sortMode = 'sales';-->
+<!--  state.colorGroups.sort((a, b) => b.total - a.total);-->
+<!--  renderSummaryView();-->
+<!--  saveStateDebounced();-->
+<!--});-->
+
+<!--$('btnExportSingle').addEventListener('click', exportSingleZip);-->
+<!--$('btnExportSummary').addEventListener('click', exportSummaryZip);-->
+
+<!--/* ==================================================================-->
+<!--   初始化-->
+<!--================================================================== */-->
+<!--window.addEventListener('DOMContentLoaded', () => {-->
+<!--  const restored = loadState();-->
+<!--  if (restored) {-->
+<!--    renderAfterRestore();-->
+<!--    showSaveHint();-->
+<!--  }-->
+<!--  updateSideNav();-->
+<!--});-->
+<!--window.addEventListener('beforeunload', () => {-->
+<!--  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }-->
+<!--  saveState();-->
+<!--});-->
+
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
