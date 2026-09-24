@@ -1822,8 +1822,8 @@ $('btnProcess').addEventListener('click', async () => {
     state.colorGroups = buildColorGroups(state.singleView);
     state.colorOverrides = new Map();
     applyDisplayNames();
-    state.sortMode = 'color';
-    state.colorGroups = sortGroupsByColorSimilarity();
+    state.sortMode = 'sales';
+    state.colorGroups.sort((a, b) => b.total - a.total);
     attachImages();
 
     renderSingleView();
