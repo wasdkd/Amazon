@@ -1,0 +1,3435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊多维度选品决策系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+    <style>
+        .duplicate-product {
+    background-color: rgba(243, 156, 18, 0.1) !important;
+}
+
+.duplicate-product:hover {
+    background-color: rgba(243, 156, 18, 0.2) !important;
+}
+
+/* 高亮产品样式 */
+.highlighted {
+    background-color: rgba(52, 152, 219, 0.3) !important;
+    animation: highlight-pulse 1s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+    0% { background-color: rgba(52, 152, 219, 0.3); }
+    50% { background-color: rgba(52, 152, 219, 0.6); }
+    100% { background-color: rgba(52, 152, 219, 0.3); }
+}
+
+/* 重复产品指示器 */
+.duplicate-indicator {
+    color: #f39c12;
+    margin-left: 5px;
+}
+        /* 样式保持不变，与之前相同 */
+        :root {
+            --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --warning: #f39c12; --danger: #c0392b;
+            --bg: #f4f6f9; --border: #dde1e6;
+        }
+        body { font-family: 'Segoe UI', "Microsoft YaHei", sans-serif; margin: 0; padding: 20px; background: var(--bg); color: #333; font-size: 13px; }
+
+        /* === 核心组件 === */
+        .btn { padding: 6px 15px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-outline { background: #fff; border-color: #ccc; color: #555; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; border-color: #ccc; }
+        .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        .panel { background: #FFB; border: 1px solid var(--border); border-radius: 6px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+        .panel-title { font-size: 20px; font-weight: 1000; color: var(--primary); border-left: 4px solid var(--accent); padding-left: 10px; }
+
+        /* === 上传区 === */
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .drop-zone { border: 2px dashed #bdc3c7; border-radius: 6px; padding: 20px; text-align: center; cursor: pointer; background: #fdfdfd; transition: 0.3s; }
+        .drop-zone:hover { border-color: var(--accent); background: #f0f8ff; }
+        .file-status { margin-top: 8px; font-weight: bold; color: var(--success); font-size: 12px; }
+
+        /* === 配置区 === */
+        .config-wrapper { display: none; background: #fff; padding: 15px; border: 1px solid var(--accent); margin-top: 15px; border-radius: 6px; }
+        .config-wrapper.show { display: block; }
+
+        .config-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .weight-status { font-weight: bold; font-size: 13px; padding: 2px 8px; border-radius: 4px; }
+        .weight-ok { color: var(--success); background: #e8f5e9; }
+        .weight-err { color: var(--danger); background: #fdeaea; }
+
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
+.input-group { display: flex; flex-direction: column; background: #f9f9f9; padding: 8px; border: 1px solid #eee; border-radius: 4px; }
+.input-group label { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+.input-group input { border: 1px solid #ccc; padding: 4px; border-radius: 3px; font-weight: bold; color: var(--accent); max-width: 100%; box-sizing: border-box; }
+
+        /* === 筛选栏 === */
+        .filter-container { background: #e9ecef; padding: 10px; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .filter-item { display: flex; align-items: center; gap: 5px; font-size: 14px; }
+        .filter-item input { width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 3px; }
+        .filter-item select { padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+        .search-box { flex: 1; min-width: 10px; }
+        .search-box input { width: 90%; padding: 6px; border: 1px solid #999; border-radius: 4px; font-weight: bold; }
+
+        /* === 表格 === */
+        .table-wrapper { overflow-x: auto; border: 1px solid #ccc; max-height: 75vh; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1400px; background: #fff; }
+        th { background: var(--primary); color: #fff; padding: 10px; border: 1px solid #1a252f; text-align: center; position: sticky; top: 0; z-index: 10; font-size: 12px; white-space: nowrap; }
+        th.col-info { text-align: left; width: 380px; }
+
+        td { padding: 8px; border: 1px solid #e0e0e0; vertical-align: middle; text-align: center; font-size: 12px; line-height: 1.4; }
+        td.col-info { text-align: left; vertical-align: top; }
+        tr:nth-child(even) { background: #fcfcfc; }
+        tr:hover { background: #f1f7ff; }
+
+        /* 产品信息 */
+        .p-flex { display: flex; gap: 10px; }
+        .p-img { width: 100px; height: 120px; border: 1px solid #eee; object-fit: contain; background: #fff; cursor: zoom-in; border-radius: 4px; }
+        #hover-preview { position: fixed; display: none; width: 450px; height: 450px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 15px 50px rgba(0,0,0,0.4); z-index: 10000; pointer-events: none; border-radius: 8px; overflow: hidden; }
+        #hover-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+        .p-details { flex: 1; min-width: 0; }
+        .p-asin { font-family: monospace; font-weight: bold; color: var(--accent); text-decoration: none; font-size: 15px; }
+        .p-title { font-size: 12px; color: #333; margin: 3px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 34px; line-height: 1.4; }
+        .p-meta { font-size: 11px; color: #666; margin-top: 3px; line-height: 1.4; background: #f8f9fa; padding: 2px 4px; border-radius: 3px; display: inline-block; border: 1px solid #eee; }
+
+        /* 徽章 */
+        .badge-row { display: flex; gap: 4px; margin-top: 4px; }
+        .badge { font-size: 11px; padding: 2px 6px; border-radius: 3px; color: white; font-weight: bold; }
+        .bg-bs { background: #f39c12; }
+        .bg-ac { background: #2c3e50; }
+        .bg-new { background: #27ae60; }
+
+        /* 评分列 */
+        .score-val { font-size: 24px; font-weight: 800; display: block; line-height: 1; }
+        .score-high { color: #27ae60; } .score-mid { color: #f39c12; } .score-low { color: #c0392b; }
+        .btn-calc { font-size: 11px; color: #666; text-decoration: underline; cursor: pointer; border: none; background: none; padding: 0; margin-top: 5px; }
+        .btn-calc:hover { color: var(--accent); }
+
+        /* 指标数据 */
+        .m-row { display: flex; justify-content: space-around; align-items: center; font-size: 13px; padding: 2px 0; border-bottom: 1px dashed #f0f0f0; }
+        .m-row:last-child { border-bottom: none; }
+        .m-k { color: #777; display: flex; align-items: center; gap: 4px; }
+        .m-v { font-weight: 600; color: #333; }
+        .trend-up { color: #27ae60; } .trend-down { color: #c0392b; }
+
+        /* 图表 */
+        .chart-wrap { width: 130px; height: 45px; border: 1px solid #eee; margin: 0 auto; cursor: pointer; background: #fff; border-radius: 4px; }
+
+        /* 弹窗 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: #999; z-index: 100; }
+
+        /* 计算详情表格 */
+        .calc-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; table-layout: fixed; }
+        .calc-table th { background: #F1F3A3; padding: 8px; border: 1px solid #D79; text-align: center; color: #3A2; }
+        .calc-table td { padding: 8px; border: 1px solid #ddd; vertical-align: top; word-wrap: break-word; }
+        .calc-formula { font-family: 'Consolas', monospace; color: #2c3e50; background: #f8f9fa; padding: 2px 4px; border-radius: 3px; display: block; margin-bottom: 3px; }
+        .calc-score-cell { font-weight: bold; color: var(--accent); text-align: right; width: 60px; }
+        .dim-cell { width: 100px; font-weight: bold; background: #fdfdfd; color: var(--primary); border-right: 2px solid var(--accent); }
+
+        /* 75分位数条 */
+        .benchmark-bar { background: #e3f2fd; padding: 8px 15px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #90caf9; display: flex; gap: 20px; font-size: 12px; color: var(--primary); font-weight: bold; align-items: center; }
+
+        /* 指标体系表 */
+        .dict-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        .dict-table th { background: #F1F407; padding: 8px; border: 1px solid #ddd; text-align: center; color: #333; font-weight: bold; }
+        .dict-table td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
+        .dict-dim { font-weight: bold; color: var(--primary); background: #fdfdfd; }
+
+        /* 赋分逻辑说明 */
+        .scoring-logic { background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 15px; border: 1px solid #e9ecef; }
+        .scoring-logic h4 { margin-top: 0; color: var(--primary); }
+        .scoring-logic ul { font-size: 12px; line-height: 1.6; margin-bottom: 15px; }
+        .logic-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        .logic-table th { background: #F1F407; padding: 6px; border: 1px solid #ddd; text-align: center; color: #333 }
+        .logic-table td { padding: 6px; border: 1px solid #ddd; }
+        .logic-dim { font-weight: bold; background: #f1f3f5; }
+
+        /* 新添加的规则说明样式 */
+        .rule-desc { font-size: 11px; color: #666; background: #f8f9fa; padding: 4px 6px; border-radius: 3px; margin-top: 3px; border-left: 3px solid #ddd; }
+        .rule-highlight { background: #fff3cd; padding: 2px 4px; border-radius: 2px; font-weight: bold; }
+    .radar-chart-container {
+    width: 400px;
+    height: 300px;
+    margin: 20px auto;
+    position: relative;
+}
+
+/* 权重信息展示 */
+.weight-info {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    margin-top: 10px;
+}
+
+.weight-badge {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #27ae60;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: bold;
+    margin: 0 3px;
+}
+
+/* 维度详情卡片 */
+.dimension-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.dimension-card {
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+}
+
+.dimension-card-header {
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 8px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.dimension-score {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.dimension-progress {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.dimension-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.dimension-key-metrics {
+    font-size: 11px;
+    color: #666;
+}
+/* 雷达图容器 */
+        .radar-chart-container {
+            width: 400px;
+            height: 300px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        /* 维度详情卡片 */
+        .dimension-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .dimension-card {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .dimension-card-header {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .dimension-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .dimension-progress {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .dimension-progress-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .dimension-key-metrics {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 权重信息展示 */
+        .weight-info {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .weight-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #27ae60;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin: 0 3px;
+        }
+
+        /* 可视化容器 */
+        .visualization-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .visualization-left {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        .visualization-right {
+            flex: 1;
+            min-width: 400px;
+        }
+        .keyword-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 10px;
+}
+
+.keyword-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.kw-controls { display:flex; align-items:center; gap:8px; font-size:12px; color:#555; }
+.kw-count { font-weight:bold; color:#2c3e50; }
+.kw-page { margin-left:4px; color:#888; }
+
+/* 增大关键词表格字体 */
+table.mini {
+    min-width: 550px;
+    font-size: 12px;
+}
+
+th.mini-col-info {
+    width: 240px;
+    text-align: left;
+}
+
+/* 调整产品信息列的布局 */
+.p-flex.mini {
+    gap: 8px;
+}
+
+.p-img.mini {
+    width: 70px;
+    height: 84px;
+}
+
+.p-details.mini {
+    font-size: 12px;
+}
+
+.p-asin.mini {
+    font-size: 13px;
+}
+
+.p-meta.mini {
+    font-size: 11px;
+    padding: 2px 3px;
+}
+
+.badge-row.mini {
+    gap: 3px;
+    margin-top: 3px;
+}
+
+.badge.mini {
+    font-size: 10px;
+    padding: 2px 4px;
+}
+
+/* 调整综合评分列 */
+.score-val.mini {
+    font-size: 20px;
+}
+
+/* 调整图表容器 */
+.chart-wrap.mini {
+    width: 110px;
+    height: 40px;
+}
+
+/* 调整表格头部序号列 */
+#keyword-tables-panel th:first-child {
+    width: 40px;
+}
+/* 信息提示弹窗样式 */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #2c3e50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateX(120%);
+    transition: transform 0.3s ease-out;
+    font-weight: 500;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success {
+    background: #27ae60;
+}
+
+.toast.info {
+    background: #2980b9;
+}
+
+.toast.warning {
+    background: #f39c12;
+}
+
+.toast.error {
+    background: #c0392b;
+}
+
+.toast-icon {
+    font-size: 20px;
+}
+    </style>
+</head>
+<body>
+<!-- 信息提示弹窗 -->
+<div id="toast" class="toast">
+    <span class="toast-icon">ℹ️</span>
+    <span id="toast-message">参数已更新并重新计算完成</span>
+</div>
+<div id="hover-preview"><img id="hover-img" src=""></div>
+
+<div class="app-container">
+
+    <!-- 1. 顶部操作区 -->
+    <div class="panel">
+        <div class="panel-header" style="border:none; margin:0; padding:0">
+            <div class="panel-title">📊 亚马逊选品决策系统</div>
+            <div style="display:flex; gap:10px">
+                <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform">
+            <button style="
+                padding: 3px 8px;
+                margin-right: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #007BFF;
+                color: white;
+                font-size: 15px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: background-color 0.3s ease, transform 0.2s ease;
+            "
+            >返回平台</button>
+        </a>
+                <a href="https://wasdkd.github.io/Amazon/video">
+            <button style="
+                padding: 3px 8px;
+                margin-right: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #007BFF;
+                color: white;
+                font-size: 15px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: background-color 0.3s ease, transform 0.2s ease;
+            "
+            >视频教程</button>
+        </a>
+    <button class="btn btn-outline" onclick="toggleSection('metrics-dict'); scrollToSection('metrics-dict')">📘 查看指标体系</button>
+    <button class="btn btn-outline" onclick="showAsinList()">📋 管理ASIN列表</button>
+    <button class="btn btn-success" onclick="exportData()">📥 导出分析报告</button>
+</div>
+        </div>
+    </div>
+
+    <!-- 2. 数据与配置 -->
+    <div class="panel">
+        <div class="upload-grid">
+            <div class="drop-zone" onclick="document.getElementById('file-main').click()">
+                <strong style="color:var(--primary); font-size:14px;">1. 上传主数据</strong>
+                <div style="font-size:11px; color:#999; margin-top:5px;">卖家精灵插件导出（一次最多三个关键词的数据）</div>
+                <input type="file" id="file-main" hidden multiple accept=".xlsx,.xls,.csv">
+                <div id="status-main" class="file-status"></div>
+            </div>
+            <div class="drop-zone" onclick="document.getElementById('file-history').click()">
+                <strong style="color:var(--primary); font-size:14px;">2. 上传历史销量 (可选)</strong>
+                <div style="font-size:11px; color:#999; margin-top:5px;">自动合并多文件 & 线性回归分析（使用ASIN去查竞品模块导出明细，一次可以导出100个ASIN）</div>
+                <input type="file" id="file-history" hidden multiple accept=".xlsx,.xls,.csv">
+                <div id="status-history" class="file-status"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:15px; text-align:center;">
+            <button class="btn btn-outline" onclick="toggleSection('config-wrapper')">⚙️ 算法权重配置 (点击展开/收起)</button>
+        </div>
+
+        <!-- 配置面板 -->
+        <div id="config-wrapper" class="config-wrapper">
+            <div class="config-header">
+                <strong>⚖️ 维度权重配置</strong>
+                <span id="weight-status" class="weight-status weight-ok">总和: 100% (正常)</span>
+            </div>
+            <div id="config-weights" class="config-grid"></div>
+
+            <hr style="margin: 15px 0; border:0; border-top:1px dashed #eee;">
+
+            <div class="config-header"><strong>🎯 核心阈值配置 (在阈值内得分越高)</strong></div>
+            <div id="config-params" class="config-grid"></div>
+
+            <div style="text-align:center; margin-top:15px;">
+                <button id="btn-recalc" class="btn btn-primary" style="padding:8px 20px; font-size:14px;" onclick="recalculate()">🔄 应用参数并重新计算</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 筛选与搜索 -->
+<div class="panel" id="filter-panel" style="background:#eef2f5; border:none; position:sticky; top:0; z-index:999; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+    <div class="filter-container">
+        <div class="search-box">
+            <input type="text" id="f-search" placeholder="🔍 全局搜索">
+        </div>
+        <div class="filter-item">
+            <label>数据展示:</label>
+            <select id="f-history-filter" style="padding:4px; border:1px solid #ccc; border-radius:3px; font-size:12px;">
+                <option value="all">全部产品数据</option>
+                <option value="has-history">有历史销量数据</option>
+            </select>
+        </div>
+        <div class="filter-item"><label>综合评分≥</label><input type="number" id="f-score"></div>
+        <div class="filter-item"><label>月销≥</label><input type="number" id="f-sales"></div>
+        <div class="filter-item"><label>价格:</label><input type="number" id="f-p-min" placeholder="Min"> - <input type="number" id="f-p-max" placeholder="Max"></div>
+        <div class="filter-item">
+    <label>大类BSR≤</label>
+    <input type="number" id="f-bsr-major" placeholder="10000">
+</div>
+<div class="filter-item">
+    <label>小类BSR≤</label>
+    <input type="number" id="f-bsr-minor" placeholder="1000">
+</div>
+<div class="filter-item">
+    <label>评论数:</label>
+    <input type="number" id="f-reviews-min" placeholder="最小"> -
+    <input type="number" id="f-reviews-max" placeholder="最大">
+</div>
+<div class="filter-item">
+    <label>评分:</label>
+    <input type="number" id="f-rating-min" step="0.1" placeholder="最小"> -
+    <input type="number" id="f-rating-max" step="0.1" placeholder="最大">
+</div>
+<div class="filter-item">
+    <label>上架天数≤</label>
+    <input type="number" id="f-listing-days" placeholder="180">
+</div>
+        <div class="filter-item">
+    <label>产品标签:</label>
+    <select id="f-badge">
+        <option value="all">全部标签</option>
+        <option value="bs">Best Seller</option>
+        <option value="ac">Amazon Choice</option>
+        <option value="new">New Release</option>
+    </select>
+</div>
+<div class="filter-item">
+    <label>卖家类型:</label>
+    <select id="f-seller-location">
+        <option value="all">全部</option>
+        <option value="CN">中国卖家</option>
+        <option value="other">其他地区</option>
+        <option value="US">美国/亚马逊</option>
+    </select>
+</div>
+
+        <button class="btn btn-primary" onclick="applyFilter()">🔍 筛选</button>
+        <button class="btn btn-outline" onclick="resetFilter()">🔄 重置</button>
+         <div class="filter-item">
+    <span id="filter-result-count" style="font-weight:bold; color:#2c3e50; margin-left:10px;">共0条结果</span>
+</div>
+    </div>
+</div>
+
+    <!-- 4. 统计与表格 -->
+    <div class="panel" id="keyword-tables-panel" style="padding:0; overflow:hidden; display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eee; background:#fafafa;">
+            <div class="panel-title" style="border:none; padding:0; font-size:16px;">关键词结果联动</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <label style="font-size:12px; color:#555; display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" id="kw-sync-scroll"> 联动滚动
+                </label>
+                <label style="font-size:12px; color:#555; display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" id="kw-sync-page"> 联动分页
+                </label>
+            </div>
+        </div>
+        <div class="keyword-grid" id="keyword-grid"></div>
+    </div>
+    <div class="panel" style="padding:0; overflow:hidden">
+        <div id="benchmark-bar" class="benchmark-bar" style="display:none; margin:10px 15px 0 15px;">
+            <!-- JS填充基准值 -->
+        </div>
+        <div class="table-wrapper">
+            <table id="result-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px">#</th>
+                        <th class="col-info">产品信息</th>
+                        <th style="width:90px">综合评分</th>
+                        <th style="width:170px">销售表现</th>
+                        <th style="width:170px">定价与转化</th>
+                        <th style="width:170px">竞争环境</th>
+                        <th style="width:170px">质量与口碑</th>
+                        <th style="width:150px">销量趋势</th>
+                        <th style="width:70px">季节性</th>
+                        <th style="width:150px">运营因素</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- JS填充 -->
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:10px; background:#f9f9f9; border-top:1px solid #ccc; display:flex; justify-content:space-between; align-items:center;">
+    <div style="font-size:12px; color:#666;">
+        共 <span id="total-count">0</span> 条数据，当前显示 <span id="display-count">0</span> 条
+    </div>
+    <div id="pagination-controls" style="display:flex; gap:5px; align-items:center;">
+        <button class="btn btn-outline" onclick="changePage(currentPage-1)" id="prev-btn">上一页</button>
+        <span id="page-info" style="font-size:12px; margin:0 10px;"></span>
+        <button class="btn btn-outline" onclick="changePage(currentPage+1)" id="next-btn">下一页</button>
+        <div style="display:flex; align-items:center; gap:5px; margin-left:10px;">
+            <span style="font-size:12px;">跳转到</span>
+            <input type="number" id="page-input" style="width:50px; padding:3px; border:1px solid #ccc; border-radius:3px;" min="1">
+            <button class="btn btn-outline" onclick="goToPage()">GO</button>
+        </div>
+    </div>
+</div>
+    </div>
+
+    <!-- 5. 指标体系表 (隐藏面板) -->
+    <div class="panel" id="metrics-dict" style="display:none">
+        <div class="panel-header">
+            <div class="panel-title">📚 指标体系与权重定义</div>
+            <button class="btn btn-outline" onclick="toggleSection('metrics-dict')">关闭</button>
+        </div>
+
+        <!-- 赋分逻辑说明 -->
+        <div class="scoring-logic">
+    <h4>🎯 赋分逻辑设计原则</h4>
+    <ul>
+        <li><strong>每个维度总分100分</strong>：便于标准化和比较</li>
+    </ul>
+
+    <h4>📊 具体赋分逻辑说明</h4>
+<div style="overflow-x:auto; margin-top: 20px;">
+    <table class="dict-table">
+        <thead>
+            <tr>
+                <th>维度</th>
+                <th>指标</th>
+                <th>赋分</th>
+                <th>原始得分规则</th>
+                <th>评分标准说明</th>
+                <th>备注</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="dict-dim" rowspan="3">销售表现 (23%)</td>
+                <td>月销量</td>
+                <td>40分</td>
+                <td>(当月销量 / Q3分位销量) × 40 (封顶1.5倍)</td>
+                <td>销量越高越好</td>
+                <td>基础分40，超过基准1.5倍封顶60分。保证评分体系的相对平衡性</td>
+            </tr>
+            <tr>
+                <td>月销售额</td>
+                <td>40分</td>
+                <td>(销售额 / Q3分位收入) × 40 (封顶1.5倍)</td>
+                <td>销售额越高越好</td>
+                <td>基础分40,超过基准1.5倍封顶60分</td>
+            </tr>
+            <tr>
+                <td>销量增长率</td>
+                <td>20分</td>
+                <td>>10%→+20分；>0→+10分；≤0→-10分</td>
+                <td>趋势越强越加分</td>
+                <td>基于近期3个月或原表增长率</td>
+            </tr>
+            <tr>
+                <td class="dict-dim" rowspan="2">定价与转化 (18%)</td>
+                <td>销售价</td>
+                <td>60分</td>
+                <td>在[15,60]区间→60分；>60→30分；<15→0分</td>
+                <td>合理价格区间得满分</td>
+                <td>价格过低或过高都扣分</td>
+            </tr>
+            <tr>
+                <td>评销比</td>
+                <td>40分</td>
+                <td>在[0.5%, 8%]→40分；其他→20分</td>
+                <td>留评合理可持续</td>
+                <td>评论数/销量，防止刷评</td>
+            </tr>
+            <tr>
+                <td class="dict-dim" rowspan="2">竞争环境 (18%)</td>
+                <td>大类BSR</td>
+                <td>50分</td>
+                <td>≤2000→50分；≤5000→25分；>5000→0分</td>
+                <td>BSR越靠前越优</td>
+                <td>大类排名越靠前越好</td>
+            </tr>
+            <tr>
+                <td>小类BSR</td>
+                <td>50分</td>
+                <td><50→50分；<100→25分；≥100→0分</td>
+                <td>小类前列更优秀</td>
+                <td>小类排名越靠前越好</td>
+            </tr>
+            <tr>
+                <td class="dict-dim" rowspan="3">质量口碑 (13%)</td>
+                <td>星级评分</td>
+                <td>40分</td>
+                <td>≥4.5→40分；≥4.2→20分；<4.2→0分</td>
+                <td>高评分产品更易转化</td>
+                <td>4.5星以上为优质产品</td>
+            </tr>
+            <tr>
+                <td>评论数</td>
+                <td>30分</td>
+                <td>50-2000→30分；<50→20分；>2000→0分</td>
+                <td>评论数合理但不过度</td>
+                <td>过多评论意味着红海</td>
+            </tr>
+            <tr>
+                <td>留评率</td>
+                <td>30分</td>
+                <td>1%-8%→30分；其他→15分</td>
+                <td>防止刷评或低转化</td>
+                <td>正常留评率1%-8%</td>
+            </tr>
+            <tr>
+                <td class="dict-dim" rowspan="3">销量趋势 (11%)</td>
+                <td>数据完整性</td>
+                <td>30分</td>
+                <td>≥3个月→30分；1-2个月→15分；无数据→0分</td>
+                <td>数据越完整越可靠</td>
+                <td>数据质量决定分析可靠性</td>
+            </tr>
+            <tr>
+                <td>最近一年趋势</td>
+                <td>40分</td>
+                <td>>0.1→40分；>0.05→30分；>0→10分；≤0→0分</td>
+                <td>趋势越强越加分</td>
+                <td>线性回归斜率，核心趋势指标</td>
+            </tr>
+            <tr>
+                <td>季节性增长趋势</td>
+                <td>30分</td>
+                <td>增长→30分；稳定→15分；下降→0分</td>
+                <td>季节性产品发展潜力</td>
+                <td>评估季节性产品增长潜力。计算步骤：按高峰月份进行分组，对高峰月份销量数据应用线性回归分析，计算斜率</td>
+            </tr>
+            <tr>
+                <td class="dict-dim" rowspan="2">季节性 (7%)</td>
+                <td>季节性强度</td>
+                <td>50分</td>
+                <td>强度>0.5→50分；0.3-0.5→25分；0.1-0.3→12分；<0.1→0分</td>
+                <td>季节性越明显得分越高</td>
+                <td>基于月度销量变异系数(标准差/均值)计算</td>
+            </tr>
+            <tr>
+                <td>高峰月份稳定性</td>
+                <td>50分</td>
+                <td>连续两年高峰→50分；一年高峰→25分；无规律→0分</td>
+                <td>高峰月份一致性</td>
+                <td>评估季节性可预测性,检查同一月份在不同年份是否都表现为销售高峰</td>
+            </tr>
+            <!-- 新增运营因素维度 -->
+            <tr>
+                <td class="dict-dim" rowspan="3">运营因素 (10%)</td>
+                <td>上架时间</td>
+                <td>40分</td>
+                <td><180天→40分；180-360天→20分；>360天→0分</td>
+                <td>上架时间越短得分越高</td>
+                <td>新品机会更大，竞争相对较小</td>
+            </tr>
+            <tr>
+                <td>卖家归属地</td>
+                <td>30分</td>
+                <td>CN→30分；其他→20分；US/AMZ→0分</td>
+                <td>中国卖家优先</td>
+                <td>中国卖家运营灵活性更高</td>
+            </tr>
+            <tr>
+                <td>BuyBox类型</td>
+                <td>30分</td>
+                <td>FBM→30分；FBA→20分；AMZ→0分</td>
+                <td>FBM优先</td>
+                <td>FBM利润空间更大，运营更灵活</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+    </div>
+
+</div>
+</div>
+<!-- 弹窗：计算详情 (白盒化) -->
+<div class="modal" id="score-modal">
+    <div class="modal-content" style="width:1400px">
+        <span class="close-btn" onclick="document.getElementById('score-modal').style.display='none'">&times;</span>
+        <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; color:var(--primary)">🧮 评分计算全过程</h2>
+        <div id="score-log-content"></div>
+    </div>
+</div>
+
+<div class="modal" id="asin-list-modal">
+    <div class="modal-content" style="width:800px; max-height: 80vh;">
+        <span class="close-btn" onclick="document.getElementById('asin-list-modal').style.display='none'">&times;</span>
+        <h2 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; color:var(--primary)">📋 ASIN列表管理</h2>
+        <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="copyAndJump()">📤 复制选中ASIN并跳转到“查竞品”</button>
+            <button class="btn btn-outline" onclick="selectAllAsins()">✅ 全选</button>
+            <button class="btn btn-outline" onclick="deselectAllAsins()">❌ 取消全选</button>
+            <div style="margin-left: auto; font-size: 12px; color: #666; display: flex; align-items: center; gap: 5px;">
+                <span id="selected-count">已选择: 0</span>
+                <span>总共: <span id="total-asins">0</span> 个ASIN</span>
+            </div>
+        </div>
+        <div class="table-wrapper" style="max-height: 500px;">
+            <table class="calc-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll()"></th>
+                        <th style="width: 60px;">序号</th>
+                        <th>ASIN组 (每组100个)</th>
+                        <th style="width: 100px;">数量</th>
+                        <th style="width: 120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="asin-list-body">
+                    <!-- ASIN列表将通过JavaScript动态生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- 弹窗：大图 -->
+<div class="modal" id="chart-modal">
+    <div class="modal-content" style="width:900px">
+        <span class="close-btn" onclick="document.getElementById('chart-modal').style.display='none'">&times;</span>
+        <h2 style="margin-top:0; color:var(--primary)">📈 销量周期趋势分析</h2>
+        <div style="height:400px"><canvas id="large-chart"></canvas></div>
+        <div id="chart-stats" style="margin-top:15px; padding:15px; background:#f8f9fa; border:1px solid #eee; border-radius:5px; display:flex; justify-content:space-around; text-align:center;"></div>
+    </div>
+</div>
+
+<!-- 导出进度 -->
+<div id="export-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.9);z-index:10000;display:none;flex-direction:column;justify-content:center;align-items:center;">
+    <h2>正在生成专业报告...</h2>
+    <div style="width:300px;height:10px;background:#eee;margin-top:10px;border-radius:5px;overflow:hidden"><div id="exp-prog" style="width:0%;height:100%;background:var(--success);transition:width 0.2s"></div></div>
+    <p id="exp-status">准备中...</p>
+</div>
+
+<script>
+    let currentPage = 1;
+    const itemsPerPage = 200; // 汇总表每页显示200条数据
+    const itemsPerKeyword = 100; // 关键词表每页显示100条
+    let keywordPage = new Map(); // 每个关键词的当前页
+    let duplicateMap = new Map(); // 存储重复产品的信息
+// ================= 1. 全局配置 =================
+const CONFIG = {
+    // 用户可调权重 (总和100)
+    weights: {
+        sales: 23, // 销售表现 (原25%，调整为23%)
+        price_ops: 18, //定价与转化 (原20%，调整为18%)
+        competition: 18, // 竞争环境 (原20%，调整为18%)
+        quality: 13, // 质量口碑 (原15%，调整为13%)
+        trend: 11,  //销量趋势 (原12%，调整为11%)
+        seasonality: 7,  //季节性 (原8%，调整为7%)
+        operation: 10  // 新增：运营因素 (10%)
+    },
+    // 行业经验基准权重
+    weightsBase: {
+        sales: 23,
+        price_ops: 18,
+        competition: 18,
+        quality: 13,
+        trend: 11,
+        seasonality: 7,
+        operation: 10
+    },
+    weightMode: 'auto', // 权重模式：auto(自动分配) / manual(手动)
+    // 用户可调阈值
+    params: {
+        price_min: 15, price_max: 60,
+        bsr_major_max: 5000, bsr_minor_max: 100,
+        rating_min: 4.2, reviews_min: 50, reviews_max: 2000,
+        review_rate_min: 0.01, review_rate_max: 0.08,
+        trend_growth: 0.1,
+        seasonality_threshold: 0.3, // 季节性强度阈值
+        listing_days_threshold: 180 // 新增：上架天数阈值
+    }
+};
+
+// 重新设计的内部评分规则 - 基于业务逻辑的赋分
+const INTERNAL_RULES = {
+    // 销售表现 (总分100分 = 40 + 40 + 20)
+    sales_vol_weight: 40,   // 月销量40分 - 市场接受度核心指标
+    sales_rev_weight: 40,   // 月销售额40分 - 市场规模核心指标
+    growth_high: 20,        // 高增长20分 - 增长潜力重要指标
+    growth_mid: 10,         // 正增长10分 - 基本增长要求
+    growth_neg: -10,        // 负增长扣10分 - 衰退警示
+
+    // 定价与转化 (总分100分 = 价格60分 + 评销比40分)
+    price_perfect: 60,      // 理想价格60分 - 价格决定利润空间
+    price_ok: 30,           // 可接受价格30分 - 价格在合理范围
+    price_low: 0,           // 价格过低0分
+    ratio_base: 40,         // 合理评销比40分 - 自然流量质量指标
+    ratio_partial: 20,      // 不合理评销比20分
+
+    // 竞争环境 (总分100分 = 50 + 50)
+    bsr_maj_perfect: 50,    // 大类头部50分 - 整体市场地位
+    bsr_maj_ok: 25,         // 大类腰部25分 - 市场地位可接受
+    bsr_min_perfect: 50,    // 小类头部50分 - 细分市场地位
+    bsr_min_ok: 25,         // 小类腰部25分 - 细分市场地位可接受
+
+    // 质量口碑 (总分100分 = 40 + 30 + 30)
+    rating_perfect: 40,     // 高评分40分 - 产品质量核心指标
+    rating_ok: 20,          // 及格评分20分 - 产品质量基本要求
+    reviews_perfect: 30,    // 合理评论数30分 - 市场成熟度指标
+    reviews_ok: 20,         // 评论数过少20分 - 新品或小众产品
+    rate_perfect: 30,       // 自然留评率30分 - 流量质量指标
+    rate_ok: 15,            // 其他留评率15分 - 留评率异常警示
+
+    // 销量趋势 (总分100分 = 数据完整性30分 + 最近一年趋势40分 + 季节性增长趋势30分)
+    trend_data_complete: 30,    // 完整数据30分 - 数据质量指标
+    trend_data_partial: 15,     // 部分数据15分 - 数据质量中等
+    trend_data_none: 0,         // 无数据0分 - 数据质量差
+    trend_slope_perfect: 40,    // 强趋势40分 - 趋势方向核心指标
+    trend_slope_good: 30,       // 温和趋势30分 - 趋势方向中等
+    trend_slope_weak: 10,       // 弱趋势10分 - 趋势方向基础
+    trend_slope_neg: 0,         // 下跌趋势0分 - 趋势方向警示
+    trend_seasonal_growth_perfect: 30,  // 季节性增长趋势30分
+    trend_seasonal_growth_ok: 15,       // 季节性稳定15分
+    trend_seasonal_growth_poor: 0,      // 季节性下降0分
+
+    // 季节性分析 (总分100分)
+    seasonality_strong: 50,     // 强季节性50分
+    seasonality_moderate: 25,   // 中等季节性25分
+    seasonality_weak: 12,       // 弱季节性12分
+    seasonality_none: 0,        // 无季节性0分
+    peak_stability_perfect: 50, // 高峰稳定性50分
+    peak_stability_good: 25,    // 高峰稳定性25分
+    peak_stability_poor: 0,     // 高峰稳定性0分
+
+    // 新增：运营因素 (总分100分 = 40 + 30 + 30)
+    listing_days_perfect: 40,   // 上架时间短40分 - 新品机会
+    listing_days_ok: 20,        // 上架时间中等20分
+    listing_days_poor: 0,       // 上架时间长0分
+    seller_location_cn: 30,     // 中国卖家30分 - 运营灵活性高
+    seller_location_other: 20,  // 其他地区卖家20分
+    seller_location_us: 0,      // 美国/亚马逊卖家0分
+    buybox_fbm: 30,             // FBM 30分 - 利润空间大
+    buybox_fba: 20,             // FBA 20分
+    buybox_amz: 0               // 亚马逊自营0分
+};
+
+// 字段中文名
+const LABEL_MAP = {
+    sales: "销售表现", price_ops: "定价与转化", competition: "竞争环境",
+    quality: "产品质量", trend: "销量趋势", seasonality: "季节性",
+    operation: "运营因素", // 新增
+    price_min: "最低价格($)", price_max: "最高价格($)",
+    bsr_major_max: "大类BSR红线<", bsr_minor_max: "小类BSR红线<",
+    rating_min: "评分及格线", reviews_min: "最少评价数", reviews_max: "红海评价数",
+    review_rate_min: "留评率下限", review_rate_max: "留评率上限",
+    trend_growth: "最近一年趋势阈值(%)",
+    seasonality_threshold: "季节性强度阈值(%)",
+    listing_days_threshold: "上架天数阈值" // 新增
+};
+
+// 详细的规则说明
+const RULE_DESCRIPTIONS = {
+    sales_vol: "基准值40分，超过基准1.5倍封顶60分",
+    sales_rev: "基准值40分，超过基准1.5倍封顶60分",
+    sales_growth: "高增长(>10%)得20分，正增长得10分，负增长扣10分",
+    price: "价格在15-60美元区间得60分，大于60美元得30分，低于15美元得0分",
+    review_ratio: "评销比在0.5%-8%区间得40分，其他得20分",
+    bsr_major: "大类BSR≤2000得50分，≤5000得25分，>5000得0分",
+    bsr_minor: "小类BSR<50得50分，<100得25分，≥100得0分",
+    rating: "评分≥4.5得40分，≥4.2得20分，<4.2得0分",
+    reviews: "评论数50-2000得30分，<50得20分，>2000得0分",
+    review_rate: "留评率1%-8%得30分，其他得15分",
+    trend_data: "≥3个月数据得30分，1-2个月得15分，无数据得0分",
+    trend_slope: "强趋势(>0.1)得40分，温和趋势(>0.05)得30分，弱趋势(>0)得10分，下跌趋势(≤0)得0分",
+    trend_seasonal_growth: "增长得30分；稳定得15分；下降得0分",
+    seasonality_strength: "强度>0.5得50分；0.3-0.5得25分；0.1-0.3得12分；<0.1得0分",
+    peak_stability: "连续两年高峰得50分；一年高峰得25分；无规律得0分",
+    // 新增运营因素规则说明
+    listing_days: "<180天得40分；180-360天得20分；>360天得0分",
+    seller_location: "中国卖家得30分；其他地区得20分；美国/亚马逊得0分",
+    buybox_type: "FBM得30分；FBA得20分；亚马逊自营得0分"
+};
+
+let rawData = [], processedData = [], filteredData = [], historyMap = new Map();
+let keywordDataMap = new Map();
+let currentBenchmarks = {};
+
+// ================= 2. 初始化 =================
+function init() {
+    renderConfig();
+    validateWeights();
+    // 为页码输入框设置默认值
+    document.getElementById('page-input').value = '';
+}
+// 添加新的权重输入处理函数
+function handleWeightInput(key, value) {
+    // 在自动模式下，实时调整其他权重
+    if(CONFIG.weightMode === 'auto') {
+        const numValue = parseFloat(value) || 0;
+        adjustWeights(key, numValue);
+        // 更新界面显示
+        updateWeightInputs();
+    }
+    // 手动模式下只更新当前值
+    else {
+        CONFIG.weights[key] = parseFloat(value) || 0;
+    }
+}
+
+function handleWeightChange(key, value) {
+    // 输入完成后验证权重总和
+    validateWeights();
+}
+
+// 添加更新界面显示的函数
+function updateWeightInputs() {
+    // 更新所有权重输入框的显示值
+    Object.keys(CONFIG.weights).forEach(k => {
+        const input = document.querySelector(`input[data-key="${k}"]`);
+        if(input) {
+            input.value = CONFIG.weights[k];
+        }
+    });
+}
+function renderConfig() {
+    // 权重
+    let wHtml = '';
+    for(let k in CONFIG.weights) {
+        // 为权重输入框添加更完善的事件处理
+        wHtml += `<div class="input-group">
+            <label>${LABEL_MAP[k]}</label>
+            <input type="number"
+                   value="${CONFIG.weights[k]}"
+                   data-key="${k}"
+                   oninput="handleWeightInput('${k}', this.value)"
+                   onchange="handleWeightChange('${k}', this.value)">
+        </div>`;
+    }
+
+    // 修改模式切换显示，增加状态指示
+    const modeSwitch = `<div style="grid-column: 1 / -1; display:flex; align-items:center; justify-content:flex-end; gap:8px; font-size:12px;">
+        <span>权重模式:</span>
+        <span id="weight-mode-indicator" style="font-weight:bold;padding:2px 8px;border-radius:4px;${
+            CONFIG.weightMode === 'auto'
+                ? 'background-color:#e8f5e9;color:#27ae60'
+                : 'background-color:#fef9e7;color:#f39c12'
+        }">
+            ${CONFIG.weightMode === 'auto' ? '自动模式' : '手动模式'}        </span>
+        <button class="btn btn-outline" onclick="toggleWeightMode()" style="font-size:12px;padding:4px 8px">
+            ${CONFIG.weightMode === 'auto' ? '切换到手动' : '切换到自动'}        </button>
+        <span class="rule-desc" style="margin-left:10px">
+            ${
+                CONFIG.weightMode === 'auto'
+                    ? '自动：修改任一项时，其他项按基准比例自动调整'
+                    : '手动：可自由调整各项权重，总和需为100%'
+            }        </span>
+    </div>`;
+
+    document.getElementById('config-weights').innerHTML = modeSwitch + wHtml;
+
+    // 阈值
+    let pHtml = '';
+    // 理想价格区间特制输入
+    pHtml += `
+        <div class="input-group">
+            <label>理想价格($)</label>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <input type="number" value="${CONFIG.params.price_min}" step="0.01" style="width:60px" onchange="updateCfg('params','price_min',this.value)">
+                <span style="color:#666">~</span>
+                <input type="number" value="${CONFIG.params.price_max}" step="0.01" style="width:60px" onchange="updateCfg('params','price_max',this.value)">
+            </div>
+        </div>
+    `;
+    // 评价数区间
+    pHtml += `
+        <div class="input-group">
+            <label>评论数</label>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <input type="number" value="${CONFIG.params.reviews_min}" step="1" style="width:60px" onchange="updateCfg('params','reviews_min',this.value)">
+                <span style="color:#666">~</span>
+                <input type="number" value="${CONFIG.params.reviews_max}" step="1" style="width:60px" onchange="updateCfg('params','reviews_max',this.value)">
+            </div>
+        </div>
+    `;
+    // 留评率区间（%）
+    pHtml += `
+        <div class="input-group">
+            <label>留评率(%)</label>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <input type="number" value="${(CONFIG.params.review_rate_min*100)}" step="0.01" style="width:60px" onchange="updateCfg('params','review_rate_min',this.value/100)">
+                <span style="color:#666">~</span>
+                <input type="number" value="${(CONFIG.params.review_rate_max*100)}" step="0.01" style="width:60px" onchange="updateCfg('params','review_rate_max',this.value/100)">
+            </div>
+        </div>
+    `;
+    // 其他参数
+    const otherParams = Object.keys(CONFIG.params).filter(k=>!['price_min','price_max','reviews_min','reviews_max','review_rate_min','review_rate_max'].includes(k));
+for(let k of otherParams) {
+    let displayValue = CONFIG.params[k];
+    let step = "0.01";
+    let inputValue = displayValue;
+
+    // 对于百分比相关的参数，在显示时转换为百分比形式
+    if (k === 'trend_growth' || k === 'seasonality_threshold') {
+        displayValue = (CONFIG.params[k] * 100);
+        inputValue = displayValue;
+        step = "0.1";
+    }
+
+    pHtml += `<div class="input-group"><label>${LABEL_MAP[k]}</label><input type="number" value="${inputValue}" step="${step}" onchange="updateCfg('params','${k}',this.value)"></div>`;
+}
+document.getElementById('config-params').innerHTML = pHtml;
+}
+
+function updateCfg(type, k, v) {
+    let numV = parseFloat(v);
+
+    if(type === 'weights') {
+        if(CONFIG.weightMode === 'auto') {
+            adjustWeights(k, isNaN(numV) ? 0 : numV);
+        } else {
+            CONFIG.weights[k] = isNaN(numV) ? 0 : numV;
+            // 在手动模式下，需要验证总和并给出提示
+            validateWeights();
+        }
+        return;
+    }
+
+    // 对于百分比相关的参数，需要转换回小数形式存储
+    if (k === 'trend_growth' || k === 'seasonality_threshold') {
+        numV = numV / 100;
+    }
+
+    CONFIG[type][k] = numV;
+}
+
+
+function adjustWeights(changedKey, newValue) {
+    if(newValue < 0) newValue = 0;
+    if(newValue > 100) newValue = 100;
+
+    const keys = Object.keys(CONFIG.weights);
+    const others = keys.filter(k => k !== changedKey);
+    const totalOthersBase = others.reduce((s, k) => s + CONFIG.weightsBase[k], 0);
+    const remain = Math.max(0, 100 - newValue);
+    const temp = {};
+    let acc = 0;
+
+    others.forEach((k, idx) => {
+        const raw = remain * (CONFIG.weightsBase[k] / totalOthersBase);
+        const val = idx < others.length - 1 ? Math.round(raw) : (remain - acc);
+        temp[k] = val;
+        acc += val;
+    });
+
+    CONFIG.weights[changedKey] = newValue;
+    others.forEach(k => { CONFIG.weights[k] = temp[k]; });
+}
+
+
+function toggleWeightMode(){
+    CONFIG.weightMode = CONFIG.weightMode === 'auto' ? 'manual' : 'auto';
+
+    // 更新模式指示器样式
+    const indicator = document.getElementById('weight-mode-indicator');
+    if (indicator) {
+        if (CONFIG.weightMode === 'auto') {
+            indicator.textContent = '自动模式';
+            indicator.style.backgroundColor = '#e8f5e9';
+            indicator.style.color = '#27ae60';
+        } else {
+            indicator.textContent = '手动模式';
+            indicator.style.backgroundColor = '#fef9e7';
+            indicator.style.color = '#f39c12';
+        }
+    }
+    // 更新按钮文本
+    const buttons = document.querySelectorAll('button[onclick="toggleWeightMode()"]');
+    buttons.forEach(btn => {
+        btn.textContent = CONFIG.weightMode === 'auto' ? '切换到手动' : '切换到自动';
+    });
+
+    // 更新提示信息
+    const descElements = document.querySelectorAll('.rule-desc');
+    if (descElements.length > 0) {
+        const lastDesc = descElements[descElements.length - 1];
+        lastDesc.textContent = CONFIG.weightMode === 'auto'
+            ? '自动：修改任一项时，其他项按基准比例自动调整'
+            : '手动：可自由调整各项权重，总和需为100%';
+    }
+
+    renderConfig();
+    validateWeights();
+}
+
+function validateWeights() {
+    let sum = 0;
+    for(let k in CONFIG.weights) sum += CONFIG.weights[k];
+    const el = document.getElementById('weight-status');
+    const btn = document.getElementById('btn-recalc');
+
+    el.innerText = `当前总和: ${sum}%`;
+    if(sum === 100) {
+        el.className = 'weight-status weight-ok';
+        btn.disabled = false;
+        btn.innerText = "🔄 应用参数并重新计算";
+    } else {
+        el.className = 'weight-status weight-err';
+        btn.disabled = true;
+        btn.innerText = `❌ 总权重必须为100 (当前${sum})`;
+    }
+}
+
+// ================= 3. 图片处理 =================
+function getHighQualityImageUrl(url) {
+    if (!url) return '';
+    const s = String(url).trim();
+    const r1 = s.replace(/(\/I\/[A-Za-z0-9%_-]+)\.[^\/]*\.(jpe?g|png|webp)(?:\?.*)?$/i, '$1.$2');
+    if (r1 !== s) return r1;
+    return s.replace(/\._[^\/]*\.(jpe?g|png|webp)(?:\?.*)?$/i, '.$1');
+}
+
+document.addEventListener('mouseover', function(e) {
+    if (e.target.classList.contains('p-img')) {
+        const hdUrl = getHighQualityImageUrl(e.target.src);
+        document.getElementById('hover-img').src = hdUrl;
+        document.getElementById('hover-preview').style.display = 'block';
+        movePreview(e);
+    }
+});
+document.addEventListener('mousemove', function(e) { if (document.getElementById('hover-preview').style.display === 'block') movePreview(e); });
+document.addEventListener('mouseout', function(e) { if (e.target.classList.contains('p-img')) document.getElementById('hover-preview').style.display = 'none'; });
+
+function movePreview(e) {
+    const preview = document.getElementById('hover-preview');
+    let left = e.clientX + 20, top = e.clientY + 20;
+    if (left + 450 > window.innerWidth) left = e.clientX - 470;
+    if (top + 450 > window.innerHeight) top = window.innerHeight - 470;
+    preview.style.left = left + 'px'; preview.style.top = top + 'px';
+}
+
+// ================= 4. 数据处理 =================
+function readExcel(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const wb = XLSX.read(e.target.result, {type:'array'});
+            resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+document.getElementById('file-main').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if(files.length===0) return;
+    keywordDataMap.clear();
+    let combined = [];
+    for(const file of files){
+        const data = await readExcel(file);
+        const arr = data.map(row => {
+            const getVal = (keys) => { for(let k of keys) if(row[k]!==undefined) return row[k]; return ''; };
+            const getNum = (keys) => parseNum(getVal(keys));
+            const sellerInfo = getVal(['卖家所属地', 'Seller Location', 'seller_location']) || '';
+            const buyboxInfo = getVal(['BuyBox类型', 'BuyBox Type', 'buybox_type']) || '';
+            return {
+                asin: getVal(['ASIN','asin']),
+                parent_asin: getVal(['父ASIN','Parent ASIN','parent_asin']),
+                title: getVal(['商品标题','Title','title']),
+                title_cn: getVal(['标题(翻译)','Translated Title']),
+                image: getHighQualityImageUrl(getVal(['商品主图','Image','image_url'])),
+                brand: getVal(['品牌','Brand']),
+                price: getNum(['价格($)','Price']),
+                sales: getNum(['月销量','Sales']),
+                revenue: getNum(['月销售额($)','Revenue']),
+                sales_growth: getNum(['月销量增长率','Sales Growth']),
+                rating: getNum(['评分','Rating']),
+                reviews: getNum(['评分数','Reviews']),
+                review_rate: getNum(['留评率','Review Rate']),
+                bsr_major: getNum(['大类BSR','BSR']),
+                bsr_minor: getNum(['小类BSR','Sub BSR']),
+                category: getVal(['小类目','Category']),
+                sellers: getNum(['卖家数','Sellers']),
+                lister_date: getVal(['上架时间','Date First Available']),
+                listing_days: getNum(['上架天数','Days']),
+                margin: getNum(['毛利率','Margin']),
+                url: getVal(['商品详情页链接','Url']),
+                is_bs: checkBool(getVal(['Best Seller标识','Best Seller'])),
+                is_ac: checkBool(getVal(['Amazon\'s Choice','Amazon Choice'])),
+                is_new: checkBool(getVal(['New Release标识','New Release'])),
+                delivery: getVal(['配送方式','Delivery']),
+                seller_location: sellerInfo,
+                buybox_type: buyboxInfo,
+                _raw: row
+            };
+        });
+        const keyword = extractKeyword(file.name);
+        const bm = getBenchmarksForArray(arr);
+        const processed = arr.map(item => {
+            const history = historyMap.get(item.asin) || [];
+            const res = calculateScores(item, history, bm);
+            return { ...item, ...res, history };
+        }).sort((a,b)=>b.totalScore - a.totalScore);
+        keywordDataMap.set(keyword, { raw: arr, bm, processed });
+        combined = combined.concat(arr);
+    }
+    rawData = combined;
+    document.getElementById('status-main').innerText = `✅ 加载 ${files.length} 个文件，共 ${rawData.length} 条`;
+
+    // 根据关键词数量决定是否显示关键词表面板
+    if (keywordDataMap.size > 0) {
+        document.getElementById('keyword-tables-panel').style.display = 'block';
+    } else {
+        document.getElementById('keyword-tables-panel').style.display = 'none';
+    }
+
+    // 构建重复产品映射
+    buildDuplicateMap();
+
+    renderKeywordTables();
+    recalculate();
+     // 如果ASIN列表弹窗是打开的，刷新列表
+    if (document.getElementById('asin-list-modal').style.display === 'flex') {
+        generateAsinList();
+    }
+});
+
+document.getElementById('file-history').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    historyMap.clear();
+    for(let file of files) {
+        const data = await readExcel(file);
+        data.forEach(row => {
+            const asin = row['ASIN']||row['asin'];
+            if(!asin) return;
+            if(!historyMap.has(asin)) historyMap.set(asin, []);
+            Object.keys(row).forEach(k => {
+                if(k.match(/20\d{2}[-./]\d{1,2}/)) {
+                    const ts = new Date(k.replace(/[./]/g,'-') + (k.length<8?'-01':'')).getTime();
+                    if(!isNaN(ts)) historyMap.get(asin).push({ date:k, val:parseNum(row[k]), ts:ts });
+                }
+            });
+        });
+    }
+    for(let [asin, arr] of historyMap) {
+        const unique = []; const seen = new Set();
+        arr.forEach(i=>{ if(!seen.has(i.ts)){ seen.add(i.ts); unique.push(i); } });
+        unique.sort((a,b)=>a.ts-b.ts);
+        historyMap.set(asin, unique);
+    }
+    document.getElementById('status-history').innerText = `✅ 历史数据已合并`;
+    recalculate();
+});
+
+// ================= 5. 核心算法 (基于新赋分逻辑) =================
+function recalculate() {
+    if(rawData.length===0) return;
+    currentBenchmarks = getBenchmarks();
+
+    const bmBar = document.getElementById('benchmark-bar');
+    bmBar.style.display = 'flex';
+    bmBar.innerHTML = `<span>🏆 75%分位数基准:</span> <span>月销量:${currentBenchmarks.sales}</span> <span>月销售额:$${currentBenchmarks.revenue.toLocaleString()}</span> <span>评价数:${currentBenchmarks.reviews}</span>`;
+
+    processedData = rawData.map(item => {
+        const history = historyMap.get(item.asin) || [];
+        const res = calculateScores(item, history, currentBenchmarks);
+        return { ...item, ...res, history };
+    });
+    processedData.sort((a,b) => b.totalScore - a.totalScore);
+    processedData = dedupeByAsin(processedData);
+    if(keywordDataMap && keywordDataMap.size>0){
+        const updated = new Map();
+        keywordDataMap.forEach((val, kw)=>{
+            const bm = getBenchmarksForArray(val.raw);
+            const procAll = val.raw.map(item=>{
+                const history = historyMap.get(item.asin) || [];
+                const res = calculateScores(item, history, bm);
+                return { ...item, ...res, history };
+            }).sort((a,b)=>b.totalScore - a.totalScore);
+            const proc = dedupeProcessed(procAll);
+            updated.set(kw, { raw: val.raw, bm, processed: proc });
+        });
+        keywordDataMap = updated;
+        renderKeywordTables();
+    }
+    applyFilter();
+    // 显示提示框
+    showToast("参数已更新并重新计算完成", "success");
+}
+
+// 显示提示框函数
+function showToast(message, type = "info") {
+    const toast = document.getElementById('toast');
+    const messageEl = document.getElementById('toast-message');
+
+    // 设置消息和类型
+    messageEl.textContent = message;
+    toast.className = 'toast ' + type;
+
+    // 显示提示框
+    toast.classList.add('show');
+
+    // 3秒后自动隐藏
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function getBenchmarks() {
+    const getQ3 = (arr) => { const s=arr.filter(n=>n>0).sort((a,b)=>a-b); return s[Math.floor(s.length*0.75)]||1; };
+    return { sales: getQ3(rawData.map(i=>i.sales)), revenue: getQ3(rawData.map(i=>i.revenue)), reviews: getQ3(rawData.map(i=>i.reviews)) };
+}
+
+function getBenchmarksForArray(arr) {
+    const f = (vals) => { const s=vals.filter(n=>n>0).sort((a,b)=>a-b); return s[Math.floor(s.length*0.75)]||1; };
+    return { sales: f(arr.map(i=>i.sales)), revenue: f(arr.map(i=>i.revenue)), reviews: f(arr.map(i=>i.reviews)) };
+}
+
+// 依据 ASIN 与 父ASIN 去重（优先保留高分项）
+function dedupeProcessed(arr){
+    const sorted = [...arr].sort((a,b)=> (b.totalScore||0) - (a.totalScore||0));
+    const seenAsin = new Set();
+    const seenParent = new Set();
+    const out = [];
+    for(const item of sorted){
+        const asin = String(item.asin||'').trim();
+        const parent = String(item.parent_asin||'').trim();
+        if(asin && seenAsin.has(asin)) continue;
+        if(parent){
+            if(seenParent.has(parent)) continue;
+            seenParent.add(parent);
+        }
+        if(asin) seenAsin.add(asin);
+        out.push(item);
+    }
+    return out;
+}
+
+function dedupeByAsin(arr){
+    const seen = new Set();
+    const out = [];
+    for(const item of arr){
+        const asin = String(item.asin||'').trim();
+        if(!asin) continue;
+        if(seen.has(asin)) continue;
+        seen.add(asin);
+        out.push(item);
+    }
+    return out;
+}
+
+function calculateLinearRegressionSlope(values) {
+    if (!values || values.length < 2) return 0;
+
+    // 限制数据范围：只使用最近6-12个月的数据
+    let filteredValues;
+    if (values.length >= 6) {
+        // 如果有6个月或以上数据，取最近的6-12个月
+        const endIndex = values.length - 1; // 最新月份的索引
+        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月，最少取6个月
+        const availableMonths = endIndex - startIndex + 1;
+
+        // 确保至少取6个月数据
+        if (availableMonths >= 6) {
+            filteredValues = values.slice(Math.max(0, endIndex - 11), endIndex + 1);
+        } else {
+            // 如果可用月份少于6个月（理论上不会发生，但作为保险）
+            filteredValues = values.slice(-6);
+        }
+    } else {
+        // 如果少于6个月，使用所有可用数据
+        filteredValues = [...values];
+    }
+
+    const n = filteredValues.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += filteredValues[i];
+        sumXY += i * filteredValues[i];
+        sumXX += i * i;
+    }
+
+    const denominator = (n * sumXX - sumX * sumX);
+    if (denominator === 0) return 0;
+
+    const slope = (n * sumXY - sumX * sumY) / denominator;
+    const mean = sumY / n;
+
+    // 如果均值太小，避免除以0或极小数
+    if (Math.abs(mean) < 0.0001) return 0;
+
+    // 返回归一化斜率 (增长率)
+    return slope / mean;
+}
+
+// 季节性分析函数
+function analyzeSeasonality(history) {
+    if (!history || history.length < 12) {
+        return {
+            strength: 0,
+            pattern: "数据不足",
+            peakMonths: [],
+            peakStability: "无规律",
+            growthTrend: 0
+        };
+    }
+
+    // 按月份分组计算平均销量
+    const monthlyData = {};
+    const yearlyData = {}; // 按年份和月份分组
+
+    history.forEach(item => {
+        const parts = item.date.split('-');
+        const year = parts[0];
+        const month = parseInt(parts[1]);
+
+        if (!monthlyData[month]) monthlyData[month] = [];
+        monthlyData[month].push(item.val);
+
+        if (!yearlyData[year]) yearlyData[year] = {};
+        if (!yearlyData[year][month]) yearlyData[year][month] = [];
+        yearlyData[year][month].push(item.val);
+    });
+
+    // 计算每个月的平均销量
+    const monthlyAverages = {};
+    Object.keys(monthlyData).forEach(month => {
+        const sum = monthlyData[month].reduce((a, b) => a + b, 0);
+        monthlyAverages[month] = sum / monthlyData[month].length;
+    });
+
+    // 计算总体平均销量
+    const allValues = Object.values(monthlyAverages);
+    const overallAverage = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+
+    // 计算季节性强度 (变异系数)
+    const variance = allValues.reduce((sum, value) => sum + Math.pow(value - overallAverage, 2), 0) / allValues.length;
+    const stdDev = Math.sqrt(variance);
+    const seasonalityStrength = overallAverage > 0 ? stdDev / overallAverage : 0;
+
+    // 识别销售高峰期
+    const sortedMonths = Object.keys(monthlyAverages).sort((a, b) => monthlyAverages[b] - monthlyAverages[a]);
+    const peakMonths = sortedMonths.slice(0, 3).map(m => `${m}月`);
+
+    // 确定季节性模式
+    let pattern = "无明显季节性";
+    if (seasonalityStrength > 0.5) {
+    pattern = "强季节性";
+} else if (seasonalityStrength > CONFIG.params.seasonality_threshold) {
+    pattern = "中等季节性";
+} else if (seasonalityStrength > 0.1) {
+    pattern = "弱季节性";
+}
+
+    // 分析高峰月份稳定性 (检查同一月份在不同年份是否都表现为销售高峰)
+    let peakStability = "无规律";
+    if (Object.keys(yearlyData).length >= 2 && peakMonths.length > 0) {
+        const peakMonthNum = parseInt(peakMonths[0]); // 取第一个高峰月份
+        let yearsWithPeak = 0;
+        let totalYears = 0;
+
+        for (const year in yearlyData) {
+            totalYears++;
+            if (yearlyData[year][peakMonthNum]) {
+                // 检查该月份是否在该年份中属于高峰月份
+                const monthlyAveragesForYear = {};
+                for (const month in yearlyData[year]) {
+                    const sum = yearlyData[year][month].reduce((a, b) => a + b, 0);
+                    monthlyAveragesForYear[month] = sum / yearlyData[year][month].length;
+                }
+
+                const sortedMonthsInYear = Object.keys(monthlyAveragesForYear)
+                    .sort((a, b) => monthlyAveragesForYear[b] - monthlyAveragesForYear[a]);
+
+                // 如果该月份在前3个高峰月份中
+                if (sortedMonthsInYear.slice(0, 3).map(m => parseInt(m)).includes(peakMonthNum)) {
+                    yearsWithPeak++;
+                }
+            }
+        }
+
+        if (yearsWithPeak >= 2) {
+            peakStability = "连续两年高峰";
+        } else if (yearsWithPeak === 1) {
+            peakStability = "一年高峰";
+        }
+    }
+
+    // 计算季节性增长趋势 (对高峰月份进行线性回归分析)
+    let growthTrend = 0;
+    if (peakMonths.length > 0) {
+        const peakMonthNum = parseInt(peakMonths[0]);
+        const peakMonthData = [];
+
+        // 收集所有年份中该高峰月份的数据
+        for (const year in yearlyData) {
+            if (yearlyData[year][peakMonthNum]) {
+                const sum = yearlyData[year][peakMonthNum].reduce((a, b) => a + b, 0);
+                const avg = sum / yearlyData[year][peakMonthNum].length;
+                peakMonthData.push({
+                    year: parseInt(year),
+                    value: avg
+                });
+            }
+        }
+
+        // 按年份排序
+        peakMonthData.sort((a, b) => a.year - b.year);
+
+        // 如果有足够的数据点，计算线性回归斜率
+        if (peakMonthData.length >= 2) {
+            const values = peakMonthData.map(d => d.value);
+            growthTrend = calculateLinearRegressionSlope(values);
+        }
+    }
+
+    return {
+        strength: seasonalityStrength,
+        pattern: pattern,
+        peakMonths: peakMonths,
+        peakStability: peakStability,
+        growthTrend: growthTrend
+    };
+}
+
+function calculateScores(item, history, bm) {
+    const W = CONFIG.weights, P = CONFIG.params, R = INTERNAL_RULES;
+    let logs = [];
+
+    // --- 1. 销售 (Sales) - 总分100分 ---
+    let s_sales_raw = Math.min(item.sales/bm.sales, 1.5);
+    let s_sales_pts = s_sales_raw * R.sales_vol_weight;
+    logs.push({
+        dim:'销售', item:'月销量',
+        formula:`${item.sales} ÷ ${bm.sales} = ${s_sales_raw.toFixed(2)}`,
+        calc:`${s_sales_raw.toFixed(2)} × ${R.sales_vol_weight}分`,
+        res:s_sales_pts,
+        rule: RULE_DESCRIPTIONS.sales_vol
+    });
+
+    let s_rev_raw = Math.min(item.revenue/bm.revenue, 1.5);
+    let s_rev_pts = s_rev_raw * R.sales_rev_weight;
+    logs.push({
+        dim:'销售', item:'销售额',
+        formula:`${Math.round(item.revenue)} ÷ ${Math.round(bm.revenue)} = ${s_rev_raw.toFixed(2)}`,
+        calc:`${s_rev_raw.toFixed(2)} × ${R.sales_rev_weight}分`,
+        res:s_rev_pts,
+        rule: RULE_DESCRIPTIONS.sales_rev
+    });
+
+    let growthRate = item.sales_growth;
+    let growthLogic = "原表增长率";
+    if(!growthRate && history.length >= 3) {
+        const recent = history.slice(-3);
+        if(recent[0].val > 0) {
+            growthRate = (recent[recent.length-1].val - recent[0].val) / recent[0].val;
+            growthLogic = `(末${recent[recent.length-1].val} - 初${recent[0].val}) ÷ ${recent[0].val}`;
+        }
+    }
+    let s_growth_pts = growthRate > P.trend_growth ? R.growth_high : (growthRate > 0 ? R.growth_mid : R.growth_neg);
+    logs.push({
+        dim:'销售', item:'近期增长',
+        formula:`${growthLogic} = ${(growthRate*100).toFixed(1)}%`,
+        calc:`对比阈值${P.trend_growth*100}%`,
+        res:s_growth_pts,
+        rule: RULE_DESCRIPTIONS.sales_growth
+    });
+
+    let score_sales = Math.min(100, s_sales_pts + s_rev_pts + s_growth_pts);
+
+    // --- 2. 定价与转化 (Price & Operations) - 总分100分 ---
+    let p_pts = 0;
+if (item.price >= CONFIG.params.price_min && item.price <= CONFIG.params.price_max) {
+    p_pts = INTERNAL_RULES.price_perfect; // 理想价格区间得60分
+} else if (item.price > CONFIG.params.price_max) {
+    p_pts = INTERNAL_RULES.price_ok; // 高于理想区间得30分
+} else {
+    p_pts = INTERNAL_RULES.price_low; // 低于理想区间得0分
+}
+logs.push({
+    dim:'定价与转化', item:'价格',
+    formula:`$${item.price}`,
+    calc:`区间 ${CONFIG.params.price_min}-${CONFIG.params.price_max}`,
+    res:p_pts,
+    rule: RULE_DESCRIPTIONS.price
+});
+
+let ratio = item.sales > 0 ? (item.reviews / item.sales) : 0;
+let ratio_pts = (ratio >= 0.005 && ratio <= 0.08) ? INTERNAL_RULES.ratio_base : INTERNAL_RULES.ratio_partial;
+logs.push({
+    dim:'定价与转化', item:'评销比',
+    formula:`${item.reviews} ÷ ${item.sales} = ${(ratio*100).toFixed(2)}%`,
+    calc:`0.5%-8%区间`,
+    res:ratio_pts,
+    rule: RULE_DESCRIPTIONS.review_ratio
+});
+
+let score_price_ops = p_pts + ratio_pts;
+
+    // --- 3. 竞争 (Competition) - 总分100分 ---
+    let bsr_pts = (item.bsr_major>0 && item.bsr_major<2000) ? R.bsr_maj_perfect : (item.bsr_major<P.bsr_major_max ? R.bsr_maj_ok : 0);
+    logs.push({
+        dim:'竞争', item:'大类BSR',
+        formula:`${item.bsr_major}`,
+        calc:`<${P.bsr_major_max}达标`,
+        res:bsr_pts,
+        rule: RULE_DESCRIPTIONS.bsr_major
+    });
+
+    let sub_bsr_pts = (item.bsr_minor>0 && item.bsr_minor<50) ? R.bsr_min_perfect : (item.bsr_minor<100 ? R.bsr_min_ok : 0);
+    logs.push({
+        dim:'竞争', item:'小类BSR',
+        formula:`${item.bsr_minor}`,
+        calc:`<50极好`,
+        res:sub_bsr_pts,
+        rule: RULE_DESCRIPTIONS.bsr_minor
+    });
+
+    let score_comp = bsr_pts + sub_bsr_pts;
+
+    // --- 4. 质量 (Quality) - 总分100分 ---
+    let r_pts = item.rating>=4.5 ? R.rating_perfect : (item.rating>=P.rating_min ? R.rating_ok : 0);
+    logs.push({
+        dim:'质量', item:'评分',
+        formula:`${item.rating}`,
+        calc:`>=${P.rating_min}及格`,
+        res:r_pts,
+        rule: RULE_DESCRIPTIONS.rating
+    });
+
+    let rv_pts = (item.reviews>=P.reviews_min && item.reviews<=P.reviews_max) ? R.reviews_perfect : (item.reviews<P.reviews_min ? R.reviews_ok : 0);
+    logs.push({
+        dim:'质量', item:'评价数',
+        formula:`${item.reviews}`,
+        calc:`${P.reviews_min}-${P.reviews_max}区间`,
+        res:rv_pts,
+        rule: RULE_DESCRIPTIONS.reviews
+    });
+
+    let rr_pts = (item.review_rate>=P.review_rate_min && item.review_rate<=P.review_rate_max) ? R.rate_perfect : R.rate_ok;
+    logs.push({
+        dim:'质量', item:'留评率',
+        formula:`${(item.review_rate*100).toFixed(2)}%`,
+        calc:`${P.review_rate_min*100}-${P.review_rate_max*100}%`,
+        res:rr_pts,
+        rule: RULE_DESCRIPTIONS.review_rate
+    });
+
+    let score_qual = r_pts + rv_pts + rr_pts;
+
+    // --- 5. 趋势 (Trend) - 总分100分 = 数据完整性30分 + 最近一年趋势40分+季节性增长趋势：30分 ---
+    let score_trend = 0;
+    let trendSlope = 0;
+    let seasonalGrowthTrend = 0; // 新增变量用于存储季节性增长趋势
+
+    // 数据完整性得分 (30分)
+    if(history.length >= 3) {
+        score_trend += R.trend_data_complete;
+        logs.push({
+            dim:'趋势', item:'数据完整性',
+            formula:`${history.length}个月数据`,
+            calc:`≥3个月得满分`,
+            res:R.trend_data_complete,
+            rule: RULE_DESCRIPTIONS.trend_data
+        });
+
+        // 最近一年趋势得分 (40分)
+        const vals = history.map(h => h.val);
+        let usedMonthsInfo = "";
+
+        // 根据新规则确定使用的数据范围
+        let filteredVals;
+        if (vals.length >= 6) {
+            const endIndex = vals.length - 1;
+            const startIndex = Math.max(0, endIndex - 11);
+            filteredVals = vals.slice(startIndex, endIndex + 1);
+            usedMonthsInfo = `使用最近${filteredVals.length}个月数据`;
+        } else {
+            filteredVals = [...vals];
+            usedMonthsInfo = `数据不足6个月，使用全部${filteredVals.length}个月数据`;
+        }
+
+        trendSlope = calculateLinearRegressionSlope(filteredVals);
+
+        let slope_pts = 0;
+        if (trendSlope > 0.1) {
+            slope_pts = R.trend_slope_perfect;
+            logs.push({
+                dim: '趋势', item: '最近一年趋势',
+                formula: `${trendSlope.toFixed(3)} > 0.1`,
+                calc: '强趋势',
+                res: slope_pts,
+                rule: RULE_DESCRIPTIONS.trend_slope
+            });
+        } else if (trendSlope > 0.05) {
+            slope_pts = R.trend_slope_good;
+            logs.push({
+                dim: '趋势', item: '最近一年趋势',
+                formula: `${trendSlope.toFixed(3)} > 0.05`,
+                calc: '温和趋势',
+                res: slope_pts,
+                rule: RULE_DESCRIPTIONS.trend_slope
+            });
+        } else if (trendSlope > 0) {
+            slope_pts = R.trend_slope_weak;
+            logs.push({
+                dim: '趋势', item: '最近一年趋势',
+                formula: `${trendSlope.toFixed(3)} > 0`,
+                calc: '弱趋势',
+                res: slope_pts,
+                rule: RULE_DESCRIPTIONS.trend_slope
+            });
+        } else {
+            slope_pts = R.trend_slope_neg;
+            logs.push({
+                dim: '趋势', item: '最近一年趋势',
+                formula: `${trendSlope.toFixed(3)} ≤ 0`,
+                calc: '下跌趋势',
+                res: slope_pts,
+                rule: RULE_DESCRIPTIONS.trend_slope
+            });
+        }
+        score_trend += slope_pts;
+
+        // 季节性增长趋势得分 (30分) - 从季节性移到趋势维度
+        let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
+        if (history.length >= 12) {
+            seasonalityData = analyzeSeasonality(history);
+            seasonalGrowthTrend = seasonalityData.growthTrend; // 保存季节性增长趋势值
+
+            let seasonalGrowthScore = 0;
+            if (seasonalGrowthTrend > 0) {
+                seasonalGrowthScore = R.trend_seasonal_growth_perfect;
+            } else if (seasonalGrowthTrend === 0) {
+                seasonalGrowthScore = R.trend_seasonal_growth_ok;
+            } else {
+                seasonalGrowthScore = R.trend_seasonal_growth_poor;
+            }
+
+            logs.push({
+                dim: '趋势', item: '季节性增长趋势',
+                formula: `斜率: ${seasonalGrowthTrend.toFixed(3)}`,
+                calc: `${seasonalGrowthTrend > 0 ? '增长' : (seasonalGrowthTrend === 0 ? '稳定' : '下降')}`,
+                res: seasonalGrowthScore,
+                rule: RULE_DESCRIPTIONS.trend_seasonal_growth
+            });
+
+            score_trend += seasonalGrowthScore;
+        } else {
+            logs.push({
+                dim: '趋势', item: '季节性增长趋势',
+                formula: `${history.length}个月历史数据`,
+                calc: '需要至少12个月数据',
+                res: 0,
+                rule: '需要至少12个月数据进行季节性增长趋势分析'
+            });
+        }
+
+    } else if(history.length > 0) {
+        // 部分数据 - 数据完整性得中等分
+        score_trend += R.trend_data_partial;
+        logs.push({
+            dim:'趋势', item:'数据完整性',
+            formula:`${history.length}个月数据`,
+            calc:`1-2个月得中等分`,
+            res:R.trend_data_partial,
+            rule: RULE_DESCRIPTIONS.trend_data
+        });
+
+        // 数据不足，不给趋势评分
+        logs.push({
+            dim:'趋势', item:'最近一年趋势',
+            formula:`数据不足`,
+            calc:`不评分`,
+            res:0,
+            rule: "数据不足3个月，无法计算最近一年趋势"
+        });
+
+        logs.push({
+            dim:'趋势', item:'季节性增长趋势',
+            formula:`数据不足`,
+            calc:`不评分`,
+            res:0,
+            rule: "数据不足12个月，无法计算季节性增长趋势"
+        });
+
+    } else {
+        // 无数据 - 数据完整性得0分
+        score_trend += R.trend_data_none;
+        logs.push({
+            dim:'趋势', item:'数据完整性',
+            formula:`无历史数据`,
+            calc:`0分`,
+            res:R.trend_data_none,
+            rule: RULE_DESCRIPTIONS.trend_data
+        });
+
+        logs.push({
+            dim:'趋势', item:'最近一年趋势',
+            formula:`无数据`,
+            calc:`不评分`,
+            res:0,
+            rule: "无历史数据，无法计算最近一年趋势"
+        });
+
+        logs.push({
+            dim:'趋势', item:'季节性增长趋势',
+            formula:`无数据`,
+            calc:`不评分`,
+            res:0,
+            rule: "无历史数据，无法计算季节性增长趋势"
+        });
+    }
+
+    score_trend = Math.min(100, Math.max(0, score_trend));
+
+    // --- 6. 季节性分析 (Seasonality) - 总分100分 ---
+    let score_seasonality = 0;
+    let seasonalityData = { strength: 0, pattern: "无数据", peakMonths: [] };
+
+    if (history.length >= 12) {
+        // 如果之前没有计算过季节性数据，则计算一次
+        if (!seasonalityData || seasonalityData.strength === 0) {
+            seasonalityData = analyzeSeasonality(history);
+        }
+
+        // 1. 季节性强度得分 (50分)
+        let seasonalityStrengthScore = 0;
+        if (seasonalityData.strength > 0.5) {
+            seasonalityStrengthScore = R.seasonality_strong;
+        } else if (seasonalityData.strength > 0.3) {
+            seasonalityStrengthScore = R.seasonality_moderate;
+        } else if (seasonalityData.strength > 0.1) {
+            seasonalityStrengthScore = R.seasonality_weak;
+        } else {
+            seasonalityStrengthScore = R.seasonality_none;
+        }
+
+        logs.push({
+            dim: '季节性',
+            item: '季节性强度',
+            formula: `强度: ${seasonalityData.strength.toFixed(3)}`,
+            calc: `${seasonalityData.pattern}`,
+            res: seasonalityStrengthScore,
+            rule: RULE_DESCRIPTIONS.seasonality_strength
+        });
+
+        // 2. 高峰月份稳定性得分 (50分)
+        let peakStabilityScore = 0;
+        if (seasonalityData.peakStability === "连续两年高峰") {
+            peakStabilityScore = R.peak_stability_perfect;
+        } else if (seasonalityData.peakStability === "一年高峰") {
+            peakStabilityScore = R.peak_stability_good;
+        } else {
+            peakStabilityScore = R.peak_stability_poor;
+        }
+
+        logs.push({
+            dim: '季节性',
+            item: '高峰月份稳定性',
+            formula: `${seasonalityData.peakStability}`,
+            calc: `${seasonalityData.peakStability}`,
+            res: peakStabilityScore,
+            rule: RULE_DESCRIPTIONS.peak_stability
+        });
+
+        // 季节性总分 (不再包含季节性增长趋势)
+        score_seasonality = seasonalityStrengthScore + peakStabilityScore;
+
+    } else {
+        logs.push({
+            dim: '季节性',
+            item: '数据完整性',
+            formula: `${history.length}个月历史数据`,
+            calc: '需要至少12个月数据',
+            res: 0,
+            rule: '需要至少12个月数据进行季节性分析'
+        });
+    }
+
+    // --- 7. 新增：运营因素 (Operation) - 总分100分 = 上架时间40分 + 卖家归属地30分 + BuyBox类型30分 ---
+    let score_operation = 0;
+
+    // 7.1 上架时间得分 (40分)
+    let listing_days_pts = 0;
+    if (item.listing_days < P.listing_days_threshold) {
+        listing_days_pts = R.listing_days_perfect; // <180天得40分
+    } else if (item.listing_days < 360) {
+        listing_days_pts = R.listing_days_ok; // 180-360天得20分
+    } else {
+        listing_days_pts = R.listing_days_poor; // >360天得0分
+    }
+
+    logs.push({
+        dim: '运营因素',
+        item: '上架时间',
+        formula: `${item.listing_days}天`,
+        calc: `<180天:40分; 180-360天:20分; >360天:0分`,
+        res: listing_days_pts,
+        rule: RULE_DESCRIPTIONS.listing_days
+    });
+
+    // 7.2 卖家归属地得分 (30分)
+    let seller_location_pts = 0;
+    const sellerLocation = (item.seller_location || '').toUpperCase();
+    if (sellerLocation.includes('CN') || sellerLocation.includes('CHINA') || sellerLocation.includes('中国')) {
+        seller_location_pts = R.seller_location_cn; // 中国卖家得30分
+    } else if (sellerLocation && !sellerLocation.includes('US') && !sellerLocation.includes('AMZ')) {
+        seller_location_pts = R.seller_location_other; // 其他地区得20分
+    } else {
+        seller_location_pts = R.seller_location_us; // 美国/亚马逊得0分
+    }
+
+    logs.push({
+        dim: '运营因素',
+        item: '卖家归属地',
+        formula: `${item.seller_location || '未知'}`,
+        calc: `CN:30分; 其他:20分; US/AMZ:0分`,
+        res: seller_location_pts,
+        rule: RULE_DESCRIPTIONS.seller_location
+    });
+
+    // 7.3 BuyBox类型得分 (30分)
+    let buybox_type_pts = 0;
+    const buyboxType = (item.buybox_type || item.delivery || '').toUpperCase();
+    if (buyboxType.includes('FBM')) {
+        buybox_type_pts = R.buybox_fbm; // FBM得30分
+    } else if (buyboxType.includes('FBA')) {
+        buybox_type_pts = R.buybox_fba; // FBA得20分
+    } else {
+        buybox_type_pts = R.buybox_amz; // 亚马逊自营得0分
+    }
+
+    logs.push({
+        dim: '运营因素',
+        item: 'BuyBox类型',
+        formula: `${item.buybox_type || item.delivery || '未知'}`,
+        calc: `FBM:30分; FBA:20分; AMZ:0分`,
+        res: buybox_type_pts,
+        rule: RULE_DESCRIPTIONS.buybox_type
+    });
+
+    score_operation = listing_days_pts + seller_location_pts + buybox_type_pts;
+
+    // 综合得分计算 (包含新维度)
+    const total = (
+        score_sales*W.sales +
+        score_price_ops*W.price_ops +
+        score_comp*W.competition +
+        score_qual*W.quality +
+        score_trend*W.trend +
+        score_seasonality*W.seasonality +
+        score_operation*W.operation  // 新增运营因素
+    )/100;
+
+    return {
+        totalScore: total.toFixed(1),
+        subScores: {
+            sales:score_sales,
+            price_ops:score_price_ops,
+            competition:score_comp,
+            quality:score_qual,
+            trend:score_trend,
+            seasonality:score_seasonality,
+            operation:score_operation  // 新增
+        },
+        trendData:{slope:trendSlope, seasonality: seasonalityData},
+        logs:logs
+    };
+}
+
+// ================= 6. 渲染 =================
+function getCurrentFilters(){
+    return {
+        search: (document.getElementById('f-search')?.value || '').toLowerCase().trim(),
+        historyFilter: document.getElementById('f-history-filter')?.value || 'all',
+        score: document.getElementById('f-score')?.value.trim() !== '' ? parseFloat(document.getElementById('f-score')?.value) : null,
+        sales: document.getElementById('f-sales')?.value.trim() !== '' ? parseFloat(document.getElementById('f-sales')?.value) : null,
+        minP: document.getElementById('f-p-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-p-min')?.value) : null,
+        maxP: document.getElementById('f-p-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-p-max')?.value) : null,
+        bsrMajor: document.getElementById('f-bsr-major')?.value.trim() !== '' ? parseFloat(document.getElementById('f-bsr-major')?.value) : null,
+        bsrMinor: document.getElementById('f-bsr-minor')?.value.trim() !== '' ? parseFloat(document.getElementById('f-bsr-minor')?.value) : null,
+        minRating: document.getElementById('f-rating-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-rating-min')?.value) : null,
+        maxRating: document.getElementById('f-rating-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-rating-max')?.value) : null,
+        minReviews: document.getElementById('f-reviews-min')?.value.trim() !== '' ? parseFloat(document.getElementById('f-reviews-min')?.value) : null,
+        maxReviews: document.getElementById('f-reviews-max')?.value.trim() !== '' ? parseFloat(document.getElementById('f-reviews-max')?.value) : null,
+        listingDays: document.getElementById('f-listing-days')?.value.trim() !== '' ? parseFloat(document.getElementById('f-listing-days')?.value) : null,
+        badge: document.getElementById('f-badge')?.value || 'all',
+        sellerLocation: document.getElementById('f-seller-location')?.value || 'all',
+        buyboxType: document.getElementById('f-buybox-type')?.value || 'all'
+    };
+}
+
+function filterItems(items, f){
+    return items.filter(i => {
+        let matchSearch = true;
+        if (f.search) {
+            matchSearch = i.asin.toLowerCase().includes(f.search) ||
+                         i.title.toLowerCase().includes(f.search) ||
+                         (i.brand && i.brand.toLowerCase().includes(f.search));
+        }
+        let matchHistory = true;
+        if (f.historyFilter === 'has-history') {
+            matchHistory = i.history && i.history.length > 0;
+        }
+        let matchScore = true;
+        if (f.score !== null) {
+            matchScore = parseFloat(i.totalScore) >= f.score;
+        }
+        let matchSales = true;
+        if (f.sales !== null) {
+            matchSales = i.sales >= f.sales;
+        }
+        let matchPrice = true;
+        if (f.minP !== null) {
+            matchPrice = matchPrice && i.price >= f.minP;
+        }
+        if (f.maxP !== null) {
+            matchPrice = matchPrice && i.price <= f.maxP;
+        }
+        let matchBsrMajor = true;
+        if (f.bsrMajor !== null && i.bsr_major) {
+            matchBsrMajor = i.bsr_major <= f.bsrMajor;
+        }
+        let matchBsrMinor = true;
+        if (f.bsrMinor !== null && i.bsr_minor) {
+            matchBsrMinor = i.bsr_minor <= f.bsrMinor;
+        }
+        let matchRating = true;
+        if (f.minRating !== null) {
+            matchRating = matchRating && i.rating >= f.minRating;
+        }
+        if (f.maxRating !== null) {
+            matchRating = matchRating && i.rating <= f.maxRating;
+        }
+        let matchReviews = true;
+        if (f.minReviews !== null) {
+            matchReviews = matchReviews && i.reviews >= f.minReviews;
+        }
+        if (f.maxReviews !== null) {
+            matchReviews = matchReviews && i.reviews <= f.maxReviews;
+        }
+        let matchListingDays = true;
+        if (f.listingDays !== null && i.listing_days) {
+            matchListingDays = i.listing_days <= f.listingDays;
+        }
+        let matchBadge = true;
+        if (f.badge !== 'all') {
+            switch(f.badge) {
+                case 'bs': matchBadge = i.is_bs; break;
+                case 'ac': matchBadge = i.is_ac; break;
+                case 'new': matchBadge = i.is_new; break;
+            }
+        }
+        let matchSellerLocation = true;
+        if (f.sellerLocation !== 'all') {
+            const sellerLoc = (i.seller_location || '').toUpperCase();
+            switch(f.sellerLocation) {
+                case 'CN':
+                    matchSellerLocation = sellerLoc.includes('CN') ||
+                                        sellerLoc.includes('CHINA') ||
+                                        sellerLoc.includes('中国');
+                    break;
+                case 'other':
+                    matchSellerLocation = sellerLoc &&
+                                        !sellerLoc.includes('CN') &&
+                                        !sellerLoc.includes('CHINA') &&
+                                        !sellerLoc.includes('中国') &&
+                                        !sellerLoc.includes('US') &&
+                                        !sellerLoc.includes('AMZ');
+                    break;
+                case 'US':
+                    matchSellerLocation = sellerLoc.includes('US') ||
+                                        sellerLoc.includes('AMZ');
+                    break;
+            }
+        }
+        let matchBuyboxType = true;
+        if (f.buyboxType !== 'all') {
+            const buyboxType = (i.buybox_type || i.delivery || '').toUpperCase();
+            switch(f.buyboxType) {
+                case 'FBM':
+                    matchBuyboxType = buyboxType.includes('FBM');
+                    break;
+                case 'FBA':
+                    matchBuyboxType = buyboxType.includes('FBA');
+                    break;
+                case 'AMZ':
+                    matchBuyboxType = buyboxType.includes('AMZ') || buyboxType.includes('AMAZON');
+                    break;
+            }
+        }
+        return matchSearch && matchHistory && matchScore && matchSales && matchPrice &&
+               matchBsrMajor && matchBsrMinor && matchRating && matchReviews &&
+               matchListingDays && matchBadge && matchSellerLocation && matchBuyboxType;
+    });
+}
+
+function applyFilter() {
+    try {
+        const f = getCurrentFilters();
+        filteredData = dedupeByAsin(filterItems(processedData, f));
+        const filterResultCountElement = document.getElementById('filter-result-count');
+        if (filterResultCountElement) {
+            filterResultCountElement.innerText = `共${filteredData.length}条结果`;
+        }
+        currentPage = 1;
+        renderTable();
+        if(keywordDataMap && keywordDataMap.size>0){ renderKeywordTables(); }
+    } catch (error) {
+        filteredData = [...processedData];
+        renderTable();
+    }
+}
+
+
+
+function resetFilter() {
+    try {
+        // Clear all filter input fields safely
+        const searchElement = document.getElementById('f-search');
+        if (searchElement) searchElement.value = '';
+
+        const historyFilterElement = document.getElementById('f-history-filter');
+        if (historyFilterElement) historyFilterElement.value = 'all';
+
+        const scoreElement = document.getElementById('f-score');
+        if (scoreElement) scoreElement.value = '';
+
+        const salesElement = document.getElementById('f-sales');
+        if (salesElement) salesElement.value = '';
+
+        const pMinElement = document.getElementById('f-p-min');
+        if (pMinElement) pMinElement.value = '';
+
+        const pMaxElement = document.getElementById('f-p-max');
+        if (pMaxElement) pMaxElement.value = '';
+
+        const bsrMajorElement = document.getElementById('f-bsr-major');
+        if (bsrMajorElement) bsrMajorElement.value = '';
+
+        const bsrMinorElement = document.getElementById('f-bsr-minor');
+        if (bsrMinorElement) bsrMinorElement.value = '';
+
+        const ratingMinElement = document.getElementById('f-rating-min');
+        if (ratingMinElement) ratingMinElement.value = '';
+
+        const ratingMaxElement = document.getElementById('f-rating-max');
+        if (ratingMaxElement) ratingMaxElement.value = '';
+
+        const reviewsMinElement = document.getElementById('f-reviews-min');
+        if (reviewsMinElement) reviewsMinElement.value = '';
+
+        const reviewsMaxElement = document.getElementById('f-reviews-max');
+        if (reviewsMaxElement) reviewsMaxElement.value = '';
+
+        const listingDaysElement = document.getElementById('f-listing-days');
+        if (listingDaysElement) listingDaysElement.value = '';
+
+        const badgeElement = document.getElementById('f-badge');
+        if (badgeElement) badgeElement.value = 'all';
+
+        const sellerLocationElement = document.getElementById('f-seller-location');
+        if (sellerLocationElement) sellerLocationElement.value = 'all';
+
+        const buyboxTypeElement = document.getElementById('f-buybox-type');
+        if (buyboxTypeElement) buyboxTypeElement.value = 'all';
+
+        // Apply filters to show all data
+        applyFilter();
+    } catch (error) {
+        console.error('Error in resetFilter:', error);
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = '';
+
+    document.getElementById('total-count').innerText = rawData.length;
+    document.getElementById('display-count').innerText = filteredData.length;
+
+    // 对过滤后的数据进行去重处理
+    const uniqueFilteredData = [];
+    const seenAsins = new Set();
+
+    filteredData.forEach(item => {
+        if (!seenAsins.has(item.asin)) {
+            seenAsins.add(item.asin);
+            uniqueFilteredData.push(item);
+        }
+    });
+
+    // 计算分页信息
+    const totalPages = Math.ceil(uniqueFilteredData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, uniqueFilteredData.length);
+    const pageData = uniqueFilteredData.slice(startIndex, endIndex);
+
+    // 只渲染当前页数据
+    pageData.forEach((item, idx) => {
+        let badges = '';
+        if(item.is_bs) badges+=`<span class="badge bg-bs">Best Seller</span>`;
+        if(item.is_ac) badges+=`<span class="badge bg-ac">Amazon Choice</span>`;
+        if(item.is_new) badges+=`<span class="badge bg-new">New Release</span>`;
+
+        let scoreClass = item.totalScore>=80 ? 'score-high' : (item.totalScore>=60 ? 'score-mid' : 'score-low');
+        let slopePct = (item.trendData.slope*100).toFixed(1)+'%';
+        let slopeClass = item.trendData.slope>0 ? 'trend-up' : 'trend-down';
+        let seasonalityInfo = item.trendData.seasonality?.pattern || '无数据';
+        let seasonalityStrength = (item.trendData.seasonality?.strength*100 || 0).toFixed(1)+'%';
+
+        // 运营因素数据
+        const operationScore = item.subScores.operation || 0;
+        const listingDays = item.listing_days || 0;
+        const sellerLocation = item.seller_location || '未知';
+        const buyboxType = item.buybox_type || item.delivery || '未知';
+
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-asin', item.asin);
+        tr.innerHTML = `
+            <td>${startIndex + idx + 1}</td>
+            <td class="col-info">
+                <div class="p-flex">
+                    <div class="p-img-wrap">
+                        ${item.image ? `<img src="${item.image}" class="p-img" onclick="window.open('${item.image}')">` : '<div class="p-img">无图</div>'}
+                    </div>
+                    <div class="p-details">
+                        <div>
+                            <a href="${item.url || 'https://www.amazon.com/dp/'+item.asin}" target="_blank" class="p-asin">${item.asin}</a>
+                            <span style="color:#666;font-size:11px;margin-left:5px">${item.brand||''}</span>
+                        </div>
+                        <div class="p-title" title="${item.title}">${item.title}</div>
+                        <div class="p-meta">类目: ${item.category||'-'} | 上架: ${item.lister_date||'-'} (${listingDays}天)</div>
+                        <div class="badge-row">${badges}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div class="score-val ${scoreClass}">${item.totalScore}</div>
+                <button class="btn-calc" onclick="showLog(${startIndex + idx})">🔍 计算详情</button>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">📦月销</span><span class="m-v">${item.sales}</span></div>
+                <div class="m-row"><span class="m-k">💰销售额</span><span class="m-v">$${Math.round(item.revenue)}</span></div>
+                <div class="m-row"><span class="m-k">📈增长</span><span class="m-v ${item.sales_growth>0?'trend-up':'trend-down'}">${(item.sales_growth*100).toFixed(1)}%</span></div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">💲价格</span><span class="m-v">$${item.price}</span></div>
+                <div class="m-row"><span class="m-k">📝评销比</span><span class="m-v">${(item.reviews && item.sales ? (item.reviews/item.sales*100).toFixed(2) : '0')}%</span></div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">🏅大类BSR</span><span class="m-v">${item.bsr_major||'-'}</span></div>
+                <div class="m-row"><span class="m-k">🥈小类BSR</span><span class="m-v">${item.bsr_minor||'-'}</span></div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">⭐评分</span><span class="m-v">${item.rating}</span></div>
+                <div class="m-row"><span class="m-k">💬评论</span><span class="m-v">${item.reviews}</span></div>
+                <div class="m-row"><span class="m-k">📝留评</span><span class="m-v">${(item.review_rate*100).toFixed(2)}%</span></div>
+            </td>
+            <td>
+                <div class="chart-wrap" onclick="showBigChart(${startIndex + idx})">
+                    <canvas id="chart-${startIndex + idx}"></canvas>
+                </div>
+                <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">长期斜率: ${slopePct}</div>
+                <div style="font-size:10px;color:#666">历史月数: ${item.history.length}</div>
+            </td>
+            <td>
+                <div style="font-weight:bold; font-size:16px">${seasonalityStrength}</div>
+                <div style="font-size:10px;color:#666">${seasonalityInfo}</div>
+                <div style="font-size:9px;color:#999">${item.trendData.seasonality?.peakMonths?.join(', ') || ''}</div>
+            </td>
+            <td>
+                <div class="m-row"><span class="m-k">🕒上架</span><span class="m-v">${listingDays}天</span></div>
+                <div class="m-row"><span class="m-k">🌍卖家</span><span class="m-v">${sellerLocation}</span></div>
+                <div class="m-row"><span class="m-k">📦配送</span><span class="m-v">${buyboxType}</span></div>
+                 <div style="font-size:11px;margin-top:5px;font-weight:bold;color:${operationScore>=70?'27ae60':operationScore>=50?'f39c12':'c0392b'}">得分: ${operationScore.toFixed(1)}</div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+
+        // 延迟绘制迷你图表以避免阻塞UI
+        setTimeout(() => drawMiniChart(`chart-${startIndex + idx}`, item.history), 0);
+    });
+
+    // 更新分页控件
+    updatePaginationControls(totalPages);
+
+    // 更新显示计数（使用去重后的数据）
+    document.getElementById('display-count').innerText = uniqueFilteredData.length;
+}
+
+// ================= 7. 图表与弹窗 =================
+function drawMiniChart(id, history) {
+    const ctx = document.getElementById(id).getContext('2d');
+    if(!history || history.length < 2) {
+        ctx.font = "10px Arial"; ctx.fillText("无数据", 10, 25); return;
+    }
+    const vals = history.map(h=>h.val);
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: history.map(h=>h.date), datasets: [{ data: vals, borderColor: '#3498db', borderWidth: 1.5, pointRadius: 0, tension: 0.1 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: false, tooltip: false, datalabels: {display:false} }, scales: { x: {display:false}, y: {display:false} } }
+    });
+}
+
+function extractKeyword(name){
+    const m = String(name).match(/\(([^)]+)\)/);
+    return m ? m[1] : String(name).replace(/\.[^.]+$/, '');
+}
+
+
+function renderKeywordTables(){
+    const grid = document.getElementById('keyword-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    // 构建重复产品映射
+    buildDuplicateMap();
+
+    const entries = Array.from(keywordDataMap.entries()).slice(0,3);
+
+    // 根据关键词数量决定是否显示关键词表面板
+    if (entries.length === 1) {
+        // 只有一个关键词时，不显示关键词表，直接看汇总表
+        document.getElementById('keyword-tables-panel').style.display = 'none';
+        return;
+    } else if (entries.length === 2) {
+        // 只有两个关键词时，各占一半宽度
+        grid.style.gridTemplateColumns = '1fr 1fr';
+        document.getElementById('keyword-tables-panel').style.display = 'block';
+    } else if (entries.length >= 3) {
+        // 三个或以上关键词时，保持原来三列布局
+        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        document.getElementById('keyword-tables-panel').style.display = 'block';
+    } else {
+        // 没有关键词时不显示
+        document.getElementById('keyword-tables-panel').style.display = 'none';
+        return;
+    }
+
+    entries.forEach(([kw, data], kidx)=>{
+        const wrap = document.createElement('div');
+        const bench = `<div class="benchmark-bar"><span>🏆 75%分位数基准:</span> <span>月销量:${data.bm.sales}</span> <span>月销售额:$${data.bm.revenue.toLocaleString()}</span> <span>评价数:${data.bm.reviews}</span></div>`;
+        // 调整表头列宽
+        const thead = `<thead><tr><th style="width:40px">#</th><th class="mini-col-info">产品信息</th><th style="width:80px">综合评分</th><th style="width:130px">销量趋势</th></tr></thead>`;
+        const tbodyId = `kw-tbody-${kidx}`;
+        const table = `<div class="table-wrapper"><table class="mini">${thead}<tbody id="${tbodyId}"></tbody></table></div>`;
+        const f = getCurrentFilters();
+        const list = filterItems(data.processed, f);
+        const totalPages = Math.max(1, Math.ceil(list.length / itemsPerKeyword));
+        const cur = Math.min(totalPages, Math.max(1, keywordPage.get(kw) || 1));
+        keywordPage.set(kw, cur);
+        const start = (cur - 1) * itemsPerKeyword;
+        const pageSlice = list.slice(start, start + itemsPerKeyword);
+
+        wrap.innerHTML = `<div class="keyword-title">${kw}
+            <div class="kw-controls">
+                <span class="kw-count">共${list.length}条</span>
+                <span class="kw-page">第 ${cur} / ${totalPages} 页</span>
+                <button class="btn btn-outline" onclick="kwChangePage('${kw}', ${cur-1})" ${cur<=1?'disabled':''}>上一页</button>
+                <button class="btn btn-outline" onclick="kwChangePage('${kw}', ${cur+1})" ${cur>=totalPages?'disabled':''}>下一页</button>
+            </div>
+        </div>${bench}${table}`;
+        grid.appendChild(wrap);
+        const tbody = document.getElementById(tbodyId);
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        pageSlice.forEach((item, idx)=>{
+            let badges = '';
+            if(item.is_bs) badges+=`<span class="badge badge.mini bg-bs">Best Seller</span>`;
+            if(item.is_ac) badges+=`<span class="badge badge.mini bg-ac">Amazon Choice</span>`;
+            if(item.is_new) badges+=`<span class="badge badge.mini bg-new">New Release</span>`;
+
+            // 检查是否为重复产品
+            const parentKey = (item.parent_asin||'').trim();
+            const isDuplicate = (duplicateMap.has(item.asin) && duplicateMap.get(item.asin).count > 1)
+                || (parentKey && duplicateMap.has('P:'+parentKey) && duplicateMap.get('P:'+parentKey).count > 1);
+            const duplicateClass = isDuplicate ? 'duplicate-product' : '';
+            const duplicateIndicator = isDuplicate ? `<span class="duplicate-indicator" title="在其他关键词中也出现">◆</span>` : '';
+
+            const scoreClass = item.totalScore>=80 ? 'score-high' : (item.totalScore>=60 ? 'score-mid' : 'score-low');
+            const slopePct = (item.trendData.slope*100).toFixed(1)+'%';
+            const slopeClass = item.trendData.slope>0 ? 'trend-up' : 'trend-down';
+            const listingDays = item.listing_days || 0;
+            const chartId = `kw-chart-${kidx}-${start+idx}`;
+            const tr = document.createElement('tr');
+            tr.className = duplicateClass;
+            tr.setAttribute('data-asin', item.asin);
+            tr.setAttribute('data-parent', parentKey);
+            tr.setAttribute('data-keyword-idx', kidx);
+            tr.innerHTML = `
+                <td style="font-size:12px; display:flex; align-items:center; gap:6px;">
+                    ${start+idx+1}
+                    <button class="btn btn-outline" style="padding:2px 6px;font-size:11px" onclick="jumpToSummaryByAsin('${item.asin}')">跳转</button>
+                </td>
+                <td class="col-info">
+                    <div class="p-flex mini">
+                        <div class="p-img-wrap">
+                            ${item.image ? `<img src="${item.image}" class="p-img mini" onclick="window.open('${item.image}')">` : '<div class="p-img mini">无图</div>'}
+                        </div>
+                        <div class="p-details mini">
+                            <div>
+                                <a href="${item.url || 'https://www.amazon.com/dp/'+item.asin}" target="_blank" class="p-asin mini">${item.asin}</a>
+                                ${duplicateIndicator}
+                                <span style="color:#666;font-size:11px;margin-left:4px">${item.brand||''}</span>
+                            </div>
+                            <div class="badge-row mini">${badges}</div>
+                            <div class="p-meta mini">上架: ${item.lister_date||'-'} (${listingDays}天)</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="score-val mini ${scoreClass}">${item.totalScore}</div>
+                </td>
+                <td>
+                    <div class="chart-wrap mini">
+                        <canvas id="${chartId}"></canvas>
+                    </div>
+                    <div style="font-size:11px;margin-top:2px;font-weight:bold" class="${slopeClass}">斜率: ${slopePct}</div>
+                    <div style="font-size:10px;color:#666">历史: ${item.history.length}月</div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            setTimeout(()=>drawMiniChart(chartId, item.history),0);
+        });
+    });
+    attachKeywordScrollSync();
+    attachKeywordProductClick(); // 添加点击事件监听
+}
+
+
+// 构建重复产品映射
+function buildDuplicateMap() {
+    duplicateMap.clear();
+
+    // 收集所有ASIN及其出现的关键词
+    const entries = Array.from(keywordDataMap.entries());
+    entries.forEach(([kw, data]) => {
+        const f = getCurrentFilters();
+        const list = filterItems(data.processed, f);
+        list.forEach(item => {
+            const asinKey = String(item.asin||'').trim();
+            const parentKey = String(item.parent_asin||'').trim();
+            if(asinKey){
+                if (!duplicateMap.has(asinKey)) {
+                    duplicateMap.set(asinKey, { count: 0, keywords: [] });
+                }
+                const e1 = duplicateMap.get(asinKey);
+                e1.count++;
+                if (!e1.keywords.includes(kw)) e1.keywords.push(kw);
+            }
+            if(parentKey){
+                const k = 'P:'+parentKey;
+                if (!duplicateMap.has(k)) {
+                    duplicateMap.set(k, { count: 0, keywords: [] });
+                }
+                const e2 = duplicateMap.get(k);
+                e2.count++;
+                if (!e2.keywords.includes(kw)) e2.keywords.push(kw);
+            }
+        });
+    });
+}
+
+// 添加关键词产品点击事件监听
+function attachKeywordProductClick() {
+    const products = document.querySelectorAll('#keyword-grid .table-wrapper tbody tr');
+    products.forEach(product => {
+        product.addEventListener('click', function() {
+            const asin = this.getAttribute('data-asin');
+            const parent = this.getAttribute('data-parent');
+            const currentKwIdx = parseInt(this.getAttribute('data-keyword-idx'));
+
+            // 高亮显示所有包含此ASIN的产品行
+            highlightDuplicateProducts(asin, currentKwIdx, parent);
+        });
+    });
+}
+
+// 高亮显示重复产品
+function highlightDuplicateProducts(asin, currentKwIdx, parent) {
+    // 移除之前的高亮，并恢复重复产品样式
+    document.querySelectorAll('#keyword-grid .table-wrapper tbody tr.highlighted').forEach(row => {
+        row.classList.remove('highlighted');
+        // 检查是否应该是重复产品，如果是则恢复黄色背景
+        const rowAsin = row.getAttribute('data-asin');
+        const rowParent = row.getAttribute('data-parent');
+        const isDuplicate = checkIfDuplicate(rowAsin, rowParent);
+        if (isDuplicate) {
+            row.classList.add('duplicate-product');
+        }
+    });
+
+    // 高亮当前点击的产品（移除重复产品样式，添加高亮样式）
+    const clickedRow = document.querySelector(`#keyword-grid .table-wrapper tbody tr[data-asin="${asin}"][data-keyword-idx="${currentKwIdx}"]`);
+    if (clickedRow) {
+        clickedRow.classList.remove('duplicate-product'); // 移除黄色重复产品背景
+        clickedRow.classList.add('highlighted'); // 添加蓝色高亮背景
+    }
+
+    // 高亮其他表格中的重复产品并将其移动到可视区域
+    const rowsByAsin = document.querySelectorAll(`#keyword-grid .table-wrapper tbody tr[data-asin="${asin}"]:not([data-keyword-idx="${currentKwIdx}"])`);
+    const rowsByParent = parent ? document.querySelectorAll(`#keyword-grid .table-wrapper tbody tr[data-parent="${parent}"]:not([data-keyword-idx="${currentKwIdx}"])`) : [];
+    const uniqueSet = new Set();
+    [...rowsByAsin, ...rowsByParent].forEach(el=>uniqueSet.add(el));
+    const otherRows = Array.from(uniqueSet);
+    const wrappers = new Set();
+    otherRows.forEach(row => {
+        row.classList.remove('duplicate-product'); // 移除黄色重复产品背景
+        row.classList.add('highlighted'); // 添加蓝色高亮背景
+
+        // 将重复产品移动到表格顶部
+        const tbody = row.parentNode;
+        tbody.insertBefore(row, tbody.firstChild);
+        const wrap = tbody.closest('.table-wrapper');
+        if(wrap) wrappers.add(wrap);
+    });
+
+    wrappers.forEach(w=>{
+        try { w.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) { w.scrollTop = 0; }
+    });
+
+    showToast(`高亮显示了 ${otherRows.length + 1} 个重复产品`, "info");
+}
+
+// 添加辅助函数：检查是否为重复产品
+function checkIfDuplicate(asin, parent) {
+    // 检查ASIN是否在重复映射中
+    if (duplicateMap.has(asin) && duplicateMap.get(asin).count > 1) {
+        return true;
+    }
+
+    // 检查父ASIN是否在重复映射中
+    if (parent && duplicateMap.has('P:'+parent) && duplicateMap.get('P:'+parent).count > 1) {
+        return true;
+    }
+
+    return false;
+}
+
+function kwChangePage(kw, newPage){
+    const f = getCurrentFilters();
+    const data = keywordDataMap.get(kw);
+    if(!data) return;
+    const cur = Math.max(1, keywordPage.get(kw) || 1);
+    const delta = newPage - cur;
+    const sync = document.getElementById('kw-sync-page');
+    if(sync && sync.checked){
+        keywordDataMap.forEach((val, key)=>{
+            const tp = Math.max(1, Math.ceil(filterItems(val.processed, f).length / itemsPerKeyword));
+            const now = Math.max(1, keywordPage.get(key) || 1);
+            const target = Math.min(tp, Math.max(1, now + delta));
+            keywordPage.set(key, target);
+        });
+        renderKeywordTables();
+        return;
+    }
+    const totalPages = Math.max(1, Math.ceil(filterItems(data.processed, f).length / itemsPerKeyword));
+    if(newPage>=1 && newPage<=totalPages){
+        keywordPage.set(kw, newPage);
+        renderKeywordTables();
+    }
+}
+
+function jumpToSummaryByAsin(asin){
+    try{
+        const seen = new Set();
+        const unique = [];
+        filteredData.forEach(i=>{ if(!seen.has(i.asin)){ seen.add(i.asin); unique.push(i); } });
+        const idx = unique.findIndex(i=>String(i.asin).trim()===String(asin).trim());
+        if(idx<0){ showToast('该ASIN不在当前筛选结果', 'warning'); return; }
+        currentPage = Math.floor(idx / itemsPerPage) + 1;
+        renderTable();
+        const row = document.querySelector(`#result-table tbody tr[data-asin="${asin}"]`);
+        if(row){
+            row.classList.add('highlighted');
+            try{ row.scrollIntoView({ behavior:'smooth', block:'center' }); }catch(e){ row.scrollIntoView(); }
+        }
+    }catch(e){}
+}
+
+function attachKeywordScrollSync(){
+    const checkbox = document.getElementById('kw-sync-scroll');
+    const wrappers = Array.from(document.querySelectorAll('#keyword-grid .table-wrapper'));
+    let syncing = false;
+    wrappers.forEach(w=>{
+        w.onscroll = (e)=>{
+            if(!checkbox || !checkbox.checked) return;
+            if(syncing) return;
+            syncing = true;
+            const st = w.scrollTop;
+            const sl = w.scrollLeft;
+            wrappers.forEach(other=>{
+                if(other!==w){ other.scrollTop = st; other.scrollLeft = sl; }
+            });
+            syncing = false;
+        };
+    });
+}
+
+
+function showBigChart(idx) {
+    const item = filteredData[idx];
+    const modal = document.getElementById('chart-modal');
+    modal.style.display = 'flex';
+
+    if (window.bigChart) window.bigChart.destroy();
+    const ctx = document.getElementById('large-chart').getContext('2d');
+
+    const stats = document.getElementById('chart-stats');
+    const vals = item.history.map(h => h.val);
+
+    // 计算统计指标
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const std = Math.sqrt(vals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / vals.length);
+    const cv = mean ? std / mean : 0;
+
+    // 获取高峰月份
+    const peakMonths = item.trendData.seasonality?.peakMonths?.join(', ') || '无数据';
+    const seasonalityStrength = (item.trendData.seasonality?.strength*100 || 0).toFixed(1)+'%';
+
+    // 计算实际用于长期斜率计算的数据范围
+    let usedMonthsInfo = "";
+    let actualDataLength = vals.length;
+    if (vals.length >= 6) {
+        // 如果有6个月或以上数据，取最近的6-12个月（与 calculateScores 中的逻辑一致）
+        const endIndex = vals.length - 1;
+        const startIndex = Math.max(0, endIndex - 11); // 最多取12个月
+        actualDataLength = endIndex - startIndex + 1;
+        usedMonthsInfo = `基于最近${actualDataLength}个月数据`;
+    } else if (vals.length > 0) {
+        usedMonthsInfo = `数据不足6个月，使用全部${actualDataLength}个月数据`;
+    } else {
+        usedMonthsInfo = "无历史数据";
+    }
+
+    stats.innerHTML = `        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px;background:#f8f9fa;">
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">长期斜率</div>
+                <div style="font-size:16px;font-weight:bold">${(item.trendData.slope * 100).toFixed(1)}%</div>
+                <div style="font-size:10px;color:#999">${usedMonthsInfo}</div>
+            </div>
+            <div style="flex:1;min-width:120px;border-right:1px solid #ddd">
+                <div style="color:#888;font-size:12px">季节性强度</div>
+                <div style="font-size:16px;font-weight:bold">${seasonalityStrength}</div>
+            </div>
+            <div style="flex:1;min-width:120px">
+                <div style="color:#888;font-size:12px">最新销量</div>
+                <div style="font-size:16px;font-weight:bold">${vals[vals.length - 1] || 0}</div>
+            </div>
+            <div style="flex-basis:100%;margin-top:10px;padding-top:10px;border-top:1px solid #eee;text-align:center;">
+                <div style="color:#888;font-size:12px">高峰月份</div>
+                <div style="font-size:14px;font-weight:bold;color:#c0392b">${peakMonths}</div>
+            </div>
+        </div>
+    `;
+
+    window.bigChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: item.history.map(h => h.date),
+            datasets: [{
+                label: '月销量',
+                data: vals,
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                datalabels: { align: 'top', color: '#666', font: { size: 11 }, formatter: (v) => v }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+// ================= 计算详情弹窗显示函数 (修复版，包含可视化) =================
+function showLog(idx) {
+    const item = filteredData[idx];
+    const modal = document.getElementById('score-modal');
+    modal.style.display = 'flex';
+
+    let html = `<div style="background:#f9f9f9; padding:10px; margin-bottom:15px; border-left:4px solid var(--accent)">
+        <div style="font-size:16px; font-weight:bold">${item.asin}</div>
+        <div>综合得分: <strong style="font-size:20px; color:var(--primary)">${item.totalScore}</strong></div>
+        <div style="font-size:11px; color:#666">公式: ∑(维度得分 × 维度权重) / 100</div>
+    </div>`;
+
+    // 添加可视化部分
+    html += `<div class="visualization-container">
+        <div class="visualization-left">
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
+                <h3 style="margin-top:0; color:var(--primary)">📊 维度得分雷达图</h3>
+                <div class="radar-chart-container">
+                    <canvas id="radar-chart-${idx}"></canvas>
+                </div>
+                <div class="weight-info">
+                    当前权重配置:
+                    <span class="weight-badge">销售 ${CONFIG.weights.sales}%</span>
+                    <span class="weight-badge">价格 ${CONFIG.weights.price_ops}%</span>
+                    <span class="weight-badge">竞争 ${CONFIG.weights.competition}%</span>
+                    <span class="weight-badge">质量 ${CONFIG.weights.quality}%</span>
+                    <span class="weight-badge">趋势 ${CONFIG.weights.trend}%</span>
+                    <span class="weight-badge">季节 ${CONFIG.weights.seasonality}%</span>
+                    <span class="weight-badge">运营 ${CONFIG.weights.operation}%</span>
+                </div>
+            </div>
+        </div>
+        <div class="visualization-right">
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee;">
+                <h3 style="margin-top:0; color:var(--primary)">📈 维度得分详情</h3>
+                <div class="dimension-details" id="dimension-cards-${idx}"></div>
+            </div>
+        </div>
+    </div>`;
+
+    html += `<table class="calc-table"><thead><tr><th class="dim-cell">维度</th><th>指标项</th><th>计算公式</th><th>加权计算</th><th>得分</th><th style="width:200px">赋分规则</th></tr></thead><tbody>`;
+
+    const groups = {};
+    item.logs.forEach(l => { if(!groups[l.dim]) groups[l.dim]=[]; groups[l.dim].push(l); });
+    const order = ['销售','定价与转化','竞争','质量','趋势','季节性','运营因素']; // 新增运营因素
+
+    // 维度映射
+    const dimKeyMap = {
+        '销售':'sales',
+        '定价与转化':'price_ops',
+        '竞争':'competition',
+        '质量':'quality',
+        '趋势':'trend',
+        '季节性':'seasonality',
+        '运营因素':'operation' // 新增
+    };
+
+    order.forEach(dim => {
+        if(groups[dim]) {
+            let w = CONFIG.weights[dimKeyMap[dim]];
+            let subScore = item.subScores[dimKeyMap[dim]];
+
+            groups[dim].forEach((l, i) => {
+                html += `<tr>
+                    ${i===0 ? `<td rowspan="${groups[dim].length}" class="dim-cell">${dim}<br><small style="font-weight:normal;color:#666">权重${w}%</small></td>` : ''}
+                    <td>${l.item}</td>
+                    <td class="calc-formula">${l.formula}</td>
+                    <td class="calc-step">${l.calc}</td>
+                    <td class="calc-score-cell">${l.res>0?'+':''}${l.res.toFixed(1)}</td>
+                    <td><div class="rule-desc">${l.rule}</div></td>
+                </tr>`;
+            });
+            html += `<tr style="background:#fcfcfc; font-weight:bold; color:#666"><td colspan="5" style="text-align:right">维度总得分 (${subScore.toFixed(1)}) × 权重 (${w}%) = </td><td style="color:var(--primary)">${(subScore*w/100).toFixed(2)}</td></tr>`;
+        }
+    });
+    html += `<tr style="background:#e8f5e9; font-weight:bold; font-size:14px"><td colspan="5" style="text-align:right">最终综合得分 = </td><td style="color:var(--primary); font-size:16px">${item.totalScore}</td></tr>`;
+    html += `</tbody></table>`;
+
+    document.getElementById('score-log-content').innerHTML = html;
+
+    // 绘制雷达图
+    setTimeout(() => {
+        drawRadarChart(idx, item);
+        renderDimensionCards(idx, item, groups);
+    }, 100);
+}
+
+// ================= 绘制雷达图 =================
+function drawRadarChart(idx, item) {
+    const ctx = document.getElementById(`radar-chart-${idx}`).getContext('2d');
+
+    // 维度标签和得分
+    const labels = ['销售表现', '定价与转化', '竞争环境', '质量口碑', '销量趋势', '季节性', '运营因素']; // 新增运营因素
+    const scores = [
+        item.subScores.sales,
+        item.subScores.price_ops,
+        item.subScores.competition,
+        item.subScores.quality,
+        item.subScores.trend,
+        item.subScores.seasonality,
+        item.subScores.operation || 0 // 新增
+    ];
+
+    // 销毁之前的图表实例
+    if (window[`radarChart${idx}`]) {
+        window[`radarChart${idx}`].destroy();
+    }
+
+    window[`radarChart${idx}`] = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '维度得分',
+                    data: scores,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100,
+                    ticks: {
+                        stepSize: 20,
+                        backdropColor: 'transparent'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 11,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.raw.toFixed(1);
+                            label += ' 分';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ================= 渲染维度得分卡片 =================
+function renderDimensionCards(idx, item, groups) {
+    const container = document.getElementById(`dimension-cards-${idx}`);
+
+    const dimensions = [
+        { key: 'sales', name: '销售表现', color: '#3498db' },
+        { key: 'price_ops', name: '定价与转化', color: '#2ecc71' },
+        { key: 'competition', name: '竞争环境', color: '#e74c3c' },
+        { key: 'quality', name: '质量口碑', color: '#f39c12' },
+        { key: 'trend', name: '销量趋势', color: '#9b59b6' },
+        { key: 'seasonality', name: '季节性', color: '#1abc9c' },
+        { key: 'operation', name: '运营因素', color: '#e67e22' } // 新增
+    ];
+
+    // 维度名称映射到中文
+    const dimNameMap = {
+        'sales': '销售',
+        'price_ops': '定价与转化',
+        'competition': '竞争',
+        'quality': '质量',
+        'trend': '趋势',
+        'seasonality': '季节性',
+        'operation': '运营因素' // 新增
+    };
+
+    // 原始数据映射
+    const rawDataMap = {
+        '销售': {
+            '月销量': () => item.sales,
+            '销售额': () => `$${Math.round(item.revenue).toLocaleString()}`,
+            '近期增长': () => `${(item.sales_growth * 100).toFixed(1)}%`
+        },
+        '定价与转化': {
+            '价格': () => `$${item.price}`,
+            '评销比': () => {
+                const ratio = item.sales > 0 ? (item.reviews / item.sales) : 0;
+                return `${(ratio * 100).toFixed(2)}%`;
+            }
+        },
+        '竞争': {
+            '大类BSR': () => item.bsr_major || '-',
+            '小类BSR': () => item.bsr_minor || '-'
+        },
+        '质量': {
+            '评分': () => item.rating,
+            '评价数': () => item.reviews,
+            '留评率': () => `${(item.review_rate * 100).toFixed(2)}%`
+        },
+        '趋势': {
+            '数据完整性': () => `${item.history.length}个月`,
+            '最近一年趋势': () => `${(item.trendData.slope * 100).toFixed(1)}%`,
+            '季节性增长趋势': () => {
+                const trend = item.trendData.seasonality?.growthTrend || 0;
+                return `${(trend * 100).toFixed(1)}%`;
+            }
+        },
+        '季节性': {
+            '季节性强度': () => item.trendData.seasonality?.strength?.toFixed(3) || '无数据',
+            '高峰月份稳定性': () => item.trendData.seasonality?.peakStability || '无数据'
+        },
+        // 新增运营因素原始数据映射
+        '运营因素': {
+            '上架时间': () => `${item.listing_days}天`,
+            '卖家归属地': () => item.seller_location || '未知',
+            'BuyBox类型': () => item.buybox_type || item.delivery || '未知'
+        }
+    };
+
+    let cardsHtml = '';
+
+    dimensions.forEach(dim => {
+        const score = item.subScores[dim.key] || 0;
+        const weight = CONFIG.weights[dim.key];
+        const progressWidth = Math.min(score, 100);
+
+        // 根据得分确定颜色强度
+        let color = dim.color;
+        if (score < 40) color = '#e74c3c'; // 红色表示低分
+        else if (score < 70) color = '#f39c12'; // 橙色表示中等
+        // 否则使用维度原本的颜色
+
+        // 获取该维度的子指标得分
+        const dimLogs = groups[dimNameMap[dim.key]] || [];
+        let subItemsHtml = '';
+
+        dimLogs.forEach(log => {
+            // 获取原始数据
+            const rawData = rawDataMap[dimNameMap[dim.key]]?.[log.item]?.() || 'N/A';
+
+            subItemsHtml += `                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                    <span>${log.item}: ${rawData}</span>
+                    <span style="font-weight: bold;"> --> ${log.res.toFixed(1)}分</span>
+                </div>
+            `;
+        });
+
+        cardsHtml += `            <div class="dimension-card">
+                <div class="dimension-card-header">
+                    <span>${dim.name}</span>
+                    <span class="dimension-score">${score.toFixed(1)}</span>
+                </div>
+                <div class="dimension-progress">
+                    <div class="dimension-progress-bar" style="width: ${progressWidth}%; background: ${color};"></div>
+                </div>
+                <div class="dimension-key-metrics">
+                    <div style="margin-bottom: 5px;">
+                        <span>权重: ${weight}%</span>
+                        <span style="margin-left: 10px;">贡献: ${(score * weight / 100).toFixed(1)} 分</span>
+                    </div>
+                    <div style="border-top: 1px dashed #eee; padding-top: 5px;">
+                        ${subItemsHtml}                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = cardsHtml;
+}
+
+// ================= 8. 导出 =================
+async function exportData() {
+    const overlay = document.getElementById('export-overlay');
+    const prog = document.getElementById('exp-prog');
+    const status = document.getElementById('exp-status');
+    overlay.style.display = 'flex';
+    status.innerText = '初始化工作簿...';
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('选品分析');
+
+    const cols = [
+        { header: '排名', key: 'rank', width: 8 },
+        { header: 'ASIN', key: 'asin', width: 15 },
+        { header: '图片', key: 'img', width: 15 },
+        { header: '综合评分', key: 'score', width: 10 },
+        { header: '标题', key: 'title', width: 40 },
+        { header: '中文标题', key: 'title_cn', width: 30 },
+        { header: '类目', key: 'category', width: 20 },
+        { header: '价格', key: 'price', width: 10 },
+        { header: '月销量', key: 'sales', width: 10 },
+        { header: '月销售额', key: 'revenue', width: 15 },
+        { header: '近期增长', key: 'growth', width: 10 },
+        { header: '长期斜率', key: 'slope', width: 10 },
+        { header: '评分', key: 'rating', width: 8 },
+        { header: '评价数', key: 'reviews', width: 10 },
+        { header: '留评率', key: 'review_rate', width: 10 },
+        { header: '大类BSR', key: 'bsr_major', width: 10 },
+        { header: '小类BSR', key: 'bsr_minor', width: 10 },
+        { header: '季节性强度', key: 'seasonality', width: 12 },
+        { header: '上架天数', key: 'listing_days', width: 10 }, // 新增
+        { header: '卖家归属地', key: 'seller_location', width: 12 }, // 新增
+        { header: 'BuyBox类型', key: 'buybox_type', width: 12 }, // 新增
+        { header: '运营因素得分', key: 'operation_score', width: 12 }, // 新增
+        { header: '链接', key: 'url', width: 30 }
+    ];
+
+    if(rawData.length > 0) {
+        Object.keys(rawData[0]._raw).forEach(k => {
+            if(!cols.find(c => c.key === `raw_${k}`)) cols.push({ header: `[原]${k}`, key: `raw_${k}`, width: 15 });
+        });
+    }
+    ws.columns = cols;
+
+    const rows = filteredData;
+    const imgTasks = [];
+
+    for(let i=0; i<rows.length; i++) {
+        const item = rows[i];
+        const rowData = {
+            rank: i+1, asin: item.asin, score: item.totalScore,
+            title: item.title, title_cn: item.title_cn, category: item.category,
+            price: item.price,
+            sales: item.sales, revenue: item.revenue,
+            growth: (item.sales_growth*100).toFixed(1)+'%',
+            slope: (item.trendData.slope*100).toFixed(1)+'%',
+            rating: item.rating, reviews: item.reviews,
+            review_rate: (item.review_rate*100).toFixed(2)+'%',
+            bsr_major: item.bsr_major, bsr_minor: item.bsr_minor,
+            seasonality: (item.trendData.seasonality?.strength*100 || 0).toFixed(1)+'%',
+            listing_days: item.listing_days, // 新增
+            seller_location: item.seller_location, // 新增
+            buybox_type: item.buybox_type || item.delivery, // 新增
+            operation_score: (item.subScores.operation || 0).toFixed(1), // 新增
+            url: item.url
+        };
+        for(let k in item._raw) rowData[`raw_${k}`] = item._raw[k];
+
+        const r = ws.addRow(rowData);
+        r.height = 80;
+        if(item.image) imgTasks.push({ url: item.image, rowIndex: i+1 });
+        if(i%50===0) { prog.style.width = `${(i/rows.length)*40}%`; await new Promise(r=>setTimeout(r,0)); }
+    }
+
+    status.innerText = "正在下载并嵌入图片...";
+    for(let i=0; i<imgTasks.length; i++) {
+        const t = imgTasks[i];
+        try {
+            const b64 = await getBase64(t.url);
+            if(b64) {
+                const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+                ws.addImage(imgId, { tl: { col: 2, row: t.rowIndex }, br: { col: 3, row: t.rowIndex+1 }, editAs: 'oneCell' });
+            }
+        } catch(e) {}
+        prog.style.width = `${40 + (i/imgTasks.length)*60}%`;
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `选品报告_${new Date().getTime()}.xlsx`;
+    a.click();
+    overlay.style.display = 'none';
+}
+
+function getBase64(url) {
+    return new Promise(resolve => {
+        const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = url;
+        img.onload = () => {
+            const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+            c.getContext('2d').drawImage(img,0,0);
+            resolve(c.toDataURL('image/jpeg'));
+        };
+        img.onerror = () => resolve(null);
+    });
+}
+// 更新分页控件
+function updatePaginationControls(totalPages) {
+    // 更新页码信息
+    document.getElementById('page-info').innerText =
+        `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+
+    // 启用/禁用导航按钮
+    document.getElementById('prev-btn').disabled = (currentPage <= 1);
+    document.getElementById('next-btn').disabled = (currentPage >= totalPages);
+
+    // 更新页码输入框的最大值
+    document.getElementById('page-input').max = totalPages;
+}
+
+// 切换页面
+function changePage(newPage) {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        renderTable();
+
+        // 滚动到表格顶部
+        document.querySelector('.table-wrapper').scrollTop = 0;
+    }
+}
+
+// 跳转到指定页面
+function goToPage() {
+    const pageInput = document.getElementById('page-input');
+    const pageNumber = parseInt(pageInput.value);
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        currentPage = pageNumber;
+        renderTable();
+
+        // 清空输入框并滚动到顶部
+        pageInput.value = '';
+        document.querySelector('.table-wrapper').scrollTop = 0;
+    } else {
+        alert(`请输入有效的页码 (1-${totalPages})`);
+    }
+}
+// 显示ASIN列表弹窗
+function showAsinList() {
+    if (rawData.length === 0) {
+        alert('请先上传主数据文件');
+        return;
+    }
+
+    generateAsinList();
+    document.getElementById('asin-list-modal').style.display = 'flex';
+}
+
+// 生成ASIN列表
+function generateAsinList() {
+    // 去重ASIN
+    const uniqueAsins = [...new Set(rawData.map(item => item.asin))];
+
+    // 更新总数显示
+    document.getElementById('total-asins').textContent = uniqueAsins.length;
+    document.getElementById('selected-count').textContent = '已选择: 0';
+
+    // 按每组100个ASIN分组
+    const groupedAsins = [];
+    for (let i = 0; i < uniqueAsins.length; i += 100) {
+        groupedAsins.push(uniqueAsins.slice(i, i + 100));
+    }
+
+    // 生成表格内容
+    const tbody = document.getElementById('asin-list-body');
+    tbody.innerHTML = '';
+
+    groupedAsins.forEach((group, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `            <td><input type="checkbox" class="asin-checkbox" data-asins="${group.join(',')}" onchange="updateSelectedCount()"></td>
+            <td>${index + 1}</td>
+            <td style="text-align: left; font-family: monospace; font-size: 11px; cursor: pointer;"
+                onclick="copyAsinGroup('${group.join(',')}')"
+                title="点击复制这组ASIN">${group.join(',')}</td>
+            <td>${group.length}</td>
+            <td>
+                <button class="btn btn-outline" style="padding: 2px 6px; font-size: 11px;"
+                        onclick="copyAsinGroup('${group.join(',')}')">复制</button>
+                <button class="btn btn-primary" style="padding: 2px 6px; font-size: 11px;"
+                        onclick="jumpWithAsins('${group.join(',')}')">跳转</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // 重置全选复选框
+    document.getElementById('select-all-checkbox').checked = false;
+}
+
+// 更新选中计数
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    const selected = Array.from(checkboxes).filter(cb => cb.checked);
+    document.getElementById('selected-count').textContent = `已选择: ${selected.length}`;
+}
+
+// 全选/取消全选
+function toggleSelectAll() {
+    const isChecked = document.getElementById('select-all-checkbox').checked;
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    checkboxes.forEach(cb => cb.checked = isChecked);
+    updateSelectedCount();
+}
+
+// 全选所有ASIN组
+function selectAllAsins() {
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    checkboxes.forEach(cb => cb.checked = true);
+    document.getElementById('select-all-checkbox').checked = true;
+    updateSelectedCount();
+}
+
+// 取消全选所有ASIN组
+function deselectAllAsins() {
+    const checkboxes = document.querySelectorAll('.asin-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('select-all-checkbox').checked = false;
+    updateSelectedCount();
+}
+
+// 复制单组ASIN
+function copyAsinGroup(asins) {
+    navigator.clipboard.writeText(asins).then(() => {
+        showToast("ASIN已复制到剪贴板", "success");
+    }).catch(err => {
+        showToast("复制失败: " + err, "error");
+    });
+}
+
+// 跳转到SellerSprite并携带ASIN参数
+function jumpWithAsins(asins) {
+    copyAsinGroup(asins);
+    // 直接跳转到带参数的URL
+    const asinArray = asins.split(',').map(asin => `"${asin}"`).join(',');
+    const url = `https://www.sellersprite.com/v3/competitor-lookup?market=US&monthName=bsr_sales_nearly&asins=[${asinArray}]&page=1&nodeIdPaths=[]&symbolFlag=false&size=60&order[field]=amz_unit&order[desc]=true&lowPrice=N`;
+    window.open(url, '_blank');
+}
+
+// 替换原有的 copyAndJump 函数
+function copyAndJump() {
+    const selectedCheckboxes = document.querySelectorAll('.asin-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        showToast("请至少选择一组ASIN", "warning");
+        return;
+    }
+
+    const allAsins = [];
+    selectedCheckboxes.forEach(cb => {
+        const asins = cb.getAttribute('data-asins').split(',');
+        allAsins.push(...asins);
+    });
+
+    const uniqueAsins = [...new Set(allAsins)];
+
+    // 复制ASIN到剪贴板
+    navigator.clipboard.writeText(uniqueAsins.join(',')).then(() => {
+        showToast(`已复制${uniqueAsins.length}个ASIN到剪贴板`, "success");
+
+        // 直接跳转到带参数的URL
+        const asinArray = uniqueAsins.map(asin => `"${asin}"`).join(',');
+        const url = `https://www.sellersprite.com/v3/competitor-lookup?market=US&monthName=bsr_sales_nearly&asins=[${asinArray}]&page=1&nodeIdPaths=[]&symbolFlag=false&size=60&order[field]=amz_unit&order[desc]=true&lowPrice=N`;
+        window.open(url, '_blank');
+    }).catch(err => {
+        showToast("复制失败: " + err, "error");
+    });
+}
+
+// 辅助函数
+function parseNum(v) { if(typeof v==='number')return v; if(!v)return 0; let s=v.toString().replace(/[$,%]/g,''); let n=parseFloat(s); if(v.toString().includes('%'))n/=100; return isNaN(n)?0:n; }
+function checkBool(v) { if(!v)return false; const s=v.toString().toLowerCase(); return s==='yes'||s==='y'||s==='是'||s==='1'||s==='true'; }
+function toggleSection(id) { const el=document.getElementById(id); el.style.display = el.style.display==='none'?'block':'none'; }
+function scrollToSection(id) {
+    setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element && element.style.display !== 'none') {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 100);
+}
+
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 工具集 - 工作台导航</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --card-bg: rgba(18, 18, 30, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text: #e0e0e0;
+            --text-secondary: #a0a0b8;
+            --accent-1: #6c5ce7;
+            --accent-2: #00d2ff;
+            --accent-3: #ff6b9d;
+            --accent-4: #00e676;
+            --accent-5: #ffab40;
+            --accent-6: #7c4dff;
+            --accent-7: #18ffff;
+            --accent-8: #ff5252;
+            --accent-9: #b388ff;
+            --glow-1: rgba(108, 92, 231, 0.5);
+            --glow-2: rgba(0, 210, 255, 0.5);
+            --glow-3: rgba(255, 107, 157, 0.5);
+            --glow-4: rgba(0, 230, 118, 0.5);
+            --glow-5: rgba(255, 171, 64, 0.5);
+            --glow-6: rgba(124, 77, 255, 0.5);
+            --glow-7: rgba(24, 255, 255, 0.5);
+            --glow-8: rgba(255, 82, 82, 0.5);
+            --glow-9: rgba(179, 136, 255, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ============ 动态星空粒子背景 ============ */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ============ 网格背景线 ============ */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+        }
+
+        /* ============ 光晕装饰 ============ */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.35;
+            animation: orbFloat 12s ease-in-out infinite;
+        }
+        .orb-1 {
+            width: 500px;
+            height: 500px;
+            background: var(--accent-1);
+            top: -15%;
+            left: -10%;
+            animation-delay: 0s;
+        }
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-2);
+            top: 50%;
+            right: -12%;
+            animation-delay: -4s;
+        }
+        .orb-3 {
+            width: 350px;
+            height: 350px;
+            background: var(--accent-3);
+            bottom: -18%;
+            left: 30%;
+            animation-delay: -8s;
+        }
+        @keyframes orbFloat {
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(40px, -30px) scale(1.08);
+            }
+            50% {
+                transform: translate(-20px, 25px) scale(0.94);
+            }
+            75% {
+                transform: translate(-35px, -15px) scale(1.05);
+            }
+        }
+
+        /* ============ 主容器 ============ */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 40px 28px 60px;
+        }
+
+        /* ============ 头部 ============ */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+        }
+        .header .logo-icon {
+            display: inline-block;
+            font-size: 56px;
+            margin-bottom: 12px;
+            animation: logoPulse 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 30px rgba(108, 92, 231, 0.7));
+        }
+        @keyframes logoPulse {
+            0%,
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 30px rgba(108, 92, 231, 0.7));
+            }
+            50% {
+                transform: scale(1.08);
+                filter: drop-shadow(0 0 55px rgba(0, 210, 255, 0.9));
+            }
+        }
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #c0c0e0 40%, #8ec5fc 70%, #b8a9ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+        .header .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.08em;
+            font-weight: 400;
+        }
+        .header .accent-line {
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2), var(--accent-3));
+            margin: 16px auto 0;
+            border-radius: 3px;
+            animation: lineShimmer 3s ease-in-out infinite;
+        }
+        @keyframes lineShimmer {
+            0%,
+            100% {
+                width: 80px;
+                opacity: 0.8;
+            }
+            50% {
+                width: 140px;
+                opacity: 1;
+            }
+        }
+
+        /* ============ 卡片网格 ============ */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 22px;
+            padding: 0 10px;
+        }
+        @media (max-width: 1024px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 18px;
+            }
+        }
+        @media (max-width: 600px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .main-container {
+                padding: 24px 14px 40px;
+            }
+        }
+
+        /* ============ 单个卡片 ============ */
+        .card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 24px;
+            border-radius: 18px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            overflow: hidden;
+            z-index: 1;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, var(--card-glow, transparent) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .card:hover::before {
+            opacity: 0.6;
+        }
+        .card:hover {
+            transform: translateY(-6px) scale(1.03);
+            border-color: rgba(255, 255, 255, 0.25);
+            box-shadow:
+                0 20px 50px rgba(0, 0, 0, 0.5),
+                0 0 60px var(--card-glow, rgba(108, 92, 231, 0.35)),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .card:active {
+            transform: translateY(-2px) scale(0.98);
+            transition: all 0.1s ease;
+        }
+        .card .card-icon-wrap {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s ease;
+        }
+        .card:hover .card-icon-wrap {
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 30px var(--card-glow, rgba(108, 92, 231, 0.5));
+            transform: rotate(-5deg) scale(1.1);
+        }
+        .card .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .card .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            margin-bottom: 4px;
+            transition: color 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card:hover .card-title {
+            color: #fff;
+        }
+        .card .card-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+            transition: color 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card:hover .card-desc {
+            color: #c8c8d8;
+        }
+        .card .card-arrow {
+            flex-shrink: 0;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.3);
+            transition: all 0.4s ease;
+        }
+        .card:hover .card-arrow {
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        /* 各卡片专属发光色 */
+        .card:nth-child(1) {
+            --card-glow: var(--glow-1);
+        }
+        .card:nth-child(2) {
+            --card-glow: var(--glow-2);
+        }
+        .card:nth-child(3) {
+            --card-glow: var(--glow-3);
+        }
+        .card:nth-child(4) {
+            --card-glow: var(--glow-4);
+        }
+        .card:nth-child(5) {
+            --card-glow: var(--glow-5);
+        }
+        .card:nth-child(6) {
+            --card-glow: var(--glow-6);
+        }
+        .card:nth-child(7) {
+            --card-glow: var(--glow-7);
+        }
+        .card:nth-child(8) {
+            --card-glow: var(--glow-8);
+        }
+        .card:nth-child(9) {
+            --card-glow: var(--glow-9);
+        }
+
+        /* 卡片入场动画 */
+        .card {
+            opacity: 0;
+            animation: cardFadeIn 0.7s ease forwards;
+        }
+        .card:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+        .card:nth-child(2) {
+            animation-delay: 0.12s;
+        }
+        .card:nth-child(3) {
+            animation-delay: 0.19s;
+        }
+        .card:nth-child(4) {
+            animation-delay: 0.26s;
+        }
+        .card:nth-child(5) {
+            animation-delay: 0.33s;
+        }
+        .card:nth-child(6) {
+            animation-delay: 0.40s;
+        }
+        .card:nth-child(7) {
+            animation-delay: 0.47s;
+        }
+        .card:nth-child(8) {
+            animation-delay: 0.54s;
+        }
+        .card:nth-child(9) {
+            animation-delay: 0.61s;
+        }
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+                filter: blur(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        /* ============ 页脚 ============ */
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            position: relative;
+            z-index: 1;
+        }
+        .footer span {
+            animation: footerDot 2s ease-in-out infinite;
+            display: inline-block;
+        }
+        @keyframes footerDot {
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* ============ 快捷键提示 ============ */
+        .kbd-hint {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            letter-spacing: 0.04em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 动态粒子画布 -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- 网格背景 -->
+    <div class="grid-bg"></div>
+
+    <!-- 光晕装饰 -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo-icon">⚡</div>
+            <h1>工具工作台</h1>
+            <p class="subtitle">TOOLKIT DASHBOARD · 一键直达</p>
+            <div class="accent-line"></div>
+        </header>
+
+        <!-- 卡片网格 -->
+        <div class="cards-grid">
+            <!-- 1. 数据流工作台 -->
+            <a href="https://amazon-7uf.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">🔄</div>
+                <div class="card-info">
+                    <div class="card-title">数据流工作台</div>
+                    <div class="card-desc">数据管道 · ETL 处理</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 2. 仿Tableau -->
+            <a href="https://ftableau.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">📊</div>
+                <div class="card-info">
+                    <div class="card-title">仿 Tableau</div>
+                    <div class="card-desc">可视化分析 · 图表报表</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 3. 图片展示 -->
+            <a href="https://imgmain.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">🖼️</div>
+                <div class="card-info">
+                    <div class="card-title">图片展示</div>
+                    <div class="card-desc">图库浏览 · 图片管理</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 4. 图片识别 -->
+            <a href="https://ocrimg.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">🔍</div>
+                <div class="card-info">
+                    <div class="card-title">图片识别</div>
+                    <div class="card-desc">OCR 识别 · 智能提取</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 5. 文本阅读 -->
+            <a href="https://read-32h.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">📖</div>
+                <div class="card-info">
+                    <div class="card-title">文本阅读</div>
+                    <div class="card-desc">文档阅读 · 文本解析</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 6. 废料1 -->
+            <a href="https://humanwaste.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">🗑️</div>
+                <div class="card-info">
+                    <div class="card-title">废料 1</div>
+                    <div class="card-desc">杂物回收 · 临时存放</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 7. 废料2 -->
+            <a href="https://wasdkd.github.io/Amazon/%E5%BA%9F%E6%96%99" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">♻️</div>
+                <div class="card-info">
+                    <div class="card-title">废料 2</div>
+                    <div class="card-desc">边角料 · 实验存档</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 8. 合并单元格 -->
+            <a href="https://mergecells.pages.dev/" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">📋</div>
+                <div class="card-info">
+                    <div class="card-title">合并单元格</div>
+                    <div class="card-desc">表格合并 · 数据处理</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+
+            <!-- 9. 简历 -->
+            <a href="https://wasdkd.github.io/Amazon/%E7%AE%80%E5%8E%86" target="_blank" rel="noopener" class="card">
+                <div class="card-icon-wrap">📝</div>
+                <div class="card-info">
+                    <div class="card-title">简历</div>
+                    <div class="card-desc">个人简历 · CV 展示</div>
+                </div>
+                <span class="card-arrow">↗</span>
+            </a>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>共 <strong>9</strong> 个工具 &nbsp;<span>·</span>&nbsp; 点击卡片即可跳转 &nbsp;<span>·</span>&nbsp;
+                <span class="kbd-hint">⚡ Ready</span>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // ============ 动态粒子星空 ============
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            const maxParticles = 100;
+            let animationId;
+            let mouseX = -9999;
+            let mouseY = -9999;
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // 鼠标追踪
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            document.addEventListener('mouseleave', () => {
+                mouseX = -9999;
+                mouseY = -9999;
+            });
+
+            // 触摸追踪
+            document.addEventListener('touchmove', (e) => {
+                mouseX = e.touches[0].clientX;
+                mouseY = e.touches[0].clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', () => {
+                mouseX = -9999;
+                mouseY = -9999;
+            });
+
+            class Particle {
+                constructor() {
+                    this.reset();
+                    // 初始随机分布
+                    this.y = Math.random() * canvas.height;
+                    this.x = Math.random() * canvas.width;
+                }
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = -10 - Math.random() * 200;
+                    this.size = Math.random() * 2.2 + 0.6;
+                    this.speedY = Math.random() * 0.7 + 0.25;
+                    this.speedX = (Math.random() - 0.5) * 0.35;
+                    this.opacity = Math.random() * 0.7 + 0.2;
+                    this.twinkleSpeed = Math.random() * 0.02 + 0.005;
+                    this.twinkleOffset = Math.random() * Math.PI * 2;
+                    this.hue = Math.random() < 0.3 ?
+                        (Math.random() < 0.5 ? 250 : 180) : // 蓝紫或青色
+                        40; // 暖金色
+                    this.saturation = Math.random() * 30 + 40;
+                    this.lightness = Math.random() * 30 + 60;
+                }
+                update() {
+                    this.y += this.speedY;
+                    this.x += this.speedX;
+                    // 微弱受鼠标吸引
+                    const dx = mouseX - this.x;
+                    const dy = mouseY - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 180 && dist > 1) {
+                        const force = 0.004;
+                        this.x += (dx / dist) * force * (180 - dist) / 180;
+                        this.y += (dy / dist) * force * (180 - dist) / 180;
+                    }
+                    // 超出屏幕则重置
+                    if (this.y > canvas.height + 30 || this.x < -30 || this.x > canvas.width + 30) {
+                        this.reset();
+                        this.y = -10 - Math.random() * 60;
+                    }
+                    // 闪烁
+                    this.currentOpacity = this.opacity * (
+                        0.55 + 0.45 * Math.sin(Date.now() * this.twinkleSpeed + this.twinkleOffset)
+                    );
+                }
+                draw(ctx) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.currentOpacity})`;
+                    ctx.fill();
+                    // 发光光晕
+                    if (this.size > 1.4 && this.currentOpacity > 0.55) {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size * 3.5, 0, Math.PI * 2);
+                        const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.3, this.x, this.y, this
+                            .size * 3.5);
+                        gradient.addColorStop(0,
+                            `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.currentOpacity * 0.5})`);
+                        gradient.addColorStop(1, 'transparent');
+                        ctx.fillStyle = gradient;
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // 初始化粒子
+            for (let i = 0; i < maxParticles; i++) {
+                particles.push(new Particle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw(ctx);
+                });
+                // 绘制连接线（近距离粒子之间）
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 100) {
+                            const alpha = (1 - dist / 100) * 0.12;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(180,180,220,${alpha})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+
+            // 页面隐藏时暂停动画以节省资源
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    cancelAnimationFrame(animationId);
+                } else {
+                    animate();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

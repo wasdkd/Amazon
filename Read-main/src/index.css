@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #10b981; /* emerald-500 */
+  --color-brand-secondary: #6366f1; /* indigo-500 */
+  --color-surface-bg: #f0fdf4;
+}
+
+@layer base {
+  body {
+    @apply bg-surface-bg text-slate-800 font-sans selection:bg-brand-primary/20;
+  }
+}
+
+.reading-word {
+  @apply transition-all duration-300 inline py-0.5 rounded-sm;
+}
+
+.reading-word.hoverable:hover {
+  @apply text-brand-secondary inline-block scale-125 font-bold z-10 bg-brand-secondary/10 px-0.5 shadow-sm;
+}
+
+.reading-word.active {
+  @apply bg-brand-primary/40 text-emerald-950 font-bold ring-1 ring-brand-primary z-20 px-0.5 relative;
+}
+
+.paper-surface {
+  @apply bg-white shadow-2xl rounded-sm border-t-8 border-brand-primary transition-colors;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-emerald-100 rounded-full hover:bg-emerald-200;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;600;900&display=swap');

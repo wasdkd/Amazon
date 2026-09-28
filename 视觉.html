@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .clip-mask { clip-path: inset(0 50% 0 0); }
+        .drag-active { border: 2px dashed #4f46e5 !important; background: #eef2ff; }
+        /* 强制对比图对齐 */
+        .compare-img { position: absolute; width: 100%; height: 100%; object-fit: contain; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-[1700px] mx-auto p-8">
+        <div class="flex justify-between items-end mb-10">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900">视觉资料库</h1>
+                <p class="text-slate-500 mt-1">管理视觉素材与分析资料</p>
+            </div>
+            <div class="flex gap-3">
+                <input id="token" type="password" placeholder="GitHub Token" class="border px-4 py-2 rounded-xl text-sm border-slate-200">
+                <button onclick="window.openEditor()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-bold transition-all">+ 新建案例</button>
+            </div>
+        </div>
+        <div id="gallery" class="grid grid-cols-7 gap-6"></div>
+    </div>
+
+    <!-- 编辑器弹窗 -->
+    <dialog id="editor" class="p-0 rounded-3xl w-full max-w-2xl shadow-2xl backdrop:bg-black/40">
+        <div class="p-8">
+            <h2 id="modalTitle" class="text-2xl font-black mb-6">案例编辑</h2>
+            <div class="space-y-4">
+                <input id="inTitle" placeholder="请输入标题" class="w-full border p-3 rounded-xl">
+                <textarea id="inDesc" placeholder="详细描述..." class="w-full border p-3 rounded-xl h-24"></textarea>
+                <select id="inType" class="w-full border p-3 rounded-xl bg-white"><option value="compare">对比组模式</option><option value="album">相册模式</option></select>
+                <div id="dropArea" class="border-2 border-dashed p-6 text-center text-slate-400 rounded-2xl cursor-pointer">
+                    点击或拖拽图片至此，支持多图
+                    <input type="file" id="fileInput" multiple class="hidden" onchange="window.handleUploads(this.files)">
+                </div>
+                <div id="preview" class="grid grid-cols-6 gap-2"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-8">
+                <button onclick="document.getElementById('editor').close()" class="px-6 py-2 bg-slate-100 rounded-xl font-bold">取消</button>
+                <button onclick="window.saveCase()" class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold">保存并同步</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- 详情弹窗 (全屏化) -->
+    <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4">
+        <button onclick="document.getElementById('detailModal').classList.add('hidden')" class="absolute top-8 right-8 text-white/50 hover:text-white z-[60]">关闭</button>
+        <div id="modalContent" class="flex w-[95vw] h-[90vh] bg-white rounded-3xl overflow-hidden"></div>
+    </div>
+
+    <script>
+        const OWNER = 'wasdkd', REPO = 'Amazon', PATH = 'uploads2/data.json';
+        let currentData = { cases: [] }, editIdx = -1, uploadedUrls = [];
+
+        // 通用通知函数
+        function notify(msg, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-white font-bold z-[100] transition-all shadow-xl ${type === 'error' ? 'bg-red-500' : 'bg-slate-800'}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 2000);
+        }
+
+        // 显示加载状态
+        function setLoading(isLoading) {
+            const btn = document.querySelector('button[onclick="window.saveCase()"]');
+            if (!btn) return;
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="inline-block animate-spin mr-2">↻</span> 处理中...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '保存并同步';
+            }
+        }
+
+        // 校验 Token 状态
+        function checkToken() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                notify('请先输入 GitHub Token', 'error');
+                document.getElementById('token').focus();
+                return false;
+            }
+            return true;
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?t=${Date.now()}`);
+                const data = await res.json();
+                currentData = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                renderGallery();
+            } catch (e) {
+                notify('数据加载失败，请检查配置', 'error');
+            }
+        }
+
+        function renderGallery() {
+            document.getElementById('gallery').innerHTML = currentData.cases.map((c, i) => `
+                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 hover:shadow-2xl transition-all">
+                    <div class="aspect-[3/4] overflow-hidden rounded-2xl mb-3 cursor-pointer group" onclick="window.showDetail(${i})">
+                        <img src="${c.images[0]}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-800 truncate">${c.title}</h3>
+                    <p class="text-[11px] text-slate-400 line-clamp-2 h-8 mt-1 mb-3">${c.desc || ''}</p>
+                    <div class="flex gap-2 border-t pt-3">
+                        <button onclick="window.editCase(${i})" class="flex-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 py-1.5 rounded-lg">编辑</button>
+                        <button onclick="window.deleteCase(${i})" class="flex-1 text-[11px] font-bold text-red-600 bg-red-50 py-1.5 rounded-lg">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 核心同步函数：将 currentData 同步到 GitHub
+        async function syncToGithub() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                notify('请输入 GitHub Token', 'error');
+                return false;
+            }
+
+            try {
+                // 1. 获取最新的 SHA
+                const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                if (!getRes.ok) throw new Error('无法获取文件信息');
+                const { sha } = await getRes.json();
+
+                // 2. 更新内容
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(currentData, null, 2))));
+                const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Update data: ${new Date().toLocaleString()}`,
+                        content: content,
+                        sha: sha
+                    })
+                });
+
+                if (!putRes.ok) throw new Error('同步失败');
+                
+                notify('同步成功');
+                return true;
+            } catch (e) {
+                notify(e.message, 'error');
+                return false;
+            }
+        }
+
+        window.showDetail = (i) => {
+            const c = currentData.cases[i];
+            const isCompare = c.type === 'compare';
+            const modalContent = document.getElementById('modalContent');
+
+            modalContent.innerHTML = `
+                <div class="flex-grow h-full bg-slate-900 relative flex items-center justify-center overflow-hidden p-6">
+                    ${isCompare ? `
+                        <div class="relative w-full h-full">
+                            <img src="${c.images[1] || c.images[0]}" class="compare-img">
+                            <img id="imgA" src="${c.images[0]}" class="compare-img clip-mask">
+                            <div class="absolute bottom-6 left-1/4 right-1/4 h-12 bg-white/10 backdrop-blur rounded-full flex items-center px-6">
+                                <input type="range" class="w-full cursor-pointer" oninput="document.getElementById('imgA').style.clipPath='inset(0 '+(100-this.value)+'% 0 0)'">
+                            </div>
+                        </div>
+                    ` : `<div class="grid grid-cols-4 gap-4 w-full h-full content-start overflow-y-auto">${c.images.map(img => `<img src="${img}" class="w-full rounded-xl shadow-lg hover:scale-[1.02] transition-transform">`).join('')}</div>`}
+                </div>
+                <div class="w-80 p-10 bg-white border-l shrink-0 overflow-y-auto">
+                    <h2 class="text-2xl font-black text-slate-900 mb-4">${c.title}</h2>
+                    <p class="text-slate-600 leading-relaxed whitespace-pre-line">${c.desc || '无详细描述'}</p>
+                </div>
+            `;
+            document.getElementById('detailModal').classList.remove('hidden');
+        };
+
+        window.handleUploads = async (files) => {
+            const token = document.getElementById('token').value;
+            if (!token) return notify('请先输入 Token 再上传', 'error');
+
+            setLoading(true);
+            try {
+                for (let f of files) {
+                    const b64 = await new Promise(r => {
+                        let reader = new FileReader();
+                        reader.onload = e => r(e.target.result.split(',')[1]);
+                        reader.readAsDataURL(f);
+                    });
+                    const name = Date.now() + '_' + f.name;
+                    const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/uploads2/images/${name}`, {
+                        method: 'PUT',
+                        headers: { 'Authorization': `token ${token}` },
+                        body: JSON.stringify({ message: 'upload image', content: b64 })
+                    });
+                    if (res.ok) {
+                        uploadedUrls.push(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/uploads2/images/${name}`);
+                    }
+                }
+                renderPreview();
+            } catch (e) {
+                notify('图片上传失败', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        function renderPreview() {
+            document.getElementById('preview').innerHTML = uploadedUrls.map((u, i) => `
+                <div class="relative group aspect-square">
+                    <img src="${u}" class="w-full h-full object-cover rounded-lg border">
+                    <button onclick="uploadedUrls.splice(${i},1); renderPreview();" 
+                            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg hover:bg-red-600 transition-colors">×</button>
+                </div>
+            `).join('');
+        }
+
+        window.saveCase = async () => {
+            if (!inTitle.value) return notify('请输入标题', 'error');
+            if (uploadedUrls.length === 0) return notify('请至少上传一张图片', 'error');
+
+            setLoading(true);
+            const newCase = {
+                title: inTitle.value,
+                desc: inDesc.value,
+                type: inType.value,
+                images: [...uploadedUrls]
+            };
+
+            if (editIdx > -1) {
+                currentData.cases[editIdx] = newCase;
+            } else {
+                currentData.cases.push(newCase);
+            }
+
+            const success = await syncToGithub();
+            if (success) {
+                document.getElementById('editor').close();
+                renderGallery();
+            }
+            setLoading(false);
+        };
+
+        window.openEditor = () => {
+            if (!checkToken()) return;
+            editIdx = -1;
+            uploadedUrls = [];
+            inTitle.value = '';
+            inDesc.value = '';
+            inType.value = 'compare';
+            document.getElementById('modalTitle').textContent = '新建案例';
+            document.getElementById('editor').showModal();
+            renderPreview();
+        };
+
+        window.editCase = (i) => {
+            if (!checkToken()) return;
+            editIdx = i;
+            const c = currentData.cases[i];
+            uploadedUrls = [...c.images];
+            inTitle.value = c.title;
+            inDesc.value = c.desc || '';
+            inType.value = c.type;
+            document.getElementById('modalTitle').textContent = '编辑案例';
+            document.getElementById('editor').showModal();
+            renderPreview();
+        };
+
+        window.deleteCase = async (i) => {
+            if (!checkToken()) return;
+            if (!confirm('确认删除该案例吗？此操作不可撤销。')) return;
+            
+            const originalData = JSON.parse(JSON.stringify(currentData));
+            currentData.cases.splice(i, 1);
+            
+            notify('正在删除...', 'info');
+            const success = await syncToGithub();
+            if (success) {
+                renderGallery();
+            } else {
+                currentData = originalData; // 失败则回滚
+            }
+        };
+
+        // 拖拽上传支持
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        dropArea.onclick = () => fileInput.click();
+        dropArea.ondragover = (e) => { e.preventDefault(); dropArea.classList.add('drag-active'); };
+        dropArea.ondragleave = () => dropArea.classList.remove('drag-active');
+        dropArea.ondrop = (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('drag-active');
+            if (e.dataTransfer.files.length > 0) {
+                window.handleUploads(e.dataTransfer.files);
+            }
+        };
+
+        loadData();
+    </script>
+</body>
+</html>

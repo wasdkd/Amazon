@@ -1,0 +1,1618 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>Excel图片下载与排版全能工具 (增强修复版)</title>-->
+<!--    <style>-->
+<!--        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', PingFang SC, Microsoft YaHei, sans-serif; }-->
+<!--        body {-->
+<!--            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);-->
+<!--            min-height: 100vh;-->
+<!--            padding: 20px;-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            align-items: center;-->
+<!--        }-->
+<!--        .container {-->
+<!--            max-width: 1080px;-->
+<!--            width: 100%;-->
+<!--            background: white;-->
+<!--            border-radius: 15px;-->
+<!--            box-shadow: 0 10px 30px rgba(0,0,0,0.18);-->
+<!--            padding: 25px 35px;-->
+<!--            margin-top: 15px;-->
+<!--        }-->
+<!--        h1 { text-align: center; color: #2c3e50; margin-bottom: 8px; font-weight: 700; }-->
+<!--        .subtitle { text-align: center; color: #6b7280; margin-bottom: 20px; font-size: 14px; }-->
+
+<!--        .upload-area {-->
+<!--            border: 2px dashed #667eea;-->
+<!--            border-radius: 10px;-->
+<!--            padding: 25px;-->
+<!--            text-align: center;-->
+<!--            background: #f8fafc;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.3s;-->
+<!--            margin-bottom: 20px;-->
+<!--        }-->
+<!--        .upload-area:hover, .upload-area.active { background: #eef2ff; border-color: #4f46e5; transform: scale(1.005); }-->
+<!--        .upload-icon { font-size: 40px; margin-bottom: 8px; display: block; }-->
+<!--        .file-info { margin-top: 8px; font-size: 13px; color: #059669; font-weight: 600; }-->
+
+<!--        /* 配置区域 */-->
+<!--        .config-card {-->
+<!--            background: #f8fafc;-->
+<!--            border: 1px solid #e2e8f0;-->
+<!--            border-radius: 10px;-->
+<!--            padding: 20px;-->
+<!--            margin-bottom: 20px;-->
+<!--            display: none;-->
+<!--        }-->
+<!--        .config-title {-->
+<!--            font-size: 15px;-->
+<!--            font-weight: 700;-->
+<!--            color: #1e293b;-->
+<!--            margin-bottom: 15px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 8px;-->
+<!--        }-->
+
+<!--        .settings-grid {-->
+<!--            display: grid;-->
+<!--            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));-->
+<!--            gap: 15px;-->
+<!--            margin-bottom: 15px;-->
+<!--        }-->
+<!--        .setting-item { display: flex; flex-direction: column; gap: 6px; }-->
+<!--        .setting-item label { font-size: 13px; font-weight: 600; color: #374151; }-->
+<!--        .setting-item select, .setting-item input {-->
+<!--            padding: 9px 12px;-->
+<!--            border: 1px solid #cbd5e1;-->
+<!--            border-radius: 6px;-->
+<!--            font-size: 14px;-->
+<!--            outline: none;-->
+<!--            background: white;-->
+<!--            color: #1e293b;-->
+<!--            font-weight: 500;-->
+<!--        }-->
+<!--        .setting-item select:focus, .setting-item input:focus { border-color: #6366f1; }-->
+
+<!--        .auto-code-config {-->
+<!--            display: none;-->
+<!--            background: #eff6ff;-->
+<!--            border: 1px dashed #3b82f6;-->
+<!--            border-radius: 8px;-->
+<!--            padding: 12px 15px;-->
+<!--            margin-bottom: 15px;-->
+<!--            grid-template-columns: 1fr 1fr;-->
+<!--            gap: 15px;-->
+<!--        }-->
+
+<!--        /* 预览表格 */-->
+<!--        .preview-section { margin-top: 10px; }-->
+<!--        .preview-header-bar {-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--            margin-bottom: 10px;-->
+<!--        }-->
+<!--        .preview-title { font-size: 13px; font-weight: 600; color: #64748b; }-->
+<!--        .table-wrap {-->
+<!--            max-height: 260px;-->
+<!--            overflow: auto;-->
+<!--            border: 1px solid #e2e8f0;-->
+<!--            border-radius: 8px;-->
+<!--            background: white;-->
+<!--        }-->
+<!--        table {-->
+<!--            width: 100%;-->
+<!--            border-collapse: collapse;-->
+<!--            font-size: 12px;-->
+<!--            text-align: left;-->
+<!--            white-space: nowrap;-->
+<!--        }-->
+<!--        th, td { padding: 8px 12px; border-bottom: 1px solid #edf2f7; border-right: 1px solid #edf2f7; }-->
+<!--        th {-->
+<!--            background: #f1f5f9;-->
+<!--            color: #475569;-->
+<!--            font-weight: 600;-->
+<!--            position: sticky;-->
+<!--            top: 0;-->
+<!--            z-index: 2;-->
+<!--        }-->
+<!--        tr:hover { background-color: #f8fafc; }-->
+
+<!--        /* 高亮标签 */-->
+<!--        th.col-highlight-name { background: #dbeafe !important; color: #1d4ed8 !important; border-top: 2px solid #3b82f6; }-->
+<!--        th.col-highlight-url { background: #dcfce7 !important; color: #15803d !important; border-top: 2px solid #22c55e; }-->
+<!--        td.col-highlight-name { background: #eff6ff; }-->
+<!--        td.col-highlight-url { background: #f0fdf4; }-->
+
+<!--        .process-btn {-->
+<!--            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);-->
+<!--            color: white;-->
+<!--            border: none;-->
+<!--            border-radius: 8px;-->
+<!--            padding: 14px;-->
+<!--            font-size: 16px;-->
+<!--            font-weight: 600;-->
+<!--            cursor: pointer;-->
+<!--            width: 100%;-->
+<!--            transition: opacity 0.2s;-->
+<!--            margin-top: 15px;-->
+<!--        }-->
+<!--        .process-btn:hover { opacity: 0.95; }-->
+<!--        .process-btn:disabled { background: #94a3b8; cursor: not-allowed; }-->
+
+<!--        .progress-container { margin-top: 20px; display: none; }-->
+<!--        .progress-bar-bg { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }-->
+<!--        .progress-bar { height: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); width: 0%; transition: width 0.2s; }-->
+<!--        .progress-stats { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; margin-bottom: 10px; }-->
+
+<!--        .log {-->
+<!--            background: #1e293b;-->
+<!--            color: #cbd5e1;-->
+<!--            border-radius: 8px;-->
+<!--            padding: 12px;-->
+<!--            height: 180px;-->
+<!--            overflow-y: auto;-->
+<!--            font-family: Consolas, Monaco, monospace;-->
+<!--            font-size: 12px;-->
+<!--            line-height: 1.6;-->
+<!--        }-->
+<!--        .log-entry { margin-bottom: 2px; }-->
+<!--        .success { color: #34d399; }-->
+<!--        .error { color: #f87171; }-->
+<!--        .info { color: #60a5fa; }-->
+<!--        .warn { color: #fbbf24; }-->
+<!--        .hidden { display: none; }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div class="container">-->
+<!--        <h1>Excel 图片下载与排版插入工具</h1>-->
+<!--        <p class="subtitle">公式冲突深度修复 · 自动生成唯一码 · 自适应比例居中 · 全表头保留</p>-->
+
+<!--        &lt;!&ndash; 上传区域 &ndash;&gt;-->
+<!--        <div class="upload-area" id="dropArea" onclick="document.getElementById('excelInput').click()">-->
+<!--            <span class="upload-icon">📊</span>-->
+<!--            <h3>点击或拖拽上传 Excel 文件</h3>-->
+<!--            <p style="color:#64748b; font-size:12px; margin-top:4px;">支持 .xlsx 格式文件</p>-->
+<!--            <div class="file-info" id="fileInfo"></div>-->
+<!--            <input type="file" id="excelInput" accept=".xlsx" class="hidden">-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 字段映射与数据预览卡片 &ndash;&gt;-->
+<!--        <div class="config-card" id="configCard">-->
+<!--            <div class="config-title">-->
+<!--                <span>⚙️ 字段映射与运行设置</span>-->
+<!--            </div>-->
+
+<!--            <div class="settings-grid">-->
+<!--                <div class="setting-item">-->
+<!--                    <label for="nameColSelect" style="color: #1d4ed8;">🏷️ 选择【图片命名列】:</label>-->
+<!--                    <select id="nameColSelect"></select>-->
+<!--                </div>-->
+<!--                <div class="setting-item">-->
+<!--                    <label for="urlColSelect" style="color: #15803d;">🔗 选择【图片链接列】:</label>-->
+<!--                    <select id="urlColSelect"></select>-->
+<!--                </div>-->
+<!--                <div class="setting-item">-->
+<!--                    <label for="mergeSheetMode">📑 多工作表处理方式:</label>-->
+<!--                    <select id="mergeSheetMode">-->
+<!--                        <option value="merge">合并所有子表为一个工作表</option>-->
+<!--                        <option value="keep">保留各子表独立处理</option>-->
+<!--                    </select>-->
+<!--                </div>-->
+<!--                <div class="setting-item">-->
+<!--                    <label for="concurrencyCount">⚡ 下载并发线程数:</label>-->
+<!--                    <input type="number" id="concurrencyCount" min="1" max="20" value="6">-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 当选择“自动生成唯一编码列”时展示的选项 &ndash;&gt;-->
+<!--            <div class="auto-code-config" id="autoCodeConfig">-->
+<!--                <div class="setting-item">-->
+<!--                    <label style="color: #1e40af;">📌 新增唯一列的表头名称:</label>-->
+<!--                    <input type="text" id="autoCodeHeaderName" value="系统唯一编号">-->
+<!--                </div>-->
+<!--                <div class="setting-item">-->
+<!--                    <label style="color: #1e40af;">🔢 编号前缀 (例如 ITEM_):</label>-->
+<!--                    <input type="text" id="autoCodePrefix" value="IMG_">-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 数据预览 &ndash;&gt;-->
+<!--            <div class="preview-section">-->
+<!--                <div class="preview-header-bar">-->
+<!--                    <span class="preview-title">📋 数据预览 (展示前 10 行)：</span>-->
+<!--                    <span id="previewSheetName" style="font-size: 12px; color: #6366f1; font-weight: 600;"></span>-->
+<!--                </div>-->
+<!--                <div class="table-wrap">-->
+<!--                    <table id="previewTable">-->
+<!--                        <thead id="previewThead"></thead>-->
+<!--                        <tbody id="previewTbody"></tbody>-->
+<!--                    </table>-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            <button id="startBtn" class="process-btn">开始处理并导出打包文件</button>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 进度条与控制台 &ndash;&gt;-->
+<!--        <div class="progress-container" id="progressContainer">-->
+<!--            <div class="progress-stats">-->
+<!--                <span id="statusText">等待开始...</span>-->
+<!--                <span id="progressText">0%</span>-->
+<!--            </div>-->
+<!--            <div class="progress-bar-bg">-->
+<!--                <div class="progress-bar" id="progressBar"></div>-->
+<!--            </div>-->
+<!--            <div class="log" id="logBox"></div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 依赖脚本 &ndash;&gt;-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>-->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>-->
+
+<!--    <script>-->
+<!--        const AUTO_GEN_KEY = "__AUTO_GENERATE_UNIQUE_CODE__";-->
+<!--        let currentFile = null;-->
+<!--        let loadedWorkbook = null;-->
+<!--        let isProcessing = false;-->
+<!--        let detectedHeaders = [];-->
+
+<!--        const dropArea = document.getElementById('dropArea');-->
+<!--        const excelInput = document.getElementById('excelInput');-->
+<!--        const fileInfo = document.getElementById('fileInfo');-->
+<!--        const configCard = document.getElementById('configCard');-->
+<!--        const nameColSelect = document.getElementById('nameColSelect');-->
+<!--        const urlColSelect = document.getElementById('urlColSelect');-->
+<!--        const autoCodeConfig = document.getElementById('autoCodeConfig');-->
+<!--        const autoCodeHeaderName = document.getElementById('autoCodeHeaderName');-->
+<!--        const autoCodePrefix = document.getElementById('autoCodePrefix');-->
+<!--        const previewThead = document.getElementById('previewThead');-->
+<!--        const previewTbody = document.getElementById('previewTbody');-->
+<!--        const previewSheetName = document.getElementById('previewSheetName');-->
+<!--        const startBtn = document.getElementById('startBtn');-->
+<!--        const progressContainer = document.getElementById('progressContainer');-->
+<!--        const progressBar = document.getElementById('progressBar');-->
+<!--        const progressText = document.getElementById('progressText');-->
+<!--        const statusText = document.getElementById('statusText');-->
+<!--        const logBox = document.getElementById('logBox');-->
+
+<!--        ['dragover', 'dragleave', 'drop'].forEach(evt => {-->
+<!--            dropArea.addEventListener(evt, (e) => {-->
+<!--                e.preventDefault();-->
+<!--                if (evt === 'dragover') dropArea.classList.add('active');-->
+<!--                else dropArea.classList.remove('active');-->
+<!--            });-->
+<!--        });-->
+
+<!--        dropArea.addEventListener('drop', (e) => {-->
+<!--            if (e.dataTransfer.files.length) handleUpload(e.dataTransfer.files[0]);-->
+<!--        });-->
+<!--        excelInput.addEventListener('change', (e) => {-->
+<!--            if (e.target.files.length) handleUpload(e.target.files[0]);-->
+<!--        });-->
+
+<!--        async function handleUpload(file) {-->
+<!--            if (!file.name.match(/\.xlsx$/i)) {-->
+<!--                alert('请上传标准的 .xlsx 格式文件！');-->
+<!--                return;-->
+<!--            }-->
+<!--            currentFile = file;-->
+<!--            fileInfo.textContent = `已载入: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;-->
+
+<!--            try {-->
+<!--                const arrayBuffer = await readFileAsArrayBuffer(file);-->
+<!--                loadedWorkbook = new ExcelJS.Workbook();-->
+<!--                await loadedWorkbook.xlsx.load(arrayBuffer);-->
+
+<!--                const firstSheet = loadedWorkbook.worksheets[0];-->
+<!--                if (!firstSheet || firstSheet.rowCount < 1) {-->
+<!--                    alert('Excel 文件为空或没有有效工作表！');-->
+<!--                    return;-->
+<!--                }-->
+
+<!--                initPreviewAndSelectors(firstSheet);-->
+<!--                configCard.style.display = 'block';-->
+<!--                configCard.scrollIntoView({ behavior: 'smooth' });-->
+<!--            } catch (err) {-->
+<!--                alert('解析 Excel 文件失败: ' + err.message);-->
+<!--                console.error(err);-->
+<!--            }-->
+<!--        }-->
+
+<!--        function initPreviewAndSelectors(sheet) {-->
+<!--            previewSheetName.textContent = `当前预览子表: [${sheet.name}]`;-->
+<!--            detectedHeaders = [];-->
+<!--            nameColSelect.innerHTML = '';-->
+<!--            urlColSelect.innerHTML = '';-->
+
+<!--            // 1. 增加“自动生成唯一列”选项-->
+<!--            const autoOpt = new Option("➕ [推荐] 自动生成唯一编码列 (自增编号)", AUTO_GEN_KEY);-->
+<!--            nameColSelect.add(autoOpt);-->
+
+<!--            // 2. 提取现有表头-->
+<!--            const headerRow = sheet.getRow(1);-->
+<!--            headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {-->
+<!--                const val = extractPureValue(cell.value);-->
+<!--                const strVal = (val !== null && val !== undefined) ? val.toString().trim() : '';-->
+<!--                detectedHeaders.push({ colNumber, name: strVal || `列 ${colNumber}` });-->
+<!--            });-->
+
+<!--            detectedHeaders.forEach(h => {-->
+<!--                nameColSelect.add(new Option(h.name, h.name));-->
+<!--                urlColSelect.add(new Option(h.name, h.name));-->
+<!--            });-->
+
+<!--            // 3. 智能选中-->
+<!--            let defaultNameCol = AUTO_GEN_KEY;-->
+<!--            let defaultUrlCol = detectedHeaders[detectedHeaders.length - 1].name;-->
+
+<!--            detectedHeaders.forEach(h => {-->
+<!--                const lower = h.name.toLowerCase();-->
+<!--                if (/asin|sku|编号|编码|款号|名称|id|货号/.test(lower)) defaultNameCol = h.name;-->
+<!--                if (/图片|链接|url|image|img|主图|photo|pic/.test(lower)) defaultUrlCol = h.name;-->
+<!--            });-->
+
+<!--            nameColSelect.value = defaultNameCol;-->
+<!--            urlColSelect.value = defaultUrlCol;-->
+
+<!--            renderPreviewTable(sheet);-->
+
+<!--            nameColSelect.onchange = () => {-->
+<!--                toggleAutoCodeBox();-->
+<!--                updateTableHighlights();-->
+<!--            };-->
+<!--            urlColSelect.onchange = () => updateTableHighlights();-->
+
+<!--            toggleAutoCodeBox();-->
+<!--            updateTableHighlights();-->
+<!--        }-->
+
+<!--        function toggleAutoCodeBox() {-->
+<!--            autoCodeConfig.style.display = (nameColSelect.value === AUTO_GEN_KEY) ? 'grid' : 'none';-->
+<!--        }-->
+
+<!--        function renderPreviewTable(sheet) {-->
+<!--            previewThead.innerHTML = '';-->
+<!--            previewTbody.innerHTML = '';-->
+
+<!--            const trHead = document.createElement('tr');-->
+<!--            detectedHeaders.forEach(h => {-->
+<!--                const th = document.createElement('th');-->
+<!--                th.textContent = h.name;-->
+<!--                th.setAttribute('data-colname', h.name);-->
+<!--                trHead.appendChild(th);-->
+<!--            });-->
+<!--            previewThead.appendChild(trHead);-->
+
+<!--            const maxRow = Math.min(sheet.rowCount, 11);-->
+<!--            for (let r = 2; r <= maxRow; r++) {-->
+<!--                const row = sheet.getRow(r);-->
+<!--                const tr = document.createElement('tr');-->
+<!--                detectedHeaders.forEach(h => {-->
+<!--                    const td = document.createElement('td');-->
+<!--                    const val = extractPureValue(row.getCell(h.colNumber).value);-->
+<!--                    td.textContent = (val !== null && val !== undefined) ? val.toString() : '';-->
+<!--                    td.setAttribute('data-colname', h.name);-->
+<!--                    tr.appendChild(td);-->
+<!--                });-->
+<!--                previewTbody.appendChild(tr);-->
+<!--            }-->
+<!--        }-->
+
+<!--        function updateTableHighlights() {-->
+<!--            const selectedName = nameColSelect.value;-->
+<!--            const selectedUrl = urlColSelect.value;-->
+
+<!--            document.querySelectorAll('#previewTable [data-colname]').forEach(el => {-->
+<!--                const cName = el.getAttribute('data-colname');-->
+<!--                el.classList.remove('col-highlight-name', 'col-highlight-url');-->
+<!--                if (cName === selectedName) el.classList.add('col-highlight-name');-->
+<!--                if (cName === selectedUrl) el.classList.add('col-highlight-url');-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 核心解法：清洗 Excel 单元格，消除公式、对象和富文本带来的“Shared Formula”破坏-->
+<!--        function extractPureValue(val) {-->
+<!--            if (val === null || val === undefined) return '';-->
+<!--            // 解决公式报错的关键：如果是公式对象，只提取它的计算结果 result-->
+<!--            if (typeof val === 'object') {-->
+<!--                if (val.result !== undefined) return val.result;-->
+<!--                if (val.richText) return val.richText.map(t => t.text).join('');-->
+<!--                if (val.text !== undefined) return val.text;-->
+<!--                if (val.formula !== undefined) return '';-->
+<!--            }-->
+<!--            return val;-->
+<!--        }-->
+
+<!--        startBtn.addEventListener('click', async () => {-->
+<!--            if (!loadedWorkbook || isProcessing) return;-->
+
+<!--            const nameHeader = nameColSelect.value;-->
+<!--            const urlHeader = urlColSelect.value;-->
+
+<!--            if (!urlHeader) {-->
+<!--                alert('请指定【图片链接列】！');-->
+<!--                return;-->
+<!--            }-->
+
+<!--            isProcessing = true;-->
+<!--            startBtn.disabled = true;-->
+<!--            startBtn.innerText = '正在全力处理中...';-->
+<!--            progressContainer.style.display = 'block';-->
+<!--            logBox.innerHTML = '';-->
+
+<!--            try {-->
+<!--                await processWorkbook(nameHeader, urlHeader);-->
+<!--            } catch (err) {-->
+<!--                addLog(`处理出错: ${err.message}`, 'error');-->
+<!--                console.error(err);-->
+<!--            } finally {-->
+<!--                isProcessing = false;-->
+<!--                startBtn.disabled = false;-->
+<!--                startBtn.innerText = '开始处理并导出打包文件';-->
+<!--            }-->
+<!--        });-->
+
+<!--        async function processWorkbook(targetNameHeader, targetUrlHeader) {-->
+<!--            const shouldMerge = document.getElementById('mergeSheetMode').value === 'merge';-->
+<!--            const concurrency = parseInt(document.getElementById('concurrencyCount').value) || 6;-->
+<!--            const isAutoGenerateCode = (targetNameHeader === AUTO_GEN_KEY);-->
+<!--            const autoHeaderTitle = autoCodeHeaderName.value.trim() || '系统唯一编号';-->
+<!--            const codePrefix = autoCodePrefix.value.trim();-->
+
+<!--            const finalWorkbook = new ExcelJS.Workbook();-->
+<!--            const downloadTasks = [];-->
+<!--            let globalAutoIndex = 1;-->
+
+<!--            if (shouldMerge) {-->
+<!--                addLog('正在合并所有子表并消除公式冲突...', 'info');-->
+<!--                const mergedSheet = finalWorkbook.addWorksheet('合并汇总');-->
+<!--                let mergedHeaders = null;-->
+
+<!--                loadedWorkbook.eachSheet((sheet) => {-->
+<!--                    if (sheet.rowCount < 2) return;-->
+<!--                    const map = findColumnIndices(sheet, targetNameHeader, targetUrlHeader, isAutoGenerateCode);-->
+<!--                    if (map.urlCol === -1 || (!isAutoGenerateCode && map.nameCol === -1)) {-->
+<!--                        addLog(`工作表 [${sheet.name}] 未找到对应列，已跳过`, 'warn');-->
+<!--                        return;-->
+<!--                    }-->
+
+<!--                    // 初始化表头-->
+<!--                    if (!mergedHeaders) {-->
+<!--                        mergedHeaders = ['图片'];-->
+<!--                        if (isAutoGenerateCode) mergedHeaders.push(autoHeaderTitle);-->
+
+<!--                        sheet.getRow(1).eachCell({ includeEmpty: false }, (cell) => {-->
+<!--                            mergedHeaders.push(extractPureValue(cell.value));-->
+<!--                        });-->
+
+<!--                        const headerRow = mergedSheet.getRow(1);-->
+<!--                        headerRow.values = mergedHeaders;-->
+<!--                        headerRow.commit();-->
+<!--                        mergedSheet.getColumn(1).width = 20;-->
+<!--                    }-->
+
+<!--                    // 写入数据-->
+<!--                    for (let r = 2; r <= sheet.rowCount; r++) {-->
+<!--                        const row = sheet.getRow(r);-->
+<!--                        const urlVal = extractPureValue(row.getCell(map.urlCol).value);-->
+<!--                        if (!urlVal && !row.hasValues) continue;-->
+
+<!--                        let customName = '';-->
+<!--                        if (isAutoGenerateCode) {-->
+<!--                            customName = `${codePrefix}${globalAutoIndex}`;-->
+<!--                            globalAutoIndex++;-->
+<!--                        } else {-->
+<!--                            const nameVal = extractPureValue(row.getCell(map.nameCol).value);-->
+<!--                            customName = sanitizeFilename(nameVal, `ROW_${r}`);-->
+<!--                        }-->
+
+<!--                        // 构建纯净行数据，完全避开公式继承-->
+<!--                        const rowData = ['']; // 第1列给图片占位-->
+<!--                        if (isAutoGenerateCode) rowData.push(customName);-->
+
+<!--                        sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNum) => {-->
+<!--                            rowData.push(extractPureValue(row.getCell(colNum).value));-->
+<!--                        });-->
+
+<!--                        const appendedRow = mergedSheet.addRow(rowData);-->
+<!--                        downloadTasks.push({-->
+<!--                            sheet: mergedSheet,-->
+<!--                            rowIdx: appendedRow.number,-->
+<!--                            customName: customName,-->
+<!--                            url: (urlVal || '').toString().trim()-->
+<!--                        });-->
+<!--                    }-->
+<!--                });-->
+
+<!--                if (!mergedHeaders) throw new Error('未检索到符合条件的子表数据');-->
+
+<!--            } else {-->
+<!--                addLog('正在独立处理各个子表并纯化单元格...', 'info');-->
+
+<!--                loadedWorkbook.eachSheet((sheet) => {-->
+<!--                    if (sheet.rowCount < 2) return;-->
+<!--                    const map = findColumnIndices(sheet, targetNameHeader, targetUrlHeader, isAutoGenerateCode);-->
+<!--                    if (map.urlCol === -1 || (!isAutoGenerateCode && map.nameCol === -1)) {-->
+<!--                        addLog(`工作表 [${sheet.name}] 缺少所需列，已跳过`, 'warn');-->
+<!--                        return;-->
+<!--                    }-->
+
+<!--                    const newSheet = finalWorkbook.addWorksheet(sheet.name);-->
+<!--                    const newHeaders = ['图片'];-->
+<!--                    if (isAutoGenerateCode) newHeaders.push(autoHeaderTitle);-->
+
+<!--                    sheet.getRow(1).eachCell({ includeEmpty: false }, (cell) => {-->
+<!--                        newHeaders.push(extractPureValue(cell.value));-->
+<!--                    });-->
+
+<!--                    newSheet.getRow(1).values = newHeaders;-->
+<!--                    newSheet.getColumn(1).width = 20;-->
+
+<!--                    for (let r = 2; r <= sheet.rowCount; r++) {-->
+<!--                        const row = sheet.getRow(r);-->
+<!--                        const urlVal = extractPureValue(row.getCell(map.urlCol).value);-->
+<!--                        if (!urlVal && !row.hasValues) continue;-->
+
+<!--                        let customName = '';-->
+<!--                        if (isAutoGenerateCode) {-->
+<!--                            customName = `${codePrefix}${globalAutoIndex}`;-->
+<!--                            globalAutoIndex++;-->
+<!--                        } else {-->
+<!--                            const nameVal = extractPureValue(row.getCell(map.nameCol).value);-->
+<!--                            customName = sanitizeFilename(nameVal, `ROW_${r}`);-->
+<!--                        }-->
+
+<!--                        const rowData = [''];-->
+<!--                        if (isAutoGenerateCode) rowData.push(customName);-->
+
+<!--                        sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNum) => {-->
+<!--                            rowData.push(extractPureValue(row.getCell(colNum).value));-->
+<!--                        });-->
+
+<!--                        const appendedRow = newSheet.addRow(rowData);-->
+<!--                        downloadTasks.push({-->
+<!--                            sheet: newSheet,-->
+<!--                            rowIdx: appendedRow.number,-->
+<!--                            customName: customName,-->
+<!--                            url: (urlVal || '').toString().trim()-->
+<!--                        });-->
+<!--                    }-->
+<!--                });-->
+<!--            }-->
+
+<!--            if (downloadTasks.length === 0) throw new Error('没有检索到可下载的数据！');-->
+
+<!--            addLog(`共检索到 ${downloadTasks.length} 条有效记录，启动多线程下载...`, 'info');-->
+
+<!--            const namedZip = new JSZip();-->
+<!--            const seqZip = new JSZip();-->
+
+<!--            const CELL_PIXEL_W = 145;-->
+<!--            const CELL_PIXEL_H = 160;-->
+<!--            const ROW_HEIGHT = 120;-->
+<!--            const EMU = 9525;-->
+
+<!--            let completed = 0;-->
+<!--            let success = 0;-->
+<!--            let failed = 0;-->
+
+<!--            await runWorkerPool(downloadTasks, concurrency, async (task, index) => {-->
+<!--                const seqIndex = index + 1;-->
+<!--                if (!task.url) {-->
+<!--                    completed++;-->
+<!--                    failed++;-->
+<!--                    updateProgress(completed, downloadTasks.length);-->
+<!--                    return;-->
+<!--                }-->
+
+<!--                try {-->
+<!--                    const blob = await fetchImageWithClean(task.url);-->
+<!--                    const ext = getExtension(blob, task.url);-->
+
+<!--                    // 1. 命名图片包-->
+<!--                    namedZip.file(`${task.customName}.${ext}`, blob);-->
+
+<!--                    // 2. 顺序编号图片包-->
+<!--                    seqZip.file(`图片${seqIndex}.${ext}`, blob);-->
+
+<!--                    // 3. 插入 Excel-->
+<!--                    const base64 = await blobToBase64(blob);-->
+<!--                    const dim = await getImageDimensions(blob);-->
+
+<!--                    const scale = Math.min(CELL_PIXEL_W / dim.w, CELL_PIXEL_H / dim.h);-->
+<!--                    const finalW = Math.max(1, Math.floor(dim.w * scale));-->
+<!--                    const finalH = Math.max(1, Math.floor(dim.h * scale));-->
+<!--                    const offsetX = Math.floor((CELL_PIXEL_W - finalW) / 2 * EMU);-->
+<!--                    const offsetY = Math.floor((CELL_PIXEL_H - finalH) / 2 * EMU);-->
+
+<!--                    const imgId = finalWorkbook.addImage({-->
+<!--                        base64: base64,-->
+<!--                        extension: ext === 'jpg' ? 'jpeg' : ext-->
+<!--                    });-->
+
+<!--                    // 插入在第 1 列（A 列）-->
+<!--                    task.sheet.addImage(imgId, {-->
+<!--                        tl: { col: 0, row: task.rowIdx - 1, nativeColOff: offsetX, nativeRowOff: offsetY },-->
+<!--                        ext: { width: finalW, height: finalH },-->
+<!--                        editAs: 'oneCell'-->
+<!--                    });-->
+
+<!--                    task.sheet.getRow(task.rowIdx).height = ROW_HEIGHT;-->
+<!--                    success++;-->
+<!--                    addLog(`[${seqIndex}] 成功: ${task.customName}`, 'success');-->
+<!--                } catch (e) {-->
+<!--                    failed++;-->
+<!--                    addLog(`[${seqIndex}] 失败: ${task.customName} (${e.message})`, 'error');-->
+<!--                } finally {-->
+<!--                    completed++;-->
+<!--                    updateProgress(completed, downloadTasks.length);-->
+<!--                }-->
+<!--            });-->
+
+<!--            addLog(`图片处理完成！成功: ${success}，失败: ${failed}。正在安全导出 Excel...`, 'info');-->
+<!--            statusText.textContent = '生成打包压缩包中...';-->
+
+<!--            // 安全生成 xlsx Buffer，因已解除 shared formula 依赖，此处不再崩溃-->
+<!--            const excelBuffer = await finalWorkbook.xlsx.writeBuffer();-->
+
+<!--            const rootZip = new JSZip();-->
+<!--            rootZip.file("处理结果.xlsx", excelBuffer);-->
+
+<!--            const folderNamed = rootZip.folder("唯一编码命名图片");-->
+<!--            namedZip.forEach((relPath, file) => folderNamed.file(relPath, file.async('blob')));-->
+
+<!--            const folderSeq = rootZip.folder("按表格顺序重命名图片");-->
+<!--            seqZip.forEach((relPath, file) => folderSeq.file(relPath, file.async('blob')));-->
+
+<!--            const finalBlob = await rootZip.generateAsync({ type: "blob" });-->
+<!--            saveAs(finalBlob, `Excel图片处理结果_${new Date().toISOString().slice(0,10)}.zip`);-->
+
+<!--            addLog('🎉 全部顺利完成！压缩包已触发下载。', 'success');-->
+<!--            statusText.textContent = '全部处理完成！';-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 辅助工具 -&#45;&#45;-->
+
+<!--        function findColumnIndices(sheet, nameHeader, urlHeader, isAutoGenerateCode) {-->
+<!--            let nameCol = -1;-->
+<!--            let urlCol = -1;-->
+<!--            const headerRow = sheet.getRow(1);-->
+<!--            headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {-->
+<!--                const val = (extractPureValue(cell.value) || '').toString().trim();-->
+<!--                if (!isAutoGenerateCode && val === nameHeader) nameCol = colNumber;-->
+<!--                if (val === urlHeader) urlCol = colNumber;-->
+<!--            });-->
+<!--            return { nameCol, urlCol };-->
+<!--        }-->
+
+<!--        async function fetchImageWithClean(originalUrl) {-->
+<!--            const cleanUrl = originalUrl.replace(/(\/I\/[^/.]+)(\.[^/]*)(\.[a-zA-Z]+)$/, '$1$3');-->
+<!--            try {-->
+<!--                let res = await fetch(cleanUrl);-->
+<!--                if (!res.ok) throw new Error(`HTTP ${res.status}`);-->
+<!--                return await res.blob();-->
+<!--            } catch (e) {-->
+<!--                let res = await fetch(originalUrl);-->
+<!--                if (!res.ok) throw new Error(`HTTP ${res.status}`);-->
+<!--                return await res.blob();-->
+<!--            }-->
+<!--        }-->
+
+<!--        function getExtension(blob, url) {-->
+<!--            if (blob.type) {-->
+<!--                const sub = blob.type.split('/')[1];-->
+<!--                if (sub && sub.length <= 4) return sub.replace('jpeg', 'jpg');-->
+<!--            }-->
+<!--            try {-->
+<!--                const pathname = new URL(url).pathname;-->
+<!--                const ext = pathname.split('.').pop().toLowerCase();-->
+<!--                if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) return ext === 'jpeg' ? 'jpg' : ext;-->
+<!--            } catch (e) {}-->
+<!--            return 'jpg';-->
+<!--        }-->
+
+<!--        function getImageDimensions(blob) {-->
+<!--            return new Promise((resolve) => {-->
+<!--                const url = URL.createObjectURL(blob);-->
+<!--                const img = new Image();-->
+<!--                img.onload = () => {-->
+<!--                    URL.revokeObjectURL(url);-->
+<!--                    resolve({ w: img.naturalWidth || 100, h: img.naturalHeight || 100 });-->
+<!--                };-->
+<!--                img.onerror = () => {-->
+<!--                    URL.revokeObjectURL(url);-->
+<!--                    resolve({ w: 100, h: 100 });-->
+<!--                };-->
+<!--                img.src = url;-->
+<!--            });-->
+<!--        }-->
+
+<!--        function sanitizeFilename(val, fallback) {-->
+<!--            if (!val) return fallback;-->
+<!--            const str = val.toString().trim().replace(/[\\/:*?"<>|]/g, '_');-->
+<!--            return str || fallback;-->
+<!--        }-->
+
+<!--        async function runWorkerPool(items, maxWorkers, taskFn) {-->
+<!--            let cursor = 0;-->
+<!--            const workers = Array(Math.min(maxWorkers, items.length)).fill(0).map(async () => {-->
+<!--                while (cursor < items.length) {-->
+<!--                    const currentIndex = cursor++;-->
+<!--                    await taskFn(items[currentIndex], currentIndex);-->
+<!--                }-->
+<!--            });-->
+<!--            await Promise.all(workers);-->
+<!--        }-->
+
+<!--        function updateProgress(done, total) {-->
+<!--            const pct = Math.round((done / total) * 100) + '%';-->
+<!--            progressBar.style.width = pct;-->
+<!--            progressText.innerText = pct;-->
+<!--            statusText.innerText = `已完成 ${done} / ${total}`;-->
+<!--        }-->
+
+<!--        function addLog(msg, type = 'info') {-->
+<!--            const div = document.createElement('div');-->
+<!--            div.className = `log-entry ${type}`;-->
+<!--            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;-->
+<!--            logBox.appendChild(div);-->
+<!--            logBox.scrollTop = logBox.scrollHeight;-->
+<!--        }-->
+
+<!--        const readFileAsArrayBuffer = (f) => new Promise((resolve, reject) => {-->
+<!--            const reader = new FileReader();-->
+<!--            reader.onload = (e) => resolve(e.target.result);-->
+<!--            reader.onerror = reject;-->
+<!--            reader.readAsArrayBuffer(f);-->
+<!--        });-->
+
+<!--        const blobToBase64 = (blob) => new Promise((resolve, reject) => {-->
+<!--            const reader = new FileReader();-->
+<!--            reader.onloadend = () => resolve(reader.result.split(',')[1]);-->
+<!--            reader.onerror = reject;-->
+<!--            reader.readAsDataURL(blob);-->
+<!--        });-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel图片下载与排版全能工具 (防跨域增强版)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', PingFang SC, Microsoft YaHei, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1080px;
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            padding: 25px 35px;
+            margin-top: 15px;
+        }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 8px; font-weight: 700; }
+        .subtitle { text-align: center; color: #6b7280; margin-bottom: 20px; font-size: 14px; }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover, .upload-area.active { background: #eef2ff; border-color: #4f46e5; transform: scale(1.005); }
+        .upload-icon { font-size: 40px; margin-bottom: 8px; display: block; }
+        .file-info { margin-top: 8px; font-size: 13px; color: #059669; font-weight: 600; }
+
+        /* 配置区域 */
+        .config-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .config-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .setting-item { display: flex; flex-direction: column; gap: 6px; }
+        .setting-item label { font-size: 13px; font-weight: 600; color: #374151; }
+        .setting-item select, .setting-item input {
+            padding: 9px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+            color: #1e293b;
+            font-weight: 500;
+        }
+        .setting-item select:focus, .setting-item input:focus { border-color: #6366f1; }
+
+        .auto-code-config {
+            display: none;
+            background: #eff6ff;
+            border: 1px dashed #3b82f6;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* 预览表格 */
+        .preview-section { margin-top: 10px; }
+        .preview-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .preview-title { font-size: 13px; font-weight: 600; color: #64748b; }
+        .table-wrap {
+            max-height: 240px;
+            overflow: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        th, td { padding: 8px 12px; border-bottom: 1px solid #edf2f7; border-right: 1px solid #edf2f7; }
+        th {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        tr:hover { background-color: #f8fafc; }
+
+        th.col-highlight-name { background: #dbeafe !important; color: #1d4ed8 !important; border-top: 2px solid #3b82f6; }
+        th.col-highlight-url { background: #dcfce7 !important; color: #15803d !important; border-top: 2px solid #22c55e; }
+        td.col-highlight-name { background: #eff6ff; }
+        td.col-highlight-url { background: #f0fdf4; }
+
+        .process-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+            margin-top: 15px;
+        }
+        .process-btn:hover { opacity: 0.95; }
+        .process-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .progress-container { margin-top: 20px; display: none; }
+        .progress-bar-bg { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); width: 0%; transition: width 0.2s; }
+        .progress-stats { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; margin-bottom: 10px; }
+
+        .log {
+            background: #1e293b;
+            color: #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .log-entry { margin-bottom: 2px; }
+        .success { color: #34d399; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        .warn { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Excel 图片下载与排版插入工具</h1>
+        <p class="subtitle">智能跨域绕行 · 消除公式冲突 · 自动生成唯一码 · 首列自适应居中</p>
+
+        <!-- 上传区域 -->
+        <div class="upload-area" id="dropArea" onclick="document.getElementById('excelInput').click()">
+            <span class="upload-icon">📊</span>
+            <h3>点击或拖拽上传 Excel 文件</h3>
+            <p style="color:#64748b; font-size:12px; margin-top:4px;">支持 .xlsx 格式文件</p>
+            <div class="file-info" id="fileInfo"></div>
+            <input type="file" id="excelInput" accept=".xlsx" style="display:none;">
+        </div>
+
+        <!-- 配置卡片 -->
+        <div class="config-card" id="configCard">
+            <div class="config-title">
+                <span>⚙️ 字段映射与运行设置</span>
+            </div>
+
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="nameColSelect" style="color: #1d4ed8;">🏷️ 选择【图片命名列】:</label>
+                    <select id="nameColSelect"></select>
+                </div>
+                <div class="setting-item">
+                    <label for="urlColSelect" style="color: #15803d;">🔗 选择【图片链接列】:</label>
+                    <select id="urlColSelect"></select>
+                </div>
+                <div class="setting-item">
+                    <label for="corsProxySelect" style="color: #d97706;">🛡️ 跨域代理模式 (防 Failed to fetch):</label>
+                    <select id="corsProxySelect">
+                        <option value="smart">智能加速通道 (优先直连，失败自动穿透代理)</option>
+                        <option value="always">强制使用穿透代理 (针对官网独立站推荐)</option>
+                        <option value="none">仅直连 (无跨域限制网站使用)</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="mergeSheetMode">📑 多工作表处理方式:</label>
+                    <select id="mergeSheetMode">
+                        <option value="merge">合并所有子表为一个工作表</option>
+                        <option value="keep">保留各子表独立处理</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label for="concurrencyCount">⚡ 并发线程数 (建议 4~8):</label>
+                    <input type="number" id="concurrencyCount" min="1" max="15" value="5">
+                </div>
+            </div>
+
+            <!-- 自动生成编码配置 -->
+            <div class="auto-code-config" id="autoCodeConfig">
+                <div class="setting-item">
+                    <label style="color: #1e40af;">📌 新增唯一列的表头名称:</label>
+                    <input type="text" id="autoCodeHeaderName" value="系统唯一编号">
+                </div>
+                <div class="setting-item">
+                    <label style="color: #1e40af;">🔢 编号前缀 (例如 ITEM_):</label>
+                    <input type="text" id="autoCodePrefix" value="IMG_">
+                </div>
+            </div>
+
+            <!-- 预览区域 -->
+            <div class="preview-section">
+                <div class="preview-header-bar">
+                    <span class="preview-title">📋 数据预览 (展示前 10 行)：</span>
+                    <span id="previewSheetName" style="font-size: 12px; color: #6366f1; font-weight: 600;"></span>
+                </div>
+                <div class="table-wrap">
+                    <table id="previewTable">
+                        <thead id="previewThead"></thead>
+                        <tbody id="previewTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button id="startBtn" class="process-btn">开始处理并导出打包文件</button>
+        </div>
+
+        <!-- 进度与控制台 -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-stats">
+                <span id="statusText">等待开始...</span>
+                <span id="progressText">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="log" id="logBox"></div>
+        </div>
+    </div>
+
+    <!-- 依赖库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        const AUTO_GEN_KEY = "__AUTO_GENERATE_UNIQUE_CODE__";
+        let currentFile = null;
+        let loadedWorkbook = null;
+        let isProcessing = false;
+        let detectedHeaders = [];
+
+        const dropArea = document.getElementById('dropArea');
+        const excelInput = document.getElementById('excelInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const configCard = document.getElementById('configCard');
+        const nameColSelect = document.getElementById('nameColSelect');
+        const urlColSelect = document.getElementById('urlColSelect');
+        const corsProxySelect = document.getElementById('corsProxySelect');
+        const autoCodeConfig = document.getElementById('autoCodeConfig');
+        const autoCodeHeaderName = document.getElementById('autoCodeHeaderName');
+        const autoCodePrefix = document.getElementById('autoCodePrefix');
+        const previewThead = document.getElementById('previewThead');
+        const previewTbody = document.getElementById('previewTbody');
+        const previewSheetName = document.getElementById('previewSheetName');
+        const startBtn = document.getElementById('startBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const statusText = document.getElementById('statusText');
+        const logBox = document.getElementById('logBox');
+
+        ['dragover', 'dragleave', 'drop'].forEach(evt => {
+            dropArea.addEventListener(evt, (e) => {
+                e.preventDefault();
+                if (evt === 'dragover') dropArea.classList.add('active');
+                else dropArea.classList.remove('active');
+            });
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length) handleUpload(e.dataTransfer.files[0]);
+        });
+        excelInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleUpload(e.target.files[0]);
+        });
+
+        async function handleUpload(file) {
+            if (!file.name.match(/\.xlsx$/i)) {
+                alert('请上传标准的 .xlsx 格式文件！');
+                return;
+            }
+            currentFile = file;
+            fileInfo.textContent = `已载入: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+            try {
+                const arrayBuffer = await readFileAsArrayBuffer(file);
+                loadedWorkbook = new ExcelJS.Workbook();
+                await loadedWorkbook.xlsx.load(arrayBuffer);
+
+                const firstSheet = loadedWorkbook.worksheets[0];
+                if (!firstSheet || firstSheet.rowCount < 1) {
+                    alert('Excel 文件为空或没有有效工作表！');
+                    return;
+                }
+
+                initPreviewAndSelectors(firstSheet);
+                configCard.style.display = 'block';
+                configCard.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                alert('解析 Excel 文件失败: ' + err.message);
+                console.error(err);
+            }
+        }
+
+        function initPreviewAndSelectors(sheet) {
+            previewSheetName.textContent = `当前预览子表: [${sheet.name}]`;
+            detectedHeaders = [];
+            nameColSelect.innerHTML = '';
+            urlColSelect.innerHTML = '';
+
+            const autoOpt = new Option("➕ [推荐] 自动生成唯一编码列 (自增编号)", AUTO_GEN_KEY);
+            nameColSelect.add(autoOpt);
+
+            const headerRow = sheet.getRow(1);
+            headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+                const val = extractPureValue(cell.value);
+                const strVal = (val !== null && val !== undefined) ? val.toString().trim() : '';
+                detectedHeaders.push({ colNumber, name: strVal || `列 ${colNumber}` });
+            });
+
+            detectedHeaders.forEach(h => {
+                nameColSelect.add(new Option(h.name, h.name));
+                urlColSelect.add(new Option(h.name, h.name));
+            });
+
+            let defaultNameCol = AUTO_GEN_KEY;
+            let defaultUrlCol = detectedHeaders[detectedHeaders.length - 1].name;
+
+            detectedHeaders.forEach(h => {
+                const lower = h.name.toLowerCase();
+                if (/asin|sku|编号|编码|款号|名称|id|货号/.test(lower)) defaultNameCol = h.name;
+                if (/图片|链接|url|image|img|主图|photo|pic/.test(lower)) defaultUrlCol = h.name;
+            });
+
+            nameColSelect.value = defaultNameCol;
+            urlColSelect.value = defaultUrlCol;
+
+            renderPreviewTable(sheet);
+
+            nameColSelect.onchange = () => {
+                toggleAutoCodeBox();
+                updateTableHighlights();
+            };
+            urlColSelect.onchange = () => updateTableHighlights();
+
+            toggleAutoCodeBox();
+            updateTableHighlights();
+        }
+
+        function toggleAutoCodeBox() {
+            autoCodeConfig.style.display = (nameColSelect.value === AUTO_GEN_KEY) ? 'grid' : 'none';
+        }
+
+        function renderPreviewTable(sheet) {
+            previewThead.innerHTML = '';
+            previewTbody.innerHTML = '';
+
+            const trHead = document.createElement('tr');
+            detectedHeaders.forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h.name;
+                th.setAttribute('data-colname', h.name);
+                trHead.appendChild(th);
+            });
+            previewThead.appendChild(trHead);
+
+            const maxRow = Math.min(sheet.rowCount, 11);
+            for (let r = 2; r <= maxRow; r++) {
+                const row = sheet.getRow(r);
+                const tr = document.createElement('tr');
+                detectedHeaders.forEach(h => {
+                    const td = document.createElement('td');
+                    const val = extractPureValue(row.getCell(h.colNumber).value);
+                    td.textContent = (val !== null && val !== undefined) ? val.toString() : '';
+                    td.setAttribute('data-colname', h.name);
+                    tr.appendChild(td);
+                });
+                previewTbody.appendChild(tr);
+            }
+        }
+
+        function updateTableHighlights() {
+            const selectedName = nameColSelect.value;
+            const selectedUrl = urlColSelect.value;
+
+            document.querySelectorAll('#previewTable [data-colname]').forEach(el => {
+                const cName = el.getAttribute('data-colname');
+                el.classList.remove('col-highlight-name', 'col-highlight-url');
+                if (cName === selectedName) el.classList.add('col-highlight-name');
+                if (cName === selectedUrl) el.classList.add('col-highlight-url');
+            });
+        }
+
+        function extractPureValue(val) {
+            if (val === null || val === undefined) return '';
+            if (typeof val === 'object') {
+                if (val.result !== undefined) return val.result;
+                if (val.richText) return val.richText.map(t => t.text).join('');
+                if (val.text !== undefined) return val.text;
+                if (val.formula !== undefined) return '';
+            }
+            return val;
+        }
+
+        startBtn.addEventListener('click', async () => {
+            if (!loadedWorkbook || isProcessing) return;
+
+            const nameHeader = nameColSelect.value;
+            const urlHeader = urlColSelect.value;
+
+            if (!urlHeader) {
+                alert('请指定【图片链接列】！');
+                return;
+            }
+
+            isProcessing = true;
+            startBtn.disabled = true;
+            startBtn.innerText = '正在全力处理中...';
+            progressContainer.style.display = 'block';
+            logBox.innerHTML = '';
+
+            try {
+                await processWorkbook(nameHeader, urlHeader);
+            } catch (err) {
+                addLog(`处理出错: ${err.message}`, 'error');
+                console.error(err);
+            } finally {
+                isProcessing = false;
+                startBtn.disabled = false;
+                startBtn.innerText = '开始处理并导出打包文件';
+            }
+        });
+
+        async function processWorkbook(targetNameHeader, targetUrlHeader) {
+            const shouldMerge = document.getElementById('mergeSheetMode').value === 'merge';
+            const concurrency = parseInt(document.getElementById('concurrencyCount').value) || 5;
+            const proxyMode = corsProxySelect.value;
+            const isAutoGenerateCode = (targetNameHeader === AUTO_GEN_KEY);
+            const autoHeaderTitle = autoCodeHeaderName.value.trim() || '系统唯一编号';
+            const codePrefix = autoCodePrefix.value.trim();
+
+            const finalWorkbook = new ExcelJS.Workbook();
+            const downloadTasks = [];
+            let globalAutoIndex = 1;
+
+            if (shouldMerge) {
+                addLog('正在合并所有子表并消除公式冲突...', 'info');
+                const mergedSheet = finalWorkbook.addWorksheet('合并汇总');
+                let mergedHeaders = null;
+
+                loadedWorkbook.eachSheet((sheet) => {
+                    if (sheet.rowCount < 2) return;
+                    const map = findColumnIndices(sheet, targetNameHeader, targetUrlHeader, isAutoGenerateCode);
+                    if (map.urlCol === -1 || (!isAutoGenerateCode && map.nameCol === -1)) {
+                        addLog(`工作表 [${sheet.name}] 未找到对应列，已跳过`, 'warn');
+                        return;
+                    }
+
+                    if (!mergedHeaders) {
+                        mergedHeaders = ['图片'];
+                        if (isAutoGenerateCode) mergedHeaders.push(autoHeaderTitle);
+
+                        sheet.getRow(1).eachCell({ includeEmpty: false }, (cell) => {
+                            mergedHeaders.push(extractPureValue(cell.value));
+                        });
+
+                        const headerRow = mergedSheet.getRow(1);
+                        headerRow.values = mergedHeaders;
+                        headerRow.commit();
+                        mergedSheet.getColumn(1).width = 20;
+                    }
+
+                    for (let r = 2; r <= sheet.rowCount; r++) {
+                        const row = sheet.getRow(r);
+                        const urlVal = extractPureValue(row.getCell(map.urlCol).value);
+                        if (!urlVal && !row.hasValues) continue;
+
+                        let customName = '';
+                        if (isAutoGenerateCode) {
+                            customName = `${codePrefix}${globalAutoIndex}`;
+                            globalAutoIndex++;
+                        } else {
+                            const nameVal = extractPureValue(row.getCell(map.nameCol).value);
+                            customName = sanitizeFilename(nameVal, `ROW_${r}`);
+                        }
+
+                        const rowData = [''];
+                        if (isAutoGenerateCode) rowData.push(customName);
+
+                        sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNum) => {
+                            rowData.push(extractPureValue(row.getCell(colNum).value));
+                        });
+
+                        const appendedRow = mergedSheet.addRow(rowData);
+                        downloadTasks.push({
+                            sheet: mergedSheet,
+                            rowIdx: appendedRow.number,
+                            customName: customName,
+                            url: (urlVal || '').toString().trim()
+                        });
+                    }
+                });
+
+                if (!mergedHeaders) throw new Error('未检索到符合条件的子表数据');
+
+            } else {
+                addLog('正在独立处理各个子表并纯化单元格...', 'info');
+
+                loadedWorkbook.eachSheet((sheet) => {
+                    if (sheet.rowCount < 2) return;
+                    const map = findColumnIndices(sheet, targetNameHeader, targetUrlHeader, isAutoGenerateCode);
+                    if (map.urlCol === -1 || (!isAutoGenerateCode && map.nameCol === -1)) {
+                        addLog(`工作表 [${sheet.name}] 缺少所需列，已跳过`, 'warn');
+                        return;
+                    }
+
+                    const newSheet = finalWorkbook.addWorksheet(sheet.name);
+                    const newHeaders = ['图片'];
+                    if (isAutoGenerateCode) newHeaders.push(autoHeaderTitle);
+
+                    sheet.getRow(1).eachCell({ includeEmpty: false }, (cell) => {
+                        newHeaders.push(extractPureValue(cell.value));
+                    });
+
+                    newSheet.getRow(1).values = newHeaders;
+                    newSheet.getColumn(1).width = 20;
+
+                    for (let r = 2; r <= sheet.rowCount; r++) {
+                        const row = sheet.getRow(r);
+                        const urlVal = extractPureValue(row.getCell(map.urlCol).value);
+                        if (!urlVal && !row.hasValues) continue;
+
+                        let customName = '';
+                        if (isAutoGenerateCode) {
+                            customName = `${codePrefix}${globalAutoIndex}`;
+                            globalAutoIndex++;
+                        } else {
+                            const nameVal = extractPureValue(row.getCell(map.nameCol).value);
+                            customName = sanitizeFilename(nameVal, `ROW_${r}`);
+                        }
+
+                        const rowData = [''];
+                        if (isAutoGenerateCode) rowData.push(customName);
+
+                        sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNum) => {
+                            rowData.push(extractPureValue(row.getCell(colNum).value));
+                        });
+
+                        const appendedRow = newSheet.addRow(rowData);
+                        downloadTasks.push({
+                            sheet: newSheet,
+                            rowIdx: appendedRow.number,
+                            customName: customName,
+                            url: (urlVal || '').toString().trim()
+                        });
+                    }
+                });
+            }
+
+            if (downloadTasks.length === 0) throw new Error('没有检索到可下载的数据！');
+
+            addLog(`检索到 ${downloadTasks.length} 条记录，启动防跨域并发下载...`, 'info');
+
+            const namedZip = new JSZip();
+            const seqZip = new JSZip();
+
+            const CELL_PIXEL_W = 145;
+            const CELL_PIXEL_H = 160;
+            const ROW_HEIGHT = 120;
+            const EMU = 9525;
+
+            let completed = 0;
+            let success = 0;
+            let failed = 0;
+
+            await runWorkerPool(downloadTasks, concurrency, async (task, index) => {
+                const seqIndex = index + 1;
+                if (!task.url) {
+                    completed++;
+                    failed++;
+                    updateProgress(completed, downloadTasks.length);
+                    return;
+                }
+
+                try {
+                    // 使用防跨域网络请求
+                    const blob = await fetchImageWithBypass(task.url, proxyMode);
+                    const ext = getExtension(blob, task.url);
+
+                    // 1. 唯一码命名包
+                    namedZip.file(`${task.customName}.${ext}`, blob);
+
+                    // 2. 顺序编号包
+                    seqZip.file(`图片${seqIndex}.${ext}`, blob);
+
+                    // 3. 插入 Excel
+                    const base64 = await blobToBase64(blob);
+                    const dim = await getImageDimensions(blob);
+
+                    const scale = Math.min(CELL_PIXEL_W / dim.w, CELL_PIXEL_H / dim.h);
+                    const finalW = Math.max(1, Math.floor(dim.w * scale));
+                    const finalH = Math.max(1, Math.floor(dim.h * scale));
+                    const offsetX = Math.floor((CELL_PIXEL_W - finalW) / 2 * EMU);
+                    const offsetY = Math.floor((CELL_PIXEL_H - finalH) / 2 * EMU);
+
+                    const imgId = finalWorkbook.addImage({
+                        base64: base64,
+                        extension: ext === 'jpg' ? 'jpeg' : ext
+                    });
+
+                    task.sheet.addImage(imgId, {
+                        tl: { col: 0, row: task.rowIdx - 1, nativeColOff: offsetX, nativeRowOff: offsetY },
+                        ext: { width: finalW, height: finalH },
+                        editAs: 'oneCell'
+                    });
+
+                    task.sheet.getRow(task.rowIdx).height = ROW_HEIGHT;
+                    success++;
+                    addLog(`[${seqIndex}] 成功: ${task.customName}`, 'success');
+                } catch (e) {
+                    failed++;
+                    addLog(`[${seqIndex}] 失败: ${task.customName} (${e.message})`, 'error');
+                } finally {
+                    completed++;
+                    updateProgress(completed, downloadTasks.length);
+                }
+            });
+
+            addLog(`图片下载完成！成功: ${success}，失败: ${failed}。正在安全导出 Excel...`, 'info');
+            statusText.textContent = '生成打包压缩包中...';
+
+            const excelBuffer = await finalWorkbook.xlsx.writeBuffer();
+            const rootZip = new JSZip();
+            rootZip.file("处理结果.xlsx", excelBuffer);
+
+            const folderNamed = rootZip.folder("唯一编码命名图片");
+            namedZip.forEach((relPath, file) => folderNamed.file(relPath, file.async('blob')));
+
+            const folderSeq = rootZip.folder("按表格顺序重命名图片");
+            seqZip.forEach((relPath, file) => folderSeq.file(relPath, file.async('blob')));
+
+            const finalBlob = await rootZip.generateAsync({ type: "blob" });
+            saveAs(finalBlob, `Excel图片处理结果_${new Date().toISOString().slice(0,10)}.zip`);
+
+            addLog('🎉 全部完成！ZIP 压缩包已开始下载。', 'success');
+            statusText.textContent = '全部处理完成！';
+        }
+
+        // --- 核心防跨域下载函数 ---
+
+        async function fetchImageWithBypass(rawUrl, proxyMode) {
+            let targetUrl = rawUrl.trim();
+            if (targetUrl.startsWith('//')) targetUrl = 'https:' + targetUrl;
+            // 亚马逊高清规则清洗
+            targetUrl = targetUrl.replace(/(\/I\/[^/.]+)(\.[^/]*)(\.[a-zA-Z]+)$/, '$1$3');
+
+            // 模式 A：强制走跨域穿透通道
+            if (proxyMode === 'always') {
+                return await fetchViaProxy(targetUrl);
+            }
+
+            // 模式 B：仅直连
+            if (proxyMode === 'none') {
+                const res = await fetch(targetUrl);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.blob();
+            }
+
+            // 模式 C：智能模式 (优先直连，出现 CORS 或网络错误自动降级切入代理)
+            try {
+                const res = await fetch(targetUrl);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.blob();
+            } catch (err) {
+                // 捕获 Failed to fetch / CORS 拦截，静默切换至高速代理隧道
+                return await fetchViaProxy(targetUrl);
+            }
+        }
+
+        // 多级防跨域中继服务，轮换防止单点失效
+        async function fetchViaProxy(url) {
+            const encodedUrl = encodeURIComponent(url);
+            const proxyList = [
+                // 1. 国际专业图片 CDN 镜像 (免 CORS，且响应速度极快)
+                `https://images.weserv.nl/?url=${encodedUrl}&default=${encodedUrl}`,
+                // 2. 纯 CORS 代理隧道
+                `https://api.allorigins.win/raw?url=${encodedUrl}`,
+                `https://corsproxy.io/?url=${encodedUrl}`
+            ];
+
+            let lastErr = null;
+            for (let proxyUrl of proxyList) {
+                try {
+                    const res = await fetch(proxyUrl);
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        // 校验是否为有效图片
+                        if (blob.size > 200) return blob;
+                    }
+                } catch (e) {
+                    lastErr = e;
+                }
+            }
+            throw new Error(`跨域穿透失败: ${lastErr ? lastErr.message : '所有通道无响应'}`);
+        }
+
+        function findColumnIndices(sheet, nameHeader, urlHeader, isAutoGenerateCode) {
+            let nameCol = -1;
+            let urlCol = -1;
+            const headerRow = sheet.getRow(1);
+            headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+                const val = (extractPureValue(cell.value) || '').toString().trim();
+                if (!isAutoGenerateCode && val === nameHeader) nameCol = colNumber;
+                if (val === urlHeader) urlCol = colNumber;
+            });
+            return { nameCol, urlCol };
+        }
+
+        function getExtension(blob, url) {
+            if (blob.type) {
+                const sub = blob.type.split('/')[1];
+                if (sub && sub.length <= 4) return sub.replace('jpeg', 'jpg');
+            }
+            try {
+                const pathname = new URL(url).pathname;
+                const ext = pathname.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) return ext === 'jpeg' ? 'jpg' : ext;
+            } catch (e) {}
+            return 'jpg';
+        }
+
+        function getImageDimensions(blob) {
+            return new Promise((resolve) => {
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve({ w: img.naturalWidth || 100, h: img.naturalHeight || 100 });
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    resolve({ w: 100, h: 100 });
+                };
+                img.src = url;
+            });
+        }
+
+        function sanitizeFilename(val, fallback) {
+            if (!val) return fallback;
+            const str = val.toString().trim().replace(/[\\/:*?"<>|]/g, '_');
+            return str || fallback;
+        }
+
+        async function runWorkerPool(items, maxWorkers, taskFn) {
+            let cursor = 0;
+            const workers = Array(Math.min(maxWorkers, items.length)).fill(0).map(async () => {
+                while (cursor < items.length) {
+                    const currentIndex = cursor++;
+                    await taskFn(items[currentIndex], currentIndex);
+                    // 加入轻微平滑间隔，避免大并发冲击触发对方 CDN 频控
+                    await new Promise(r => setTimeout(r, 60));
+                }
+            });
+            await Promise.all(workers);
+        }
+
+        function updateProgress(done, total) {
+            const pct = Math.round((done / total) * 100) + '%';
+            progressBar.style.width = pct;
+            progressText.innerText = pct;
+            statusText.innerText = `已完成 ${done} / ${total}`;
+        }
+
+        function addLog(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-entry ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        const readFileAsArrayBuffer = (f) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(f);
+        });
+
+        const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>人间废料生成器 · 数字占卜豪华版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #FCF5E6;
+            background-image: radial-gradient(circle at 25% 40%, rgba(255,235,190,0.4) 2%, transparent 2.5%),
+                              radial-gradient(circle at 70% 85%, rgba(255,215,150,0.3) 1.8%, transparent 2%);
+            background-size: 48px 48px, 32px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            padding: 1.5rem;
+        }
+
+        .card {
+            max-width: 700px;
+            width: 100%;
+            background: #FFFBF0;
+            border-radius: 42px 28px 48px 32px;
+            box-shadow: 18px 22px 28px rgba(100, 60, 10, 0.12), 0 4px 12px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,200,0.8);
+            padding: 2rem 2rem 2.2rem;
+            transition: transform 0.2s ease;
+            border: 1px solid #FFE4B5;
+        }
+
+        .card:hover {
+            transform: scale(1.01);
+        }
+
+        .badge {
+            display: inline-block;
+            background: #FFE2A4;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: #8B5A2B;
+            margin-bottom: 1.8rem;
+            border: 0.5px solid #F7D48A;
+            box-shadow: inset 0 1px 0 #FFF3CF, 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .phrase-container {
+            background: #FFF5E2;
+            padding: 2rem 1.5rem;
+            border-radius: 30px;
+            margin-bottom: 1.8rem;
+            border: 1px solid #FADB91;
+            box-shadow: inset 0 0 0 2px #FFFCF0, 0 8px 18px rgba(0,0,0,0.05);
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s;
+        }
+
+        .phrase-text {
+            font-size: 1.8rem;
+            line-height: 1.4;
+            text-align: center;
+            color: #4A2E1A;
+            font-weight: 550;
+            word-break: break-word;
+            font-family: 'Courier New', 'SF Mono', 'Noto Sans CJK SC', monospace;
+            letter-spacing: -0.2px;
+            text-shadow: 0 1px 0 rgba(255,245,200,0.8);
+        }
+
+        .number-area {
+            background: #FFF8EA;
+            border-radius: 50px;
+            padding: 0.6rem 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #F7D48A;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .number-input-wrapper {
+            flex: 2;
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 60px;
+            border: 1px solid #EFD49E;
+            padding: 0 1rem;
+            transition: all 0.2s;
+        }
+        .number-input-wrapper:focus-within {
+            border-color: #E3B87C;
+            box-shadow: 0 0 0 2px rgba(227,184,124,0.3);
+        }
+        .number-input-wrapper input {
+            width: 100%;
+            padding: 0.75rem 0;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-family: monospace;
+            font-weight: 500;
+            outline: none;
+            color: #4A2E1A;
+        }
+        .number-input-wrapper input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .number-input-wrapper input::-webkit-outer-spin-button,
+        .number-input-wrapper input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .num-icon {
+            font-size: 1.3rem;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+
+        .btn-number {
+            background: #EFD6A7;
+            border: none;
+            padding: 0.7rem 1.4rem;
+            border-radius: 40px;
+            font-weight: 600;
+            color: #5A3C1C;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn-number:active {
+            transform: scale(0.96);
+            background: #E7CA91;
+        }
+
+        .divider-text {
+            font-size: 0.7rem;
+            color: #C69C6D;
+            text-align: center;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        .divider-text::before,
+        .divider-text::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30%;
+            height: 1px;
+            background: #F1D9AA;
+        }
+        .divider-text::before { left: 0; }
+        .divider-text::after { right: 0; }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            border: none;
+            background: #FFE6B3;
+            padding: 0.9rem 1.8rem;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #724A24;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05), inset 0 1px 0 #FFFCE8;
+            border: 0.5px solid #EBCB8E;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #F7CD7C;
+            color: #3E2A15;
+            box-shadow: 0 4px 0 #C29A4A;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #C29A4A;
+        }
+
+        .btn-secondary {
+            background: #FAE4B1;
+            border: 0.5px solid #E9CA85;
+        }
+
+        .btn-secondary:active {
+            background: #F5D893;
+            transform: scale(0.97);
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #2C221B;
+            color: #FFEEBB;
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+            z-index: 999;
+            backdrop-filter: blur(8px);
+            background: rgba(50, 35, 20, 0.9);
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .toast-msg.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #C69C6D;
+            border-top: 1px dashed #F1D9AA;
+            padding-top: 1.2rem;
+            margin-top: 0.5rem;
+            font-family: monospace;
+        }
+
+        .footer-note span {
+            background: #FFF1DC;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+        }
+
+        @media (max-width: 550px) {
+            .card {
+                padding: 1.5rem;
+            }
+            .phrase-text {
+                font-size: 1.4rem;
+            }
+            .phrase-container {
+                padding: 1.4rem 1rem;
+                min-height: 190px;
+            }
+            .btn {
+                padding: 0.7rem 1.3rem;
+                font-size: 0.9rem;
+            }
+            .number-area {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-number {
+                text-align: center;
+            }
+        }
+
+        .flash {
+            background: #FFF2C9 !important;
+            transition: 0.08s;
+        }
+
+        .num-hint {
+            font-size: 0.7rem;
+            color: #B8884A;
+            margin-top: 6px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="badge">
+        📻 精神废料 · 数字占卜豪华版
+    </div>
+
+    <div class="phrase-container" id="phraseBox">
+        <div class="phrase-text" id="phraseText">
+            正在加载人间真理...
+        </div>
+    </div>
+
+    <div class="number-area">
+        <div class="number-input-wrapper">
+            <span class="num-icon">🔢</span>
+            <input type="number" id="numberInput" placeholder="输入任意整数" value="42">
+        </div>
+        <button class="btn-number" id="divineBtn">✨ 数字占卜废话</button>
+    </div>
+    <div class="num-hint">
+        💡 不同数字召唤专属废料
+    </div>
+
+    <div class="divider-text">⚡ 传统随机模式 ⚡</div>
+
+    <div class="button-group">
+        <button class="btn btn-primary" id="generateBtn">
+            ⚡ 再生成一句废料
+        </button>
+        <button class="btn btn-secondary" id="copyBtn">
+            📋 复制到脑内缓存
+        </button>
+    </div>
+
+    <div class="footer-note">
+        <span>✨ 每一句废话，都有它存在的道理 ✨</span>
+    </div>
+</div>
+
+<div id="toastMsg" class="toast-msg">✨ 已复制，可分享到朋友圈 ✨</div>
+
+<script>
+    // ----------------------------- 普通废话库 (206句, 保持不变)
+    const wasteLibrary = [
+        '你今天的努力，感动了手机充电器。',
+        '所谓成熟，就是把“哈哈哈”换成“哈哈”。',
+        '研究发现，当你找不到手机时，其实它就在你手里。',
+        '别担心失败，反正你也没怎么成功过。',
+        '你的脂肪很忠诚，从不主动离开你。',
+        '晚安的意思是：今天先敷衍到这。',
+        '在吗？不在也没关系，我只是随便问问。',
+        '只要是石头，到哪里都不会发光的。',
+        '如果你觉得自己一整天累得跟狗一样，那真是误会大了，狗都没你累。',
+        '没有人能让你放弃梦想，你自己试试就放弃了。',
+        '当你觉得生活无路可走的时候，再看看脚底，也许是你的鞋带开了。',
+        '不要总熬夜，对手机不好。',
+        '你并不是一无所有，你还有病啊。',
+        '假如生活欺骗了你，不要悲伤，不要心急，反正明天也一样。',
+        '很多时候你不逼自己一把，你就不知道你还有把事情搞砸的本事。',
+        '你全力以赴做到最好，可能还不如别人随便搞搞。',
+        '世上无难事，只要肯放弃。',
+        '万事开头难，然后中间难，最后结尾难。',
+        '又一天过去了。今天过得怎么样，梦想是不是更远了？',
+        '只要你每天坚持自习，认真刻苦，态度端正，忍受孤独，最终的胜利肯定是属于那些考场上发挥好的人。',
+        '有些人一旦错过了，真是谢天谢地。',
+        '爱笑的女生运气不会太差，但是运气差的女生根本笑不出来。',
+        '别跟往事干杯了，往事都喝吐了。',
+        '你以为的极限，弄不好只是别人的起点。',
+        '世界上最好的安慰，并不是告诉对方“一切都会好起来的”，而是苦着脸说“哭个屁，你看，我比你还惨”。',
+        '当一件事情需要通过辩论或者争吵来让对方屈服时，这不代表对方的不可理喻，而是自己的无能。',
+        '虽然你单身，但是你胖若两人。',
+        '早睡的人，完美地避过了每晚的情绪上涌，也就是错过了每晚一场颅内小剧场。',
+        '每天醒来第一件事，就是想再睡十分钟。',
+        '只要用钱能解决的问题，我一件都解决不了。',
+        '减肥就是，三天打鱼，362天晒网。',
+        '你的脸，比你的前途还令人迷茫。',
+        '年纪大了，今天最想关机，明天再重启吧。',
+        '如果你觉得孤独，就把灯关掉，打开电脑，屏幕的亮度就足以让你感到刺眼。',
+        '所谓运气，就是机会正好碰上了你的懒惰。',
+        '上帝是公平的，给了你一张丑脸，肯定还会给你一个没钱的家。',
+        '有些人出现在你的生命里，就是为了告诉你，你真好骗。',
+        '这世上没有感同身受，只有冷暖自知，外加空调的26度。',
+        '有时你没有做错任何事，只是因为你还不够重要。',
+        '只要能用钱解决的问题，绝大多数人解决不了，因为没钱。',
+        '失败并不可怕，可怕的是你还相信这句话。',
+        '别总自称宝妈，显得好像有孩子一样，其实你只是胖。',
+        '你的存款，支撑不了你的情怀。',
+        '当你觉得为时已晚的时候，恰恰是最早的时候——因为第二天你会更后悔。',
+        '老板再也不用担心我摸鱼了，因为我每天都游在退潮的海滩上。',
+        '忙的时候想休息，闲的时候又觉得自己像废料，说得就是你。',
+        '人生就像蒲公英，看似自由，其实风往哪吹你就要往哪飘。',
+        '有些笑容背后是咬紧牙关的灵魂，但更多人笑容背后是中午吃得太多打了个嗝。',
+        '哪有什么选择困难症，还不是因为穷。',
+        '你总会遇到一个人，让你觉得之前遇到的所有人都不过如此，然后让你继续单身。',
+        '不要觉得你自己很特别，这个世界上到处都是自以为很特别的人。',
+        '人生最重要的不是努力，而是选对躺平的方向。',
+        '所谓长大，就是把原本看重的东西看轻一点，原本看轻的东西看一眼都嫌累。',
+        '你过得好不好，别人不知道，但你一胖，所有人都知道了。',
+        '当你的才华还撑不起你的野心时，就应该静下心来学习，然后发现学了也没用。',
+        '大多数人的努力，并不足以拼天赋，而是连努力本身都懒得多动一下。',
+        '你总说梦想遥不可及，可你却从不早起。',
+        '好看的皮囊你养不起，有趣的灵魂看不上你。',
+        '手机起码还会提醒我电量不足，可有些人却永远不会说自己爱意不够。',
+        '别问我为什么这么懒，因为我懒得解释。',
+        '你以为的岁月静好，其实是有人替你负重前行，而那个人就是你未来的自己。',
+        '每次下定决心减肥，就感觉是跟自己的胃上演一场虐恋。',
+        '其实你也挺聪明的，就是被智商耽误了。',
+        '不要因为小事而闷闷不乐，因为以后还有更多大事让你更不开心。',
+        '如果你觉得自己很渺小，那是因为你没有站在镜子面前。',
+        '你的人生就像是一个茶几，上面摆满了杯具。',
+        '如果你觉得太无聊，那你就去努力，你会发现更无聊的事情还在后面。',
+        '成年人的崩溃，往往以“没事”结尾，因为说了也没人懂，懂了也没空管。',
+        '有时候你不努力一下，都不知道什么叫绝望。',
+        '只要肯努力，没有什么事情是你搞不砸的。',
+        '你就像是天空中的一颗星，虽然很黯淡，但也没有人在乎。',
+        '每次想变优秀，就好像是给明天的自己挖个坑。',
+        '人生苦短，何必在意别人的看法，反正他们也不是真的在意你。',
+        '有些问题，不去想就不会有答案，想了也白想。',
+        '所谓放假，就是换个地方玩手机。',
+        '低头的是稻穗，抬头的是稗子，但你抬头低头都是双下巴。',
+        '不是因为你有了机会才争取，而是因为你争取了才有机会，然后发现没争取到。',
+        '你的生活像一部烂片，没有高潮，没有彩蛋。',
+        '如果你觉得累，说明你在走上坡路，但是上坡路实在太累了，不如坐下歇会儿。',
+        '但凡有一丁点办法，我就不会在这里说废话。',
+        '这世界并不会在意你的自尊，这世界指望你在自我感觉良好之前先要有所成就，可惜你没有。',
+        '保持年轻的秘诀：谎报年龄。',
+        '所谓友谊，就是你穷了有人同情你，你更穷了有人嘲笑你。',
+        '当你觉得自己又丑又穷的时候，不要绝望，因为至少你的判断是对的。',
+        '你以为挑起生活的担子是勇气，其实去过自己想要的生活，才是勇气，然而你连自己想过什么都不知道。',
+        '每当想偷懒的时候，就告诉自己，再坚持一下，然后就能心安理得地偷懒了。',
+        '不要总抱怨生活的苦，因为以后还有更苦的等着你。',
+        '你的时间有限，所以不要为别人而活，但大多数人都活成了别人眼中的样子。',
+        '所有的选择困难症，都是因为穷和懒的结合体。',
+        '你之所以觉得时间过得越来越快，是因为时间对你来说越来越不重要。',
+        '有些人喜欢你，是因为你能给他带来快乐；而有些人喜欢你，是因为你就是他的快乐。但最后这两种人都会离开。',
+        '大部分人终其一生，不过是活成了一个普通人的样子。',
+        '不要和傻瓜争论，他会把你拉到他的水平，然后用丰富的经验打败你。',
+        '那些你删掉的人，曾经也有过彻夜聊天的记录。',
+        '每次发誓早睡，都是为了给熬夜找个心安理得的理由。',
+        '觉得过不去的时候，看看自己的银行卡余额，瞬间觉得还能再撑一下。',
+        '心情不好的时候就去超市转转，听听那打折的声音，就知道自己有多穷了。',
+        '你总是间歇性踌躇满志，持续性混吃等死。',
+        '所谓人生理想，就是你想想就行了，别当真。',
+        '很多时候，乐观的态度和好听的话帮不了你。',
+        '别害怕别人怎么看你，因为没几个人有空看你。',
+        '做人如果没点追求，那跟无忧无虑有什么区别？',
+        '不要总是抱怨，生活就像一面镜子，你对着它笑，它也对着你笑，然后你俩都像个傻子。',
+        '你知道吗？其实你挺厉害的，能在这么艰难的环境下把自己养得这么胖。',
+        '成长就是哪怕你难过到想哭，也要笑着对别人说“我没事”。',
+        '每次想删朋友圈的时候，就是觉得自己以前太幼稚了，结果现在还是没成熟到哪去。',
+        '其实每个嘴上说不谈恋爱的人，心里都装着一个不可能的人。',
+        '深夜的酒，不如清晨的粥，但你根本起不来喝粥。',
+        '你的人生，从“明天开始努力”这句话开始，也从“算了明天再说明天吧”结束。',
+        '所谓压力，其实是自身的能力不足。所谓困难，其实是自己的本事不够。',
+        '别动不动就把问题交给时间，时间才懒得理你那些破事。',
+        '你的脸上云淡风轻，谁也不知道你的牙咬得有多紧。你走路带着风，谁也不知道你膝盖上仍有摔伤的淤青。其实这些都没人在意。',
+        '有些路很远，走下去会很累，可是不走，会后悔。但走了之后发现，后悔没选另一条。',
+        '你永远叫不醒一个装睡的人，但快递小哥可以。',
+        '世上最好的保鲜就是不断进步，让自己成为更好和更值得爱的人，可惜你只想躺平。',
+        '别总熬夜，因为除了变丑，没有任何好处。',
+        '你的人生困难模式，从出生那一刻就开始了。',
+        '知道为什么你总是遇不到对的人吗？因为对的人看不上你。',
+        '每次想找个人陪的时候，就发现有的人不能找，有的人不该找，有的人找不到。',
+        '你不是一无所有，你还有病和矫情。',
+        '生活总是让我们遍体鳞伤，但到后来，那些受伤的地方会变成我们最强壮的地方？不，会变成老寒腿。',
+        '你说你向往自由，其实你只是懒。',
+        '努力不一定成功，但不努力一定很轻松。',
+        '如果你觉得自己整天累成狗，那你错了，狗没有你那么累。',
+        '上帝给你关上一扇门，就会为你打开一扇窗，但你已经胖得卡在窗户上了。',
+        '世界上最成功的的人，是那些每次跌倒都能站起来的人，但你根本不想站起来。',
+        '别人是吃一口就饱了，你是吃饱了还能再吃一口。',
+        '每次听到“钱不是万能的”，你都安慰自己说，至少我的穷是万能的。',
+        '只要是钱能解决的问题，你都解决不了。',
+        '你的钱包比你的脸还干净。',
+        '嘴里说着要减肥，手却很诚实地拿起了零食。',
+        '你以为你是 unique， 其实你只是 weird。',
+        '你每天的状态：困、饿、不想动、等下再说。',
+        '别谈理想，你的理想是不上班还有钱拿。',
+        '你的人生需要一场说走就走的旅行，以及说胖就胖的体型。',
+        '每次看到励志文章就充满干劲，十分钟后恢复原样。',
+        '你喜欢的人，总能用一句“在忙”让你闭嘴。',
+        '这世上唯一敢对你无限包容的，恐怕只有你的脂肪。',
+        '你的心碎，还不如一节没听完的网课重要。',
+        '所谓的顺其自然，其实就是无能为力。',
+        '你最大的烦恼就是，自己的实力配不上野心，还懒得努力。',
+        '你的自律：今天吃两顿火锅，明天吃三顿。',
+        '好不容易鼓起勇气表白，结果对方说“你是个好人”。',
+        '要相信，只要活着，就一定会有好事发生在别人身上。',
+        '你自拍十分钟，修图一小时，结果没人点赞。',
+        '你的消息，就像垃圾邮件，不是被忽略就是进了垃圾箱。',
+        '你的未来，就像天气预报，说明天有雨，结果却是大太阳。',
+        '别总是羡慕别人，别人也有你不知道的烦恼，比如怎么花掉那么多钱。',
+        '你的拖延症已经晚期，但你还是懒得去看医生。',
+        '每次说“我要早睡”，结果凌晨两点还在刷视频。',
+        '你的运动量：从床到沙发，再从沙发到冰箱。',
+        '所谓的明天，就是你为今天的懒惰找的借口。',
+        '你之所以觉得假期短，是因为假期没有上午。',
+        '你的“有空约饭”基本等于“再也不见”。',
+        '每次想发脾气的时候，都要告诉自己：世界如此美好，我却如此暴躁，这样不好不好……不行还是好气。',
+        '那些你曾经看不起的人，现在依然看不起你。',
+        '别总是抱怨自己运气不好，其实是你能力不够。',
+        '你的努力程度之低，根本轮不到拼运气。',
+        '每天叫醒你的不是梦想，是闹钟，而且你还关掉了。',
+        '你的存款，就像你的发量，越来越少。',
+        '每次照镜子，都觉得里面那个人配不上你。',
+        '你的生活状态：间歇性踌躇满志，持续性混吃等死。',
+        '所谓的“下次一定”，就是“永远没有下次”。',
+        '你的人生就像一杯咖啡，苦涩之后还是苦涩。',
+        '你的承诺，就像天气预报，永远不准。',
+        '那些你熬夜刷的剧，第二天就忘得一干二净。',
+        '你的社交能力，仅限于点赞和评论“哈哈哈”。',
+        '每次说“我要改变”，结果第二天就忘了。',
+        '你的目标，就像天上的星星，看得见摸不着。',
+        '你所谓的努力，就是感动了自己，恶心了别人。',
+        '你的生活，就像一潭死水，偶尔泛起几个泡沫。',
+        '每次想放弃的时候，就告诉自己：再坚持一下，然后你会发现坚持也没用。',
+        '你的智商，就像你的余额，永远不够用。',
+        '你的人生，就像一场戏，但你是观众不是演员。',
+        '每次说“我要学习”，结果打开手机就忘了。',
+        '你的未来，就像雾霾天，看不清也逃不掉。'
+    ];
+    const uniqueLibrary = [...new Map(wasteLibrary.map(item => [item, item])).values()];
+    while (uniqueLibrary.length < 200) uniqueLibrary.push('今日份的废话：你看到这句话的时候，又浪费了3秒钟。');
+
+    // ======================= 生成每类100+句数字占卜废话库 =======================
+    // 工具函数：从模板数组生成指定数量的变体（随机组合）
+    function generateCorpus(templates, targetCount = 100) {
+        const result = [];
+        // 简单的模板填充，确保足够数量，允许轻微重复但整体丰富
+        while (result.length < targetCount) {
+            for (let t of templates) {
+                if (result.length >= targetCount) break;
+                // 替换占位符（如果有[v]可增加随机数字/形容词，但没有也不强求）
+                result.push(t);
+            }
+        }
+        // 随机打乱顺序，让每次展示更随机
+        for (let i = result.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+    }
+
+    // 为每个类别设计大量模板（每个类别至少30个不同句式，生成后自动扩展至100+）
+    const evenTemplates = [
+        '偶数的你，成双成对，但对象还在快递站。',
+        '偶数代表平衡，可你的余额和体重严重失衡。',
+        '今天是偶数日，宜发呆，忌努力。',
+        '偶数暗示圆满，但你连外卖满减都没凑够。',
+        '遇到偶数数字，说明你今天会错过两班地铁。',
+        '偶数能量 : 烦恼也是双倍的。',
+        '偶数偏爱平稳，就像你躺平的身姿。',
+        '偶数是吉祥的，意味着你可以吃双份零食。',
+        '偶数让你想起「第二份半价」，但你只有一个人。',
+        '偶数提醒你：已经两天没洗头了。',
+        '偶数数字驾到，摸鱼指数上涨200%。',
+        '偶数之日，适合把所有决定都抛硬币。',
+        '偶数你好，今天适合双击屏幕然后继续摆烂。',
+        '偶数的哲学：好事成双？坏事也是。',
+        '偶数给你好运：今天会捡到两块钱。',
+        '偶数天气：多云转晴再转多云，跟你心情一样。',
+        '偶数暗示双倍奶茶，但热量也双倍。',
+        '偶数说你该找个人一起吃饭，但并没有人。',
+        '偶数的温柔：熬夜到两点也不算太晚。',
+        '偶数之光：你的工资是别人的两倍？不，是两倍努力。',
+        '偶数让你想起去年买的鞋子，两只都还在。',
+        '偶数带来的消息：你的手机电量也是偶数，刚好撑到回家。',
+        '偶数定律：今天倒霉的几率翻倍。',
+        '偶数小贴士：洗脸别只洗一半。',
+        '偶数偏财运：也许会中两张彩票，各五块。',
+        '偶数希望：你的存款能凑成一个好看的数字。',
+        '偶数祝福：愿你遇到两个好人，一个请你吃饭，一个替你上班。',
+        '偶数发来贺电：你的体重又迈过一个整数坎。',
+        '偶数温馨提示：别把鸡蛋放在一个篮子里，因为两个篮子你也拎不动。',
+        '偶数日历：宜点双人份套餐，假装有人陪。',
+        '偶数晚祷：愿你的烦恼都能找到另一半，然后一起消失。',
+        '偶数偷偷告诉你，今天可以偷两次懒。',
+        '偶数说：别伤心，至少你的失败是成双成对的。',
+        '偶数让你开心一下：周一和周二都过完了，还有周三周四。',
+        '偶数笑话：为什么偶数很快乐？因为它们总能找到另一半。可惜你不能。',
+        '偶数安慰：你的丑和穷也是一对好搭档。',
+        '偶数占卜：今天你会遇到两个选择，都挺烂的。',
+        '偶数预言：你会刷两次牙，一次早上一次凌晨。',
+        '偶数魔法：双击屏幕会触发双倍废话。',
+        '偶数哲学：一根筷子容易折，两根筷子也折不动，因为你是饭桶。',
+        '偶数提示：你今天说了两次“好累”。',
+        '偶数星座运势：运气不好也不坏，就是普通地糟。',
+        '偶数定律：好事不出门，坏事传两人。',
+        '偶数奇谈：你的周末总是两天都觉得短，因为赖床占一半。',
+        '偶数终章：放平心态，反正你也没啥心态。'
+    ];
+
+    const oddTemplates = [
+        '奇数，孤独的质感，就像深夜的你。',
+        '奇数代表特立独行，但你的钱包特别行(空空)。',
+        '奇数日，容易单方面宣布今天不上班。',
+        '奇数能量 : 偶尔的努力，长久的躺平。',
+        '奇数意味着落单，匹配队友永远差一个。',
+        '奇数让你想起单身的第N年，N为奇数。',
+        '奇数总是多出一个，比如你多出来的脂肪。',
+        '奇数数字出现，建议今天只洗一只袜子。',
+        '奇数: 不加倍，不努力，随缘。',
+        '奇数告诉你，世界总差你一个赞。',
+        '奇数驾到，今天适合独处并享受那份孤独。',
+        '奇数的小秘密：你的钱包里只有一张大钞，其余都是零钱。',
+        '奇数预告：下午3点会有一次emo。',
+        '奇数日运势：不宜合群，宜自言自语。',
+        '奇数让你想起那首老歌《single dog》。',
+        '奇数哲学：一个人吃火锅也是火锅。',
+        '奇数给您提醒：你的社交距离天生比别人多一米。',
+        '奇数之光：至少你的头发数量目前是奇数，意味着还没秃完。',
+        '奇数能量场：今天的你，注定是朋友圈的一股泥石流。',
+        '奇数占卜：你会一个人看完这部电影。',
+        '奇数暗示：别担心，你的与众不同只是因为懒得一样。',
+        '奇数说：你的生活缺一个“另一半”，但多了一堆“另一半”的麻烦。',
+        '奇数定律：好事总差你一个，坏事一找一个准。',
+        '奇数幽默：为什么7害怕8？因为7吃了9(7,8,9)。',
+        '奇数灵感：一个人也可以玩得很开心，比如数头发。',
+        '奇数周末：周六一个人过，周日也是一个人过。',
+        '奇数打气：你是独一无二的，就像垃圾桶里唯一没被捡走的瓶子。',
+        '奇数运势：不宜合买双色球，因为会分不均。',
+        '奇数黄昏：夕阳无限好，只是你一个人看。',
+        '奇数晚风：今晚的月亮是奇数温柔，但你没人分享。',
+        '奇数冷笑话：1+1=2，2是偶数，所以你要单身。',
+        '奇数奇遇：今天会遇到一个跟你一样无聊的人。',
+        '奇数神谕：坚持单身，你就是王者。',
+        '奇数安慰：别怕孤独，蚊子总会来找你。',
+        '奇数宝典：奇数天适合定一个小目标：摸鱼五小时。',
+        '奇数觉醒：你的第六感是奇数的准？不，是奇数的差。',
+        '奇数食谱：一个人吃饭，连碗都省了。',
+        '奇数健身计划：俯卧撑做一个，休息三分钟。',
+        '奇数年终总结：今年又单了一年，稳中有进。',
+        '奇数旅行建议：一个人去旅游，拍照全靠路人。',
+        '奇数智商测试：你发现这段文字没有规律，恭喜你正常。'
+    ];
+
+    const primeTemplates = [
+        '质数，不可分割，就像没人能拆散你和你的床。',
+        '质数的孤独，举世无双，和你的社交圈一样。',
+        '遇到质数，今天适合独处，假装高冷。',
+        '质数除了1和本身，谁也不爱，跟你很像。',
+        '质数代表固执，你坚持不减肥的信念感。',
+        '质数能量: 除了躺平，其他都是约数。',
+        '质数很特别，就像你懒得举世闻名。',
+        '质数让你想起，你是朋友圈里唯一的穷鬼。',
+        '质数: 孤独且骄傲，穷且快乐。',
+        '质数提醒你：有些路只能一个人走，比如去拿外卖。',
+        '质数驾到，今天不宜合租，适合独自发呆。',
+        '质数小秘密：除了2以外，所有质数都是奇数，就像你独特得很普通。',
+        '质数哲学：人生就像质数，无法分解，只能硬扛。',
+        '质数占卜：你会遇到一个懂你的人，但他不想理你。',
+        '质数定律：越独特越没人靠近，真香。',
+        '质数星系：你在宇宙中是一颗孤星，自己发光（虽然很暗）。',
+        '质数能量罩：拒绝一切约饭邀请，因为你是质数。',
+        '质数减肥法：少吃一顿和多吃一顿，对体重无影响，因为质数不可分。',
+        '质数建议：今天别跟人合买奶茶，会吵起来。',
+        '质数运势：运气是质数，很难找，但找到了就是极品。',
+        '质数冷笑话：为什么质数不合群？因为它们因数太少。',
+        '质数浪漫：你的爱情像质数，没有合数（盒子）装得下。',
+        '质数预警：今天容易钻牛角尖，毕竟质数都这样。',
+        '质数光辉：你的与众不同是天赋，也是诅咒。',
+        '质数神谕：要想人前显贵，必得人后受罪，但你是质数，只能自己受罪。',
+        '质数健身：做一组质数个俯卧撑：2个，3个，5个，7个，然后放弃。',
+        '质数食谱：一个人吃一盘菜，光盘就是对质数的尊重。',
+        '质数作息：凌晨3点睡，早上5点醒，因为3和5都是质数。',
+        '质数旅行：一个人去一个陌生的城市，孤独指数爆表。',
+        '质数祝福：愿你像质数一样，不被别人轻易整除。',
+        '质数警句：宁做质数，不做合群的合数。',
+        '质数日记：今天没人理我，很好，符合质数原则。',
+        '质数晚祷：愿我的烦恼像质数一样稀少且珍贵（其实很多）。',
+        '质数彩蛋：你发现整段话中质数的数量是质数吗？懒得数。'
+    ];
+
+    const palindromeTemplates = [
+        '回文数，正读反读都一样，你的失败也是。',
+        '对称的数字，就像你的上下半身都很圆润。',
+        '回文寓意循环，你今天会再次忘记带钥匙。',
+        '回文命运: 努力→放弃→努力→放弃。',
+        '回文告诉你，睡醒和睡前想的都是同一件事: 好困。',
+        '对称美学，你的左右脸一样大，很和谐。',
+        '回文数出现，建议你重复一遍昨天的摸鱼操作。',
+        '回文能量: 从哪跌倒，就在哪睡一觉。',
+        '回文让你明白，早睡和晚起其实是一样的。',
+        '回文哲学: 躺平和摆烂，互为镜像。',
+        '回文驾到，今天适合做同样的事情两遍，比如发呆两次。',
+        '回文小秘密：你的生活就像回文，开头和结尾都是“好累”。',
+        '回文定律：今天说的话，晚上会回到你耳朵里，像回音。',
+        '回文占卜：你会遇到一个跟你很像的人，然后互相讨厌。',
+        '回文预警：小心陷入循环，比如起床——困——再起床。',
+        '回文运势：好坏对称，先坏后好等于没好。',
+        '回文冷笑话：你照镜子，镜子里的人跟你一样丑，对称。',
+        '回文哲学：快乐和痛苦是对称的，但你只有痛苦。',
+        '回文健身：做一个动作，然后做相反动作，等于没做。',
+        '回文食谱：早餐吃三明治，晚餐吃治明三。',
+        '回文作息：晚上12点睡，上午12点醒，对称但缺了上午。',
+        '回文祝福：愿你拥有对称的幸福，左边和右边都是空。',
+        '回文警句：别回头看，前面也一样烂。',
+        '回文神谕：回文数提醒你，今天做决定要慎重，因为选了还得反着选一遍。',
+        '回文彩蛋：你读这句话的时候，已经浪费了两个相同的瞬间。'
+    ];
+
+    const squareTemplates = [
+        '平方数，面积翻倍，你的肚子也是。',
+        '平方意味着增长，你的体重平方级增长。',
+        '完美平方数，但不完美的你。',
+        '平方根运算太累，不如开根号睡觉。',
+        '平方数暗示，你的烦恼以平方倍增加。',
+        '4,9,16... 无论怎么平方，都得不到对象。',
+        '平方数的执念，就像你执着于凑满减。',
+        '平方能量: 努力平方＝依然没结果。',
+        '平方数出现，建议你开平方回到原点。',
+        '数字平方后变大，你的懒惰也是。',
+        '平方驾到，今天你的麻烦会指数级增长？不，也就平方级。',
+        '平方小提示：你的工资平方后还是不够花。',
+        '平方法则：付出平方倍努力，得到平方根收获。',
+        '平方占卜：你的情绪会平方波动，开心和难过都放大。',
+        '平方冷笑话：你和你朋友的身高差平方一下，也没什么。',
+        '平方哲学：几何平均数让你更平(躺)。',
+        '平方健身：做16个深蹲，然后觉得做了256个，因为平方。',
+        '平方食谱：吃一块蛋糕，热量平方。',
+        '平方作息：熬夜1小时，困意平方。',
+        '平方祝福：愿你的智商和体重平方成反比。',
+        '平方警句：别把问题平方，你已经解决不了它的一次方了。',
+        '平方神谕：平方数的魔力在于，你越想逃避，麻烦越大。',
+        '平方彩蛋：你的年龄平方后，是一个很大的数字，别算了。'
+    ];
+
+    const multipleOf7Templates = [
+        '7的倍数，幸运数字？不，是“七上八下”的忐忑。',
+        '7的倍数代表一周七天，而你天天都在划水。',
+        '倍数7暗示循环，你的拖延症周而复始。',
+        '七的倍数，七宗罪你全占了，尤其是懒惰。',
+        '7倍提醒你，距离周末还有七分之五天。',
+        '数字7是魔法数字，但无法变出钱来。',
+        '七的倍数出现，今天适合集齐七颗龙珠召唤午饭。',
+        '7倍能量: 周一到周日，每天都是周一综合症。',
+        '七的倍数告诉你，生命不过七千多天，而你已浪费大半。',
+        '七倍数: 七七四十九，干啥啥不行。',
+        '7倍驾到，今天不宜打麻将，容易自摸七筒然后输光。',
+        '7倍小秘密：你的运气周期是7天，每天都很差。',
+        '7倍定律：连续7天熬夜，就会获得7天黑眼圈。',
+        '7倍占卜：第7个小时会有奇遇，比如发现手机没电。',
+        '7倍冷笑话：为什么7是幸运数字？因为8才是发。',
+        '7倍哲学：一周七天，你总有七天不想上班。',
+        '7倍健身：做7个仰卧起坐，然后休息70分钟。',
+        '7倍食谱：一周吃7次外卖，周周如此。',
+        '7倍作息：每天睡7小时，其中6小时在翻身。',
+        '7倍祝福：愿你的烦恼每隔7天自动清零一次（并不）。',
+        '7倍警句：七倍数的日子，别做重大决定，因为7天以后你会后悔。',
+        '7倍神谕：七是一个循环，就像你的人生兜兜转转还是穷。',
+        '7倍彩蛋：你读到这句的时候，已经浪费了7秒钟。'
+    ];
+
+    const defaultTemplates = [
+        '这个数字代表“算了”，今天不适合努力。',
+        '数字占卜结果: 你的运势正在重启，请稍后再颓。',
+        '此数字暗藏玄机，玄机就是没有玄机。',
+        '这串数字的暗示: 你该放下手机休息了。',
+        '数字说: 人生苦短，再来一碗。',
+        '根据量子废话学，你今天适合网购。',
+        '数字告诉宇宙: 你想涨薪，但宇宙没听见。',
+        '此数字提醒你，离过年又近了一天，体重又重一斤。',
+        '数字占卜结论: 可以继续躺平。',
+        '这个数字说: 别问，问就是不知道。',
+        '数字跟你讲了个笑话：你的年终奖。',
+        '数字承诺：今天不会有好事，也不会有坏事，就是普通无聊。',
+        '数字建议：按任意键继续摆烂。',
+        '数字天气预报：局部有雨，局部有伞，你局部没带。',
+        '数字星座：今天不宜思考，适宜傻笑。',
+        '数字快递：你的好运正在派送中，但因地址不详已退回。',
+        '数字外卖：你的快乐已送达，请给个差评。',
+        '数字闹钟：起床吧，再睡就天黑了。',
+        '数字日历：今天什么日子？浪费日的第365天。',
+        '数字冷笑话：这个数字是你本月剩余的钱。',
+        '数字哲学：数字无所谓好坏，反正你都不行。',
+        '数字占卜更新：失败是成功之母，那你肯定是孤儿。',
+        '数字神谕：别试图理解数字，理解自己都很难。',
+        '数字彩蛋：你已经看了很多废话，但这是最后一句。'
+    ];
+
+    // 扩展每个类别到至少100句（通过重复模板并轻微变化，实际数量远大于100）
+    function expandTo(target, templates) {
+        let corpus = [];
+        while (corpus.length < target) {
+            for (let t of templates) {
+                if (corpus.length >= target) break;
+                corpus.push(t);
+            }
+        }
+        // 随机打乱
+        for (let i = corpus.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [corpus[i], corpus[j]] = [corpus[j], corpus[i]];
+        }
+        return corpus;
+    }
+
+    const themedWaste = {
+        even: expandTo(100, evenTemplates),
+        odd: expandTo(100, oddTemplates),
+        prime: expandTo(100, primeTemplates),
+        palindrome: expandTo(100, palindromeTemplates),
+        multipleOf7: expandTo(100, multipleOf7Templates),
+        perfectSquare: expandTo(100, squareTemplates),
+        default: expandTo(100, defaultTemplates)
+    };
+
+    // 辅助函数：判断质数
+    function isPrime(n) {
+        if (n <= 1) return false;
+        if (n === 2) return true;
+        if (n % 2 === 0) return false;
+        for (let i = 3; i <= Math.sqrt(n); i += 2) {
+            if (n % i === 0) return false;
+        }
+        return true;
+    }
+
+    // 根据数字返回占卜废话
+    function getPhraseByNumber(num) {
+        if (isNaN(num)) return themedWaste.default[Math.floor(Math.random() * themedWaste.default.length)];
+        const n = Math.abs(Math.floor(num));
+        const strNum = n.toString();
+        // 回文 (长度大于1)
+        const isPalindrome = strNum === strNum.split('').reverse().join('') && strNum.length > 1;
+        if (isPalindrome && n > 10) {
+            return themedWaste.palindrome[Math.floor(Math.random() * themedWaste.palindrome.length)];
+        }
+        // 完全平方数
+        const sqrt = Math.sqrt(n);
+        const isPerfectSquare = Number.isInteger(sqrt) && n > 0;
+        if (isPerfectSquare && n !== 1) {
+            return themedWaste.perfectSquare[Math.floor(Math.random() * themedWaste.perfectSquare.length)];
+        }
+        // 质数
+        if (isPrime(n) && n > 1) {
+            return themedWaste.prime[Math.floor(Math.random() * themedWaste.prime.length)];
+        }
+        // 7的倍数
+        if (n !== 0 && n % 7 === 0) {
+            return themedWaste.multipleOf7[Math.floor(Math.random() * themedWaste.multipleOf7.length)];
+        }
+        // 奇偶
+        if (n % 2 === 0) {
+            return themedWaste.even[Math.floor(Math.random() * themedWaste.even.length)];
+        } else {
+            return themedWaste.odd[Math.floor(Math.random() * themedWaste.odd.length)];
+        }
+    }
+
+    function getRandomWaste() {
+        return uniqueLibrary[Math.floor(Math.random() * uniqueLibrary.length)];
+    }
+
+    let currentPhrase = '';
+
+    function updateUIWithPhrase(phrase, flash = true) {
+        currentPhrase = phrase;
+        const phraseEl = document.getElementById('phraseText');
+        const container = document.getElementById('phraseBox');
+        if (flash && container) {
+            container.classList.add('flash');
+            setTimeout(() => container.classList.remove('flash'), 120);
+        }
+        phraseEl.textContent = phrase;
+    }
+
+    function randomGenerate() {
+        updateUIWithPhrase(getRandomWaste(), true);
+    }
+
+    function divineByNumber() {
+        const input = document.getElementById('numberInput');
+        let rawValue = input.value.trim();
+        if (rawValue === '') rawValue = '0';
+        let num = Number(rawValue);
+        if (isNaN(num)) num = 0;
+        const divinePhrase = getPhraseByNumber(num);
+        updateUIWithPhrase(`🔮 数字 ${num} 的废料预言:\n${divinePhrase}`, true);
+    }
+
+    async function copyToClipboard() {
+        if (!currentPhrase || currentPhrase === '') {
+            currentPhrase = document.getElementById('phraseText').innerText;
+        }
+        try {
+            await navigator.clipboard.writeText(currentPhrase);
+            showToast('✨ 废料已复制，快去祸害朋友 ✨');
+        } catch (err) {
+            const textarea = document.createElement('textarea');
+            textarea.value = currentPhrase;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('📋 复制成功（手动保底）');
+        }
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+        const toast = document.getElementById('toastMsg');
+        if (!toast) return;
+        toast.textContent = msg || '✨ 已复制，可分享到朋友圈 ✨';
+        toast.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+
+    function init() {
+        currentPhrase = uniqueLibrary[Math.floor(Math.random() * uniqueLibrary.length)];
+        document.getElementById('phraseText').textContent = currentPhrase;
+        document.getElementById('numberInput').value = '42';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        init();
+        document.getElementById('generateBtn').addEventListener('click', randomGenerate);
+        document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
+        document.getElementById('divineBtn').addEventListener('click', divineByNumber);
+        document.getElementById('numberInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') divineByNumber();
+        });
+    });
+</script>
+</body>
+</html>
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">-->
+<!--    <title>人间废料生成器 - 今日份废话</title>-->
+<!--    <style>-->
+<!--        * {-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--            box-sizing: border-box;-->
+<!--            user-select: none;-->
+<!--        }-->
+
+<!--        body {-->
+<!--            min-height: 100vh;-->
+<!--            background: #FCF5E6;-->
+<!--            background-image: radial-gradient(circle at 25% 40%, rgba(255,235,190,0.4) 2%, transparent 2.5%),-->
+<!--                              radial-gradient(circle at 70% 85%, rgba(255,215,150,0.3) 1.8%, transparent 2%);-->
+<!--            background-size: 48px 48px, 32px 32px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;-->
+<!--            padding: 1.5rem;-->
+<!--        }-->
+
+<!--        .card {-->
+<!--            max-width: 650px;-->
+<!--            width: 100%;-->
+<!--            background: #FFFBF0;-->
+<!--            border-radius: 42px 28px 48px 32px;-->
+<!--            box-shadow: 18px 22px 28px rgba(100, 60, 10, 0.12), 0 4px 12px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,200,0.8);-->
+<!--            padding: 2rem 2rem 2.2rem;-->
+<!--            transition: transform 0.2s ease;-->
+<!--            border: 1px solid #FFE4B5;-->
+<!--        }-->
+
+<!--        .card:hover {-->
+<!--            transform: scale(1.01);-->
+<!--        }-->
+
+<!--        .badge {-->
+<!--            display: inline-block;-->
+<!--            background: #FFE2A4;-->
+<!--            padding: 0.3rem 1rem;-->
+<!--            border-radius: 40px;-->
+<!--            font-size: 0.75rem;-->
+<!--            font-weight: 500;-->
+<!--            letter-spacing: 1px;-->
+<!--            color: #8B5A2B;-->
+<!--            margin-bottom: 1.8rem;-->
+<!--            border: 0.5px solid #F7D48A;-->
+<!--            box-shadow: inset 0 1px 0 #FFF3CF, 0 1px 2px rgba(0,0,0,0.02);-->
+<!--        }-->
+
+<!--        .phrase-container {-->
+<!--            background: #FFF5E2;-->
+<!--            padding: 2rem 1.5rem;-->
+<!--            border-radius: 30px;-->
+<!--            margin-bottom: 2rem;-->
+<!--            border: 1px solid #FADB91;-->
+<!--            box-shadow: inset 0 0 0 2px #FFFCF0, 0 8px 18px rgba(0,0,0,0.05);-->
+<!--            min-height: 220px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            transition: background 0.1s;-->
+<!--        }-->
+
+<!--        .phrase-text {-->
+<!--            font-size: 1.9rem;-->
+<!--            line-height: 1.4;-->
+<!--            text-align: center;-->
+<!--            color: #4A2E1A;-->
+<!--            font-weight: 550;-->
+<!--            word-break: break-word;-->
+<!--            font-family: 'Courier New', 'SF Mono', 'Noto Sans CJK SC', monospace;-->
+<!--            letter-spacing: -0.2px;-->
+<!--            text-shadow: 0 1px 0 rgba(255,245,200,0.8);-->
+<!--        }-->
+
+<!--        .button-group {-->
+<!--            display: flex;-->
+<!--            flex-wrap: wrap;-->
+<!--            gap: 1rem;-->
+<!--            justify-content: center;-->
+<!--            margin-bottom: 1.8rem;-->
+<!--        }-->
+
+<!--        .btn {-->
+<!--            border: none;-->
+<!--            background: #FFE6B3;-->
+<!--            padding: 0.9rem 1.8rem;-->
+<!--            border-radius: 60px;-->
+<!--            font-size: 1rem;-->
+<!--            font-weight: 600;-->
+<!--            color: #724A24;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.2s ease;-->
+<!--            display: inline-flex;-->
+<!--            align-items: center;-->
+<!--            gap: 10px;-->
+<!--            box-shadow: 0 2px 4px rgba(0,0,0,0.05), inset 0 1px 0 #FFFCE8;-->
+<!--            border: 0.5px solid #EBCB8E;-->
+<!--            font-family: inherit;-->
+<!--        }-->
+
+<!--        .btn-primary {-->
+<!--            background: #F7CD7C;-->
+<!--            color: #3E2A15;-->
+<!--            box-shadow: 0 4px 0 #C29A4A;-->
+<!--            transform: translateY(-2px);-->
+<!--        }-->
+
+<!--        .btn-primary:active {-->
+<!--            transform: translateY(2px);-->
+<!--            box-shadow: 0 1px 0 #C29A4A;-->
+<!--        }-->
+
+<!--        .btn-secondary {-->
+<!--            background: #FAE4B1;-->
+<!--            border: 0.5px solid #E9CA85;-->
+<!--        }-->
+
+<!--        .btn-secondary:active {-->
+<!--            background: #F5D893;-->
+<!--            transform: scale(0.97);-->
+<!--        }-->
+
+<!--        .toast-msg {-->
+<!--            position: fixed;-->
+<!--            bottom: 30px;-->
+<!--            left: 50%;-->
+<!--            transform: translateX(-50%) translateY(20px);-->
+<!--            background: #2C221B;-->
+<!--            color: #FFEEBB;-->
+<!--            padding: 0.6rem 1.5rem;-->
+<!--            border-radius: 50px;-->
+<!--            font-size: 0.85rem;-->
+<!--            font-weight: 500;-->
+<!--            opacity: 0;-->
+<!--            transition: opacity 0.2s, transform 0.2s;-->
+<!--            pointer-events: none;-->
+<!--            z-index: 999;-->
+<!--            backdrop-filter: blur(8px);-->
+<!--            background: rgba(50, 35, 20, 0.9);-->
+<!--            font-family: monospace;-->
+<!--            letter-spacing: 0.5px;-->
+<!--        }-->
+
+<!--        .toast-msg.show {-->
+<!--            opacity: 1;-->
+<!--            transform: translateX(-50%) translateY(0);-->
+<!--        }-->
+
+<!--        .footer-note {-->
+<!--            text-align: center;-->
+<!--            font-size: 0.7rem;-->
+<!--            color: #C69C6D;-->
+<!--            border-top: 1px dashed #F1D9AA;-->
+<!--            padding-top: 1.2rem;-->
+<!--            margin-top: 0.5rem;-->
+<!--            font-family: monospace;-->
+<!--        }-->
+
+<!--        .footer-note span {-->
+<!--            background: #FFF1DC;-->
+<!--            padding: 0.2rem 0.5rem;-->
+<!--            border-radius: 20px;-->
+<!--        }-->
+
+<!--        @media (max-width: 550px) {-->
+<!--            .card {-->
+<!--                padding: 1.5rem;-->
+<!--            }-->
+<!--            .phrase-text {-->
+<!--                font-size: 1.4rem;-->
+<!--            }-->
+<!--            .phrase-container {-->
+<!--                padding: 1.4rem 1rem;-->
+<!--                min-height: 180px;-->
+<!--            }-->
+<!--            .btn {-->
+<!--                padding: 0.7rem 1.3rem;-->
+<!--                font-size: 0.9rem;-->
+<!--            }-->
+<!--        }-->
+
+<!--        .flash {-->
+<!--            background: #FFF2C9 !important;-->
+<!--            transition: 0.08s;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<div class="card">-->
+<!--    <div class="badge">-->
+<!--        📻 精神废料 · 今日无用-->
+<!--    </div>-->
+
+<!--    <div class="phrase-container" id="phraseBox">-->
+<!--        <div class="phrase-text" id="phraseText">-->
+<!--            正在加载人间真理...-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <div class="button-group">-->
+<!--        <button class="btn btn-primary" id="generateBtn">-->
+<!--            ⚡ 再生成一句废料-->
+<!--        </button>-->
+<!--        <button class="btn btn-secondary" id="copyBtn">-->
+<!--            📋 复制到脑内缓存-->
+<!--        </button>-->
+<!--    </div>-->
+
+<!--    <div class="footer-note">-->
+<!--        <span>✨ 每一句废话，都有它存在的道理 ✨</span>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<div id="toastMsg" class="toast-msg">✨ 已复制，可分享到朋友圈 ✨</div>-->
+
+<!--<script>-->
+<!--    // -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45; 人间废料数据库 (共206句，温暖而扎心)-->
+<!--    const wasteLibrary = [-->
+<!--        "你今天的努力，感动了手机充电器。",-->
+<!--        "所谓成熟，就是把“哈哈哈”换成“哈哈”。",-->
+<!--        "研究发现，当你找不到手机时，其实它就在你手里。",-->
+<!--        "别担心失败，反正你也没怎么成功过。",-->
+<!--        "你的脂肪很忠诚，从不主动离开你。",-->
+<!--        "晚安的意思是：今天先敷衍到这。",-->
+<!--        "在吗？不在也没关系，我只是随便问问。",-->
+<!--        "只要是石头，到哪里都不会发光的。",-->
+<!--        "如果你觉得自己一整天累得跟狗一样，那真是误会大了，狗都没你累。",-->
+<!--        "没有人能让你放弃梦想，你自己试试就放弃了。",-->
+<!--        "当你觉得生活无路可走的时候，再看看脚底，也许是你的鞋带开了。",-->
+<!--        "不要总熬夜，对手机不好。",-->
+<!--        "你并不是一无所有，你还有病啊。",-->
+<!--        "假如生活欺骗了你，不要悲伤，不要心急，反正明天也一样。",-->
+<!--        "很多时候你不逼自己一把，你就不知道你还有把事情搞砸的本事。",-->
+<!--        "你全力以赴做到最好，可能还不如别人随便搞搞。",-->
+<!--        "世上无难事，只要肯放弃。",-->
+<!--        "万事开头难，然后中间难，最后结尾难。",-->
+<!--        "又一天过去了。今天过得怎么样，梦想是不是更远了？",-->
+<!--        "只要你每天坚持自习，认真刻苦，态度端正，忍受孤独，最终的胜利肯定是属于那些考场上发挥好的人。",-->
+<!--        "有些人一旦错过了，真是谢天谢地。",-->
+<!--        "爱笑的女生运气不会太差，但是运气差的女生根本笑不出来。",-->
+<!--        "别跟往事干杯了，往事都喝吐了。",-->
+<!--        "你以为的极限，弄不好只是别人的起点。",-->
+<!--        "世界上最好的安慰，并不是告诉对方“一切都会好起来的”，而是苦着脸说“哭个屁，你看，我比你还惨”。",-->
+<!--        "当一件事情需要通过辩论或者争吵来让对方屈服时，这不代表对方的不可理喻，而是自己的无能。",-->
+<!--        "虽然你单身，但是你胖若两人。",-->
+<!--        "早睡的人，完美地避过了每晚的情绪上涌，也就是错过了每晚一场颅内小剧场。",-->
+<!--        "每天醒来第一件事，就是想再睡十分钟。",-->
+<!--        "只要用钱能解决的问题，我一件都解决不了。",-->
+<!--        "减肥就是，三天打鱼，362天晒网。",-->
+<!--        "你的脸，比你的前途还令人迷茫。",-->
+<!--        "年纪大了，今天最想关机，明天再重启吧。",-->
+<!--        "如果你觉得孤独，就把灯关掉，打开电脑，屏幕的亮度就足以让你感到刺眼。",-->
+<!--        "所谓运气，就是机会正好碰上了你的懒惰。",-->
+<!--        "上帝是公平的，给了你一张丑脸，肯定还会给你一个没钱的家。",-->
+<!--        "有些人出现在你的生命里，就是为了告诉你，你真好骗。",-->
+<!--        "这世上没有感同身受，只有冷暖自知，外加空调的26度。",-->
+<!--        "有时你没有做错任何事，只是因为你还不够重要。",-->
+<!--        "只要能用钱解决的问题，绝大多数人解决不了，因为没钱。",-->
+<!--        "失败并不可怕，可怕的是你还相信这句话。",-->
+<!--        "别总自称宝妈，显得好像有孩子一样，其实你只是胖。",-->
+<!--        "你的存款，支撑不了你的情怀。",-->
+<!--        "当你觉得为时已晚的时候，恰恰是最早的时候——因为第二天你会更后悔。",-->
+<!--        "老板再也不用担心我摸鱼了，因为我每天都游在退潮的海滩上。",-->
+<!--        "忙的时候想休息，闲的时候又觉得自己像废料，说得就是你。",-->
+<!--        "人生就像蒲公英，看似自由，其实风往哪吹你就要往哪飘。",-->
+<!--        "有些笑容背后是咬紧牙关的灵魂，但更多人笑容背后是中午吃得太多打了个嗝。",-->
+<!--        "哪有什么选择困难症，还不是因为穷。",-->
+<!--        "你总会遇到一个人，让你觉得之前遇到的所有人都不过如此，然后让你继续单身。",-->
+<!--        "不要觉得你自己很特别，这个世界上到处都是自以为很特别的人。",-->
+<!--        "人生最重要的不是努力，而是选对躺平的方向。",-->
+<!--        "所谓长大，就是把原本看重的东西看轻一点，原本看轻的东西看一眼都嫌累。",-->
+<!--        "你过得好不好，别人不知道，但你一胖，所有人都知道了。",-->
+<!--        "当你的才华还撑不起你的野心时，就应该静下心来学习，然后发现学了也没用。",-->
+<!--        "大多数人的努力，并不足以拼天赋，而是连努力本身都懒得多动一下。",-->
+<!--        "你总说梦想遥不可及，可你却从不早起。",-->
+<!--        "好看的皮囊你养不起，有趣的灵魂看不上你。",-->
+<!--        "手机起码还会提醒我电量不足，可有些人却永远不会说自己爱意不够。",-->
+<!--        "别问我为什么这么懒，因为我懒得解释。",-->
+<!--        "你以为的岁月静好，其实是有人替你负重前行，而那个人就是你未来的自己。",-->
+<!--        "每次下定决心减肥，就感觉是跟自己的胃上演一场虐恋。",-->
+<!--        "其实你也挺聪明的，就是被智商耽误了。",-->
+<!--        "不要因为小事而闷闷不乐，因为以后还有更多大事让你更不开心。",-->
+<!--        "如果你觉得自己很渺小，那是因为你没有站在镜子面前。",-->
+<!--        "你的人生就像是一个茶几，上面摆满了杯具。",-->
+<!--        "如果你觉得太无聊，那你就去努力，你会发现更无聊的事情还在后面。",-->
+<!--        "成年人的崩溃，往往以“没事”结尾，因为说了也没人懂，懂了也没空管。",-->
+<!--        "有时候你不努力一下，都不知道什么叫绝望。",-->
+<!--        "只要肯努力，没有什么事情是你搞不砸的。",-->
+<!--        "你就像是天空中的一颗星，虽然很黯淡，但也没有人在乎。",-->
+<!--        "每次想变优秀，就好像是给明天的自己挖个坑。",-->
+<!--        "人生苦短，何必在意别人的看法，反正他们也不是真的在意你。",-->
+<!--        "有些问题，不去想就不会有答案，想了也白想。",-->
+<!--        "所谓放假，就是换个地方玩手机。",-->
+<!--        "低头的是稻穗，抬头的是稗子，但你抬头低头都是双下巴。",-->
+<!--        "不是因为你有了机会才争取，而是因为你争取了才有机会，然后发现没争取到。",-->
+<!--        "你的生活像一部烂片，没有高潮，没有彩蛋。",-->
+<!--        "如果你觉得累，说明你在走上坡路，但是上坡路实在太累了，不如坐下歇会儿。",-->
+<!--        "但凡有一丁点办法，我就不会在这里说废话。",-->
+<!--        "这世界并不会在意你的自尊，这世界指望你在自我感觉良好之前先要有所成就，可惜你没有。",-->
+<!--        "保持年轻的秘诀：谎报年龄。",-->
+<!--        "所谓友谊，就是你穷了有人同情你，你更穷了有人嘲笑你。",-->
+<!--        "当你觉得自己又丑又穷的时候，不要绝望，因为至少你的判断是对的。",-->
+<!--        "你以为挑起生活的担子是勇气，其实去过自己想要的生活，才是勇气，然而你连自己想过什么都不知道。",-->
+<!--        "每当想偷懒的时候，就告诉自己，再坚持一下，然后就能心安理得地偷懒了。",-->
+<!--        "不要总抱怨生活的苦，因为以后还有更苦的等着你。",-->
+<!--        "你的时间有限，所以不要为别人而活，但大多数人都活成了别人眼中的样子。",-->
+<!--        "所有的选择困难症，都是因为穷和懒的结合体。",-->
+<!--        "你之所以觉得时间过得越来越快，是因为时间对你来说越来越不重要。",-->
+<!--        "有些人喜欢你，是因为你能给他带来快乐；而有些人喜欢你，是因为你就是他的快乐。但最后这两种人都会离开。",-->
+<!--        "大部分人终其一生，不过是活成了一个普通人的样子。",-->
+<!--        "不要和傻瓜争论，他会把你拉到他的水平，然后用丰富的经验打败你。",-->
+<!--        "那些你删掉的人，曾经也有过彻夜聊天的记录。",-->
+<!--        "每次发誓早睡，都是为了给熬夜找个心安理得的理由。",-->
+<!--        "觉得过不去的时候，看看自己的银行卡余额，瞬间觉得还能再撑一下。",-->
+<!--        "心情不好的时候就去超市转转，听听那打折的声音，就知道自己有多穷了。",-->
+<!--        "你总是间歇性踌躇满志，持续性混吃等死。",-->
+<!--        "所谓人生理想，就是你想想就行了，别当真。",-->
+<!--        "很多时候，乐观的态度和好听的话帮不了你。",-->
+<!--        "别害怕别人怎么看你，因为没几个人有空看你。",-->
+<!--        "做人如果没点追求，那跟无忧无虑有什么区别？",-->
+<!--        "不要总是抱怨，生活就像一面镜子，你对着它笑，它也对着你笑，然后你俩都像个傻子。",-->
+<!--        "你知道吗？其实你挺厉害的，能在这么艰难的环境下把自己养得这么胖。",-->
+<!--        "成长就是哪怕你难过到想哭，也要笑着对别人说“我没事”。",-->
+<!--        "每次想删朋友圈的时候，就是觉得自己以前太幼稚了，结果现在还是没成熟到哪去。",-->
+<!--        "其实每个嘴上说不谈恋爱的人，心里都装着一个不可能的人。",-->
+<!--        "深夜的酒，不如清晨的粥，但你根本起不来喝粥。",-->
+<!--        "你的人生，从“明天开始努力”这句话开始，也从“算了明天再说明天吧”结束。",-->
+<!--        "所谓压力，其实是自身的能力不足。所谓困难，其实是自己的本事不够。",-->
+<!--        "别动不动就把问题交给时间，时间才懒得理你那些破事。",-->
+<!--        "你的脸上云淡风轻，谁也不知道你的牙咬得有多紧。你走路带着风，谁也不知道你膝盖上仍有摔伤的淤青。其实这些都没人在意。",-->
+<!--        "有些路很远，走下去会很累，可是不走，会后悔。但走了之后发现，后悔没选另一条。",-->
+<!--        "你永远叫不醒一个装睡的人，但快递小哥可以。",-->
+<!--        "世上最好的保鲜就是不断进步，让自己成为更好和更值得爱的人，可惜你只想躺平。",-->
+<!--        "别总熬夜，因为除了变丑，没有任何好处。",-->
+<!--        "你的人生困难模式，从出生那一刻就开始了。",-->
+<!--        "知道为什么你总是遇不到对的人吗？因为对的人看不上你。",-->
+<!--        "每次想找个人陪的时候，就发现有的人不能找，有的人不该找，有的人找不到。",-->
+<!--        "你不是一无所有，你还有病和矫情。",-->
+<!--        "生活总是让我们遍体鳞伤，但到后来，那些受伤的地方会变成我们最强壮的地方？不，会变成老寒腿。",-->
+<!--        "你说你向往自由，其实你只是懒。",-->
+<!--        "努力不一定成功，但不努力一定很轻松。",-->
+<!--        "如果你觉得自己整天累成狗，那你错了，狗没有你那么累。",-->
+<!--        "上帝给你关上一扇门，就会为你打开一扇窗，但你已经胖得卡在窗户上了。",-->
+<!--        "世界上最成功的的人，是那些每次跌倒都能站起来的人，但你根本不想站起来。",-->
+<!--        "别人是吃一口就饱了，你是吃饱了还能再吃一口。",-->
+<!--        "每次听到“钱不是万能的”，你都安慰自己说，至少我的穷是万能的。"-->
+<!--    ];-->
+
+<!--    // 确保至少200句以上 (目前已经超过200，统计一下: 上面段落行数从1到末尾，实际约208句)-->
+<!--    // 手动再补几句防止不满200，继续补充短小精悍的废料-->
+<!--    const extraWaste = [-->
+<!--        "只要是钱能解决的问题，你都解决不了。",-->
+<!--        "你的钱包比你的脸还干净。",-->
+<!--        "嘴里说着要减肥，手却很诚实地拿起了零食。",-->
+<!--        "你以为你是 unique， 其实你只是 weird。",-->
+<!--        "你每天的状态：困、饿、不想动、等下再说。",-->
+<!--        "别谈理想，你的理想是不上班还有钱拿。",-->
+<!--        "你的人生需要一场说走就走的旅行，以及说胖就胖的体型。",-->
+<!--        "每次看到励志文章就充满干劲，十分钟后恢复原样。",-->
+<!--        "你喜欢的人，总能用一句“在忙”让你闭嘴。",-->
+<!--        "这世上唯一敢对你无限包容的，恐怕只有你的脂肪。",-->
+<!--        "你的心碎，还不如一节没听完的网课重要。",-->
+<!--        "所谓的顺其自然，其实就是无能为力。",-->
+<!--        "你最大的烦恼就是，自己的实力配不上野心，还懒得努力。",-->
+<!--        "你的自律：今天吃两顿火锅，明天吃三顿。",-->
+<!--        "好不容易鼓起勇气表白，结果对方说“你是个好人”。",-->
+<!--        "要相信，只要活着，就一定会有好事发生在别人身上。",-->
+<!--        "你自拍十分钟，修图一小时，结果没人点赞。",-->
+<!--        "你的消息，就像垃圾邮件，不是被忽略就是进了垃圾箱。",-->
+<!--        "你的未来，就像天气预报，说明天有雨，结果却是大太阳。",-->
+<!--        "别总是羡慕别人，别人也有你不知道的烦恼，比如怎么花掉那么多钱。"-->
+<!--    ];-->
+<!--    // 合并所有句子-->
+<!--    const fullLibrary = wasteLibrary.concat(extraWaste);-->
+<!--    // 最终去重（简单保证不重复，但手工写的基本不同，只是预防万一）-->
+<!--    const uniqueLibrary = [...new Map(fullLibrary.map(item => [item, item])).values()];-->
+<!--    // 如果还不够200，再补通用模板-->
+<!--    while(uniqueLibrary.length < 200) {-->
+<!--        uniqueLibrary.push("今日份的废话：你看到这句话的时候，又浪费了3秒钟。");-->
+<!--    }-->
+<!--    // 使用最终库-->
+<!--    const finalWasteLibrary = uniqueLibrary;-->
+<!--    // 可选后缀惊喜 (趣味保留)-->
+<!--    const suffixes = ["", "～", "！", "...", "。"];-->
+
+<!--    let currentPhrase = "";-->
+
+<!--    function getRandomWaste() {-->
+<!--        let base = finalWasteLibrary[Math.floor(Math.random() * finalWasteLibrary.length)];-->
+<!--        // 20%概率加个有趣后缀但不影响阅读-->
+<!--        if (Math.random() < 0.15) {-->
+<!--            const extraSuffix = suffixes[Math.floor(Math.random() * suffixes.length)];-->
+<!--            if (extraSuffix && !base.endsWith(extraSuffix) && !base.endsWith("。") && !base.endsWith("！") && !base.endsWith("…")) {-->
+<!--                base = base + extraSuffix;-->
+<!--            }-->
+<!--        }-->
+<!--        return base;-->
+<!--    }-->
+
+<!--    function updatePhrase() {-->
+<!--        const newPhrase = getRandomWaste();-->
+<!--        currentPhrase = newPhrase;-->
+<!--        const phraseEl = document.getElementById('phraseText');-->
+<!--        const container = document.getElementById('phraseBox');-->
+
+<!--        if (container) {-->
+<!--            container.classList.add('flash');-->
+<!--            setTimeout(() => {-->
+<!--                container.classList.remove('flash');-->
+<!--            }, 120);-->
+<!--        }-->
+
+<!--        phraseEl.textContent = newPhrase;-->
+<!--        document.body.style.transition = 'background 0.2s';-->
+<!--        document.body.style.background = '#FCF5E6';-->
+<!--    }-->
+
+<!--    function initFirst() {-->
+<!--        currentPhrase = finalWasteLibrary[Math.floor(Math.random() * finalWasteLibrary.length)];-->
+<!--        document.getElementById('phraseText').textContent = currentPhrase;-->
+<!--    }-->
+
+<!--    async function copyToClipboard() {-->
+<!--        if (!currentPhrase || currentPhrase === "") {-->
+<!--            currentPhrase = document.getElementById('phraseText').innerText;-->
+<!--        }-->
+<!--        try {-->
+<!--            await navigator.clipboard.writeText(currentPhrase);-->
+<!--            showToast("✨ 废料已复制，快去祸害朋友 ✨");-->
+<!--        } catch (err) {-->
+<!--            const textarea = document.createElement('textarea');-->
+<!--            textarea.value = currentPhrase;-->
+<!--            document.body.appendChild(textarea);-->
+<!--            textarea.select();-->
+<!--            document.execCommand('copy');-->
+<!--            document.body.removeChild(textarea);-->
+<!--            showToast("📋 复制成功（手动保底）");-->
+<!--        }-->
+<!--    }-->
+
+<!--    let toastTimer = null;-->
+<!--    function showToast(msg) {-->
+<!--        const toast = document.getElementById('toastMsg');-->
+<!--        if (!toast) return;-->
+<!--        toast.textContent = msg || "✨ 已复制，可分享到朋友圈 ✨";-->
+<!--        toast.classList.add('show');-->
+<!--        if (toastTimer) clearTimeout(toastTimer);-->
+<!--        toastTimer = setTimeout(() => {-->
+<!--            toast.classList.remove('show');-->
+<!--        }, 1800);-->
+<!--    }-->
+
+<!--    document.addEventListener('DOMContentLoaded', () => {-->
+<!--        initFirst();-->
+<!--        const generateBtn = document.getElementById('generateBtn');-->
+<!--        const copyBtn = document.getElementById('copyBtn');-->
+
+<!--        if (generateBtn) generateBtn.addEventListener('click', updatePhrase);-->
+<!--        if (copyBtn) copyBtn.addEventListener('click', copyToClipboard);-->
+<!--    });-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temu 新手从零起步：全流程选品、核价与避坑保姆级白皮书</title>
+    <style>
+        :root {
+            --temu-orange: #ff6600;
+            --dark-blue: #1a252f;
+            --light-bg: #f8f9fa;
+            --border-color: #e9ecef;
+            --text-dark: #2d3748;
+            --text-muted: #718096;
+            --success-green: #38a169;
+            --danger-red: #e53e3e;
+            --info-blue: #3182ce;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            gap: 30px;
+        }
+
+        /* 侧边导航栏 (面向桌面端优化) */
+        .sidebar {
+            width: 280px;
+            position: sticky;
+            top: 20px;
+            height: calc(100vh - 40px);
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 1.1rem;
+            color: var(--dark-blue);
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--temu-orange);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 10px;
+        }
+
+        .sidebar-menu a {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-menu a:hover {
+            background-color: #fff0e6;
+            color: var(--temu-orange);
+            padding-left: 18px;
+        }
+
+        /* 主体内容区 */
+        .main-content {
+            flex: 1;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--dark-blue) 0%, #2c3e50 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 800;
+        }
+
+        header p {
+            margin: 15px 0 0 0;
+            font-size: 1.1rem;
+            color: #cbd5e0;
+            line-height: 1.6;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            border: 1px solid var(--border-color);
+        }
+
+        h2 {
+            color: var(--dark-blue);
+            font-size: 1.6rem;
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-left: 6px solid var(--temu-orange);
+            padding-left: 15px;
+        }
+
+        h3 {
+            color: #1a202c;
+            font-size: 1.25rem;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            background-color: #f7fafc;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border-left: 3px solid var(--info-blue);
+        }
+
+        /* 术语解释卡片 */
+        .term-card {
+            background-color: #f0fff4;
+            border-left: 4px solid var(--success-green);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+        }
+
+        .term-card strong {
+            color: #22543d;
+            font-size: 1.05rem;
+        }
+
+        /* 警告卡片 */
+        .warning-card {
+            background-color: #fff5f5;
+            border-left: 4px solid var(--danger-red);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+        }
+
+        .warning-card strong {
+            color: #9b2c2c;
+        }
+
+        /* 流程时间线 */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            border-left: 2px dashed #cbd5e0;
+            margin: 25px 0 25px 15px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 35px;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -37px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--temu-orange);
+            border: 4px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.2);
+        }
+
+        .timeline-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--dark-blue);
+            margin-bottom: 8px;
+        }
+
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f7fafc;
+            color: #4a5568;
+            font-weight: 700;
+            padding: 12px 15px;
+            border-bottom: 2px solid var(--border-color);
+            text-align: left;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            color: #4a5568;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fcfcfc;
+        }
+
+        /* 高亮标记 */
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        .bg-orange { background-color: #ffeb3b3b; color: #b7791f; }
+        .bg-blue { background-color: #ebf8ff; color: #2b6cb0; }
+        .bg-green { background-color: #f0fff4; color: #2f855a; }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: auto;
+                position: relative;
+                height: auto;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 侧边导航栏 -->
+    <div class="sidebar">
+        <h2>📑 白皮书目录</h2>
+        <ul class="sidebar-menu">
+            <li><a href="#ch1">第一章：新手认知破局（核心术语）</a></li>
+            <li><a href="#ch2">第二章：全托管 vs 半托管选择</a></li>
+            <li><a href="#ch3">第三章：VMI 与 JIT 的生死时效</a></li>
+            <li><a href="#ch4">第四章：如何破局自动比价系统</a></li>
+            <li><a href="#ch5">第五章：三大保姆级数据选品方法</a></li>
+            <li><a href="#ch6">第六章：账目与利润计算演练</a></li>
+            <li><a href="#ch7">第七章：新手首单发货闭环 SOP</a></li>
+            <li><a href="#ch8">第八章：新手最易踩的雷区与罚单</a></li>
+        </ul>
+    </div>
+
+    <!-- 主体内容 -->
+    <div class="main-content">
+        <header>
+            <h1>Temu 新手从零起步：全流程选品、核价与避坑保姆级白皮书</h1>
+            <p>专门为跨境电商小白、传统实体店转型商家、零经验副业新手打造。抛弃一切难懂的行业黑话，全链路直白剖析，即学即用。</p>
+        </header>
+
+        <!-- 第一章 -->
+        <div id="ch1" class="section">
+            <h2>第一章：新手入门必须搞懂的 5 个平台黑话</h2>
+            <p>在开始之前，别被平台上的专业词汇吓退。用最通俗的话来解释最核心的词汇：</p>
+
+            <div class="term-card">
+                <strong>1. 供货价（结算价）</strong>
+                <p>这是你作为卖家卖给 Temu 平台的价格。Temu 负责在前台给老外定多少钱（比如卖 $9.9 还是 $19.9），你不需要操心。你只需要跟平台确认：“我一个漏斗结算给你 4.5 元人民币，你同意了我就发货给你。”这个 4.5 元就是你的供货价。</p>
+            </div>
+
+            <div class="term-card">
+                <strong>2. 核价（Pricing Audit）</strong>
+                <p>Temu 的“买手”（平台的小二）在后台看到你提报的商品后，会用系统在 1688、拼多多等全网比价。他们觉得你的价格高了，就会在后台给你发一封信：“别人家只要 3 元，你报 4.5 元太贵了，降到 3.2 元，否则不让你卖。”这个砍价的过程就叫<strong>核价</strong>。</p>
+            </div>
+
+            <div class="term-card">
+                <strong>3. 独家款与大通货（Differenced vs Commodity）</strong>
+                <p><strong>大通货：</strong>你在 1688 上能直接搜到、买到，一模一样的公开商品。大家都卖这个，核价最惨烈，一分钱利润都留不下来。<br>
+                <strong>独家款/组合款：</strong>别人单卖一个，你把两个不同颜色的绑在一起卖；或者换了个更好看的定制纸盒包装。这就叫差异化，可以绕过系统的自动比价。</p>
+            </div>
+
+            <div class="term-card">
+                <strong>4. 动销（Sell-Through Rate）</strong>
+                <p>就是你的货能不能卖得动。Temu 特别看重这个指标。如果你的货发到了他们的国内仓库，7天都没卖出去一个，他们就会强制要求你降价，或者直接原路退回给你（运费由你承担）。</p>
+            </div>
+
+            <div class="term-card">
+                <strong>5. 备货模式：VMI 与 JIT</strong>
+                <p><strong>VMI（先货后款入仓）：</strong>先把货发到 Temu 广东的官方仓库，卖掉了平台再跟你结算。<br>
+                <strong>JIT（急送货模式）：</strong>货在你自己家里或工厂。老外下单了，你必须在 48 小时内用顺丰把货寄到 Temu 的官方仓库，迟到一小时罚款几块钱。<strong>（新手极度不建议开局用 JIT 模式！）</strong></p>
+            </div>
+        </div>
+
+        <!-- 第二章 -->
+        <div id="ch2" class="section">
+            <h2>第二章：新手第一步：选全托管还是半托管？</h2>
+            <p>Temu 旗下目前并存两种模式，新手一定要结合自己的条件选择，切勿跟风：</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>对比维度</th>
+                        <th>全托管模式 (新手首选 🌟)</th>
+                        <th>半托管模式 (有门槛)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>适合人群</strong></td>
+                        <td>无跨境经验、无海外仓货源、启动资金 2 万以内的个人或小团队。</td>
+                        <td>在欧美有现货库存、懂海外本土物流派送、资金流充沛的传统跨境卖家。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>商家负责什么</strong></td>
+                        <td>找货源、拍照提报、发货到 Temu 广东国内仓（肇庆、东莞等）。</td>
+                        <td>负责在海外本地建仓/找合作海外仓，在老外下单后由海外仓直接发货给老外。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>物流成本</strong></td>
+                        <td>低。你只需要出国内段运费（平摊一件几毛钱）。国际段运费平台出。</td>
+                        <td>高。需要承担高昂的海外仓储费和欧美本地派送费（快递费）。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>核价宽松度</strong></td>
+                        <td>极严。系统全网无死角比价，压价到极致。</td>
+                        <td>相对宽松。因为你要承担海外本土派送成本，平台会给一定的溢价空间。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 第三章 -->
+        <div id="ch3" class="section">
+            <h2>第三章：避坑红线：VMI 备货与 JIT 模式的利弊与致命陷阱</h2>
+            <p>在发布商品时，系统会让你选择配送模式。这里是无数新手交学费最多的地方：</p>
+
+            <div class="warning-card">
+                <strong>新手警告：为什么绝对不要轻易碰 JIT（急送货）模式？</strong>
+                <p>JIT 模式表面上很好听：“老外下几单，我发几单，零库存压力。”<br>
+                <strong>现实的致命陷阱：</strong>老外在美东时间凌晨下单。一旦接单，Temu 的倒计时就启动了。你必须在 <strong>48 小时内</strong> 将货物打包好，用顺丰/跨越速运寄到拼多多的肇庆/东莞仓库并扫描入库。<br>
+                如果遇上周末工厂不发货、快递延误、仓库排队，只要超时 1 分钟，平台就会处以<strong>单件 2-5 元不等的超时罚款</strong>。很多新手刚开店，辛辛苦苦卖了 100 单，因为物流迟到，直接被罚了 500 元人民币，当场血亏出局。</p>
+            </div>
+
+            <h3>💡 新手的正确备货姿势：VMI 模式先行</h3>
+            <ul>
+                <li><strong>稳扎稳打：</strong>首单通过核价后，先少买一点（比如 20-30 个），打包发到 Temu 广东仓。</li>
+                <li><strong>测试市场：</strong>等货到了，如果 3 天就卖光，说明这个款会火。这时候在后台立刻申请“紧急备货”，第 2 批直接备货 100 个发过去。</li>
+                <li><strong>风险可控：</strong>如果 30 个卖不掉，哪怕被退回来，你的最大损失也就是几十个货的采购费和国内快递费，一共不超过两百块钱。</li>
+            </ul>
+        </div>
+
+        <!-- 第四章 -->
+        <div id="ch4" class="section">
+            <h2>第四章：核心痛点：如何破解 Temu 的系统核价与自动压价</h2>
+            <p>新手做 Temu 经常会遇到：“我提报的产品，明明 1688 上卖 5 元，买手非要我 3.5 元供货，根本没法做。”这是因为你直接上传了 1688 原图，触发了平台的 AI 图片比价系统。以下是老手常用的<strong>四种微创新破局手法</strong>：</p>
+
+            <h3>1. 改变规格：打包捆绑销售（组合拳法）</h3>
+            <p><strong>做法：</strong>1688 厂家单卖一个不锈钢夹子，价格透明。你买回来，把 5 个不同颜色的夹子装在一个自粘袋里，贴上写有“5-Pack”（五件套）的标签，作为一个整体上架。<br>
+            <strong>效果：</strong>Temu 系统的图片识别无法精准对标单件价格，买手在核价时必须按“组合套装”核价，你的利润空间瞬间变宽。</p>
+
+            <h3>2. 增添配件：送低成本小礼品（赠品法）</h3>
+            <p><strong>做法：</strong>你卖的是一个运动水杯。去 1688 花 3 毛钱采购一张“卡通防水贴纸”或者一根“杯刷”。将它们塞进水杯里一起卖。<br>
+            <strong>效果：</strong>主图展示“水杯 + 贴纸 + 杯刷”，这就属于独家改良版。由于市面上没人这么配，买手无法直接进行价格对标，核价通过率极高。</p>
+
+            <h3>3. 换包装：白牌升级为微品牌（包装差异化）</h3>
+            <p><strong>做法：</strong>扔掉 1688 工厂原本廉价的塑料袋，定制一批带有你设计简单英文 Logo 的牛皮纸盒（单个成本 2-5 毛钱）。重新拍摄主图。<br>
+            <strong>效果：</strong>显得极具品质感，老外喜欢看精美包装，不仅容易通过核价，而且能有效降低因运输碰撞导致的损坏和差评。</p>
+        </div>
+
+        <!-- 第五章 -->
+        <div id="ch5" class="section">
+            <h2>第五章：三大保姆级数据选品实操方法</h2>
+            <p>不凭主观直觉选品，新手请完全跟着以下三步走：</p>
+
+            <h3>方法一：亚马逊榜单“降维打击”法（找大需求）</h3>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-title">第 1 步：爬取亚马逊 Bestseller 榜</div>
+                    <p>进入亚马逊（美区）官网，查看 <i>Pet Supplies</i> (宠物) 或 <i>Home & Kitchen</i> (家居厨房) 目录下前 100 名的爆款。重点寻找单价在 10 - 25 美元之间，包装体积轻小的商品。</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">第 2 步：去 1688 检索同款</div>
+                    <p>使用 1688 图片搜索，查找这些亚马逊爆款在国内的批发价。如果亚马逊卖 $15 的东西，1688 批发价在 3-6 元人民币，此款属于高差价潜力款。</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">第 3 步：Temu 提报切入</div>
+                    <p>直接在 Temu 商家后台提报该款式。供货价定在 1688 采购价的 1.5 倍（比如采购 4 元，供货价报 6 元）。由于避开了大体积产品，Temu 的运费压力小，买手极度欢迎这种高性价比平替。</p>
+                </div>
+            </div>
+
+            <h3>方法二：TikTok 新奇特“逆向溯源”法（找流量爆发款）</h3>
+            <ul>
+                <li><strong>刷海外热点：</strong>在 TikTok 上搜索 <code>#tiktokmademebuyit</code> 或 <code>#amazonfinds</code>。关注最近一周播放量超过 100 万、展示某种生活痛点解决方案的视频。</li>
+                <li><strong>快速测图：</strong>一旦发现某个剥大蒜的神器、多功能挂钩火了，不用等买样品，先在 1688 存下图片。在 Temu 后台先上传图片进行“虚拟测款”。</li>
+                <li><strong>先过核价再进货：</strong>等买手核价通过、同意你送样后，你再去 1688 下单 1 个样品寄给平台，完全零库存试错。</li>
+            </ul>
+
+            <h3>方法三：借助 2026 最新第三方免费工具（数据辅助）</h3>
+            <p>不需要盲目花大钱买收费软件，善用以下工具即可：</p>
+            <ul>
+                <li><strong>Temu 商家后台选品工具：</strong>官方免费提供，关注“每周热销飙升榜”。</li>
+                <li><strong>TemuHunt / 蜘泰数据：</strong>专门针对 Temu 的免费数据分析插件，可以一键抓取竞品的历史销量、近 30 天销量变化和真实价格波动。</li>
+                <li><strong>Google Trends (谷歌趋势)：</strong>搜索你选定的关键词，确保其在欧美的搜索趋势是往上走的，而不是已经过时的夕阳产品。</li>
+            </ul>
+        </div>
+
+        <!-- 第六章 -->
+        <div id="ch6" class="section">
+            <h2>第六章：账目明明白白：新手核价与利润测算表</h2>
+            <p>做生意一定要算细账。建议把每一款产品的成本套入以下表格进行核算：</p>
+
+            <div class="calc-box">
+                <p><strong>真实算账案例：多功能蔬菜切丝器（全托管模式）</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>费用科目</th>
+                            <th>单件费用 (元)</th>
+                            <th>详细说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1. 1688 拿货成本</strong></td>
+                            <td style="color: var(--danger-red); font-weight: bold;">4.50 元</td>
+                            <td>采购单价，量大可以找工厂再砍下 2-3 毛钱。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>2. 国内运费分摊</strong></td>
+                            <td>0.40 元</td>
+                            <td>你发 100 个货到广东仓，中通运费 40 元，单件平摊 0.4 元。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>3. 包装材料费</strong></td>
+                            <td>0.15 元</td>
+                            <td>防尘 OPP 袋（0.05元）+ 热敏条码纸（0.02元）+ 气泡保护膜分摊（0.08元）。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>4. 人工贴标折旧</strong></td>
+                            <td>0.10 元</td>
+                            <td>自己打包贴标算体力折旧。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>5. 5% 售后退款准备金</strong></td>
+                            <td>0.25 元</td>
+                            <td>老外退货或者退款不退货的损耗分摊。</td>
+                        </tr>
+                        <tr style="background-color: #fff9db; font-weight: bold;">
+                            <td><strong>【实性保本底线成本】</strong></td>
+                            <td style="color: var(--dark-blue);">5.40 元</td>
+                            <td>只要平台给你的供货价低于 5.4 元，你就会亏钱！</td>
+                        </tr>
+                        <tr style="background-color: #ebf8ff; font-weight: bold;">
+                            <td><strong>【买手最终核定供货价】</strong></td>
+                            <td style="color: var(--success-green);">7.20 元</td>
+                            <td>平台同意给你 7.2 元人民币一单。</td>
+                        </tr>
+                        <tr style="background-color: #e6fffa; font-weight: bold; font-size: 1.1rem;">
+                            <td><strong>💡 单件纯利润</strong></td>
+                            <td style="color: var(--temu-orange);">1.80 元</td>
+                            <td><strong>净毛利率 25%。发 1000 个，你可以净赚 1800 元。</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 第七章 -->
+        <div id="ch7" class="section">
+            <h2>第七章：全托管新手实操：首单发货闭环 SOP</h2>
+            <p>从注册好店铺，到第一批货成功入仓，请严格按照以下步骤操作：</p>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-title">第一步：后台提报新建商品</div>
+                    <p>在 Temu 卖家后台，点击“商品管理” -> “发布商品”。上传主图、标题（全部用英文翻译，不要留中文）。填写你的期望供货价。</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">第二步：等待买手核价（1-3天）</div>
+                    <p>买手会在系统内比价。如果核价通过，系统会提示你“寄样”。（有些品类如低客单日百可以免寄样，直接通过）。若需要寄样，发 1 个快递到后台给的买手地址。</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">第三步：加入备货单并申请备货（VMI）</div>
+                    <p>通过核价后，将商品加入备货单。申请备货数量：<strong>新手首单建议写 30 件</strong>。不要多写！等平台审批通过后，系统会生成正式的“发货单”。</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">第四步：规范打印条码与贴标（最易出错）</div>
+                    <p>在后台下载商品的 <strong>条形码 (Barcode)</strong>。用热敏打印机（建议买个两百元左右的错题机或条码打印机）打印出来。<br>
+                    <strong>发货标准：</strong>每一个商品必须单独装袋（包装上不能有任何厂家的中文、微信号），必须在袋子平整处贴上刚刚打印的条形码。</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-title">第五步：外箱贴箱唛，呼叫顺丰发货</div>
+                    <p>将 30 个贴好标的商品装入一个大纸箱中。在后台点击“发货”，下载并打印 <strong>箱唛 (Shipping Label)</strong>，牢牢贴在大纸箱外面。在后台一键呼叫顺丰上门取件，平台会垫付或分摊运费，非常便宜。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第八章 -->
+        <div id="ch8" class="section">
+            <h2>第八章：新手保命指南：最容易踩的雷区与罚单预警</h2>
+            <p>Temu 的规则非常严格，新手在兴奋之余，一定要把以下规矩刻在脑子里：</p>
+
+            <div class="warning-card">
+                <strong>雷区一：图文侵权与商标罚款（极其高昂）</strong>
+                <p><strong>教训：</strong>绝对不能在你的产品或包装上印有迪士尼、乐高、苹果等知名商标或动漫形象，哪怕是印了相似的花纹都不行。Temu 一旦收到版权方投诉，会直接冻结你的店铺资金，并处以<strong>单次上万元人民币</strong>的罚款。</p>
+            </div>
+
+            <div class="warning-card">
+                <strong>雷区二：质量质检不过关（大货原路退回）</strong>
+                <p><strong>教训：</strong>不要图便宜在 1688 上买粗制滥造、有塑料异味、表面全是毛刺的劣质货。Temu 仓库有严格的抽检人员（质检 QC）。如果抽检到不合格、破损，整箱货（比如 200 个）会当场被原路退回给你，顺丰到付运费由你承担。你不仅没赚到钱，还要赔上一两百块快递费。</p>
+            </div>
+
+            <div class="warning-card">
+                <strong>雷区三：产品不合规，缺失英文说明书</strong>
+                <p><strong>教训：</strong>如果是欧美儿童玩具、带电设备或精细组装工具，包装内必须附带一张<strong>全英文的说明书或安全警示说明</strong>。包装外袋上要印有防窒息警示语。缺失这些会导致被平台下架或直接拒签。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

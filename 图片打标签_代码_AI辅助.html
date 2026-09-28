@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
+    <title>亚马逊多维度打标签系统</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        .sortable {
+            cursor: pointer;
+            position: relative;
+            background: #232f3e !important;
+        }
+        .sort-indicator {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .sort-indicator.asc::after { content: '▲'; color: #1890ff; }
+        .sort-indicator.desc::after { content: '▼'; color: #1890ff; }
+        .sortable:hover { background: #1c2732 !important; }
+
+        :root { --primary: #007185; --warning: #FF9900; --danger-bg: #fee2e2; --border-color: #bbb; --ai-btn: #722ed1; --active-row-bg: #dcfce7; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 20px; color: #333; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+
+        .controls { background: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; border: 1px solid #ccc; flex-shrink: 0; }
+        .filter-bar { background: #e6f7ff; padding: 8px 1px; border-radius: 4px; border: 1px solid #91d5ff; display: flex; gap: 5px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; font-size: 13px; color: #0050b3; flex-shrink: 0; }
+        .group { display: flex; align-items: center; gap: 10px; border-right: 1px solid #eee; padding-right: 15px; }
+        button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; color: white; display: flex; align-items: center; gap: 5px; }
+        .btn-up { background: var(--warning); } .btn-exp { background: #10b981; } .btn-zip { background: #0ea5e9; } .btn-ai { background: var(--ai-btn); } .btn-ai:hover { background: #531dab; } .btn-clear { background: #ef4444; } .btn-reset { background: #fa8c16; } .btn-page { background: white; border: 1px solid #ccc; color: #333; } .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+        .api-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 250px; font-size: 13px; }
+        .thread-input { width: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        .ref-upload-label { font-size: 12px; color: #007185; display: flex; align-items: center; gap: 5px; cursor: pointer; border: 1px dashed #007185; padding: 5px 10px; border-radius: 4px; background: #e6fffa; font-weight: bold; }
+        #ref-status { font-size: 11px; color: green; font-weight: bold; display: none; margin-left: 5px; }
+
+        .table-container { background: white; border-radius: 6px 6px 0 0; flex-grow: 1; overflow: auto; border: 1px solid #999; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background: #232f3e; color: white; padding: 10px 8px; text-align: left; position: sticky; top: 0; z-index: 10; font-size: 13px; border: 1px solid #555; }
+        td { border: 1px solid var(--border-color); padding: 0; vertical-align: top; background: white; min-height: 50px; position: relative; transition: background-color 0.1s; }
+        tr.active-row td { background-color: var(--active-row-bg) !important; border-top: 1px solid #86efac; border-bottom: 1px solid #86efac; }
+        textarea.edit-area { width: 100%; height: 100%; border: none; padding: 8px; resize: none; font-family: inherit; font-size: 12px; line-height: 1.4; min-height: 70px; white-space: pre-wrap; background: transparent; display: block; }
+        textarea.edit-area:focus, input.edit:focus, select.edit-select:focus { outline: none; box-shadow: inset 0 0 0 2px var(--primary); background: #faffff; }
+        input.edit { width: 100%; height: 100%; padding: 8px; border: none; background: transparent; font-family: inherit; font-size: 13px; min-height: 50px; }
+        select.edit-select { width: 100%; height: 100%; padding: 8px; border: none; background: transparent; font-family: inherit; font-size: 13px; min-height: 50px; cursor: pointer; }
+        .title-cell { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+        .en-title { font-size: 12px; color: #222; font-weight: 600; }
+        .cn-title { font-size: 11px; color: #666; border-top: 1px dashed #ccc; padding-top: 4px; }
+        .missing-data { background-color: var(--danger-bg) !important; }
+        .thumb { width: 85px; height: 95px; object-fit: contain; margin: 5px auto; display: block; cursor: zoom-in; border: 1px solid #ddd; background: #fff; }
+
+        #preview-overlay { display: none; position: fixed; z-index: 9999; top: 50%; left: 155px; transform: translateY(-50%); pointer-events: none; background: white; padding: 5px; border: 2px solid #666; box-shadow: 5px 5px 20px rgba(0,0,0,0.3); }
+        #preview-img { max-width: 600px; max-height: 800px; display: block; }
+        #ai-status-bar { display: none; width: 100%; background: #e6f7ff; padding: 10px 20px; border-bottom: 1px solid #91d5ff; align-items: center; gap: 15px; font-size: 13px; color: #0050b3; flex-shrink: 0; margin-bottom: 5px; }
+        .progress-track { flex-grow: 1; height: 8px; background: #bae7ff; border-radius: 4px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: #1890ff; transition: width 0.3s; }
+        #restore-toast { display:none; position:fixed; bottom:20px; right:20px; background:#333; color:white; padding:15px; border-radius:5px; z-index:10001; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        #export-mask { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 10000; color:white; justify-content: center; align-items: center; flex-direction: column; }
+
+        /* === 筛选框样式 === */
+        .filter-wrapper { position: relative; display: inline-block; margin-right: 5px; }
+        .filter-btn {
+            background: white; border: 1px solid #40a9ff; border-radius: 3px;
+            padding: 5px 8px; font-size: 12px; cursor: pointer; min-width: 85px;
+            text-align: left; position: relative; display: flex; justify-content: space-between; align-items: center; color: #333;
+        }
+        .filter-btn:after { content: '▼'; font-size: 8px; margin-left: 5px; color: #666; }
+        .filter-btn.active { background: #e6f7ff; border-color: #1890ff; color: #1890ff; font-weight: bold; }
+
+        .dropdown-content {
+            display: none; position: absolute; background-color: #fff;
+            min-width: 240px; max-height: 400px; overflow-y: auto;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 100;
+            border: 1px solid #ddd; border-radius: 4px; top: 100%; left: 0;
+            padding: 0;
+        }
+        .dropdown-content.show { display: block; }
+
+        .dropdown-item {
+            padding: 8px 12px; cursor: pointer; font-size: 12px; color: #333;
+            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f9f9f9;
+            user-select: none;
+        }
+        .dropdown-item:hover { background-color: #f1f1f1; }
+        .dropdown-item input[type="checkbox"] { margin: 0; cursor: pointer; pointer-events: none; transform: scale(1.1); }
+        .count-badge { color: #666; font-size: 11px; margin-left: auto; background: #eee; padding: 2px 6px; border-radius: 10px; }
+        .dropdown-item.checked { background-color: #e6f7ff; }
+        .dropdown-item.select-all {
+            font-weight: bold; color: #1890ff; border-bottom: 2px solid #eee; background: #fafafa;
+            position: sticky; top: 0; z-index: 2;
+        }
+
+        /* 月销量样式 */
+        .sales-cell { text-align: center; padding: 8px !important; font-weight: bold; }
+        .sales-high { color: #10b981; }
+        .sales-medium { color: #f59e0b; }
+        .sales-low { color: #ef4444; }
+
+        .dropdown-input-container { position: relative; width: 100%; }
+        .dropdown-input { width: 100%; height: 100%; padding: 8px; border: none; background: transparent; font-family: inherit; font-size: 13px; min-height: 50px; cursor: pointer; }
+        .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-top: none; z-index: 1000; max-height: 200px; overflow-y: auto; display: none; }
+        .dropdown-list.show { display: block; }
+        .dropdown-list-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .dropdown-list-item:hover { background-color: #f0f0f0; }
+        .dropdown-input:focus + .dropdown-list, .dropdown-input:focus + .dropdown-list.show { display: block; }
+        .dropdown-toggle { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; }
+
+        /* 复选框样式优化 */
+        .row-checkbox { cursor: pointer; width: 16px; height: 16px; accent-color: #007185; }
+        #select-all-header { cursor: pointer; width: 16px; height: 16px; accent-color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="preview-overlay"><img id="preview-img" src=""></div>
+<!-- 修改后的导出遮罩层，增加了取消按钮 -->
+<div id="export-mask">
+    <h3 id="exp-status">正在处理...</h3>
+    <div style="width:300px; height:8px; background:#444; border-radius:4px; margin-top:10px; margin-bottom: 20px;">
+        <div id="exp-bar" style="width:0%; height:100%; background:#10b981; transition:0.3s;"></div>
+    </div>
+    <button onclick="cancelExportProcess()" style="background:#ef4444; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold;">❌ 停止并取消</button>
+</div>
+    <div id="restore-toast">
+        ⚠️ 检测到上次未保存的数据，是否恢复？
+        <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
+            <button onclick="clearDB()" style="background:#666; padding:5px 10px;">丢弃</button>
+            <button onclick="restoreDB()" style="background:#10b981; padding:5px 10px;">立即恢复</button>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="group">
+            <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none" onchange="handleFile(this)">
+            <button class="btn-up" onclick="document.getElementById('fileInput').click()">📂 上传表格 (卖家精灵导出)</button>
+            <button class="btn-exp" onclick="exportData()">📥 导出 Excel</button>
+            <button class="btn-zip" onclick="exportImagesZip()">📦 下载图片包</button>
+        </div>
+<!--        <div class="group" style="border-right: none;">-->
+<!--            <input type="password" id="apiKey" class="api-input" placeholder="粘贴阿里云/硅基 API Key (sk-...)">-->
+<!--            <input type="number" id="threadCount" class="thread-input" value="2" min="1" max="15" title="并发数">-->
+<!--            <label class="ref-upload-label">-->
+<!--                <input type="file" id="refImgInput" accept="image/*" multiple style="display:none" onchange="handleRefImgs(this)">-->
+<!--                <span>📚 批量上传参考图</span>-->
+<!--            </label>-->
+<!--            <span id="ref-status"></span>-->
+<!--            <button class="btn-ai" onclick="startAIFill()">🚀 极速AI补全</button>-->
+<!--        </div>-->
+        <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" style="text-decoration: none;">
+            <button style="padding: 8px 16px; background-color: #2eccbf; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; transition: background 0.3s;">返回平台</button>
+        </a>
+        <a href="https://wasdkd.github.io/Amazon/产品属性数据分析" style="text-decoration: none;">
+            <button onclick="gotoAnalysis()" style="padding: 8px 16px; background-color: #2ecc71; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; transition: background 0.3s;">数据分析</button>
+        </a>
+        <a href="https://wasdkd.github.io/Amazon/%E5%9B%BE%E7%89%87%E6%93%8D%E4%BD%9C%E8%87%AA%E5%8A%A8%E5%8C%96#report-8" style="text-decoration: none;">
+            <button style="padding: 8px 16px; background-color: #e7c20d; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; transition: background 0.3s;">自定义分析</button>
+        </a>
+        <a href="https://wasdkd.github.io/Amazon/产品打标签" style="text-decoration: none;">
+            <button style="padding: 8px 16px; background-color: #2cd9e8; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; transition: background 0.3s;">视频教程</button>
+        </a>
+<!--        <a href="https://github.com/wasdkd/Amazon/raw/main/后台服务/server_千问.exe" style="text-decoration: none;">-->
+<!--            <button style="padding: 8px 16px; background-color: #5c7fef; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; transition: background 0.3s;">📥 下载千问服务</button>-->
+<!--        </a>-->
+<!--        <a href="https://github.com/wasdkd/Amazon/raw/main/后台服务/server_硅基流动.exe" style="text-decoration: none;">-->
+<!--            <button style="padding: 8px 16px; background-color: #5c7fef; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; transition: background 0.3s;">📥 下载硅基流动服务</button>-->
+<!--        </a>-->
+    </div>
+
+    <div class="filter-bar">
+        <span>🔍 筛选核对:</span>
+        <div id="dynamic-filters" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+        <button class="btn-reset" onclick="resetFilters()">↺ 重置筛选</button>
+        <label style="font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:10px;">
+            <input type="checkbox" id="onlyEmptyCheck" onchange="applyFilter()">
+            <span style="color:#e11d48; font-weight:bold;">只看缺漏</span>
+        </label>
+        <div style="flex-grow: 1; display:flex; justify-content: flex-end; gap:5px;">
+            <span id="totalInfo" style="margin-right:15px; font-weight:bold;">总数: 0</span>
+            <button class="btn-page" onclick="changePage(-1)">◀</button>
+            <span id="pageInfo">1/1</span>
+            <button class="btn-page" onclick="changePage(1)">▶</button>
+        </div>
+        <div style="border-left:1px solid #ccc; padding-left:15px; margin-left:10px; display:flex; gap:8px; align-items:center;">
+            <span style="font-weight:bold; color:#333;">⚡ 批量操作:</span>
+            <select id="batch-col-select" style="padding:5px; border-radius:4px; font-size:12px; border:1px solid #ccc;">
+                <option value="">-- 选择列 --</option>
+                <option value="fabric_visual">面料 (Fabric)</option>
+                <option value="fit">版型 (Fit)</option>
+                <option value="length">长度 (Length)</option>
+                <option value="pattern">图案 (Pattern)</option>
+                <option value="style">风格 (Style)</option>
+                <option value="collar">领型 (Collar)</option>
+                <option value="sleeve">袖型 (Sleeve)</option>
+                <option value="elements">元素 (Elements)</option>
+                <option value="material">材质 (Material)</option>
+                <option value="category">品类 (Category)</option>
+            </select>
+            <input type="text" id="batch-val-input" placeholder="输入要填充的值" style="width:120px; padding:5px; border-radius:4px; font-size:12px; border:1px solid #ccc;">
+            <button onclick="batchFillColumn()" style="background:#10b981; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">✏️ 填充</button>
+            <button onclick="batchClearColumn()" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">🗑️ 清空</button>
+        </div>
+    </div>
+
+    <div id="ai-status-bar">
+        <span id="ai-msg">🤖 正在请求...</span>
+        <div class="progress-track"><div class="progress-fill" id="ai-prog"></div></div>
+        <span id="ai-count">0/0</span>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20px; text-align: center; padding: 0 5px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                            <input type="checkbox" id="select-all-header" onclick="toggleSelectAllRows(this)" style="cursor: pointer;">
+                            <span style="font-size: 10px;">#</span>
+                        </div>
+                    </th>
+                    <th style="width: 25px;">图片</th>
+                    <th style="width: 35px;">ASIN</th>
+                    <th style="width: 25px; position: sticky; left: 135px; z-index: 10;" onclick="toggleSort('monthly_sales')" class="sortable">月销量
+                        <span id="sort-indicator-monthly_sales" class="sort-indicator"></span>
+                    </th>
+                    <th style="width: 25px;">品类</th>
+                    <th style="width: 30px; background:#005566;">面料 (手动)</th>
+                    <th style="width: 25px;">版型</th>
+                    <th style="width: 25px;">领型</th>
+                    <th style="width: 25px;">袖型</th>
+                    <th style="width: 50px;">设计元素</th>
+                    <th style="width: 25px; background:#4a148c;">长度</th>
+                    <th style="width: 25px; background:#4a148c;">图案</th>
+                    <th style="width: 25px; background:#4a148c;">风格</th>
+                    <th style="width: 40px;">材质 (成分)</th>
+                    <th style="width: 100px;">商品标题 (英文/中文)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const PAGE_SIZE = 100;
+        let allData = [], filteredData = [], currentPage = 1, lastActiveRow = null, referenceImages = [];
+        const DB_NAME = "AmazonToolDB", DB_STORE = "dataStore";
+        let db;
+        let sortConfig = { key: null, order: 'asc' };
+
+        const FILTER_CONFIG = [
+            { key: 'category', label: '品类' },
+            { key: 'fabric_visual', label: '面料' },
+            { key: 'fit', label: '版型' },
+            { key: 'collar', label: '领型' },
+            { key: 'sleeve', label: '袖型' },
+            { key: 'elements', label: '元素' },
+            { key: 'length', label: '长度' },
+            { key: 'pattern', label: '图案' },
+            { key: 'style', label: '风格' },
+        ];
+
+        let activeFilters = {};
+
+        const DROPDOWN_OPTIONS = {
+            fabric_visual: ["彩棉", "羊毛拉架", "日本棉", "密根棉", "锦高弹", "坑条"],
+            pattern: ["纯色", "碎花", "印花", "条纹", "格纹", "豹纹", "波点", "扎染", "拼色", "撞色", "拼接", "渐变", "迷彩", "字母", "蛇纹", "斑马纹"],
+            fit: ["修身", "合身", "宽松", "A字", "微喇", "裹身", "直筒", "男友风", "老爹风", "超宽松"],
+            collar: ["V领", "圆领", "半高领", "立领", "高领", "方领", "POLO领", "翻领", "娃娃领", "连帽", "船领", "荡领", "一字肩", "露肩", "挂脖", "桃心领", "单肩", "不对称领", "U领", "钥匙孔领", "交叉领", "青果领", "无"],
+            sleeve: ["无袖", "短袖", "盖袖", "长袖", "七分袖", "五分袖", "泡泡袖", "蝙蝠袖", "插肩袖", "荷叶袖", "喇叭袖", "挽袖", "开叉袖", "挖肩袖", "无"],
+            length: ["长款", "拖地", "中长", "及膝", "短款", "九分", "七分", "盖臀", "及臀", "长裤", "短裤", "超短", "常规"],
+            style: ["休闲", "通勤", "派对", "婚礼", "晚礼", "正式", "度假", "波西米亚", "运动", "复古", "千禧风", "学院风", "甜美", "性感", "街头", "朋克", "哥特"]
+        };
+
+        const RAW_CAT_MAP = {
+            "dress pants": "Pants", "dress pant": "Pants", "wide leg pants": "Pants", "casual pants": "Pants", "work pants": "Pants", "yoga pants": "Pants", "trousers": "Pants", "trouser": "Pants", "slacks": "Pants", "capris": "Pants", "capri": "Pants", "leggings": "Pants", "legging": "Pants", "jean shorts": "Shorts", "denim shorts": "Shorts", "swim trunk": "Swimsuits", "bikini set": "Bikini", "cover up": "Swimsuits",
+            "vest": "Vests", "tank": "Tops", "cami": "Tops", "camisole": "Tops", "top": "Tops", "shirt": "Tops", "tee": "Tops", "blouse": "Blouse", "dress": "Dresses", "pants": "Pants", "pant": "Pants", "jean": "Jeans", "jeans": "Jeans", "shorts": "Shorts", "skirt": "Skirts", "skirts": "Skirts", "sweater": "Sweaters", "sweatshirt": "Sweatshirts", "hoodie": "Hoodies", "jacket": "Jackets", "coat": "Coats", "set": "Sets", "sets": "Sets", "suit": "Sets", "suits": "Sets", "bikini": "Bikini", "swim": "Swimsuits", "swimsuit": "Swimsuits", "t-shirt": "Tops", "cardigan": "Sweaters", "pullover": "Sweaters", "jumpsuit": "Sets", "romper": "Sets"
+        };
+        const SORTED_CAT_KEYS = Object.keys(RAW_CAT_MAP).sort((a,b) => b.length - a.length);
+        const BOTTOM_CATS = ['Pants', 'Jeans', 'Shorts', 'Skirts', 'Bikini', 'Swimsuits'];
+        const DICTS = {
+            length: { "maxi": "长款", "floor length": "拖地", "floor-length": "拖地", "midi": "中长", "mid-length": "中长", "calf length": "中长", "knee length": "及膝", "knee-length": "及膝", "above knee": "及膝", "mini": "短款", "crop": "短款", "cropped": "短款", "cropping": "短款", "ankle": "九分", "ankle length": "九分", "capri": "七分", "capris": "七分", "tunic": "盖臀", "hip length": "及臀", "long line": "长款" },
+            pattern: { "floral": "碎花", "flower": "碎花", "ditsy": "碎花", "botanical": "碎花", "print": "印花", "printed": "印花", "graphic": "印花", "letter": "字母", "solid": "纯色", "plain": "纯色", "basic": "纯色", "pure color": "纯色", "stripe": "条纹", "striped": "条纹", "stripes": "条纹", "plaid": "格纹", "check": "格纹", "checked": "格纹", "tartan": "格纹", "grid": "格纹", "leopard": "豹纹", "animal print": "豹纹", "snake": "蛇纹", "zebra": "斑马纹", "polka dot": "波点", "dots": "波点", "spotted": "波点", "tie dye": "扎染", "tie-dye": "扎染", "color block": "拼色", "colorblock": "拼色", "color-block": "拼色", "contrast": "撞色", "patchwork": "拼接", "gradient": "渐变", "ombre": "渐变", "camouflage": "迷彩", "camo": "迷彩" },
+            style: { "casual": "休闲", "daily": "休闲", "basic": "休闲", "loungewear": "休闲", "work": "通勤", "office": "通勤", "business": "通勤", "career": "通勤", "professional": "通勤", "party": "派对", "cocktail": "派对", "club": "派对", "clubwear": "派对", "night out": "派对", "wedding": "婚礼", "evening": "晚礼", "formal": "正式", "vacation": "度假", "beach": "度假", "holiday": "度假", "boho": "波西米亚", "bohemian": "波西米亚", "resort": "度假", "sport": "运动", "gym": "运动", "active": "运动", "workout": "运动", "athletic": "运动", "running": "运动", "yoga": "运动", "vintage": "复古", "retro": "复古", "old school": "复古", "90s": "复古", "y2k": "千禧风", "preppy": "学院风", "cute": "甜美", "sexy": "性感", "glamorous": "性感", "hot": "性感", "street": "街头", "streetwear": "街头", "punk": "朋克", "goth": "哥特" },
+            fit: { "slim": "修身", "slim fit": "修身", "slimming": "修身", "fitted": "修身", "form fitting": "修身", "form-fitting": "修身", "tight": "修身", "bodycon": "修身", "pencil": "修身", "skinny": "修身", "regular": "合身", "regular fit": "合身", "standard": "合身", "classic": "合身", "true to size": "合身", "loose": "宽松", "loose fit": "宽松", "relax": "宽松", "relaxed": "宽松", "relaxing": "宽松", "oversize": "宽松", "oversized": "宽松", "over-sized": "宽松", "baggy": "宽松", "slouchy": "宽松", "roomy": "宽松", "plus size": "宽松", "wide leg": "宽松", "wide-leg": "宽松", "a-line": "A字", "swing": "A字", "flowy": "A字", "flare": "微喇", "flared": "微喇", "bootcut": "微喇", "wrap": "裹身", "shift": "直筒", "sheath": "直筒", "straight": "直筒", "straight leg": "直筒", "boyfriend": "男友风", "mom": "老爹风" },
+            collar: { "v-neck": "V领", "v neck": "V领", "deep v": "深V领", "crew": "圆领", "crew neck": "圆领", "round": "圆领", "o-neck": "圆领", "jewel": "圆领", "mock": "半高领", "mock neck": "半高领", "stand": "立领", "stand collar": "立领", "mandarin": "立领", "band collar": "立领", "turtle": "高领", "turtleneck": "高领", "high neck": "高领", "funnel": "翻领", "square": "方领", "square neck": "方领", "polo": "POLO领", "collared": "翻领", "lapel": "翻领", "turn down": "翻领", "shirt collar": "翻领", "notch": "西装领", "peter pan": "娃娃领", "hood": "连帽", "hooded": "连帽", "drawstring hood": "连帽", "boat": "船领", "boat neck": "船领", "sabrina": "船领", "cowl": "荡领", "cowl neck": "荡领", "off shoulder": "一字肩", "off-shoulder": "一字肩", "bardot": "一字肩", "cold shoulder": "露肩", "open shoulder": "露肩", "halter": "挂脖", "sweetheart": "桃心领", "one shoulder": "单肩", "asymmetric": "不对称领", "u-neck": "U领", "scoop": "U领", "scoop neck": "U领", "keyhole": "钥匙孔领", "surplice": "交叉领", "shawl": "青果领" },
+            sleeve: { "sleeveless": "无袖", "tank": "无袖", "cami": "无袖", "spaghetti strap": "吊带", "short sleeve": "短袖", "short-sleeve": "短袖", "cap sleeve": "盖袖", "petal": "花瓣袖", "long sleeve": "长袖", "long-sleeve": "长袖", "full sleeve": "长袖", "3/4": "七分袖", "three quarter": "七分袖", "half sleeve": "五分袖", "elbow": "五分袖", "puff": "泡泡袖", "balloon": "泡泡袖", "leg of mutton": "羊腿袖", "juliet": "羊腿袖", "bishop": "羊腿袖", "lantern": "灯笼袖", "batwing": "蝙蝠袖", "dolman": "蝙蝠袖", "kimono": "和服袖", "raglan": "插肩袖", "drop shoulder": "落肩", "ruffle sleeve": "荷叶袖", "flutter": "飞飞袖", "butterfly": "蝴蝶袖", "bell": "喇叭袖", "flare sleeve": "喇叭袖", "flounce": "喇叭袖", "roll-tab": "挽袖", "roll up": "挽袖", "split": "开叉袖", "slit sleeve": "开叉袖", "cold shoulder": "挖肩袖" },
+            elements: { "pocket": "口袋", "pockets": "口袋", "cargo": "工装口袋", "button": "纽扣", "button down": "纽扣", "button up": "纽扣", "single breasted": "单排扣", "double breasted": "双排扣", "lace": "蕾丝", "lace up": "系带", "crochet": "蕾丝/钩花", "guipure": "蕾丝", "rib": "罗纹", "ribbed": "罗纹", "knit": "针织", "knitted": "针织", "cable knit": "麻花", "waffle": "华夫格", "zipper": "拉链", "zip": "拉链", "quarter zip": "1/4拉链", "half zip": "半拉链", "pleated": "褶皱", "pleat": "褶皱", "ruched": "褶皱(抽褶)", "ruching": "褶皱(抽褶)", "smocked": "打揽(松紧)", "shirred": "打揽", "elastic waist": "松紧腰", "ruffle": "荷叶边", "ruffled": "荷叶边", "frill": "荷叶边", "peplum": "荷叶边", "hollow": "镂空", "cut out": "镂空", "cutout": "镂空", "open back": "露背", "backless": "露背", "mesh": "网纱", "sheer": "透视", "see through": "透视", "chiffon": "雪纺", "sequin": "亮片", "sequins": "亮片", "glitter": "亮片", "sparkle": "亮片", "rhinestone": "水钻", "diamond": "水钻", "beaded": "钉珠", "pearl": "珍珠", "embroidery": "刺绣", "embroidered": "刺绣", "belt": "腰带", "belted": "腰带", "sash": "腰带", "tie waist": "系带", "tie knot": "系带", "bow": "蝴蝶结", "bowknot": "蝴蝶结", "drawstring": "抽绳", "fringe": "流苏", "tassel": "流苏", "split": "开叉", "slit": "开叉", "side slit": "侧开叉", "patchwork": "拼接", "raw hem": "毛边", "frayed": "毛边", "distressed": "破洞/做旧", "ripped": "破洞", "hole": "破洞", "tiered": "蛋糕/层叠", "layer": "层叠", "ruffle hem": "荷叶边下摆", "fur": "毛领/毛边", "fuzzy": "毛绒", "fleece": "抓绒", "sherpa": "羊羔毛", "faux fur": "仿皮草" }
+        };
+
+        // === 新增：导出控制变量 ===
+        let isExportCancelled = false;
+
+        function cancelExportProcess() {
+            isExportCancelled = true;
+            document.getElementById('exp-status').innerText = "正在停止...";
+        }
+
+        window.onload = function() { initDB(); initRowHighlight(); updateSortIndicators();};
+
+        function initRowHighlight() {
+            const tableContainer = document.querySelector('.table-container');
+            tableContainer.addEventListener('click', function(e) {
+                const tr = e.target.closest('tr');
+                if (tr && tr.parentElement.tagName === 'TBODY') highlightRow(tr);
+            });
+            tableContainer.addEventListener('focusin', function(e) {
+                const tr = e.target.closest('tr');
+                if (tr && tr.parentElement.tagName === 'TBODY') highlightRow(tr);
+            });
+        }
+
+        function highlightRow(row) {
+            if (lastActiveRow) lastActiveRow.classList.remove('active-row');
+            row.classList.add('active-row');
+            lastActiveRow = row;
+        }
+
+        function initDB() {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = function(e) {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+            };
+            request.onsuccess = function(e) {
+                db = e.target.result;
+                checkRestore();
+            };
+        }
+
+        function checkRestore() {
+            const tx = db.transaction([DB_STORE], "readonly");
+            const store = tx.objectStore(DB_STORE);
+            const req = store.get("autoSave");
+            req.onsuccess = function(e) {
+                if (req.result && req.result.length > 0) document.getElementById('restore-toast').style.display = 'block';
+            };
+        }
+
+        function restoreDB() {
+            const tx = db.transaction([DB_STORE], "readonly");
+            const store = tx.objectStore(DB_STORE);
+            const req = store.get("autoSave");
+            req.onsuccess = function(e) {
+                if (req.result) {
+                    allData = req.result;
+                    document.getElementById('restore-toast').style.display = 'none';
+                    initFilters();
+                    applyFilter();
+                    alert("✅ 数据已恢复！");
+                }
+            };
+        }
+
+        function clearDB(manual=false) {
+            const tx = db.transaction([DB_STORE], "readwrite");
+            const store = tx.objectStore(DB_STORE);
+            store.delete("autoSave");
+            document.getElementById('restore-toast').style.display = 'none';
+            if(manual) {
+                allData = [];
+                applyFilter();
+                alert("🗑️ 缓存已清空");
+            }
+        }
+
+        let saveTimeout;
+        function autoSave() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                if(db && allData.length > 0) {
+                    const tx = db.transaction([DB_STORE], "readwrite");
+                    const store = tx.objectStore(DB_STORE);
+                    store.put(allData, "autoSave");
+                }
+            }, 500);
+        }
+
+        // === 核心修复：优化参考图上传（压缩图片） ===
+        // 解决上传大图导致浏览器卡死的问题
+        function handleRefImgs(input) {
+            try {
+                const files = input.files;
+                if (!files || files.length === 0) return;
+                referenceImages = [];
+                let loadedCount = 0;
+
+                // 压缩图片的辅助函数
+                const compressImage = (file) => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const img = new Image();
+                            img.onload = function() {
+                                const canvas = document.createElement('canvas');
+                                let width = img.width;
+                                let height = img.height;
+                                // 限制最大尺寸为 1000px，保持比例
+                                const MAX_SIZE = 1000;
+                                if (width > height) {
+                                    if (width > MAX_SIZE) {
+                                        height *= MAX_SIZE / width;
+                                        width = MAX_SIZE;
+                                    }
+                                } else {
+                                    if (height > MAX_SIZE) {
+                                        width *= MAX_SIZE / height;
+                                        height = MAX_SIZE;
+                                    }
+                                }
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+                                // 压缩为 JPEG, 质量 0.6
+                                const compressedData = canvas.toDataURL('image/jpeg', 0.6);
+                                resolve(compressedData);
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                };
+
+                const loadFiles = async () => {
+                    for (let file of files) {
+                        let name = file.name.replace(/\.[^/.]+$/, "").replace(/[-_\s]*\d+$/, "");
+                        const compressedData = await compressImage(file);
+                        referenceImages.push({ name: name, data: compressedData });
+                    }
+                    document.getElementById('ref-status').style.display = 'inline';
+                    document.getElementById('ref-status').innerText = `✅ 已加载 ${files.length} 张`;
+                    alert(`成功加载参考图 (已自动压缩优化)`);
+                };
+
+                loadFiles();
+
+            } catch(e) {
+                console.error("Image load error:", e);
+                alert("图片加载失败");
+            }
+        }
+
+        function handleFile(input) { const file = input.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type:'array'}); const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval:""}); processData(json); }; reader.readAsArrayBuffer(file); }
+        function cleanMaterial(text, isStrict) { if (!text) return ""; let str = String(text).replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim(); str = str.replace(/(\d)%([a-z])/gi, '$1% $2'); const regex = /(\d+(?:\.\d+)?\s*%\s*[a-z]+(?:\s+[a-z]+)?)/gi; const matches = str.match(regex); if (matches) { const uniqueMap = new Map(); matches.forEach(m => { let clean = m.toLowerCase().trim().replace(/%\s*/, '% '); const numMatch = clean.match(/(\d+(?:\.\d+)?)/); const num = numMatch ? parseFloat(numMatch[1]) : 0; if(!uniqueMap.has(clean)) uniqueMap.set(clean, num); }); return Array.from(uniqueMap.keys()).sort((a, b) => uniqueMap.get(b) - uniqueMap.get(a)).join(', '); } if (isStrict) return ""; const lower = str.toLowerCase(); if (lower.includes("imported") || lower.includes("machine wash") || lower.includes("origin") || lower.includes("care instructions")) return ""; if (lower.length > 50) return ""; return str; }
+
+        function processData(raw) {
+            allData = raw.map(row => {
+                const title = String(row['商品标题']||row['Title']||row['title']||"");
+                const title_cn = String(row['标题(翻译)']||row['中文标题']||row['Translated Title']||row['title_cn']||"");
+                const details = String(row['详细参数']||row['Technical Details']||"");
+                const desc = details + " " + String(row['产品卖点']||row['Bullet Points']||"");
+                let img = row['商品主图']||row['Main Image URL']||row['image']||"";
+                img = img.replace(/\._AC_.*_\.jpg/, ".jpg").replace(/\._AC_.*_\.png/, ".png");
+
+                let monthly_sales = "";
+                const salesFields = ['月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+                for (let field of salesFields) {
+                    if (row[field] !== undefined && row[field] !== "") {
+                        let salesVal = row[field];
+                        if (typeof salesVal === 'string') {
+                            const match = salesVal.match(/(\d+)/);
+                            if (match) monthly_sales = parseInt(match[0]);
+                        } else {
+                            monthly_sales = Number(salesVal);
+                        }
+                        if (monthly_sales) break;
+                    }
+                }
+
+                let material = "";
+                const fabricField = details.match(/Fabric type:?\s*([^|]+)/i);
+                const materialField = details.match(/Material:?\s*([^|]+)/i);
+                if (fabricField) material = cleanMaterial(fabricField[1], false);
+                if (!material && materialField) material = cleanMaterial(materialField[1], false);
+                if (!material) material = cleanMaterial(desc, true);
+                if (!material && /\b100%\s*cotton\b/i.test(desc)) material = "100% cotton";
+                if (!material && /\b100%\s*polyester\b/i.test(desc)) material = "100% polyester";
+
+                let category = "";
+                const getCatFromText = (txt) => {
+                    if(!txt) return "";
+                    const t = String(txt).toLowerCase();
+                    for(let key of SORTED_CAT_KEYS) {
+                        if(t.includes(key)) return RAW_CAT_MAP[key];
+                    }
+                    return "";
+                };
+                const typeText = row['product_type'] || row['feed_product_type'] || row['glance_view'] || row['sub_category'] || row['Product Group'] || row['商品类型'] || row['产品类型'] || row['小类目'] || row['推荐节点'] || row['PT Name'];
+                category = getCatFromText(typeText);
+                if(!category) {
+                    let catText = row['Category'] || row['category'] || row['breadcrumbs'] || row['node_path'] || row['类目'] || row['分类'] || row['类目路径'] || row['商品分类'];
+                    if(catText) catText = String(catText).replace(/Clothing, Shoes & Jewelry/gi, "").replace(/Women/gi, "");
+                    category = getCatFromText(catText);
+                }
+                if(!category) category = getCatFromText(title);
+                if(!category) category = getCatFromText(desc);
+
+                let cleanDesc = desc.toLowerCase().replace(/pair\s+with.*?[,.]/gi, "").replace(/match\s+with.*?[,.]/gi, "").replace(/wear\s+with.*?[,.]/gi, "").replace(/skinny\s+jeans/gi, "").replace(/skinny\s+leggings/gi, "").replace(/slim\s+pants/gi, "");
+                const checkWord = (text, keyword) => { const safeKey = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const regex = new RegExp(`\\b${safeKey}\\b`, 'i'); return regex.test(text); };
+                const find = (dict) => { const keys = Object.keys(dict); for(let k of keys) { if(checkWord(title, k)) return dict[k]; } for(let k of keys) { if(checkWord(cleanDesc, k)) return dict[k]; } return ""; };
+                const findMulti = (dict) => { let res = []; const fullText = title + " " + cleanDesc; const keys = Object.keys(dict); for(let k of keys) { if(checkWord(fullText, k) && !res.includes(dict[k])) { res.push(dict[k]); } } return res.join(","); };
+
+                let length = find(DICTS.length);
+                if (["Pants", "Jeans", "Leggings", "Sweatpants"].includes(category)) { if (length && length.includes("短款")) length = ""; if (!length || length==="") length = ""; }
+                let pattern = find(DICTS.pattern);
+                if (!pattern || pattern === "") pattern = "纯色";
+                let style = find(DICTS.style);
+                if (!style || style === "") style = "休闲";
+                let fit = find(DICTS.fit);
+                let collar = find(DICTS.collar);
+                let sleeve = find(DICTS.sleeve);
+                let elements = findMulti(DICTS.elements);
+                if (category && BOTTOM_CATS.includes(category)) { collar = "无"; sleeve = "无"; }
+
+                return {
+                    img: img, asin: row['ASIN']||row['asin']||"", link: row['商品详情页链接']||"", monthly_sales: monthly_sales, category: category, material: material, fabric_visual: "", length: length, pattern: pattern, style: style, fit: fit, collar: collar, sleeve: sleeve, elements: elements, title: title, title_cn: title_cn, _raw: row
+                };
+            });
+            initFilters(); applyFilter(); autoSave();
+        }
+
+        function initFilters() {
+            const container = document.getElementById('dynamic-filters');
+            container.innerHTML = "";
+            FILTER_CONFIG.forEach(cfg => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'filter-wrapper';
+                activeFilters[cfg.key] = new Set();
+                wrapper.innerHTML = `<button class="filter-btn" id="btn-${cfg.key}" onclick="toggleDropdown(event, '${cfg.key}')">${cfg.label}</button><div id="list-${cfg.key}" class="dropdown-content"></div>`;
+                container.appendChild(wrapper);
+            });
+            document.addEventListener('click', (e) => { if (!e.target.closest('.filter-wrapper')) document.querySelectorAll('.dropdown-content').forEach(el => el.classList.remove('show')); });
+        }
+
+        function getContextData(currentKey) {
+            return allData.filter(item => {
+                for (let cfg of FILTER_CONFIG) {
+                    if (cfg.key === currentKey) continue;
+                    const set = activeFilters[cfg.key];
+                    if (set.size > 0) {
+                        const val = item[cfg.key];
+                        let match = false;
+                        if (set.has("__EMPTY__") && (!val || val === "无" || val.trim() === "")) match = true;
+                        else {
+                            if (!val || val === "无") match = false;
+                            else if (cfg.key === 'elements') { val.split(/[,，]/).forEach(p => { if (set.has(p.trim())) match = true; }); }
+                            else if (set.has(val)) match = true;
+                        }
+                        if (!match) return false;
+                    }
+                }
+                return true;
+            });
+        }
+
+        function renderDropdownList(key) {
+            const listDiv = document.getElementById(`list-${key}`);
+            const contextData = getContextData(key);
+            const counts = {}; let hasEmpty = 0;
+            contextData.forEach(item => {
+                let val = item[key];
+                if (!val || val === "无" || val.trim() === "") { hasEmpty++; }
+                else {
+                    if(key === 'elements' && val.includes(',')) { val.split(/[,，]/).forEach(v => { v = v.trim(); if(v) counts[v] = (counts[v] || 0) + 1; }); }
+                    else { counts[val] = (counts[val] || 0) + 1; }
+                }
+            });
+            const sortedKeys = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+            const currentSet = activeFilters[key];
+            const isSetEmpty = (currentSet.size === 0);
+            let html = `<div class="dropdown-item select-all" onclick="toggleSelectAll(event, '${key}')"><input type="checkbox" ${isSetEmpty ? '' : 'checked'}><span>(全选 / 清空)</span></div>`;
+            if (hasEmpty > 0) {
+                const isChecked = currentSet.has("__EMPTY__");
+                html += `<div class="dropdown-item ${isChecked?'checked':''}" onclick="toggleSelect(event, '${key}', '__EMPTY__')"><input type="checkbox" ${isChecked?'checked':''}><span>(空白/无)</span><span class="count-badge">${hasEmpty}</span></div>`;
+            }
+            sortedKeys.forEach(val => {
+                const isChecked = currentSet.has(val);
+                const safeVal = val.replace(/'/g, "\\'");
+                html += `<div class="dropdown-item ${isChecked?'checked':''}" onclick="toggleSelect(event, '${key}', '${safeVal}')"><input type="checkbox" ${isChecked?'checked':''}><span>${val}</span><span class="count-badge">${counts[val]}</span></div>`;
+            });
+            listDiv.innerHTML = html || '<div style="padding:8px;color:#999;">无匹配选项</div>';
+        }
+
+        function toggleDropdown(e, key) {
+            e.stopPropagation();
+            const target = document.getElementById(`list-${key}`);
+            const wasOpen = target.classList.contains('show');
+            document.querySelectorAll('.dropdown-content').forEach(el => el.classList.remove('show'));
+            if (!wasOpen) { renderDropdownList(key); target.classList.add('show'); }
+        }
+
+        function toggleSelect(e, key, val) {
+            e.stopPropagation();
+            const set = activeFilters[key];
+            if (set.has(val)) set.delete(val); else set.add(val);
+            applyFilter(); updateButtonLabel(key, FILTER_CONFIG.find(c=>c.key===key).label); renderDropdownList(key);
+        }
+
+        function toggleSelectAll(e, key) {
+            e.stopPropagation();
+            const set = activeFilters[key];
+            if (set.size > 0) set.clear();
+            else {
+                const contextData = getContextData(key);
+                contextData.forEach(item => {
+                    let v = item[key];
+                    if (!v || v==="无" || v.trim()==="") set.add("__EMPTY__");
+                    else if(key==='elements' && v.includes(',')) v.split(/[,，]/).forEach(p=>p.trim()&&set.add(p.trim()));
+                    else set.add(v);
+                });
+            }
+            applyFilter(); updateButtonLabel(key, FILTER_CONFIG.find(c=>c.key===key).label); renderDropdownList(key);
+        }
+
+        function updateButtonLabel(key, defaultLabel) {
+            const btn = document.getElementById(`btn-${key}`);
+            const count = activeFilters[key].size;
+            if (count > 0) { btn.innerText = `${defaultLabel} (选${count})`; btn.classList.add('active'); }
+            else { btn.innerText = defaultLabel; btn.classList.remove('active'); }
+        }
+
+        function resetFilters() {
+            for (let key in activeFilters) activeFilters[key].clear();
+            document.getElementById('onlyEmptyCheck').checked = false;
+            applyFilter();
+            FILTER_CONFIG.forEach(cfg => updateButtonLabel(cfg.key, cfg.label));
+        }
+
+        function applyFilter() {
+            try {
+                const onlyEmpty = document.getElementById('onlyEmptyCheck').checked;
+                filteredData = allData.filter(item => {
+                    for (let cfg of FILTER_CONFIG) {
+                        const set = activeFilters[cfg.key];
+                        if (set.size > 0) {
+                            const val = item[cfg.key];
+                            let match = false;
+                            if (set.has("__EMPTY__") && (!val || val === "无" || val.trim() === "")) match = true;
+                            else {
+                                if (!val || val === "无") match = false;
+                                else if (cfg.key === 'elements') { const parts = val.split(/[,，]/).map(s=>s.trim()); for(let p of parts) if(set.has(p)) { match = true; break; } }
+                                else if (set.has(val)) match = true;
+                            }
+                            if (!match) return false;
+                        }
+                    }
+                    if (onlyEmpty) return checkIsMissing(item);
+                    return true;
+                });
+                currentPage = 1;
+                applySort();
+                renderTable();
+            } catch (e) { console.error("Filter error:", e); }
+        }
+
+        function checkIsMissing(item) {
+            if (!item.category) return true;
+            if (!item.length || item.length==="") return true; if (!item.pattern || item.pattern==="") return true; if (!item.style || item.style==="") return true;
+            if (!item.material || item.material.trim() === "") return true; if (!item.fit || item.fit.trim() === "") return true; if (!item.elements || item.elements.trim() === "") return true;
+            const isBottom = BOTTOM_CATS.includes(item.category); if (!isBottom) { if (!item.collar || item.collar.trim() === "") return true; if (!item.sleeve || item.sleeve.trim() === "") return true; } return false;
+        }
+
+        function changePage(delta) { const max = Math.ceil(filteredData.length/PAGE_SIZE) || 1; currentPage += delta; if(currentPage < 1) currentPage = 1; if(currentPage > max) currentPage = max; renderTable(); document.querySelector('.table-container').scrollTop = 0;}
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const start = (currentPage-1)*PAGE_SIZE;
+            const end = start+PAGE_SIZE;
+            const pageItems = filteredData.slice(start, end);
+            const totalPages = Math.ceil(filteredData.length/PAGE_SIZE) || 1;
+            document.getElementById('totalInfo').innerText = `总数: ${filteredData.length}`;
+            document.getElementById('pageInfo').innerText = `${currentPage}/${totalPages}`;
+
+            tbody.innerHTML = pageItems.map((item, idx) => {
+                const globIdx = start + idx;
+                const asinUrl = item.link || `https://www.amazon.com/dp/${item.asin}`;
+                const isBottom = BOTTOM_CATS.includes(item.category);
+                let salesClass = "";
+                if (item.monthly_sales) { if (item.monthly_sales >= 1000) salesClass = "sales-high"; else if (item.monthly_sales >= 100) salesClass = "sales-medium"; else salesClass = "sales-low"; }
+                const salesCell = `<td class="sales-cell ${salesClass}" title="${item.monthly_sales || 0}">${item.monthly_sales || "N/A"}</td>`;
+
+                const tdSelect = (field, val, options, allowEmpty = true) => {
+                    let isMissing = (!val || val === "无" || val === "");
+                    if (isBottom && (field === 'collar' || field === 'sleeve')) isMissing = false;
+                    if (field === 'fabric_visual') isMissing = false;
+                    const finalCls = isMissing ? "dropdown-input missing-data" : "dropdown-input";
+                    let optionsHtml = '';
+                    if (allowEmpty) optionsHtml += `<div class="dropdown-list-item" data-value="">(清空)</div>`;
+                    const allValues = new Set([...options]);
+                    allData.forEach(item => { if (item[field] && item[field] !== "无" && item[field] !== "") allValues.add(item[field]); });
+                    if (val && val !== "无" && val !== "") allValues.add(val);
+                    allValues.forEach(opt => { const selectedClass = val === opt ? ' selected' : ''; optionsHtml += `<div class="dropdown-list-item${selectedClass}" data-value="${opt}">${opt}</div>`; });
+                    return `<td><div class="dropdown-input-container"><input type="text" class="${finalCls}" value="${val||''}" onchange="updFiltered(${globIdx}, '${field}', this)" oninput="filterDropdownOptions(this)" onfocus="showDropdown(this)" onblur="hideDropdown(this)" placeholder="输入或选择..."><div class="dropdown-toggle" onclick="toggleDropdownList(this)">▼</div><div class="dropdown-list">${optionsHtml}</div></div></td>`;
+                };
+
+                const tdInp = (field, val) => {
+                    let isMissing = (!val || val === "无" || val === "");
+                    if (isBottom && (field === 'collar' || field === 'sleeve')) isMissing = false;
+                    if (field === 'fabric_visual') isMissing = false;
+                    const finalCls = isMissing ? "edit missing-data" : "edit";
+                    return `<td><input type="text" class="${finalCls}" value="${val||''}" oninput="updFiltered(${globIdx}, '${field}', this)"></td>`;
+                };
+
+                return `<tr>
+                    <td style="text-align: center;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 100%; padding-top: 15px;">
+                            <input type="checkbox" class="row-checkbox" data-idx="${globIdx}" onclick="updateHeaderCheckboxState()" style="cursor: pointer;">
+                            <span style="font-weight: bold; color: #555; font-size: 13px;">${globIdx + 1}</span>
+                        </div>
+                    </td>
+                    <td>${item.img ? `<img src="${item.img}" class="thumb" onmouseenter="showPreview('${item.img}')" onmouseleave="hidePreview()">` : ''}</td>
+                    <td style="padding:0;"><div style="display:flex; align-items:center; justify-content:space-between; padding:5px 8px;"><a href="${asinUrl}" target="_blank" style="color:#007185; text-decoration:none; font-weight:bold; font-size:12px;">${item.asin}</a><span onclick="copyToClip('${item.asin}', this)" style="cursor:pointer; font-size:14px; opacity:0.6;" title="点击复制">📋</span></div></td>
+                    ${salesCell}
+                    ${tdInp('category', item.category)}
+                    ${tdSelect('fabric_visual', item.fabric_visual, DROPDOWN_OPTIONS.fabric_visual)}
+                    ${tdSelect('fit', item.fit, DROPDOWN_OPTIONS.fit)}
+                    ${tdSelect('collar', item.collar, DROPDOWN_OPTIONS.collar)}
+                    ${tdSelect('sleeve', item.sleeve, DROPDOWN_OPTIONS.sleeve)}
+                    <td><textarea class="edit-area ${(!item.elements||item.elements===''||item.elements==='无')?'missing-data':''}" oninput="updFiltered(${globIdx}, 'elements', this)">${item.elements||''}</textarea></td>
+                    ${tdSelect('length', item.length, DROPDOWN_OPTIONS.length)}
+                    ${tdSelect('pattern', item.pattern, DROPDOWN_OPTIONS.pattern)}
+                    ${tdSelect('style', item.style, DROPDOWN_OPTIONS.style)}
+                    <td><textarea class="edit-area ${(!item.material||item.material==='无')?'missing-data':''}" oninput="updFiltered(${globIdx}, 'material', this)">${item.material}</textarea></td>
+                    <td><div class="title-cell"><div class="en-title">${item.title}</div><div class="cn-title">${item.title_cn || "(无中文标题)"}</div></div></td>
+                </tr>`;
+            }).join('');
+            lastActiveRow = null;
+        }
+
+        const overlay = document.getElementById('preview-overlay');
+        const pImg = document.getElementById('preview-img');
+        function showPreview(url) { pImg.src = url; overlay.style.display = 'block'; }
+        function hidePreview() { overlay.style.display = 'none'; }
+
+        async function startAIFill() {
+            const key = document.getElementById('apiKey').value.trim();
+            if(!key) { alert("⛔ 请输入阿里云/硅基 API Key"); document.getElementById('apiKey').focus(); return; }
+            const targets = filteredData.filter(item => { if(checkIsMissing(item)) return true; if(!item.fabric_visual || item.fabric_visual === "") return true; return false; });
+            if(targets.length === 0) return alert("没有需要补全的数据");
+            const threadCount = parseInt(document.getElementById('threadCount').value) || 1;
+            document.getElementById('ai-status-bar').style.display = 'flex';
+            const prog = document.getElementById('ai-prog');
+            const txt = document.getElementById('ai-count');
+            let completed = 0; let successCount = 0;
+            const total = targets.length;
+            const queue = [...targets];
+
+            const worker = async () => {
+                while (queue.length > 0) {
+                    const item = queue.shift();
+                    const isBottom = BOTTOM_CATS.includes(item.category);
+                    try {
+                        const res = await callLocalProxy(key, item.img, item.title, referenceImages);
+                        if(res) {
+                            if(!item.fit) item.fit = res.fit;
+                            if(!item.length) item.length = res.length;
+                            if(!item.pattern) item.pattern = res.pattern;
+                            if(!item.style) item.style = res.style;
+                            if(!isBottom) { if(!item.collar) item.collar = res.collar; if(!item.sleeve) item.sleeve = res.sleeve; }
+                            if(res.elements && res.elements.trim() !== "") item.elements = res.elements; else if (!item.elements) item.elements = "无";
+                            if((!item.material || item.material==="") && res.material) item.material = cleanMaterial(res.material, false);
+                            if(res.fabric_type) item.fabric_visual = res.fabric_type;
+                            successCount++;
+                        }
+                    } catch(e) { console.error("Error processing item:", e); }
+                    finally { completed++; const pct = (completed/total)*100; prog.style.width = `${pct}%`; txt.innerText = `${completed}/${total} (成功: ${successCount})`; if(completed % 5 === 0) autoSave(); }
+                }
+            };
+            const workers = []; for(let i=0; i<threadCount; i++) workers.push(worker());
+            await Promise.all(workers);
+            renderTable(); autoSave(); document.getElementById('ai-status-bar').style.display = 'none'; alert(`✅ 识别结束！成功补全: ${successCount} 条`);
+        }
+
+        // === 核心修复：添加超时控制 ===
+        async function callLocalProxy(apiKey, imgUrl, title, refImages) {
+            const url = "http://127.0.0.1:5001/analyze";
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: apiKey, imgUrl: imgUrl, title: title, refImages: refImages }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if(!response.ok) return null;
+                const json = await response.json();
+                if(json.success && json.data) return JSON.parse(json.data);
+            } catch(e) {
+                clearTimeout(timeoutId);
+                console.log("AI Request Failed or Timed out");
+            }
+            return null;
+        }
+
+        function copyToClip(text, el) { navigator.clipboard.writeText(text).then(() => { const original = el.innerText; el.innerText = '✅'; setTimeout(() => el.innerText = original, 1000); }).catch(err => { alert("复制失败"); }); }
+        function urlToBase64(url) { return new Promise(resolve => { const img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; const timer = setTimeout(() => resolve(null), 5000); img.onload = () => { clearTimeout(timer); const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img,0,0); resolve(c.toDataURL('image/jpeg', 0.6)); }; img.onerror = () => { clearTimeout(timer); resolve(null); }; }); }
+
+        async function exportImagesZip() {
+            if(filteredData.length === 0) return alert("无数据");
+            const zip = new JSZip(); const mask = document.getElementById('export-mask'); const bar = document.getElementById('exp-bar'); mask.style.display = 'flex';
+            const tasks = [];
+            for(let i=0; i<filteredData.length; i++) { if(filteredData[i].img) { const fileName = `${i+1}.jpg`; tasks.push({ url: filteredData[i].img, name: fileName }); } }
+            if(tasks.length === 0) { mask.style.display = 'none'; return alert("无图片"); }
+            const BATCH = 5; let count = 0;
+            for(let i=0; i<tasks.length; i+=BATCH) {
+                const batch = tasks.slice(i, i+BATCH);
+                await Promise.all(batch.map(async (t) => { try { const res = await fetch(t.url); if(res.ok) { const blob = await res.blob(); zip.file(t.name, blob); } } catch(e){} count++; }));
+                bar.style.width = `${Math.round((count/tasks.length)*100)}%`;
+            }
+            const content = await zip.generateAsync({type:"blob"}); saveAs(content, "amazon_images.zip"); mask.style.display = 'none';
+        }
+
+        // === 优化后的导出功能 (支持筛选图片/取消) ===
+async function exportData() {
+    if (filteredData.length === 0) return alert("无数据");
+
+    // 1. 统计有多少张图片
+    let imgCount = 0;
+    filteredData.forEach(item => {
+        if (item.img && item.img.trim() !== "") imgCount++;
+    });
+
+    // 2. 询问用户是否导出图片
+    let needImages = false;
+    if (imgCount > 0) {
+        let msg = "";
+        if (imgCount > 500) {
+            msg = `⚠️ 检测到图片数量较多 (${imgCount} 张)，导出图片会非常缓慢！\n\n强烈建议【不导出图片】。\n\n点击【确定】= 坚持导出图片 (可能需要几分钟)\n点击【取消】= 仅导出文字 (推荐，瞬间完成)`;
+        } else {
+            msg = `共检测到 ${imgCount} 张图片。\n\n是否需要将图片插入 Excel？\n\n点击【确定】= 包含图片\n点击【取消】= 仅导出文字`;
+        }
+        // confirm 返回 true (确定) 或 false (取消)
+        needImages = confirm(msg);
+    }
+
+    // 3. 初始化 UI 和 状态
+    const mask = document.getElementById('export-mask');
+    const bar = document.getElementById('exp-bar');
+    const txt = document.getElementById('exp-status');
+
+    isExportCancelled = false; // 重置取消标记
+    mask.style.display = 'flex'; // 显示遮罩
+
+    try {
+        txt.innerText = "初始化 Excel...";
+        bar.style.width = "0%";
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('选品分析');
+
+        // 定义表头
+        const coreHeaders = [
+            '图片', 'ASIN', '月销量', '品类', '面料(AI)',
+            '版型', '领型', '袖型', '元素',
+            '长度', '图案', '风格', '材质(成分)',
+            '中文标题', '英文标题'
+        ];
+
+        // 提取额外列
+        const rawKeys = [];
+        if (filteredData.length > 0 && filteredData[0]._raw) {
+            Object.keys(filteredData[0]._raw).forEach(k => {
+                const skipList = ['商品主图', 'Main Image URL', 'image', 'ASIN', 'asin', '标题(翻译)', '中文标题', 'Title', 'title', '商品标题', '月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+                if (!skipList.includes(k)) {
+                    rawKeys.push(k);
+                }
+            });
+        }
+
+        const fullHeader = [...coreHeaders, ...rawKeys];
+        const hRow = ws.addRow(fullHeader);
+        hRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF232F3E' } };
+
+        const imgTasks = [];
+
+        // 4. 填充数据 (第一层循环)
+        for (let i = 0; i < filteredData.length; i++) {
+            // [检测取消]
+            if (isExportCancelled) throw new Error("USER_CANCEL");
+
+            const item = filteredData[i];
+            const rowValues = [
+                '', // 图片占位
+                item.asin,
+                item.monthly_sales || 0,
+                item.category,
+                item.fabric_visual,
+                item.fit,
+                item.collar,
+                item.sleeve,
+                item.elements,
+                item.length,
+                item.pattern,
+                item.style,
+                item.material,
+                item.title_cn,
+                item.title
+            ];
+
+            rawKeys.forEach(k => {
+                let val = item._raw[k];
+                if(!isNaN(Number(val)) && val !== '') val = Number(val);
+                rowValues.push(val);
+            });
+
+            const r = ws.addRow(rowValues);
+
+            // 如果需要图片，设置行高并加入任务队列
+            if (needImages && item.img) {
+                r.height = 80;
+                imgTasks.push({ url: item.img, idx: r.number });
+            } else {
+                r.height = 25; // 不需要图片时，行高正常
+            }
+
+            // 简单对齐
+            [4,5,6,7,8,9,10,11,12,13,14].forEach(colIdx => {
+                r.getCell(colIdx + 1).alignment = { wrapText: true, vertical: 'top', horizontal: 'left' };
+            });
+        }
+
+        // 5. 处理图片 (第二层循环 - 最耗时部分)
+        if (needImages && imgTasks.length > 0) {
+            txt.innerText = `正在下载并插入图片 (共${imgTasks.length}张)...`;
+            const BATCH = 5;
+
+            for (let i = 0; i < imgTasks.length; i += BATCH) {
+                // [检测取消]
+                if (isExportCancelled) throw new Error("USER_CANCEL");
+
+                const batch = imgTasks.slice(i, i + BATCH);
+                await Promise.all(batch.map(async t => {
+                    try {
+                        const b64 = await urlToBase64(t.url);
+                        if (b64) {
+                            const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+                            ws.addImage(imgId, {
+                                tl: { col: 0, row: t.idx - 1 },
+                                br: { col: 1, row: t.idx },
+                                editAs: 'oneCell'
+                            });
+                        }
+                    } catch (e) { console.log('Image fail', e); }
+                }));
+
+                // 更新进度条
+                const pct = Math.min(100, Math.round(((i + BATCH) / imgTasks.length) * 100));
+                bar.style.width = `${pct}%`;
+                txt.innerText = `处理图片: ${i + 1}/${imgTasks.length}`;
+            }
+        }
+
+        // [检测取消] (防止在最后生成文件前一秒取消)
+        if (isExportCancelled) throw new Error("USER_CANCEL");
+
+        // 6. 生成文件
+        txt.innerText = "生成 Excel 文件...";
+        const buffer = await wb.xlsx.writeBuffer();
+
+        // [检测取消]
+        if (isExportCancelled) throw new Error("USER_CANCEL");
+
+        saveAs(new Blob([buffer]), `Amazon_Data_${needImages?'WithImg':'TextOnly'}_${Date.now()}.xlsx`);
+
+    } catch (e) {
+        if (e.message === "USER_CANCEL") {
+            alert("❌ 导出已取消");
+        } else {
+            console.error(e);
+            alert("导出出错: " + e.message);
+        }
+    } finally {
+        mask.style.display = 'none';
+        bar.style.width = '0%';
+    }
+}
+
+        function batchClearColumn() {
+            const col = document.getElementById('batch-col-select').value;
+            if (!col) return alert("请先选择要清空的列！");
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const hasChecked = checkedBoxes.length > 0;
+            if (!hasChecked && filteredData.length === 0) return alert("没有数据可操作。");
+            const targetDesc = hasChecked ? `【已勾选的 ${checkedBoxes.length} 条】` : `【当前列表筛选出的 ${filteredData.length} 条】`;
+            if (!confirm(`⚠️ 高危操作警告 ⚠️\n\n即将清空 ${targetDesc} 数据的 【${col}】 列。\n\n操作不可撤销！是否继续？`)) return;
+            let count = 0;
+            const doClear = (item) => { if (item[col] && item[col] !== "" && item[col] !== "无") { item[col] = ""; count++; } };
+            if (hasChecked) { checkedBoxes.forEach(cb => { const idx = parseInt(cb.getAttribute('data-idx')); if (filteredData[idx]) doClear(filteredData[idx]); }); } else { filteredData.forEach(item => doClear(item)); }
+            alert(`✅ 操作完成！已清空 ${count} 条数据的 ${col} 字段。`); autoSave(); applyFilter();
+            const headerCb = document.getElementById('select-all-header'); if(headerCb) headerCb.checked = false;
+            FILTER_CONFIG.forEach(cfg => { const list = document.getElementById(`list-${cfg.key}`); if(list && list.classList.contains('show')) renderDropdownList(cfg.key); updateButtonLabel(cfg.key, cfg.label); });
+        }
+
+        function batchFillColumn() {
+            const col = document.getElementById('batch-col-select').value;
+            const val = document.getElementById('batch-val-input').value.trim();
+            if (!col) return alert("请先选择要操作的列！");
+            if (!val) return alert("请输入要填充的内容！");
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const hasChecked = checkedBoxes.length > 0;
+            if (!hasChecked && filteredData.length === 0) return alert("当前没有数据可操作。");
+            let targetIndices = [];
+            if (hasChecked) { checkedBoxes.forEach(cb => targetIndices.push(parseInt(cb.getAttribute('data-idx')))); }
+            const targetDesc = hasChecked ? `【已勾选的 ${targetIndices.length} 条】` : `【当前列表筛选出的 ${filteredData.length} 条】`;
+            if (!confirm(`⚠️ 批量修改确认 ⚠️\n\n即将把 ${targetDesc} 数据的 【${col}】 列\n统一修改为：👉 "${val}"\n\n是否继续？`)) return;
+            if (DROPDOWN_OPTIONS[col] && !DROPDOWN_OPTIONS[col].includes(val)) { DROPDOWN_OPTIONS[col].push(val); }
+            let count = 0;
+            if (hasChecked) { targetIndices.forEach(idx => { if (filteredData[idx]) { filteredData[idx][col] = val; count++; } }); } else { filteredData.forEach(item => { item[col] = val; count++; }); count = filteredData.length; }
+            alert(`✅ 操作完成！已修改 ${count} 条数据。`); autoSave(); applyFilter();
+            const headerCb = document.getElementById('select-all-header'); if(headerCb) headerCb.checked = false;
+            FILTER_CONFIG.forEach(cfg => { const list = document.getElementById(`list-${cfg.key}`); if(list && list.classList.contains('show')) renderDropdownList(cfg.key); updateButtonLabel(cfg.key, cfg.label); });
+        }
+
+        function toggleSort(key) {
+            if (sortConfig.key === key) sortConfig.order = sortConfig.order === 'asc' ? 'desc' : 'asc'; else { sortConfig.key = key; sortConfig.order = 'asc'; }
+            updateSortIndicators(); applySort(); renderTable();
+        }
+        function updateSortIndicators() { document.querySelectorAll('.sort-indicator').forEach(el => el.className = 'sort-indicator'); if (sortConfig.key) { const indicator = document.getElementById(`sort-indicator-${sortConfig.key}`); if (indicator) indicator.className = `sort-indicator ${sortConfig.order}`; } }
+        function applySort() {
+            if (!sortConfig.key) return;
+            filteredData.sort((a, b) => {
+                let valA = a[sortConfig.key]; let valB = b[sortConfig.key];
+                if (sortConfig.key === 'monthly_sales') { valA = valA ? Number(valA) : 0; valB = valB ? Number(valB) : 0; } else { valA = String(valA || ''); valB = String(valB || ''); }
+                let result = 0; if (valA < valB) result = -1; else if (valA > valB) result = 1;
+                return sortConfig.order === 'asc' ? result : -result;
+            });
+        }
+
+        function showDropdown(input) { const container = input.parentElement; const dropdown = container.querySelector('.dropdown-list'); const items = dropdown.querySelectorAll('.dropdown-list-item'); items.forEach(item => { item.style.display = 'block'; }); dropdown.classList.add('show'); }
+        function hideDropdown(input) { setTimeout(() => { const container = input.parentElement; const dropdown = container.querySelector('.dropdown-list'); dropdown.classList.remove('show'); }, 200); }
+        function toggleDropdownList(element) { const container = element.parentElement; const input = container.querySelector('.dropdown-input'); const dropdown = container.querySelector('.dropdown-list'); if (dropdown.classList.contains('show')) { dropdown.classList.remove('show'); } else { dropdown.classList.add('show'); input.focus(); } }
+
+        function updFiltered(fIdx, field, el) {
+            let val; if (el.classList.contains('dropdown-input')) { val = el.value; } else { val = el.tagName === 'SELECT' ? el.value : el.value; }
+            if (DROPDOWN_OPTIONS[field] && val && val.trim() !== "" && val !== "无") {
+                const newVal = val.trim();
+                if (!DROPDOWN_OPTIONS[field].includes(newVal)) {
+                    DROPDOWN_OPTIONS[field].push(newVal);
+                    const allInputs = document.querySelectorAll(`input[onchange*="'${field}'"]`);
+                    allInputs.forEach(inp => {
+                        const list = inp.parentElement.querySelector('.dropdown-list');
+                        if (list) {
+                            let exists = false; const items = list.querySelectorAll('.dropdown-list-item'); for (let item of items) { if (item.getAttribute('data-value') === newVal) { exists = true; break; } }
+                            if (!exists) { const newOpt = document.createElement('div'); newOpt.className = 'dropdown-list-item'; newOpt.setAttribute('data-value', newVal); newOpt.innerText = newVal; list.appendChild(newOpt); }
+                        }
+                    });
+                }
+            }
+            filteredData[fIdx][field] = val;
+            const item = filteredData[fIdx]; const isBottom = BOTTOM_CATS.includes(item.category); let isMissing = (!val || val.trim() === "" || val === "无");
+            if (isBottom && (field === 'collar' || field === 'sleeve')) isMissing = false; if (field === 'fabric_visual') isMissing = false;
+            if (isMissing) el.classList.add('missing-data'); else el.classList.remove('missing-data');
+            autoSave();
+        }
+
+        function filterDropdownOptions(input) { const container = input.parentElement; const dropdown = container.querySelector('.dropdown-list'); const items = dropdown.querySelectorAll('.dropdown-list-item'); const filterText = input.value.toLowerCase(); items.forEach(item => { const itemText = item.textContent.toLowerCase(); if (filterText === '' || itemText.includes(filterText)) { item.style.display = 'block'; } else { item.style.display = 'none'; } }); }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('dropdown-list-item')) {
+                const container = e.target.closest('.dropdown-input-container');
+                if (container) {
+                    const input = container.querySelector('.dropdown-input');
+                    const value = e.target.getAttribute('data-value');
+                    input.value = value;
+                    const row = container.closest('tr');
+                    const rowIndex = Array.from(row.parentElement.children).indexOf(row);
+                    const field = container.closest('td').cellIndex === 5 ? 'fabric_visual' : container.closest('td').cellIndex === 11 ? 'pattern' : container.closest('td').cellIndex === 6 ? 'fit' : container.closest('td').cellIndex === 7 ? 'collar' : container.closest('td').cellIndex === 8 ? 'sleeve' : container.closest('td').cellIndex === 10 ? 'length' : container.closest('td').cellIndex === 12 ? 'style' : '';
+                    if (field) { updFiltered(rowIndex, field, input); }
+                    container.querySelector('.dropdown-list').classList.remove('show');
+                }
+            }
+        }, true);
+
+        function gotoAnalysis() {
+            try {
+                const analysisData = filteredData.length > 0 ? filteredData : allData;
+                const formattedData = analysisData.map(item => ({
+                    '品类': item.category || '', '版型': item.fit || '', '领型': item.collar || '', '袖型': item.sleeve || '', '长度': item.length || '', '图案': item.pattern || '', '风格': item.style || '', '面料': item.fabric_visual || '', '材质': item.material || '', '元素': item.elements || '', '月销量': item.monthly_sales || 0, '商品标题': item.title || '', '中文标题': item.title_cn || '', 'ASIN': item.asin || ''
+                }));
+                localStorage.setItem('amazon_tagging_data', JSON.stringify({ data: formattedData, timestamp: new Date().getTime(), totalCount: formattedData.length }));
+                sessionStorage.setItem('amazon_analysis_data', JSON.stringify(formattedData));
+                window.location.href = 'https://wasdkd.github.io/Amazon/产品属性数据分析';
+            } catch (error) { console.error('数据传输失败:', error); alert('数据传输失败，请稍后重试'); }
+        }
+
+        function toggleSelectAllRows(headerCheckbox) { const checkboxes = document.querySelectorAll('.row-checkbox'); checkboxes.forEach(cb => cb.checked = headerCheckbox.checked); }
+        function updateHeaderCheckboxState() { const checkboxes = document.querySelectorAll('.row-checkbox'); const allChecked = Array.from(checkboxes).every(cb => cb.checked); const headerCb = document.getElementById('select-all-header'); if(headerCb) headerCb.checked = allChecked && checkboxes.length > 0; }
+    </script>
+</body>
+</html>

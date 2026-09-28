@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>跨境电商 Temu 卖家全阶实战手册 · 极致详尽版</title>
+    <style>
+        :root {
+            --primary-color: #ff5722;
+            --primary-dark: #e64a19;
+            --secondary-color: #2c3e50;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #334155;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans CJK SC", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e2a3a, #0f1722);
+            color: white;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            border-bottom: 4px solid var(--primary-color);
+        }
+
+        header h1 {
+            font-size: 2.3rem;
+            margin-bottom: 0.75rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        aside {
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+            border: 1px solid var(--border-color);
+        }
+
+        aside h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--secondary-color);
+            border-left: 4px solid var(--primary-color);
+            padding-left: 0.75rem;
+        }
+
+        aside ul {
+            list-style: none;
+        }
+
+        aside ul li {
+            margin-bottom: 0.7rem;
+        }
+
+        aside ul li a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        aside ul li a:hover {
+            color: var(--primary-color);
+            transform: translateX(2px);
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        section {
+            background: var(--card-bg);
+            padding: 2rem 2.2rem;
+            border-radius: 20px;
+            box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+            transition: box-shadow 0.2s;
+        }
+
+        section:hover {
+            box-shadow: 0 12px 24px -12px rgba(0,0,0,0.1);
+        }
+
+        section h2 {
+            font-size: 1.7rem;
+            color: var(--secondary-color);
+            margin-bottom: 1.2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.85rem 1rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.4rem;
+            margin: 1.5rem 0;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        .step-content h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            color: var(--secondary-color);
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.2rem;
+        }
+
+        .tool-card {
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.3rem;
+            background: #fefefe;
+            transition: all 0.2s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.05);
+        }
+
+        .tool-card h4 {
+            color: var(--secondary-color);
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tool-tag {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            background: #ffebd8;
+            color: var(--primary-dark);
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .alert-box, .success-box, .info-box {
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+        }
+        .alert-box {
+            background-color: #fef2f2;
+            border-left: 5px solid var(--danger-color);
+        }
+        .alert-box h4 { color: #b91c1c; margin-bottom: 0.6rem; display: flex; gap: 0.5rem; align-items: center;}
+        .success-box {
+            background-color: #ecfdf5;
+            border-left: 5px solid var(--success-color);
+        }
+        .success-box h4 { color: #065f46; margin-bottom: 0.5rem; }
+        .info-box {
+            background-color: #eff6ff;
+            border-left: 5px solid var(--info-color);
+        }
+        .info-box h4 { color: #1e40af; }
+
+        .glossary-term {
+            border-bottom: 1px dashed var(--primary-color);
+            cursor: help;
+            font-weight: 500;
+        }
+        .footnote {
+            background: #f8fafc;
+            padding: 0.8rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+            aside { display: none; }
+            section { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>📘 Temu 跨境全阶实战手册</h1>
+    <p>从注册到爆单 · 含财务模型·半托管深水区·工厂谈判·合规避坑 | 专业术语全注解</p>
+</header>
+
+<div class="container">
+    <aside>
+        <h3>📑 全景导航</h3>
+        <ul>
+            <li><a href="#section1">🌐 平台底层逻辑</a></li>
+            <li><a href="#section2">⚖️ 全托管 vs 半托管(2025新政)</a></li>
+            <li><a href="#section3">🔄 全托管生命全周期</a></li>
+            <li><a href="#section4">📋 入驻严苛清单</a></li>
+            <li><a href="#section5">🎯 选品实战兵法</a></li>
+            <li><a href="#section6">🛠️ 高阶工具链</a></li>
+            <li><a href="#section7">⚠️ 致命避坑+蓝海品类</a></li>
+            <li><a href="#section8">💰 财务模型&利润精算</a></li>
+            <li><a href="#section9">📌 日常运营SOP & 商务英语</a></li>
+            <li><a href="#section10">❓ 高频FAQ & 申诉通道</a></li>
+        </ul>
+    </aside>
+
+    <main>
+        <!-- 第一部分 扩展版 -->
+        <section id="section1">
+            <h2>🌐 一、Temu 平台底层逻辑与算法心智</h2>
+            <p><span class="glossary-term" title="拼多多控股旗下跨境电商平台，2022年9月上线">Temu</span> 本质是「柔性供应 + 社交裂变 + 数据驱动定价」的超级平价出海航母。核心算法指标排序：<strong>转化率 > 动销率 > 好评率 > 履约时效</strong>。平台采用<span class="glossary-term" title="买手拥有商品上架否决权和最终定价权">买手制核价</span>，同款比价系统自动抓取1688/其他平台公开价。卖家若无法提供极致性价比，极易被机器比价淘汰。</p>
+            <div class="info-box">
+                <h4>🧠 底层真相</h4>
+                <p>● <strong>流量分配</strong>：新品考核期3~14天，曝光取决于点击率(主图) + 加购率；<br>
+                ● <strong>评分权重</strong>：评分低于4.0将限制流量，高于4.6可进入“Temu Choice”流量池；<br>
+                ● <strong>价格优先级</strong>：同款产品供货价越低，买手越愿意给予首单权重，甚至直接清退高价卖家。</p>
+            </div>
+        </section>
+
+        <!-- 第二部分 深度对比新增半托管新政 -->
+        <section id="section2">
+            <h2>⚖️ 二、全托管 vs 半托管 · 2025 核心决策地图</h2>
+            <p>半托管<span class="glossary-term" title="卖家负责海外本土履约，平台负责前台引流">(Semi-Managed)</span> 2024下半年起成为大户红利，新手务必评估自身仓储能力。</p>
+            <table>
+                <thead><tr><th>对比项</th><th>全托管 (Fully Managed)</th><th>半托管 (Semi-Managed)</th></tr></thead>
+                <tbody>
+                    <tr><td>💰 入场资金门槛</td><td>1~3万滚动资金</td><td>海外仓备货至少20万+本地尾程物流合约</td></tr>
+                    <tr><td>📦 物流责任</td><td>头程发至国内仓(Temu官方揽收或自寄)，尾程平台负责</td><td>卖家必须使用海外仓(SHIPPO/亚马逊MCF等)48小时妥投率>95%</td></tr>
+                    <tr><td>🏷️ 定价权</td><td>买手核价，卖家仅提报供货价</td><td>平台控销售价，但因物流成本差异，供货价有一定弹性</td></tr>
+                    <tr><td>⚠️ 风险点</td><td>核价压榨，库存滞销（需支付退港费）</td><td>尾程时效罚款(超时每单$5)，退货率高无平台兜底</td></tr>
+                    <tr><td>🎯 适合卖家</td><td>工厂型、贸易初创、轻小件专精</td><td>海外现货商家、大件家居、品牌代理</td></tr>
+                </tbody>
+            </table>
+            <div class="alert-box"><h4>⚠️ 半托管新增红线（2025）</h4><ul><li>虚假海外仓地址永久封店；<li>发货时效应<strong>从下单到妥投≤5个日历日</strong>，否则每单罚款销售价的20%最高$10。</li></ul></div>
+        </section>
+
+        <!-- 第三部分 细化操作+专业术语备注 -->
+        <section id="section3">
+            <h2>🔄 三、全托管黄金流程 · 每一步都带术语</h2>
+            <div class="steps">
+                <div class="step-item"><div class="step-number">1</div><div class="step-content"><h4>开店+类目绑定</h4><p>提交营业执照、法人身份证、店铺Logo（非必须但建议）。注意一个主体可开20+子店铺，但主营类目一经绑定需联系买手调整。</p></div></div>
+                <div class="step-item"><div class="step-number">2</div><div class="step-content"><h4>选品提报 (Listing Creation)</h4><p>上传商品需白底图+场景图≥5张，英文标题遵循「核心词+属性词+场景词」公式。例如：<em>Yoga Resistance Bands Set, Pilates Exercise Loop Bands with Carry Bag</em>。</p></div></div>
+                <div class="step-item"><div class="step-number">3</div><div class="step-content"><h4>寄样质检 (Sample QC)</h4><p>寄送至广州/义乌/东莞质检仓，重点检查：标签合规（水洗标/CE/UKCA）、包装环保、无尖锐点。质检未过需承担退回运费并记入店铺考核。</p></div></div>
+                <div class="step-item"><div class="step-number">4</div><div class="step-content"><h4>核价谈判 (Price Negotiation)</h4><p>买手参考1688同款最低价+平台毛利期望。应对策略：提供组合SKU（例如3条装拉力带）、定制差异化包装来提升议价空间。</p></div></div>
+                <div class="step-item"><div class="step-number">5</div><div class="step-content"><h4>备货模式选择：<span class="glossary-term" title="供应商管理库存，批量入仓">VMI</span> vs <span class="glossary-term" title="准时制，出单后48小时急速送货到国内仓">JIT</span></h4><p>🔹 VMI适合爆款&稳定链接，但占压资金；🔹 JIT测款神器，但超时发货延迟将触发<strong>「虚假发货」</strong>每次违规罚款100-500元。新手建议：先JIT测款，2周内日均5单以上转VMI补货。</p></div></div>
+                <div class="step-item"><div class="step-number">6</div><div class="step-content"><h4>广告投放 (Promotion Ads)</h4><p>Temu后台“商品推广”CPC广告，最低出价¥0.2/点击，建议新品期每日预算¥30~50，关注ROAS＞2.5。</p></div></div>
+                <div class="step-item"><div class="step-number">7</div><div class="step-content"><h4>售后与退货处理 (RMA)</h4><p>买家发起“仅退款”场景：平台自动裁决，若商品评级低于4.0、实物质量问题致退款，商家承担货损+运费。质量纠纷可申诉提供检测视频/图片证据。</p></div></div>
+            </div>
+            <div class="footnote">✨ 小贴士：<strong>VMI模式下</strong>退货申请退回国内需承担¥3/件退港费，滞销超过90天强制弃货。</div>
+        </section>
+
+        <!-- 第四部分 补齐收款账户、商标、资金更细 -->
+        <section id="section4">
+            <h2>📋 四、入驻前置与隐形门槛</h2>
+            <ul>
+                <li><strong>营业执照</strong>：个体户可开，但企业店享受更多买手对接及活动提报资格，建议注册资本≥10万。</li>
+                <li><strong>收款账户</strong>：官方合作收款方式 <span class="glossary-term" title="连连支付、万里汇、PingPong、空中云汇等">连连/万里汇/PingPong</span>，结算账期为售卖后7~15天（视回款周期）。注意提现手续费率约0.3%~0.7%。</li>
+                <li><strong>商标与品牌墙</strong>：拥有美国/欧盟商标可备案成为“品牌卖家”，获得跟卖保护+专属买手群，且供货价可上浮10%左右。</li>
+                <li><strong>强制性认证</strong>：美国CPSC要求玩具/儿童产品CPC证书；电子产品FCC/CE；欧盟GPSR（通用产品安全法规）2025强制执行，缺少DOC声明将直接被海关销毁。</li>
+                <li><strong>工厂合作底线</strong>：必须签署代发合同，明确48h发货能力、次品率≤1%、支持贴扫码（Temu要求每个SKU贴「商品码+箱唛」）。</li>
+            </ul>
+        </section>
+
+        <!-- 第五部分 选品扩展：利润模型+供应链挖掘术 -->
+        <section id="section5">
+            <h2>🎯 五、精细化选品实战手册（含利润测算）</h2>
+            <div class="success-box">
+                <h4>🔍 Temu底层选品模型——“亚马逊榜单降维”</h4>
+                <p>① 打开Amazon BSR大类榜单 → ② 筛选21~100名价格$12~$35区间产品 → ③ 1688搜同款并核算供货成本 → ④ 预留供货价50%毛利供买手砍价（例如1688成本¥8，供货价提报¥19，核价后通常被砍至¥13~15，仍有利润）。</p>
+            </div>
+            <h4>✂️ 新手必算的“供货价安全线公式”：</h4>
+            <p><strong>最低供货价 ≥ (产品裸价 + 国内发仓运费均摊 + 首单测款损耗5%) × (1 + 预期利润率15%) + 平台潜在赔付预留5%</strong><br>例：产品成本¥6，国内快递¥0.8，损耗0.3，安全供货价至少¥(6+0.8+0.3)*1.2 ≈ ¥8.5。若买手给价低于8.5直接放弃，否则亏损。</p>
+            <h4>✅ 2025新兴蓝海子类目推荐：</h4>
+            <ul>
+                <li><strong>车载收纳/遮阳帘</strong>：均码，无尺码痛点，北美汽车文化盛行。</li>
+                <li><strong>宠物慢食碗/益智漏食球</strong>：高复购，退货率低于2%。</li>
+                <li><strong>办公人体工学手腕托/屏幕支架</strong>：居家办公长尾需求，不易比价。</li>
+                <li><strong>季节性派对装饰（万圣节/圣诞节提前2个月布局）</strong>：利润高但需严格卡时间节点。</li>
+            </ul>
+        </section>
+
+        <!-- 第六部分 工具扩展并加上具体用法 -->
+        <section id="section6">
+            <h2>🛠️ 六、高阶工具链与数据化决策</h2>
+            <h3>📊 选品&竞品监控</h3>
+            <div class="tools-grid">
+                <div class="tool-card"><h4>极鲸云·选品插件 <span class="tool-tag">必装</span></h4><p>直接显示Temu美国站日销量/月销额，支持按BSR预估供货价。配合“1688以图搜款”，效率提高3倍。</p></div>
+                <div class="tool-card"><h4>TemuHunt <span class="tool-tag">专业版</span></h4><p>查看竞品的上架趋势/历史价格波动/跟卖数，发掘黑马类目，提供中位数核价参考。</p></div>
+                <div class="tool-card"><h4>卖家精灵Temu版 <span class="tool-tag">新品探测器</span></h4><p>监控近7天上架且销量增长率超20%的潜力链接，提前挖掘蓝海。</p></div>
+            </div>
+            <h3>📦 ERP & 发货提效</h3>
+            <div class="tools-grid">
+                <div class="tool-card"><h4>店小秘ERP <span class="tool-tag">免费版够用</span></h4><p>一键采集1688/亚马逊产品至Temu草稿，批量生成条码/箱唛，JIT订单自动推送发货，避免超时罚款。</p></div>
+                <div class="tool-card"><h4>旺店通·跨境版 <span class="tool-tag">半托管专用</span></h4><p>对接海外仓(WFS/谷仓等)，实时同步库存，自动匹配最优尾程渠道。</p></div>
+            </div>
+            <div class="info-box"><h4>⚙️ 自动化提效秘籍</h4><p>使用“八爪鱼”或“Diffbot”定时抓取竞品价格变动，一旦发现竞品降价20%，立刻通知买手调价避免流量跌落。</p></div>
+        </section>
+
+        <!-- 第七部分 避坑深度补充+版权问题+替代品类 -->
+        <section id="section7">
+            <h2>⚠️ 七、避坑终极指南 · 死亡红线 & 蓝海替代</h2>
+            <div class="alert-box">
+                <h4>💀 十大隐形雷区 (新增知识产权)</h4>
+                <ul>
+                    <li><strong>专利侵权盲盒</strong>：美国外观专利检索极重要，售卖“指尖陀螺”“解压骰子”等易被律所TRO冻结资金。</li>
+                    <li><strong>敏感词触发</strong>：标题含“N95”“Fidget cube”“Yeti”等品牌词直接封禁。</li>
+                    <li><strong>刷单&自买</strong>：平台风控系统扫描买家账号关联，一旦检测到卖家下单直接永久封店。</li>
+                    <li><strong>多店铺关联</strong>：使用相同网络/IP/收款账户导致连坐封号。</li>
+                    <li><strong>过重/泡货陷阱</strong>：体积重大于实际重2倍以上的产品（懒人沙发），头程运费吃掉全部利润。</li>
+                </ul>
+            </div>
+            <h3>✅ 新手友好替代清单（瑜伽裤之外）</h3>
+            <div class="tools-grid">
+                <div class="tool-card"><h4>🎾 运动修护类</h4><p>肌贴/护膝/髌骨带 — 尺码少，复购强，欧美户外刚需。</p></div>
+                <div class="tool-card"><h4>🧯 汽车应急小工具</h4><p>安全带切割器、破窗锤、应急电源线 — 安全属性，价格不敏感。</p></div>
+                <div class="tool-card"><h4>🍱 厨房小神器</h4><p>手动切菜器、捣蒜器、封口夹 — 低价小件，出单率极高。</p></div>
+            </div>
+        </section>
+
+        <!-- 第八部分 新增：财务模型与风险精算 -->
+        <section id="section8">
+            <h2>💰 八、财务精算模型 · 现金流管理</h2>
+            <p><strong>全托管回款公式</strong>：<br>最终结算金额 =（销量 × 供货价） - 平台扣款（售后赔付+运费扣减+仓储超期费）- 广告费</p>
+            <ul>
+                <li><strong>头程运费</strong>：卖家承担从工厂发至Temu国内仓的物流费（中小件均摊¥0.3~1.2/件）。</li>
+                <li><strong>仓储超期费</strong>：VMI模式下免仓租30天，31~90天每天¥0.03/件，＞90天强制弃货并收费¥2/件。</li>
+                <li><strong>售后责任金</strong>：平台按销售额抽取0.5%作为质保金，若品质退款率高将直接扣划赔付。</li>
+            </ul>
+            <div class="success-box">
+                <h4>📐 现金流模拟案例（月销3000件的盈利模型）</h4>
+                <p>供货价¥15，成本¥7，头程¥1，均摊杂费¥0.5 → 单件毛利=15-7-1-0.5=¥6.5<br>
+                扣除平台售后损耗(8%)、广告费5% → 净利润≈4.2元/件，月利润12600元，需要滚动资金=成本+备货库存约3万元。资金周转率每年4~6次，ROI良好。</p>
+            </div>
+            <p><strong>避坑警告</strong>：Temu结算使用<span class="glossary-term" title="人民币结汇，按即期汇率自动转换">人民币结算</span>，若外币汇率剧烈波动请使用PingPong/万里汇的锁汇功能。</p>
+        </section>
+
+        <!-- 第九部分 日常运营SOP + 商务英语话术 -->
+        <section id="section9">
+            <h2>📌 九、日常运营SOP与买手沟通话术</h2>
+            <h4>🔁 每周必做运营动作：</h4>
+            <ul>
+                <li>周一：检查JIT库存，避免超时未发货；处理前一日售后纠纷，上传退款申诉材料。</li>
+                <li>周三：查看商品诊断报告，对低点击主图进行A/B测试（更换首图/添加徽章如"Best Seller"贴纸）。</li>
+                <li>周五：提交新品提报，与买手沟通滞销品降价清仓策略（降价可获得额外流量）。</li>
+                <li>周日：核算单品利润表，停掉亏损SKU，提报潜力款加大VMI备货。</li>
+            </ul>
+            <div class="info-box">
+                <h4>📧 买手谈判英语 & 中文模板</h4>
+                <p><strong>申请核价放宽</strong>：<br>
+                "Dear buyer, based on our MOQ 3000pcs and upgraded material (OEKO-TEX), we kindly request a price adjustment from $2.5 to $2.8. Attached are the material certificates."<br>
+                (中文：基于3000起订量及升级面料，申请供货价从$2.5提升至$2.8，附证书)</p>
+                <p><strong>滞销品清仓</strong>：提供限时折扣，买手会在前台设置Coupon，可降低库存积压风险。</p>
+            </div>
+        </section>
+
+        <!-- 第十部分 高频FAQ，覆盖实操痛点 -->
+        <section id="section10">
+            <h2>❓ 十、高频FAQ · 官方申诉通道</h2>
+            <ul>
+                <li><strong>Q：首单VMI被质检拒收，怎么办？</strong><br>A：可申请二次质检（付费¥20/次），拒收超三次该产品永久禁止上架。</li>
+                <li><strong>Q：JIT订单爆单来不及发货会被罚吗？</strong><br>A：JIT订单若未在48h内显示“国内仓揽收”状态，每单罚款10元。建议设置JIT最大接单量/日，避免超负荷。</li>
+                <li><strong>Q：店铺评分突然降至3.8，如何挽救？</strong><br>A：立刻下架低评链接，发布补偿优惠券（联系买手创建），并针对差评提供退款补发方案，两周内可回4.2。</li>
+                <li><strong>Q：如何申诉恶意退款？</strong><br>A：后台“售后管理-申诉中心”上传发货视频/带面单照片，平台审核周期3-7工作日，成功率约40%。</li>
+                <li><strong>Q：平台佣金到底收多少？</strong><br>A：Temu全托管目前<strong>0佣金0月租</strong>，仅收取0.5%售后备用金（部分类目除外），半托管收取7%销售佣金。</li>
+            </ul>
+            <div class="footnote">
+                🔗 官方商家帮助中心：https://seller.temu.com/help  |  紧急申诉邮箱：seller-support@temu.com (附店铺ID+问题截图)
+            </div>
+        </section>
+
+        <!-- 结尾加一个术语速查表装饰 -->
+        <section style="background: #fafcff;">
+            <h2>📖 附：常用术语速查表</h2>
+            <ul style="columns:2; column-gap: 2rem;">
+                <li><strong>VMI</strong> — 供应商管理库存，大批量入仓模式</li>
+                <li><strong>JIT</strong> — 准时制，出单后快速发货</li>
+                <li><strong>核价</strong> — 买手与商家商定供货价</li>
+                <li><strong>买手制</strong> — 平台采购经理全权决定选品与定价</li>
+                <li><strong>TRO</strong> — 临时限制令，侵权冻结资金</li>
+                <li><strong>CPC/CE/FCC</strong> — 欧美安全认证</li>
+                <li><strong>退港费</strong> — 滞销品退回国内的费用</li>
+                <li><strong>动销率</strong> — 90天内有销量SKU占比</li>
+            </ul>
+            <p style="margin-top: 1rem;">💡 本指南基于2025年Temu最新政策编写，请配合官方公告动态调整。</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>
