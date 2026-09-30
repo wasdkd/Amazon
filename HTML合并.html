@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML 合并工具 · 工具箱合集</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Noto Sans SC','Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    background:#eef1f5;color:#343a40;line-height:1.6;padding:24px 16px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:1.5rem;color:#232f3e;letter-spacing:.5px}
+  .sub{color:#6c757d;font-size:.88rem;margin:6px 0 20px}
+  .card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.06);margin-bottom:16px}
+  .card h2{font-size:1.02rem;color:#232f3e;font-weight:700;display:flex;align-items:center;gap:8px}
+  .card h2 .num{
+    background:#ff9900;color:#fff;width:22px;height:22px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;
+  }
+  .drop{
+    border:2px dashed #ced4da;border-radius:10px;padding:28px 20px;text-align:center;
+    color:#6c757d;transition:.2s;background:#fbfcfd;margin-top:12px;
+  }
+  .drop.over{border-color:#ff9900;background:#fff8ec;color:#b36b00}
+  .drop strong{color:#232f3e;display:block;font-size:1rem;margin-bottom:10px}
+  .btn{
+    border:none;border-radius:8px;padding:9px 16px;font-size:.9rem;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:.2s;
+    background:#f0c14b;color:#111;box-shadow:0 2px 6px rgba(0,0,0,.1);
+  }
+  .btn:hover{background:#e7a908;transform:translateY(-1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.blue{background:#007BFF;color:#fff}
+  .btn.blue:hover{background:#0069d9}
+  .btn.green{background:#28a745;color:#fff}
+  .btn.green:hover{background:#218838}
+  .btn.ghost{background:#fff;border:1px solid #ced4da;color:#495057;box-shadow:none}
+  .btn.ghost:hover{background:#f1f3f5}
+  .btn.sm{padding:4px 9px;font-size:.78rem;border-radius:6px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .file-list{list-style:none;margin-top:10px}
+  .file-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #e9ecef;
+    border-radius:8px;margin-top:8px;background:#fbfcfd;font-size:.86rem;
+  }
+  .file-item .idx{
+    background:#ff9900;color:#fff;border-radius:50%;width:22px;height:22px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;
+  }
+  .file-item .fname{flex:1;word-break:break-all}
+  .file-item .fsize{color:#adb5bd;font-size:.75rem;flex:0 0 auto}
+  .empty{color:#adb5bd;font-size:.85rem;padding:14px 0;text-align:center}
+  .status{font-size:.83rem;color:#6c757d;margin-top:10px;min-height:20px}
+  .status.ok{color:#218838}
+  .status.err{color:#c82333}
+  .opt-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:.88rem}
+  .opt-row label{color:#495057;min-width:96px;font-weight:500}
+  input[type=text]{
+    flex:1;min-width:220px;padding:8px 12px;border:1px solid #ced4da;border-radius:8px;
+    font-family:inherit;font-size:.88rem;outline:none;transition:.2s;
+  }
+  input[type=text]:focus{border-color:#ff9900;box-shadow:0 0 0 3px rgba(255,153,0,.15)}
+  input[type=checkbox]{width:16px;height:16px;accent-color:#ff9900;cursor:pointer}
+  #previewWrap{display:none;margin-top:16px}
+  #previewFrame{
+    width:100%;height:720px;border:1px solid #dee2e6;border-radius:10px;background:#fff;
+  }
+  .tip{font-size:.78rem;color:#868e96;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📦 HTML 合并工具</h1>
+  <p class="sub">把文件夹里的多个 HTML 可视化页面合并成一个带导航按钮的总页面 —— 纯浏览器运行，无需 Python。</p>
+
+  <!-- 1. 选择文件 -->
+  <div class="card">
+    <h2><span class="num">1</span>选择 HTML 文件</h2>
+    <div class="drop" id="dropZone">
+      <strong>把文件夹或 HTML 文件拖到这里</strong>
+      <div class="toolbar" style="justify-content:center">
+        <button class="btn" id="pickDirBtn">选择文件夹</button>
+        <button class="btn ghost" id="pickFilesBtn">选择多个文件</button>
+      </div>
+      <input type="file" id="dirInput" webkitdirectory directory multiple hidden>
+      <input type="file" id="filesInput" accept=".html,.htm" multiple hidden>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <!-- 2. 文件列表 -->
+  <div class="card">
+    <h2><span class="num">2</span>文件列表（<span id="fileCount">0</span> 个）</h2>
+    <ul class="file-list" id="fileList"></ul>
+    <div class="empty" id="emptyTip">还没有添加文件</div>
+    <div class="toolbar">
+      <button class="btn ghost sm" id="sortBtn">按文件名排序</button>
+      <button class="btn ghost sm" id="clearBtn">清空全部</button>
+    </div>
+    <div class="tip">顺序 = 导航按钮顺序，可用 ↑ ↓ 调整。</div>
+  </div>
+
+  <!-- 3. 输出设置 -->
+  <div class="card">
+    <h2><span class="num">3</span>输出设置</h2>
+    <div class="opt-row">
+      <label>页面标题</label>
+      <input type="text" id="pageTitle" value="工具箱合集">
+    </div>
+    <div class="opt-row">
+      <label>输出文件名</label>
+      <input type="text" id="outName" value="工具箱合集.html">
+    </div>
+    <div class="opt-row">
+      <label>返回平台</label>
+      <input type="checkbox" id="includeBack" checked>
+      <span>在页头添加「返回平台」按钮</span>
+    </div>
+    <div class="opt-row">
+      <label>跳转地址</label>
+      <input type="text" id="backUrl" value="https://">
+    </div>
+  </div>
+
+  <!-- 4. 生成 -->
+  <div class="card">
+    <h2><span class="num">4</span>生成 / 下载</h2>
+    <div class="toolbar">
+      <button class="btn blue" id="previewBtn">生成并预览</button>
+      <button class="btn green" id="downloadBtn">下载合并文件</button>
+    </div>
+    <div class="status" id="genStatus"></div>
+    <div id="previewWrap">
+      <iframe id="previewFrame" title="预览"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 状态 ============ */
+var items = [];          // { name, content, title }
+var previewUrl = null;
+
+/* ============ 工具函数 ============ */
+function escapeHTML(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+/* iframe srcdoc 属性值只需转义 & 和 " */
+function escapeAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+}
+function shorten(s, n) {
+  return s.length > n ? s.slice(0, n) + '...' : s;
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+function setStatus(el, msg, type) {
+  var node = document.getElementById(el);
+  node.textContent = msg;
+  node.className = 'status' + (type ? ' ' + type : '');
+}
+
+/* 文件名 → 标题（与原 Python 逻辑一致） */
+function makeTitle(filename) {
+  var t = filename.replace(/\.html?$/i, '').replace(/_/g, ' ').replace(/-/g, ' ');
+  if (t.indexOf('品类关键词月搜索量') !== -1) {
+    t = t.replace(/品类关键词月搜索量/g, '').trim();
+  }
+  t = t.trim();
+  return t || filename;
+}
+
+/* ============ 读取文件 ============ */
+function isHtmlFile(name) { return /\.html?$/i.test(name); }
+
+async function addFiles(fileList) {
+  var list = Array.prototype.slice.call(fileList).filter(function (f) { return isHtmlFile(f.name); });
+  if (!list.length) {
+    setStatus('status', '没有找到 .html / .htm 文件', 'err');
+    return;
+  }
+  setStatus('status', '正在读取 ' + list.length + ' 个文件…');
+
+  var ok = 0, skipped = 0, failed = 0;
+  for (var i = 0; i < list.length; i++) {
+    var f = list[i];
+    if (items.some(function (it) { return it.name === f.name; })) { skipped++; continue; }
+    try {
+      var text = await f.text();
+      items.push({ name: f.name, content: text, title: makeTitle(f.name), size: f.size });
+      ok++;
+    } catch (e) {
+      console.error('读取失败：' + f.name, e);
+      failed++;
+    }
+  }
+  renderFiles();
+
+  var msg = '已添加 ' + ok + ' 个文件';
+  if (skipped) msg += '，跳过重名 ' + skipped + ' 个';
+  if (failed) msg += '，读取失败 ' + failed + ' 个';
+  setStatus('status', msg, failed ? 'err' : 'ok');
+}
+
+/* 拖拽：支持文件夹递归 */
+async function walkEntry(entry, out) {
+  if (!entry) return;
+  if (entry.isFile) {
+    var file = await new Promise(function (res, rej) { entry.file(res, rej); });
+    if (isHtmlFile(file.name)) out.push(file);
+  } else if (entry.isDirectory) {
+    var reader = entry.createReader();
+    var batch;
+    do {
+      batch = await new Promise(function (res, rej) { reader.readEntries(res, rej); });
+      for (var i = 0; i < batch.length; i++) {
+        await walkEntry(batch[i], out);
+      }
+    } while (batch.length);
+  }
+}
+
+async function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('over');
+  var dt = e.dataTransfer;
+  var entries = [];
+  if (dt.items && dt.items.length) {
+    for (var i = 0; i < dt.items.length; i++) {
+      if (dt.items[i].webkitGetAsEntry) {
+        var en = dt.items[i].webkitGetAsEntry();
+        if (en) entries.push(en);
+      }
+    }
+  }
+  var files = [];
+  if (entries.length) {
+    setStatus('status', '正在扫描拖入的文件夹…');
+    for (var j = 0; j < entries.length; j++) {
+      await walkEntry(entries[j], files);
+    }
+  } else {
+    files = Array.prototype.slice.call(dt.files || []);
+  }
+  await addFiles(files);
+}
+
+/* ============ 渲染文件列表 ============ */
+function renderFiles() {
+  var list = document.getElementById('fileList');
+  var empty = document.getElementById('emptyTip');
+  list.innerHTML = '';
+  document.getElementById('fileCount').textContent = items.length;
+  empty.style.display = items.length ? 'none' : 'block';
+
+  items.forEach(function (it, i) {
+    var li = document.createElement('li');
+    li.className = 'file-item';
+
+    var idx = document.createElement('span');
+    idx.className = 'idx';
+    idx.textContent = i + 1;
+
+    var name = document.createElement('span');
+    name.className = 'fname';
+    name.textContent = it.name;
+
+    var size = document.createElement('span');
+    size.className = 'fsize';
+    size.textContent = formatSize(it.size || it.content.length);
+
+    var up = document.createElement('button');
+    up.className = 'btn ghost sm';
+    up.textContent = '↑';
+    up.onclick = function () { move(i, -1); };
+
+    var down = document.createElement('button');
+    down.className = 'btn ghost sm';
+    down.textContent = '↓';
+    down.onclick = function () { move(i, 1); };
+
+    var del = document.createElement('button');
+    del.className = 'btn ghost sm';
+    del.textContent = '×';
+    del.onclick = function () { items.splice(i, 1); renderFiles(); };
+
+    li.appendChild(idx);
+    li.appendChild(name);
+    li.appendChild(size);
+    li.appendChild(up);
+    li.appendChild(down);
+    li.appendChild(del);
+    list.appendChild(li);
+  });
+}
+
+function move(i, d) {
+  var j = i + d;
+  if (j < 0 || j >= items.length) return;
+  var tmp = items[i]; items[i] = items[j]; items[j] = tmp;
+  renderFiles();
+}
+
+/* ============ 生成合并 HTML ============ */
+function buildMergedHTML() {
+  var title = document.getElementById('pageTitle').value.trim() || '工具箱合集';
+  var includeBack = document.getElementById('includeBack').checked;
+  var backUrl = document.getElementById('backUrl').value.trim();
+
+  /* 导航按钮 */
+  var navHtml = items.map(function (it, i) {
+    var label = (i + 1) + '. ' + shorten(it.title, 25);
+    return '<button class="nav-btn" onclick="navigateToReport(' + i + ')">' +
+           escapeHTML(label) + '</button>';
+  }).join('\n                ');
+
+  /* 各个 iframe 区块（srcdoc 内嵌完整页面） */
+  var sectionHtml = items.map(function (it) {
+    return '<div class="visualization-section"><div class="iframe-container"><iframe srcdoc="' +
+           escapeAttr(it.content) + '"></iframe></div></div>';
+  }).join('\n                ');
+
+  /* 返回平台按钮 */
+  var backHtml = '';
+  if (includeBack && backUrl) {
+    backHtml = '<a href="' + escapeAttr(backUrl) + '">' +
+      '<button style="padding:1px 8px;margin-right:10px;border:none;border-radius:6px;' +
+      'background-color:#007BFF;color:white;font-size:15px;cursor:pointer;' +
+      'box-shadow:0 2px 4px rgba(0,0,0,0.2);' +
+      'transition:background-color 0.3s ease, transform 0.2s ease;">返回平台</button></a>';
+  }
+
+  return '<!DOCTYPE html>\n' +
+'<html lang="zh-CN">\n' +
+'<head>\n' +
+'<meta charset="UTF-8">\n' +
+'<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+'<title>' + escapeHTML(title) + '</title>\n' +
+'<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">\n' +
+'<style>\n' +
+'*{box-sizing:border-box;margin:0;padding:0}\n' +
+'body{font-family:\'Noto Sans SC\',\'Segoe UI\',Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;background-color:#f8f9fa;color:#343a40}\n' +
+'.container{max-width:100%;margin:0;padding:0px}\n' +
+'header{text-align:center;background:linear-gradient(135deg,#232f3e,#37475a);color:white;padding:1px 0;margin-bottom:1px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}\n' +
+'h5{text-align:center;font-size:1.2rem;font-weight:700;letter-spacing:0.5px}\n' +
+'.nav-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:5px;background:white;margin-bottom:2px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,0.05);position:sticky;top:10px;z-index:100}\n' +
+'.nav-btn{padding:1px 1px;background:#f0c14b;color:#111;border:none;border-radius:6px;cursor:pointer;font-weight:600;transition:all 0.3s ease;box-shadow:0 2px 5px rgba(0,0,0,0.1);font-size:1.05rem;min-width:10px}\n' +
+'.nav-btn:hover{background:#e7a908;transform:translateY(-3px);box-shadow:0 5px 12px rgba(0,0,0,0.15)}\n' +
+'.nav-btn.active{background:linear-gradient(to right,#ff416c 0%,#ff4b2b 100%);box-shadow:inset 0 2px 4px rgba(0,0,0,0.15);transform:none}\n' +
+'.visualization-section{margin-bottom:50px;background:white;border-radius:12px;box-shadow:0 7px 20px rgba(0,0,0,0.08);overflow:hidden;border:1px solid #e9ecef;display:none}\n' +
+'.iframe-container{width:100%;height:850px;overflow:auto;border:none}\n' +
+'iframe{width:100%;height:100%;border:none;display:block}\n' +
+'@media (max-width:768px){\n' +
+'  .nav-bar{padding:12px}\n' +
+'  .nav-btn{width:100%;padding:14px;min-width:auto}\n' +
+'  .iframe-container{height:700px}\n' +
+'}\n' +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<header>\n' +
+'  <div class="container">\n' +
+'    <h5>' + escapeHTML(title) + '</h5>\n' +
+'    ' + backHtml + '\n' +
+'  </div>\n' +
+'</header>\n' +
+'\n' +
+'<div class="container">\n' +
+'  <div class="nav-bar" id="navBar">\n' +
+'                ' + navHtml + '\n' +
+'  </div>\n' +
+'\n' +
+'  <div id="visualizationsContainer">\n' +
+'                ' + sectionHtml + '\n' +
+'  </div>\n' +
+'</div>\n' +
+'\n' +
+'<script>\n' +
+'function navigateToReport(index){\n' +
+'  var sections=document.querySelectorAll(\'.visualization-section\');\n' +
+'  sections.forEach(function(section,i){section.style.display=(i===index)?\'block\':\'none\';});\n' +
+'  document.querySelectorAll(\'.nav-btn\').forEach(function(btn,i){\n' +
+'    if(i===index){btn.classList.add(\'active\');btn.scrollIntoView({behavior:\'smooth\',block:\'nearest\',inline:\'center\'});}\n' +
+'    else{btn.classList.remove(\'active\');}\n' +
+'  });\n' +
+'  window.location.hash=\'#report-\'+(index+1);\n' +
+'}\n' +
+'document.addEventListener(\'DOMContentLoaded\',function(){\n' +
+'  var hash=window.location.hash,initialIndex=0;\n' +
+'  if(hash.indexOf(\'#report-\')===0){\n' +
+'    var n=parseInt(hash.replace(\'#report-\',\'\'),10);\n' +
+'    if(!isNaN(n)&&n>0){initialIndex=n-1;}\n' +
+'  }\n' +
+'  var sections=document.querySelectorAll(\'.visualization-section\');\n' +
+'  if(sections.length>0){\n' +
+'    if(initialIndex>=sections.length){initialIndex=0;}\n' +
+'    navigateToReport(initialIndex);\n' +
+'  }\n' +
+'});\n' +
+'<\/script>\n' +
+'</body>\n' +
+'</html>';
+}
+
+function getOutputName() {
+  var n = document.getElementById('outName').value.trim() || '工具箱合集.html';
+  if (!/\.html?$/i.test(n)) n += '.html';
+  return n;
+}
+
+/* ============ 预览 ============ */
+function preview() {
+  if (!items.length) { setStatus('genStatus', '请先添加 HTML 文件', 'err'); return null; }
+  var html = buildMergedHTML();
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  var frame = document.getElementById('previewFrame');
+  frame.src = previewUrl;
+  document.getElementById('previewWrap').style.display = 'block';
+  setStatus('genStatus',
+    '已生成：' + items.length + ' 个文件，约 ' + formatSize(html.length) + '（下方为预览）', 'ok');
+  return html;
+}
+
+/* ============ 下载 ============ */
+function download() {
+  if (!items.length) { setStatus('genStatus', '请先添加 HTML 文件', 'err'); return; }
+  var html = buildMergedHTML();
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = getOutputName();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+  setStatus('genStatus', '已下载：' + getOutputName() + '（' + formatSize(html.length) + '）', 'ok');
+}
+
+/* ============ 事件绑定 ============ */
+(function init() {
+  var dropZone = document.getElementById('dropZone');
+  var dirInput = document.getElementById('dirInput');
+  var filesInput = document.getElementById('filesInput');
+
+  document.getElementById('pickDirBtn').onclick = function () { dirInput.click(); };
+  document.getElementById('pickFilesBtn').onclick = function () { filesInput.click(); };
+  dropZone.onclick = function (e) { if (e.target === dropZone) dirInput.click(); };
+
+  dirInput.onchange = function () { addFiles(dirInput.files); dirInput.value = ''; };
+  filesInput.onchange = function () { addFiles(filesInput.files); filesInput.value = ''; };
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    dropZone.addEventListener(ev, function (e) { e.preventDefault(); dropZone.classList.remove('over'); });
+  });
+  dropZone.addEventListener('drop', handleDrop);
+  /* 防止拖到页面其它地方时浏览器直接打开文件 */
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  document.getElementById('sortBtn').onclick = function () {
+    items.sort(function (a, b) { return a.name.localeCompare(b.name, 'zh-CN'); });
+    renderFiles();
+    setStatus('status', '已按文件名排序', 'ok');
+  };
+  document.getElementById('clearBtn').onclick = function () {
+    items = [];
+    renderFiles();
+    document.getElementById('previewWrap').style.display = 'none';
+    setStatus('status', '已清空', 'ok');
+  };
+
+  document.getElementById('previewBtn').onclick = preview;
+  document.getElementById('downloadBtn').onclick = download;
+
+  renderFiles();
+})();
+</script>
+</body>
+</html>
