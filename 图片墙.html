@@ -401,7 +401,7 @@
             <button class="btn-mode" data-mode="foldingAccordion">🪟 屏风折</button>
             <button class="btn-mode" data-mode="slantedSlices">⚡ 斜切片</button>
             <button class="btn-mode" data-mode="ring">🎠 3D圆环</button>
-            <button class="btn-mode" data-mode="doubleRing">🌊 双层波浪环</button>
+            <button class="btn-mode" data-mode="doubleRing">🌊 多层环</button>
             <button class="btn-mode" data-mode="coverflow">🖼️ 画廊</button>
             <button class="btn-mode" data-mode="flatGrid">🔲 平铺</button>
         </div>
@@ -418,6 +418,13 @@
 
             <span class="control-label" style="margin-left:6px;">间距:</span>
             <input type="range" id="spacing-scale" min="0.5" max="1.6" step="0.05" value="1.0">
+        </div>
+
+        <div class="tool-section ring-layers-ctrl" id="ring-layers-ctrl" style="display:none;">
+            <span class="control-label">🌊 环层数:</span>
+            <input type="range" id="ring-layers" min="1" max="5" step="1" value="2">
+            <span id="label-ring-layers" style="font-size:11px; font-weight:700; color:var(--primary); width:18px;">2</span>
+            <button class="btn" id="btn-ring-align" style="margin-left:6px; padding:4px 9px; font-size:11px;">🌀 错开</button>
         </div>
 
         <div class="divider"></div>
@@ -503,6 +510,8 @@
         let cardScale = 0.75;
         let spacingMultiplier = 1.0;
         let itemsPerRow = 5;
+        let ringLayers = 2;
+        let ringAlign = 'stagger'; // 'stagger' 错开 | 'aligned' 正对
         let activeCoverIndex = 0;
         let fitMode = 'cover';
 
@@ -702,20 +711,24 @@
                         transformStr = `rotateY(${angle}deg) translateZ(${radius}px)`;
                         break;
                     }
-                    // 🌊 双层波浪环
+                    // 🌊 多层环
                     case "doubleRing": {
-                        const half = Math.ceil(total / 2);
-                        const isTop = i < half;
-                        const indexInLayer = isTop ? i : i - half;
-                        const countInLayer = isTop ? half : (total - half);
-                        const safeCount = Math.max(countInLayer, 2);
+                        const layers = Math.max(1, ringLayers);
+                        // 所有层共用同一个圆周尺寸（slotCount），保证半径/角度一致，不会内环套外环
+                        const slotCount = Math.max(2, Math.ceil(total / layers));
+                        const layer = Math.min(layers - 1, Math.floor(i / slotCount));
+                        const indexInLayer = i - layer * slotCount;
 
-                        const angle = indexInLayer * (360 / safeCount);
+                        // 层间角度偏移：错开模式避免上下重合；对齐模式形成圆筒
+                        const angleOffset = ringAlign === 'aligned' ? 0 : layer * (180 / slotCount);
+                        const angle = indexInLayer * (360 / slotCount) + angleOffset;
                         const radius = Math.max(
                             360,
-                            ((baseW + 24 * spacingMultiplier) / 2) / Math.tan(Math.PI / safeCount)
+                            ((baseW + 24 * spacingMultiplier) / 2) / Math.tan(Math.PI / slotCount)
                         ) * spacingMultiplier;
-                        const posY = isTop ? -85 * spacingMultiplier : 85 * spacingMultiplier;
+                        // Y 方向居中：层数仅 1 层居中，层数多时上下对称
+                        const layerGap = 170 * spacingMultiplier;
+                        const posY = (layer - (layers - 1) / 2) * layerGap;
 
                         transformStr = `rotateY(${angle}deg) translateZ(${radius}px) translateY(${posY}px)`;
                         break;
@@ -841,6 +854,9 @@
                     targetRotationX = -3; targetRotationY = 0; zoomZ = 0;
                 }
 
+                // 环层数控件仅在多层环模式下显示
+                ringCtrl.style.display = (currentMode === "doubleRing") ? "flex" : "none";
+
                 applyLayout();
             });
         });
@@ -852,6 +868,23 @@
             itemsPerRow = parseInt(e.target.value);
             rowLabel.textContent = itemsPerRow;
             applyLayout();
+        });
+
+        // 环层数动态调节（仅多层环模式生效）
+        const ringInput = document.getElementById("ring-layers");
+        const ringLabel = document.getElementById("label-ring-layers");
+        const ringCtrl = document.getElementById("ring-layers-ctrl");
+        const ringAlignBtn = document.getElementById("btn-ring-align");
+        ringInput.addEventListener("input", (e) => {
+            ringLayers = parseInt(e.target.value);
+            ringLabel.textContent = ringLayers;
+            if (currentMode === "doubleRing") applyLayout();
+        });
+        ringAlignBtn.addEventListener("click", () => {
+            ringAlign = ringAlign === 'stagger' ? 'aligned' : 'stagger';
+            ringAlignBtn.textContent = ringAlign === 'stagger' ? '🌀 错开' : '🌛 对齐';
+            ringAlignBtn.style.background = ringAlign === 'aligned' ? '#e0f2fe' : '#ffffff';
+            if (currentMode === "doubleRing") applyLayout();
         });
 
         // 卡片尺寸与间距调节
@@ -878,11 +911,16 @@
 
         document.getElementById("btn-reset").addEventListener("click", () => {
             targetRotationX = -4; targetRotationY = 0; zoomZ = 0;
-            cardScale = 0.75; spacingMultiplier = 1.0; itemsPerRow = 5;
+            cardScale = 0.75; spacingMultiplier = 1.0; itemsPerRow = 5; ringLayers = 2;
+            ringAlign = 'stagger';
+            ringAlignBtn.textContent = '🌀 错开';
+            ringAlignBtn.style.background = '#ffffff';
             document.getElementById("card-scale").value = 0.75;
             document.getElementById("spacing-scale").value = 1.0;
             document.getElementById("items-per-row").value = 5;
+            document.getElementById("ring-layers").value = 2;
             rowLabel.textContent = 5;
+            ringLabel.textContent = 2;
             hiddenUrls.clear();
             selectedUrls.clear();
             renderImages();
@@ -960,6 +998,7 @@
     </script>
 </body>
 </html>
+
 
 
 
