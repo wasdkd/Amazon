@@ -124,11 +124,11 @@
 <div class="charts-container">
     <style>.box { justify-content:center; display:flex; flex-wrap:wrap;  } </style>
     <div class="box">
-                <div id="chart_1791793755234_4415" class="chart-container" style="width:100%; height:630px; "></div>
+                <div id="chart_1791796610372_8285" class="chart-container" style="width:100%; height:630px; "></div>
     <script>
-        var chart_chart_1791793755234_4415 = echarts.init(
-            document.getElementById('chart_1791793755234_4415'), 'white', {renderer: 'canvas'});
-        var option_chart_1791793755234_4415 = {
+        var chart_chart_1791796610372_8285 = echarts.init(
+            document.getElementById('chart_1791796610372_8285'), 'white', {renderer: 'canvas'});
+        var option_chart_1791796610372_8285 = {
     "animation": true,
     "animationThreshold": 2000,
     "animationDuration": 1000,
@@ -3498,9 +3498,9 @@
         "bottom": "10%"
     }
 };
-        chart_chart_1791793755234_4415.setOption(option_chart_1791793755234_4415);
+        chart_chart_1791796610372_8285.setOption(option_chart_1791796610372_8285);
             window.addEventListener('resize', function(){
-                chart_chart_1791793755234_4415.resize();
+                chart_chart_1791796610372_8285.resize();
             })
     </script>
 <br/>    </div>
@@ -3539,6 +3539,12 @@
         controlsContainer.appendChild(searchContainer);
         controlsContainer.appendChild(startSliderContainer);
         controlsContainer.appendChild(endSliderContainer);
+
+        // ================= 在筛选行最后面追加“返回平台”按钮 =================
+        var backContainer = document.createElement('div');
+        backContainer.innerHTML = '<a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform" target="_top" style="display:inline-block; background-color:#2196F3; color:white; padding:9px 18px; border-radius:4px; font-weight:bold; font-size:14px; text-decoration:none; box-shadow:0 2px 4px rgba(0,0,0,0.15);">返回平台</a>';
+        controlsContainer.appendChild(backContainer);
+        // ==================================================================
 
         var chartsContainer = document.querySelector('.charts-container');
         if (chartsContainer) {
