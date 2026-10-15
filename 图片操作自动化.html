@@ -4835,7 +4835,7 @@
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot;&gt;
   &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-  &lt;title&gt;亚马逊 ASIN 智能分组与格式化工具&lt;/title&gt;
+  &lt;title&gt;亚马逊 ASIN 智能分组与卖家精灵联动工具&lt;/title&gt;
   &lt;!-- 引入 SheetJS 用于在浏览器端纯本地解析与导出 Excel --&gt;
   &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
   &lt;style&gt;
@@ -4849,6 +4849,8 @@
       --border: #e2e8f0;
       --success: #10b981;
       --accent: #f59e0b;
+      --seller-sprite: #ff7d00;
+      --seller-sprite-hover: #e06d00;
     }
 
     * {
@@ -4913,7 +4915,7 @@
     /* 主布局 */
     .grid-layout {
       display: grid;
-      grid-template-columns: 480px 1fr;
+      grid-template-columns: 460px 1fr;
       gap: 24px;
       align-items: start;
     }
@@ -4999,10 +5001,9 @@
       display: none;
     }
 
-    /* 文本输入 */
     textarea {
       width: 100%;
-      height: 150px;
+      height: 140px;
       padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -5049,19 +5050,7 @@
       color: #0f172a;
     }
 
-    .input-control {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 13px;
-      outline: none;
-    }
-    .input-control:focus {
-      border-color: var(--primary);
-    }
-
-    .select-control {
+    .input-control, .select-control {
       width: 100%;
       padding: 8px 12px;
       border: 1px solid var(--border);
@@ -5115,8 +5104,8 @@
       background: #fff;
       border: 1px solid var(--border);
       color: #334155;
-      font-size: 13px;
-      padding: 6px 12px;
+      font-size: 12px;
+      padding: 5px 10px;
     }
     .btn-outline:hover {
       background: #f8fafc;
@@ -5131,6 +5120,22 @@
     }
     .btn-success:hover {
       background: #047857;
+    }
+
+    /* 卖家精灵跳转快捷按钮 */
+    .btn-sellersprite {
+      background: var(--seller-sprite);
+      color: #fff;
+      font-size: 12px;
+      padding: 5px 12px;
+      font-weight: 600;
+    }
+    .btn-sellersprite:hover {
+      background: var(--seller-sprite-hover);
+    }
+    .btn-sellersprite.visited {
+      background: #64748b;
+      opacity: 0.8;
     }
 
     /* 右侧统计与结果区 */
@@ -5193,12 +5198,22 @@
       border-color: #cbd5e1;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
+    .batch-item.active-working {
+      border-color: var(--seller-sprite);
+      background: #fffbf5;
+    }
 
     .batch-item-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 8px;
+    }
+
+    .batch-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .batch-index {
@@ -5223,7 +5238,7 @@
       border-radius: 6px;
       word-break: break-all;
       white-space: pre-wrap;
-      max-height: 120px;
+      max-height: 100px;
       overflow-y: auto;
       border: 1px solid #f1f5f9;
       color: #334155;
@@ -5259,25 +5274,22 @@
 &lt;body&gt;
 
 &lt;div class=&quot;container&quot;&gt;
-  &lt;!-- 头部 --&gt;
   &lt;header&gt;
     &lt;div class=&quot;title-group&quot;&gt;
       &lt;h1&gt;
         &lt;svg width=&quot;24&quot; height=&quot;24&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z&quot;&gt;&lt;/path&gt;&lt;polyline points=&quot;3.27 6.96 12 12.01 20.73 6.96&quot;&gt;&lt;/polyline&gt;&lt;line x1=&quot;12&quot; y1=&quot;22.08&quot; x2=&quot;12&quot; y2=&quot;12&quot;&gt;&lt;/line&gt;&lt;/svg&gt;
-        数据批量分组与格式化工具
+        ASIN 智能分组与卖家精灵查竞品联动
       &lt;/h1&gt;
-      &lt;span class=&quot;badge&quot;&gt;V2.0 增强版&lt;/span&gt;
+      &lt;span class=&quot;badge&quot;&gt;V2.5 联动增强版&lt;/span&gt;
     &lt;/div&gt;
     &lt;div class=&quot;privacy-tag&quot;&gt;
       &lt;svg width=&quot;16&quot; height=&quot;16&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;path d=&quot;M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;
-      纯本地处理 · 离线可用 · 绝不上传服务器
+      单标签复用 · 纯本地解析 · 安全高效
     &lt;/div&gt;
   &lt;/header&gt;
 
-  &lt;!-- 主工作区 --&gt;
   &lt;div class=&quot;grid-layout&quot;&gt;
-
-    &lt;!-- 左侧：输入与配置参数 --&gt;
+    &lt;!-- 左侧：输入与配置 --&gt;
     &lt;div&gt;
       &lt;div class=&quot;card&quot;&gt;
         &lt;div class=&quot;card-title&quot;&gt;
@@ -5309,51 +5321,45 @@
           &lt;textarea id=&quot;rawTextInput&quot; placeholder=&quot;可直接粘贴一行或多行 ASIN，例如：
 B09X123456
 B08Y654321
-B07Z987654
-或用逗号、空格分隔的文本都可以识别&quot;&gt;&lt;/textarea&gt;
+B07Z987654&quot;&gt;&lt;/textarea&gt;
         &lt;/div&gt;
       &lt;/div&gt;
 
-      &lt;!-- 参数配置卡片 --&gt;
       &lt;div class=&quot;card&quot;&gt;
         &lt;div class=&quot;card-title&quot;&gt;
-          &lt;span&gt;2. 分组与格式化设置&lt;/span&gt;
+          &lt;span&gt;2. 分组与市场站点设置&lt;/span&gt;
         &lt;/div&gt;
 
-        &lt;!-- 每组数量 --&gt;
+        &lt;!-- 卖家精灵站点选择 --&gt;
         &lt;div class=&quot;form-group&quot;&gt;
-          &lt;label class=&quot;form-label&quot;&gt;每组数量（Batch Size）：&lt;/label&gt;
+          &lt;label class=&quot;form-label&quot;&gt;目标市场站点（Market）：&lt;/label&gt;
+          &lt;select id=&quot;marketSelect&quot; class=&quot;select-control&quot;&gt;
+            &lt;option value=&quot;US&quot; selected&gt;美国站 (US)&lt;/option&gt;
+            &lt;option value=&quot;UK&quot;&gt;英国站 (UK)&lt;/option&gt;
+            &lt;option value=&quot;DE&quot;&gt;德国站 (DE)&lt;/option&gt;
+            &lt;option value=&quot;JP&quot;&gt;日本站 (JP)&lt;/option&gt;
+            &lt;option value=&quot;FR&quot;&gt;法国站 (FR)&lt;/option&gt;
+            &lt;option value=&quot;IT&quot;&gt;意大利站 (IT)&lt;/option&gt;
+            &lt;option value=&quot;ES&quot;&gt;西班牙站 (ES)&lt;/option&gt;
+            &lt;option value=&quot;CA&quot;&gt;加拿大站 (CA)&lt;/option&gt;
+          &lt;/select&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 每组数量 (卖家精灵一次建议100个) --&gt;
+        &lt;div class=&quot;form-group&quot;&gt;
+          &lt;label class=&quot;form-label&quot;&gt;每组数量（Batch Size，卖家精灵推荐 100）：&lt;/label&gt;
           &lt;input type=&quot;number&quot; id=&quot;batchSize&quot; class=&quot;input-control&quot; value=&quot;100&quot; min=&quot;1&quot; step=&quot;1&quot;&gt;
           &lt;div class=&quot;quick-chips&quot;&gt;
             &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(50)&quot;&gt;50&lt;/span&gt;
-            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(100)&quot;&gt;100 (默认)&lt;/span&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(100)&quot;&gt;100 (推荐)&lt;/span&gt;
+            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(150)&quot;&gt;150&lt;/span&gt;
             &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(200)&quot;&gt;200&lt;/span&gt;
-            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(500)&quot;&gt;500&lt;/span&gt;
-            &lt;span class=&quot;chip&quot; onclick=&quot;setBatchSize(1000)&quot;&gt;1000&lt;/span&gt;
           &lt;/div&gt;
         &lt;/div&gt;
 
-        &lt;!-- 连接符设置 --&gt;
+        &lt;!-- 选项 --&gt;
         &lt;div class=&quot;form-group&quot;&gt;
-          &lt;label class=&quot;form-label&quot;&gt;单元格内 / 组内连接符（Delimiter）：&lt;/label&gt;
-          &lt;select id=&quot;delimiterPreset&quot; class=&quot;select-control&quot; onchange=&quot;handleDelimiterPresetChange()&quot;&gt;
-            &lt;option value=&quot;,&quot;&gt;英文逗号「 , 」(默认)&lt;/option&gt;
-            &lt;option value=&quot;, &quot;&gt;逗号 + 空格「 ,  」&lt;/option&gt;
-            &lt;option value=&quot;\n&quot;&gt;换行回车「 \n 」(多行显示)&lt;/option&gt;
-            &lt;option value=&quot; &quot;&gt;单个空格「   」&lt;/option&gt;
-            &lt;option value=&quot;;&quot;&gt;英文分号「 ; 」&lt;/option&gt;
-            &lt;option value=&quot;\t&quot;&gt;制表符「 Tab 」&lt;/option&gt;
-            &lt;option value=&quot;custom&quot;&gt;👉 自定义输入连接符...&lt;/option&gt;
-          &lt;/select&gt;
-
-          &lt;div id=&quot;customDelimiterWrapper&quot; style=&quot;display: none; margin-top: 8px;&quot;&gt;
-            &lt;input type=&quot;text&quot; id=&quot;customDelimiter&quot; class=&quot;input-control&quot; placeholder=&quot;输入任意自定义连接符（如 | 或 / 或 回车换行\n）&quot;&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-
-        &lt;!-- 清洗增强选项 --&gt;
-        &lt;div class=&quot;form-group&quot;&gt;
-          &lt;label class=&quot;form-label&quot;&gt;数据处理与增强选项：&lt;/label&gt;
+          &lt;label class=&quot;form-label&quot;&gt;数据清洗增强：&lt;/label&gt;
           &lt;div class=&quot;checkbox-group&quot;&gt;
             &lt;label class=&quot;checkbox-label&quot;&gt;
               &lt;input type=&quot;checkbox&quot; id=&quot;optDeduplicate&quot; checked&gt; 自动去除重复 ASIN
@@ -5364,15 +5370,12 @@ B07Z987654
             &lt;label class=&quot;checkbox-label&quot;&gt;
               &lt;input type=&quot;checkbox&quot; id=&quot;optTrim&quot; checked&gt; 清除首尾空格/空行
             &lt;/label&gt;
-            &lt;label class=&quot;checkbox-label&quot;&gt;
-              &lt;input type=&quot;checkbox&quot; id=&quot;optWrapQuotes&quot;&gt; 加单引号包裹 ('ASIN')
-            &lt;/label&gt;
           &lt;/div&gt;
         &lt;/div&gt;
 
         &lt;button class=&quot;btn btn-primary&quot; onclick=&quot;processData()&quot;&gt;
           &lt;svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot;&gt;&lt;polyline points=&quot;23 4 23 10 17 10&quot;&gt;&lt;/polyline&gt;&lt;polyline points=&quot;1 20 1 14 7 14&quot;&gt;&lt;/polyline&gt;&lt;path d=&quot;M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15&quot;&gt;&lt;/path&gt;&lt;/svg&gt;
-          立即开始处理与分组
+          立即开始分组与处理
         &lt;/button&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -5392,23 +5395,16 @@ B07Z987654
           &lt;/div&gt;
           &lt;div class=&quot;stat-box&quot;&gt;
             &lt;div class=&quot;stat-value&quot; id=&quot;statBatches&quot; style=&quot;color: var(--accent);&quot;&gt;0&lt;/div&gt;
-            &lt;div class=&quot;stat-label&quot;&gt;生成分组数 (行数)&lt;/div&gt;
+            &lt;div class=&quot;stat-label&quot;&gt;生成分组数&lt;/div&gt;
           &lt;/div&gt;
         &lt;/div&gt;
 
         &lt;!-- 结果操作头 --&gt;
         &lt;div class=&quot;result-header&quot;&gt;
-          &lt;div style=&quot;font-weight: 600; font-size: 15px; color: #334155;&quot;&gt;分组预览与导出&lt;/div&gt;
+          &lt;div style=&quot;font-weight: 600; font-size: 15px; color: #334155;&quot;&gt;分组列表与联动操作&lt;/div&gt;
           &lt;div class=&quot;result-actions&quot;&gt;
-            &lt;button class=&quot;btn btn-outline&quot; onclick=&quot;copyAllBatches()&quot;&gt;
-              📋 复制全部
-            &lt;/button&gt;
-            &lt;button class=&quot;btn btn-outline&quot; onclick=&quot;exportToTxt()&quot;&gt;
-              📄 导出 TXT
-            &lt;/button&gt;
-            &lt;button class=&quot;btn btn-success&quot; onclick=&quot;exportToExcel()&quot;&gt;
-              📊 导出 Excel (.xlsx)
-            &lt;/button&gt;
+            &lt;button class=&quot;btn btn-outline&quot; onclick=&quot;copyAllBatches()&quot;&gt;📋 复制全部&lt;/button&gt;
+            &lt;button class=&quot;btn btn-success&quot; onclick=&quot;exportToExcel()&quot;&gt;📊 导出 Excel&lt;/button&gt;
           &lt;/div&gt;
         &lt;/div&gt;
 
@@ -5416,7 +5412,7 @@ B07Z987654
         &lt;div class=&quot;batch-list&quot; id=&quot;batchListContainer&quot;&gt;
           &lt;div class=&quot;empty-placeholder&quot;&gt;
             &lt;svg width=&quot;48&quot; height=&quot;48&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#cbd5e1&quot; stroke-width=&quot;1.5&quot; style=&quot;margin-bottom: 12px;&quot;&gt;&lt;path d=&quot;M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z&quot;&gt;&lt;/path&gt;&lt;polyline points=&quot;14 2 14 8 20 8&quot;&gt;&lt;/polyline&gt;&lt;line x1=&quot;16&quot; y1=&quot;13&quot; x2=&quot;8&quot; y2=&quot;13&quot;&gt;&lt;/line&gt;&lt;line x1=&quot;16&quot; y1=&quot;17&quot; x2=&quot;8&quot; y2=&quot;17&quot;&gt;&lt;/line&gt;&lt;polyline points=&quot;10 9 9 9 8 9&quot;&gt;&lt;/polyline&gt;&lt;/svg&gt;
-            &lt;p&gt;请在左侧上传 Excel 文件或粘贴 ASIN 文本，点击「立即开始处理」&lt;/p&gt;
+            &lt;p&gt;请上传文件或输入 ASIN，点击左侧「立即开始分组与处理」&lt;/p&gt;
           &lt;/div&gt;
         &lt;/div&gt;
 
@@ -5430,12 +5426,12 @@ B07Z987654
 
 &lt;script&gt;
   // 全局状态
-  let currentMode = 'file'; // 'file' | 'text'
-  let parsedExcelData = []; // 存储上传的原始表格行对象
-  let generatedBatches = []; // 存储处理完成的批次数组
+  let currentMode = 'file';
+  let parsedExcelData = [];
+  let rawAsinBatches = []; // 存储原生 ASIN 二维数组 [['B001','B002'], ['B003'...]]
   let uploadedFileName = 'ASIN_分组结果';
+  const TARGET_WINDOW_NAME = 'SellerSpriteTab'; // 保证始终在同一个标签页中复用
 
-  // 选项卡切换
   function switchTab(mode) {
     currentMode = mode;
     document.querySelectorAll('.tab-btn').forEach((btn, idx) =&gt; {
@@ -5445,15 +5441,8 @@ B07Z987654
     document.getElementById('textTab').style.display = mode === 'text' ? 'block' : 'none';
   }
 
-  // 快捷设置批次大小
   function setBatchSize(val) {
     document.getElementById('batchSize').value = val;
-  }
-
-  // 连接符预设改变
-  function handleDelimiterPresetChange() {
-    const val = document.getElementById('delimiterPreset').value;
-    document.getElementById('customDelimiterWrapper').style.display = val === 'custom' ? 'block' : 'none';
   }
 
   // 拖拽支持
@@ -5466,18 +5455,14 @@ B07Z987654
   });
   dropzone.addEventListener('drop', (e) =&gt; {
     const files = e.dataTransfer.files;
-    if (files.length &gt; 0) {
-      handleFile(files[0]);
-    }
+    if (files.length &gt; 0) handleFile(files[0]);
   });
 
   function handleFileUpload(e) {
-    if (e.target.files.length &gt; 0) {
-      handleFile(e.target.files[0]);
-    }
+    if (e.target.files.length &gt; 0) handleFile(e.target.files[0]);
   }
 
-  // 文件解析处理 (SheetJS)
+  // 解析 Excel 文件
   function handleFile(file) {
     uploadedFileName = file.name.replace(/\.[^/.]+$/, &quot;&quot;);
     const reader = new FileReader();
@@ -5488,15 +5473,13 @@ B07Z987654
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        // 解析为对象数组
         parsedExcelData = XLSX.utils.sheet_to_json(worksheet, { defval: &quot;&quot; });
 
         if (parsedExcelData.length === 0) {
-          showToast(&quot;表格中未读取到数据，请检查文件！&quot;);
+          showToast(&quot;表格中未读取到数据！&quot;);
           return;
         }
 
-        // 获取所有表头列
         const headers = Object.keys(parsedExcelData[0]);
         const select = document.getElementById('columnSelect');
         select.innerHTML = '';
@@ -5506,7 +5489,6 @@ B07Z987654
           const opt = document.createElement('option');
           opt.value = h;
           opt.textContent = h;
-          // 智能预选包含 asin / 商品编码 等字段的列
           if (!autoSelected &amp;&amp; /asin|商品编码|标准件号|parent/i.test(h)) {
             opt.selected = true;
             autoSelected = true;
@@ -5516,11 +5498,9 @@ B07Z987654
 
         document.getElementById('columnSelectWrapper').style.display = 'block';
         dropzone.querySelector('p').textContent = `✅ 已加载文件: ${file.name} (${parsedExcelData.length} 行)`;
-
-        // 自动触发一次处理
         processData();
       } catch (err) {
-        alert(&quot;解析 Excel 失败，请确保文件格式正确: &quot; + err.message);
+        alert(&quot;解析 Excel 失败: &quot; + err.message);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -5530,19 +5510,7 @@ B07Z987654
     processData();
   }
 
-  // 获取真实选择的连接符
-  function getSelectedDelimiter() {
-    const preset = document.getElementById('delimiterPreset').value;
-    if (preset === 'custom') {
-      let custom = document.getElementById('customDelimiter').value;
-      return custom.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-    }
-    if (preset === '\\n') return '\n';
-    if (preset === '\\t') return '\t';
-    return preset;
-  }
-
-  // 核心数据处理流
+  // 核心分组处理
   function processData() {
     let rawList = [];
 
@@ -5556,83 +5524,77 @@ B07Z987654
     } else {
       const text = document.getElementById('rawTextInput').value;
       if (!text.trim()) {
-        showToast(&quot;请在文本框中粘贴数据！&quot;);
+        showToast(&quot;请先输入 ASIN 文本！&quot;);
         return;
       }
-      // 支持逗号、换行、空格、分号混合分割
       rawList = text.split(/[\r\n,;\t\s]+/);
     }
 
     const totalRead = rawList.length;
 
-    // 清洗参数获取
+    // 清洗参数
     const optTrim = document.getElementById('optTrim').checked;
     const optUppercase = document.getElementById('optUppercase').checked;
     const optDeduplicate = document.getElementById('optDeduplicate').checked;
-    const optWrapQuotes = document.getElementById('optWrapQuotes').checked;
     const batchSize = parseInt(document.getElementById('batchSize').value, 10) || 100;
-    const delimiter = getSelectedDelimiter();
 
-    // 1. 去空格与空值
     let cleaned = rawList.map(item =&gt; optTrim ? item.trim() : item).filter(item =&gt; item.length &gt; 0);
 
-    // 2. 大写转换
     if (optUppercase) {
       cleaned = cleaned.map(item =&gt; item.toUpperCase());
     }
 
-    // 3. 去重
     if (optDeduplicate) {
       cleaned = Array.from(new Set(cleaned));
     }
 
-    // 4. 包裹引号
-    if (optWrapQuotes) {
-      cleaned = cleaned.map(item =&gt; `'${item}'`);
-    }
-
-    // 5. 分组切片
-    generatedBatches = [];
+    // 分批存储原始 ASIN 数组
+    rawAsinBatches = [];
     for (let i = 0; i &lt; cleaned.length; i += batchSize) {
-      const chunk = cleaned.slice(i, i + batchSize);
-      generatedBatches.push(chunk.join(delimiter));
+      rawAsinBatches.push(cleaned.slice(i, i + batchSize));
     }
 
-    // 更新统计
+    // 更新面板
     document.getElementById('statTotal').textContent = totalRead;
     document.getElementById('statValid').textContent = cleaned.length;
-    document.getElementById('statBatches').textContent = generatedBatches.length;
+    document.getElementById('statBatches').textContent = rawAsinBatches.length;
 
-    // 渲染结果
     renderBatchList(cleaned, batchSize);
   }
 
-  // 渲染批次列表
+  // 渲染视图
   function renderBatchList(cleanedList, batchSize) {
     const container = document.getElementById('batchListContainer');
-    if (generatedBatches.length === 0) {
-      container.innerHTML = `&lt;div class=&quot;empty-placeholder&quot;&gt;&lt;p&gt;未提取到有效数据，请检查输入&lt;/p&gt;&lt;/div&gt;`;
+    if (rawAsinBatches.length === 0) {
+      container.innerHTML = `&lt;div class=&quot;empty-placeholder&quot;&gt;&lt;p&gt;未提取到有效数据&lt;/p&gt;&lt;/div&gt;`;
       return;
     }
 
     let html = '';
-    generatedBatches.forEach((batchStr, idx) =&gt; {
+    rawAsinBatches.forEach((batchArr, idx) =&gt; {
       const startIdx = idx * batchSize + 1;
       const endIdx = Math.min((idx + 1) * batchSize, cleanedList.length);
-      const count = endIdx - startIdx + 1;
+      const count = batchArr.length;
+      const asinCommaStr = batchArr.join(', ');
 
       html += `
-        &lt;div class=&quot;batch-item&quot;&gt;
+        &lt;div class=&quot;batch-item&quot; id=&quot;batch-item-${idx}&quot;&gt;
           &lt;div class=&quot;batch-item-header&quot;&gt;
             &lt;div&gt;
               &lt;span class=&quot;batch-index&quot;&gt;第 ${idx + 1} 组&lt;/span&gt;
-              &lt;span class=&quot;batch-count-tag&quot; style=&quot;margin-left: 6px;&quot;&gt;(涵盖第 ${startIdx} ~ ${endIdx} 个，共 ${count} 个)&lt;/span&gt;
+              &lt;span class=&quot;batch-count-tag&quot; style=&quot;margin-left: 6px;&quot;&gt;(共 ${count} 个 ASIN)&lt;/span&gt;
             &lt;/div&gt;
-            &lt;button class=&quot;btn btn-outline&quot; style=&quot;padding: 3px 8px; font-size: 11px;&quot; onclick=&quot;copySingleBatch(${idx})&quot;&gt;
-              📋 复制本组
-            &lt;/button&gt;
+            &lt;div class=&quot;batch-actions&quot;&gt;
+              &lt;!-- 快捷跳转按钮 --&gt;
+              &lt;button class=&quot;btn btn-sellersprite&quot; id=&quot;btn-seller-${idx}&quot; onclick=&quot;jumpToSellerSprite(${idx})&quot;&gt;
+                🚀 打开卖家精灵查此组 (${count})
+              &lt;/button&gt;
+              &lt;button class=&quot;btn btn-outline&quot; onclick=&quot;copySingleBatch(${idx})&quot;&gt;
+                📋 复制本组
+              &lt;/button&gt;
+            &lt;/div&gt;
           &lt;/div&gt;
-          &lt;div class=&quot;batch-content&quot;&gt;${escapeHtml(batchStr)}&lt;/div&gt;
+          &lt;div class=&quot;batch-content&quot;&gt;${escapeHtml(asinCommaStr)}&lt;/div&gt;
         &lt;/div&gt;
       `;
     });
@@ -5640,73 +5602,86 @@ B07Z987654
     container.innerHTML = html;
   }
 
-  // 复制单组
+  // 核心功能：打开卖家精灵并在同一个窗口刷新
+  function jumpToSellerSprite(idx) {
+    const asinList = rawAsinBatches[idx];
+    if (!asinList || asinList.length === 0) return;
+
+    // 获取选中的站点
+    const market = document.getElementById('marketSelect').value || 'US';
+
+    // 格式化为 JSON 并转为 URL 编码: [&quot;B01&quot;,&quot;B02&quot;] -&gt; %5B%22B01%22%2C%22B02%22%5D
+    const encodedAsins = encodeURIComponent(JSON.stringify(asinList));
+
+    // 构造精准查询链接
+    const targetUrl = `https://www.sellersprite.com/v3/competitor-lookup?market=${market}&amp;monthName=bsr_sales_nearly&amp;asins=${encodedAsins}&amp;page=1&amp;nodeIdPaths=%5B%5D&amp;symbolFlag=false&amp;size=100&amp;order%5Bfield%5D=total_units&amp;order%5Bdesc%5D=true&amp;lowPrice=N&amp;salesGrowthType=30d`;
+
+    // 关键点：第二个参数传入固定名字 'SellerSpriteTab'
+    // 首次点击会弹出新窗口，第二次点击不会再新建窗口，而是直接在这个已经打开的窗口内重新加载！
+    window.open(targetUrl, TARGET_WINDOW_NAME);
+
+    // 视觉辅助：标记此条目正在操作中，且按钮变色提示已查过
+    document.querySelectorAll('.batch-item').forEach(el =&gt; el.classList.remove('active-working'));
+    const itemEl = document.getElementById(`batch-item-${idx}`);
+    if (itemEl) itemEl.classList.add('active-working');
+
+    const btn = document.getElementById(`btn-seller-${idx}`);
+    if (btn) {
+      btn.classList.add('visited');
+      btn.innerHTML = `🔄 重新载入第 ${idx + 1} 组`;
+    }
+
+    // 自动同时帮用户把逗号分隔的文本拷贝到剪贴板备用
+    copyToClipboard(asinList.join(','), false);
+    showToast(`正在页面中加载第 ${idx + 1} 组数据 (已复用同一个标签页)`);
+  }
+
+  // 复制本组
   function copySingleBatch(idx) {
-    if (generatedBatches[idx]) {
-      copyToClipboard(generatedBatches[idx]);
+    if (rawAsinBatches[idx]) {
+      copyToClipboard(rawAsinBatches[idx].join(','), true);
     }
   }
 
-  // 复制全部批次 (换行拼接)
+  // 复制全部
   function copyAllBatches() {
-    if (generatedBatches.length === 0) {
-      showToast(&quot;没有可复制的内容！&quot;);
-      return;
-    }
-    copyToClipboard(generatedBatches.join('\n\n'));
+    if (rawAsinBatches.length === 0) return;
+    const fullText = rawAsinBatches.map(b =&gt; b.join(',')).join('\n');
+    copyToClipboard(fullText, true);
   }
 
-  // 导出为 Excel (与 Python 完全一致的逻辑：每组占一个单元格)
+  // 导出表格
   function exportToExcel() {
-    if (generatedBatches.length === 0) {
+    if (rawAsinBatches.length === 0) {
       showToast(&quot;没有可导出的数据！&quot;);
       return;
     }
+    const rows = rawAsinBatches.map((b, i) =&gt; ({
+      &quot;分组编号&quot;: `第 ${i + 1} 组`,
+      &quot;ASIN数量&quot;: b.length,
+      &quot;ASIN列表(逗号分隔)&quot;: b.join(',')
+    }));
 
-    // 构造 DataFrame 格式的数据
-    const rows = generatedBatches.map(b =&gt; ({ &quot;ASIN_Batches&quot;: b }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, &quot;ASIN分组结果&quot;);
+    XLSX.utils.book_append_sheet(wb, ws, &quot;分组数据&quot;);
 
     const batchSize = document.getElementById('batchSize').value || 100;
-    XLSX.writeFile(wb, `${uploadedFileName}_ASIN_${batchSize}分组.xlsx`);
-    showToast(&quot;Excel 文件已生成并开始下载！&quot;);
+    XLSX.writeFile(wb, `${uploadedFileName}_${batchSize}分组.xlsx`);
+    showToast(&quot;Excel 已导出！&quot;);
   }
 
-  // 导出为 TXT 文件
-  function exportToTxt() {
-    if (generatedBatches.length === 0) {
-      showToast(&quot;没有可导出的数据！&quot;);
-      return;
-    }
-    const content = generatedBatches.join('\n' + '='.repeat(40) + '\n');
-    const blob = new Blob([content], { type: &quot;text/plain;charset=utf-8&quot; });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${uploadedFileName}_分组结果.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(&quot;TXT 文本已导出！&quot;);
-  }
-
-  // 辅助工具：复制到剪贴板
-  function copyToClipboard(text) {
+  function copyToClipboard(text, notify = true) {
     if (navigator.clipboard &amp;&amp; window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(() =&gt; showToast(&quot;已复制到剪贴板！&quot;));
+      navigator.clipboard.writeText(text).then(() =&gt; { if (notify) showToast(&quot;已复制到剪贴板！&quot;); });
     } else {
-      const textArea = document.createElement(&quot;textarea&quot;);
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        showToast(&quot;已复制到剪贴板！&quot;);
-      } catch (err) {
-        showToast(&quot;复制失败，请手动选取复制&quot;);
-      }
-      document.body.removeChild(textArea);
+      const ta = document.createElement(&quot;textarea&quot;);
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (notify) showToast(&quot;已复制到剪贴板！&quot;);
     }
   }
 
@@ -5714,20 +5689,23 @@ B07Z987654
     const toast = document.getElementById('toast');
     toast.textContent = msg;
     toast.style.display = 'block';
-    setTimeout(() =&gt; { toast.style.display = 'none'; }, 2200);
+    setTimeout(() =&gt; { toast.style.display = 'none'; }, 2500);
   }
 
-  function escapeHtml(string) {
-    return String(string)
+  function escapeHtml(str) {
+    return String(str)
       .replace(/&amp;/g, '&amp;amp;')
       .replace(/&lt;/g, '&amp;lt;')
       .replace(/&gt;/g, '&amp;gt;')
       .replace(/&quot;/g, '&amp;quot;');
   }
 &lt;/script&gt;
-
 &lt;/body&gt;
-&lt;/html&gt;">
+&lt;/html&gt;
+
+
+
+">
       </iframe>
      </div>
     </div>
