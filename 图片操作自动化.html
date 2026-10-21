@@ -15570,73 +15570,58 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot;&gt;
   &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-  &lt;title&gt;Excel 批量提取与导出工具&lt;/title&gt;
-  &lt;!-- 引入 JSZip 库用于 ZIP 打包备份导出 --&gt;
+  &lt;title&gt;通用文件批量检索提取与导出工具&lt;/title&gt;
   &lt;script src=&quot;https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js&quot;&gt;&lt;/script&gt;
   &lt;style&gt;
     :root {
-      --primary-color: #2563eb;
+      --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --success-color: #059669;
+      --success: #059669;
       --success-hover: #047857;
-      --warning-color: #d97706;
-      --danger-color: #dc2626;
-      --bg-color: #f8fafc;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --bg: #f8fafc;
       --card-bg: #ffffff;
-      --border-color: #e2e8f0;
-      --text-main: #1e293b;
+      --border: #e2e8f0;
+      --text: #1e293b;
       --text-sub: #64748b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
+      background-color: var(--bg);
+      color: var(--text);
       padding: 24px 16px;
       line-height: 1.5;
     }
 
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1100px; margin: 0 auto; }
 
-    header {
-      margin-bottom: 24px;
-      text-align: center;
-    }
-    header h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 6px;
-    }
-    header p {
-      font-size: 14px;
-      color: var(--text-sub);
-    }
+    header { margin-bottom: 20px; text-align: center; }
+    header h1 { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    header p { font-size: 13px; color: var(--text-sub); }
 
     .card {
       background: var(--card-bg);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
 
     .card-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .badge-step {
       background: #eff6ff;
-      color: var(--primary-color);
+      color: var(--primary);
       border-radius: 50%;
       width: 22px;
       height: 22px;
@@ -15647,74 +15632,113 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
       font-weight: 700;
     }
 
-    /* 文件夹上传框 */
+    /* 区域1：上传 */
     .upload-box {
       border: 2px dashed #cbd5e1;
       border-radius: 8px;
-      padding: 24px;
+      padding: 20px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
-      background: #fdfdfd;
+      background: #fafbfc;
     }
     .upload-box:hover {
-      border-color: var(--primary-color);
+      border-color: var(--primary);
       background: #f0f7ff;
     }
-    .upload-icon {
-      font-size: 32px;
-      margin-bottom: 8px;
-    }
-    .upload-text {
-      font-size: 14px;
-      color: var(--text-main);
-      font-weight: 500;
-    }
-    .upload-tip {
-      font-size: 12px;
-      color: var(--text-sub);
-      margin-top: 4px;
-    }
+    .upload-icon { font-size: 30px; margin-bottom: 6px; }
+    .upload-text { font-size: 14px; font-weight: 500; }
+    .upload-tip { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
     input[type=&quot;file&quot;] { display: none; }
 
-    /* ASIN 输入框 */
+    /* 格式过滤器 */
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      align-items: center;
+    }
+    .pill {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .pill:hover { border-color: var(--primary); }
+    .pill.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+      font-weight: 500;
+    }
+    .custom-ext-input {
+      padding: 4px 8px;
+      font-size: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      width: 180px;
+      outline: none;
+    }
+    .custom-ext-input:focus { border-color: var(--primary); }
+
+    /* 区域2：规则设置 */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    label { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: block; }
     textarea {
       width: 100%;
-      height: 100px;
-      padding: 10px 12px;
+      height: 96px;
+      padding: 8px 10px;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       font-family: inherit;
       resize: vertical;
       outline: none;
-      transition: border-color 0.2s;
     }
-    textarea:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
-    }
-    .input-hint {
+    textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+
+    .advanced-settings {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
       display: flex;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
       align-items: center;
-      margin-top: 6px;
       font-size: 12px;
-      color: var(--text-sub);
+    }
+    .setting-item { display: flex; align-items: center; gap: 6px; }
+    .setting-item select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 12px;
+      background: #fff;
+      outline: none;
     }
 
     /* 按钮组 */
-    .btn-group {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
     button {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 9px 16px;
+      padding: 8px 16px;
       border-radius: 8px;
       font-size: 13px;
       font-weight: 600;
@@ -15722,93 +15746,47 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
       border: 1px solid transparent;
       transition: all 0.15s;
     }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .btn-primary { background: var(--primary-color); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
-
-    .btn-success { background: var(--success-color); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
     .btn-success:hover:not(:disabled) { background: var(--success-hover); }
+    .btn-outline { background: #fff; border-color: #cbd5e1; color: var(--text); }
+    .btn-outline:hover:not(:disabled) { background: #f1f5f9; }
+    .btn-sm { padding: 4px 8px; font-size: 12px; border-radius: 4px; }
 
-    .btn-outline {
-      background: #fff;
-      border-color: #cbd5e1;
-      color: var(--text-main);
-    }
-    .btn-outline:hover:not(:disabled) {
-      background: #f1f5f9;
-    }
-
-    /* 状态与统计栏 */
+    /* 区域3：结果展示 */
     .stat-banner {
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       padding: 10px 14px;
       background: #f1f5f9;
       border-radius: 8px;
       font-size: 13px;
     }
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .stat-val {
-      font-weight: 700;
-      color: var(--primary-color);
-    }
+    .stat-val { font-weight: 700; color: var(--primary); }
 
-    /* 警告与提示 */
-    .alert {
+    .alert-box {
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 12px;
       margin-bottom: 12px;
       display: none;
-    }
-    .alert-warning {
       background: #fffbeb;
       border: 1px solid #fde68a;
       color: #92400e;
     }
 
-    /* 进度条 */
-    .progress-bar-wrap {
-      display: none;
-      margin: 12px 0;
-      background: #e2e8f0;
-      border-radius: 6px;
-      height: 8px;
-      overflow: hidden;
-    }
-    .progress-bar {
-      width: 0%;
-      height: 100%;
-      background: var(--primary-color);
-      transition: width 0.2s;
-    }
-
-    /* 结果列表表格 */
     .table-container {
-      max-height: 480px;
+      max-height: 500px;
       overflow-y: auto;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border);
       border-radius: 8px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 13px;
-    }
-    th, td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border-color);
-    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
     th {
       background: #f8fafc;
       font-weight: 600;
@@ -15817,84 +15795,144 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
       z-index: 10;
       color: #475569;
     }
-    tbody tr:hover {
-      background: #f8fafc;
-    }
-    .tag-asin {
+    tbody tr:hover { background: #f8fafc; }
+
+    .tag-kw {
       display: inline-block;
       padding: 2px 6px;
-      background: #e0f2fe;
-      color: #0369a1;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: monospace;
-    }
-    .btn-sm-download {
-      padding: 4px 8px;
-      font-size: 12px;
-      border-radius: 4px;
-      border: 1px solid #cbd5e1;
-      background: #fff;
-    }
-    .btn-sm-download:hover {
       background: #eff6ff;
-      border-color: #93c5fd;
-      color: var(--primary-color);
+      color: #1d4ed8;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .tag-ext {
+      display: inline-block;
+      padding: 1px 5px;
+      background: #f1f5f9;
+      color: #475569;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
     }
 
-    .empty-state {
-      padding: 40px;
-      text-align: center;
-      color: var(--text-sub);
-      font-size: 13px;
+    /* 进度条 */
+    .progress-bar-wrap {
+      display: none;
+      margin: 10px 0;
+      background: #e2e8f0;
+      border-radius: 6px;
+      height: 8px;
+      overflow: hidden;
     }
+    .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
   &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 
 &lt;div class=&quot;container&quot;&gt;
   &lt;header&gt;
-    &lt;h1&gt;Excel 批量提取与导出工具&lt;/h1&gt;
-    &lt;p&gt;针对类似 &lt;code&gt;US-B0B1VL7SCV-sales-20261020.xlsx&lt;/code&gt; 格式快速筛选提取，支持一键直接导出到本地文件夹&lt;/p&gt;
+    &lt;h1&gt;通用文件批量检索提取与导出工具&lt;/h1&gt;
+    &lt;p&gt;支持任意格式文件（表格、图片、文档、音视频等），基于关键词、ASIN、编号智能提取并直接导出&lt;/p&gt;
   &lt;/header&gt;
 
-  &lt;!-- 步骤 1: 上传文件夹 --&gt;
+  &lt;!-- 步骤1: 选择文件源与格式过滤 --&gt;
   &lt;div class=&quot;card&quot;&gt;
     &lt;div class=&quot;card-title&quot;&gt;
       &lt;span class=&quot;badge-step&quot;&gt;1&lt;/span&gt;
       &lt;span&gt;选择数据所在文件夹&lt;/span&gt;
     &lt;/div&gt;
+
     &lt;div class=&quot;upload-box&quot; id=&quot;dropArea&quot; onclick=&quot;document.getElementById('folderInput').click()&quot;&gt;
-      &lt;div class=&quot;upload-icon&quot;&gt;📂&lt;/div&gt;
-      &lt;div class=&quot;upload-text&quot; id=&quot;uploadText&quot;&gt;点击或拖拽包含 Excel 的总文件夹到此处&lt;/div&gt;
-      &lt;div class=&quot;upload-tip&quot;&gt;支持包含数百/数千张 Excel 表格的庞大目录，全部本地秒级处理&lt;/div&gt;
+      &lt;div class=&quot;upload-icon&quot;&gt;📁&lt;/div&gt;
+      &lt;div class=&quot;upload-text&quot; id=&quot;uploadText&quot;&gt;点击或拖拽整个文件夹到此处&lt;/div&gt;
+      &lt;div class=&quot;upload-tip&quot;&gt;包含成千上万个文件的庞大目录均可秒级本地加载，绝不泄露商业隐私&lt;/div&gt;
     &lt;/div&gt;
-    &lt;input type=&quot;file&quot; id=&quot;folderInput&quot; webkitdirectory directory multiple accept=&quot;.xlsx,.xls,.csv&quot;&gt;
+    &lt;input type=&quot;file&quot; id=&quot;folderInput&quot; webkitdirectory directory multiple&gt;
+
+    &lt;!-- 格式预设胶囊过滤 --&gt;
+    &lt;div class=&quot;filter-pills&quot;&gt;
+      &lt;span style=&quot;font-size: 12px; color: var(--text-sub); font-weight:600;&quot;&gt;格式筛选：&lt;/span&gt;
+      &lt;span class=&quot;pill active&quot; data-preset=&quot;all&quot;&gt;全部格式 (*.*)&lt;/span&gt;
+      &lt;span class=&quot;pill&quot; data-preset=&quot;excel&quot;&gt;📊 表格 (.xlsx/.xls/.csv)&lt;/span&gt;
+      &lt;span class=&quot;pill&quot; data-preset=&quot;image&quot;&gt;🖼️ 图片 (.jpg/.png/.webp...)&lt;/span&gt;
+      &lt;span class=&quot;pill&quot; data-preset=&quot;doc&quot;&gt;📄 文档 (.pdf/.doc/.txt...)&lt;/span&gt;
+      &lt;span class=&quot;pill&quot; data-preset=&quot;archive&quot;&gt;📦 压缩包 (.zip/.rar/.7z)&lt;/span&gt;
+      &lt;span class=&quot;pill&quot; data-preset=&quot;video&quot;&gt;🎬 视频 (.mp4/.mov...)&lt;/span&gt;
+      &lt;div style=&quot;display:inline-flex; align-items:center; gap:4px; margin-left:auto;&quot;&gt;
+        &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;自定义后缀:&lt;/span&gt;
+        &lt;input type=&quot;text&quot; id=&quot;customExtInput&quot; class=&quot;custom-ext-input&quot; placeholder=&quot;例如: .png, .pdf&quot;&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
   &lt;/div&gt;
 
-  &lt;!-- 步骤 2: 目标 ASIN 输入 --&gt;
+  &lt;!-- 步骤2: 规则配置 --&gt;
   &lt;div class=&quot;card&quot;&gt;
     &lt;div class=&quot;card-title&quot;&gt;
       &lt;span class=&quot;badge-step&quot;&gt;2&lt;/span&gt;
-      &lt;span&gt;输入要提取的目标 ASIN&lt;/span&gt;
+      &lt;span&gt;配置筛选与提取规则&lt;/span&gt;
     &lt;/div&gt;
-    &lt;textarea id=&quot;asinInput&quot; placeholder=&quot;在此粘贴你需要提取的 ASIN，例如：
+
+    &lt;div class=&quot;grid-2&quot;&gt;
+      &lt;div&gt;
+        &lt;label&gt;🎯 要提取的目标关键词（ASIN、SKU、批次号、文件名称等）：&lt;/label&gt;
+        &lt;textarea id=&quot;targetKeywords&quot; placeholder=&quot;在此粘贴你需要提取的目标，一行一个或以逗号/空格分隔：
 B0B1VL7SCV
-B09XYZ8888, B087654321
-支持逗号、空格、换行等任意方式混排分隔...&quot;&gt;&lt;/textarea&gt;
-    &lt;div class=&quot;input-hint&quot;&gt;
-      &lt;span&gt;已识别目标 ASIN: &lt;b id=&quot;asinCount&quot; style=&quot;color:var(--primary-color);&quot;&gt;0&lt;/b&gt; 个&lt;/span&gt;
-      &lt;button class=&quot;btn-outline&quot; style=&quot;padding:4px 8px; font-size:12px;&quot; onclick=&quot;clearAsinInput()&quot;&gt;清空输入&lt;/button&gt;
+US-B0C4F6R89
+SKU-RED-XL
+20261020...&quot;&gt;&lt;/textarea&gt;
+        &lt;div style=&quot;font-size:12px; color:var(--text-sub); margin-top:4px;&quot;&gt;
+          已识别提取项：&lt;b id=&quot;kwCount&quot; style=&quot;color:var(--primary);&quot;&gt;0&lt;/b&gt; 个
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;div&gt;
+        &lt;label&gt;🚫 排除关键词（可选，包含这些词的文件将被过滤剔除）：&lt;/label&gt;
+        &lt;textarea id=&quot;excludeKeywords&quot; placeholder=&quot;可选填。例如输入：
+temp
+backup
+old
+缩略图...&quot;&gt;&lt;/textarea&gt;
+        &lt;div style=&quot;font-size:12px; color:var(--text-sub); margin-top:4px;&quot;&gt;
+          设置排除规则后，命中以上词汇的文件将不会被提取
+        &lt;/div&gt;
+      &lt;/div&gt;
     &lt;/div&gt;
+
+    &lt;!-- 高级匹配参数 --&gt;
+    &lt;div class=&quot;advanced-settings&quot;&gt;
+      &lt;div class=&quot;setting-item&quot;&gt;
+        &lt;span&gt;匹配模式:&lt;/span&gt;
+        &lt;select id=&quot;matchMode&quot;&gt;
+          &lt;option value=&quot;contains&quot;&gt;包含关键词 (模糊包含)&lt;/option&gt;
+          &lt;option value=&quot;exactWord&quot;&gt;全词 / 分隔符匹配 (按 - _ 空格 分词)&lt;/option&gt;
+          &lt;option value=&quot;regex&quot;&gt;正则表达式模式 (每一行作为正则)&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;setting-item&quot;&gt;
+        &lt;label style=&quot;margin:0; font-weight:normal; display:flex; align-items:center; gap:4px; cursor:pointer;&quot;&gt;
+          &lt;input type=&quot;checkbox&quot; id=&quot;caseSensitive&quot;&gt; 区分大小写
+        &lt;/label&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;setting-item&quot;&gt;
+        &lt;label style=&quot;margin:0; font-weight:normal; display:flex; align-items:center; gap:4px; cursor:pointer;&quot;&gt;
+          &lt;input type=&quot;checkbox&quot; id=&quot;keepFolderStructure&quot;&gt; 导出时保持原文件夹目录结构
+        &lt;/label&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
     &lt;div class=&quot;btn-group&quot;&gt;
       &lt;button class=&quot;btn-primary&quot; id=&quot;btnFilter&quot; onclick=&quot;doFilter()&quot; disabled&gt;
         🔍 开始匹配筛选
       &lt;/button&gt;
+      &lt;button class=&quot;btn-outline&quot; onclick=&quot;clearAllInputs()&quot;&gt;清空规则&lt;/button&gt;
     &lt;/div&gt;
   &lt;/div&gt;
 
-  &lt;!-- 步骤 3: 匹配结果展示与导出 --&gt;
+  &lt;!-- 步骤3: 结果展示与批量导出 --&gt;
   &lt;div class=&quot;card&quot; id=&quot;resultCard&quot; style=&quot;display:none;&quot;&gt;
     &lt;div class=&quot;card-title&quot; style=&quot;justify-content:space-between; flex-wrap:wrap;&quot;&gt;
       &lt;div style=&quot;display:flex; align-items:center; gap:8px;&quot;&gt;
@@ -15902,11 +15940,9 @@ B09XYZ8888, B087654321
         &lt;span&gt;匹配结果与导出&lt;/span&gt;
       &lt;/div&gt;
       &lt;div class=&quot;btn-group&quot; style=&quot;margin-top:0;&quot;&gt;
-        &lt;!-- 现代化直接存到本地文件夹 (Chrome / Edge 支持) --&gt;
-        &lt;button class=&quot;btn-success&quot; id=&quot;btnExportFolder&quot; onclick=&quot;exportToLocalFolder()&quot;&gt;
-          📁 直接导出到本地文件夹
+        &lt;button class=&quot;btn-success&quot; id=&quot;btnExportFolder&quot; onclick=&quot;exportToFolder()&quot;&gt;
+          📁 直接导出到本地文件夹 (免解压)
         &lt;/button&gt;
-        &lt;!-- ZIP 兼容下载 --&gt;
         &lt;button class=&quot;btn-primary&quot; id=&quot;btnExportZip&quot; onclick=&quot;exportToZip()&quot;&gt;
           📦 打包下载 (ZIP)
         &lt;/button&gt;
@@ -15921,186 +15957,333 @@ B09XYZ8888, B087654321
 
     &lt;!-- 统计指标 --&gt;
     &lt;div class=&quot;stat-banner&quot;&gt;
-      &lt;div class=&quot;stat-item&quot;&gt;总扫描文件: &lt;span class=&quot;stat-val&quot; id=&quot;totalFilesCount&quot;&gt;0&lt;/span&gt;&lt;/div&gt;
-      &lt;div class=&quot;stat-item&quot;&gt;符合文件: &lt;span class=&quot;stat-val&quot; id=&quot;matchedFilesCount&quot; style=&quot;color:var(--success-color);&quot;&gt;0&lt;/span&gt;&lt;/div&gt;
-      &lt;div class=&quot;stat-item&quot;&gt;总大小: &lt;span class=&quot;stat-val&quot; id=&quot;totalSizeText&quot;&gt;0 MB&lt;/span&gt;&lt;/div&gt;
+      &lt;div&gt;已扫描文件: &lt;span class=&quot;stat-val&quot; id=&quot;totalScanned&quot;&gt;0&lt;/span&gt;&lt;/div&gt;
+      &lt;div&gt;匹配到文件: &lt;span class=&quot;stat-val&quot; id=&quot;matchedCount&quot; style=&quot;color:var(--success);&quot;&gt;0&lt;/span&gt;&lt;/div&gt;
+      &lt;div&gt;已勾选导出: &lt;span class=&quot;stat-val&quot; id=&quot;selectedCount&quot; style=&quot;color:var(--primary);&quot;&gt;0&lt;/span&gt;&lt;/div&gt;
+      &lt;div&gt;总数据量: &lt;span class=&quot;stat-val&quot; id=&quot;totalSize&quot;&gt;0 MB&lt;/span&gt;&lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- 未匹配提示 --&gt;
-    &lt;div class=&quot;alert alert-warning&quot; id=&quot;missedAlert&quot;&gt;&lt;/div&gt;
+    &lt;!-- 未命中警告与一键复制 --&gt;
+    &lt;div class=&quot;alert-box&quot; id=&quot;missedAlert&quot;&gt;
+      &lt;div style=&quot;display:flex; justify-content:space-between; align-items:flex-start; gap:10px;&quot;&gt;
+        &lt;div&gt;
+          &lt;b&gt;⚠️ 以下 &lt;span id=&quot;missedCountNum&quot;&gt;0&lt;/span&gt; 个关键词在文件夹中未找到匹配文件：&lt;/b&gt;
+          &lt;div id=&quot;missedListText&quot; style=&quot;margin-top:4px; font-family:monospace; word-break:break-all;&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;button class=&quot;btn-outline btn-sm&quot; onclick=&quot;copyMissedKeywords()&quot;&gt;复制未命中列表&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
 
-    &lt;!-- 表格展示 --&gt;
+    &lt;!-- 结果表格 --&gt;
+    &lt;div style=&quot;margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:12px;&quot;&gt;
+      &lt;div style=&quot;display:flex; gap:10px;&quot;&gt;
+        &lt;a href=&quot;javascript:void(0)&quot; onclick=&quot;toggleSelectAll(true)&quot; style=&quot;color:var(--primary); text-decoration:none;&quot;&gt;全选&lt;/a&gt;
+        &lt;a href=&quot;javascript:void(0)&quot; onclick=&quot;toggleSelectAll(false)&quot; style=&quot;color:var(--primary); text-decoration:none;&quot;&gt;取消全选&lt;/a&gt;
+        &lt;a href=&quot;javascript:void(0)&quot; onclick=&quot;toggleSelectInvert()&quot; style=&quot;color:var(--primary); text-decoration:none;&quot;&gt;反选&lt;/a&gt;
+      &lt;/div&gt;
+      &lt;div style=&quot;color:var(--text-sub);&quot;&gt;点击表格中的单项按钮亦可直接单独下载&lt;/div&gt;
+    &lt;/div&gt;
+
     &lt;div class=&quot;table-container&quot;&gt;
       &lt;table&gt;
         &lt;thead&gt;
           &lt;tr&gt;
-            &lt;th style=&quot;width: 50px;&quot;&gt;序号&lt;/th&gt;
-            &lt;th style=&quot;width: 140px;&quot;&gt;匹配到的 ASIN&lt;/th&gt;
-            &lt;th&gt;文件名&lt;/th&gt;
-            &lt;th style=&quot;width: 100px;&quot;&gt;大小&lt;/th&gt;
-            &lt;th style=&quot;width: 90px; text-align: center;&quot;&gt;操作&lt;/th&gt;
+            &lt;th style=&quot;width: 40px; text-align: center;&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;checkMaster&quot; checked onclick=&quot;toggleSelectAll(this.checked)&quot;&gt;&lt;/th&gt;
+            &lt;th style=&quot;width: 48px;&quot;&gt;序号&lt;/th&gt;
+            &lt;th style=&quot;width: 70px;&quot;&gt;类型&lt;/th&gt;
+            &lt;th style=&quot;width: 140px;&quot;&gt;命中的关键词&lt;/th&gt;
+            &lt;th&gt;文件名称 / 路径&lt;/th&gt;
+            &lt;th style=&quot;width: 90px;&quot;&gt;大小&lt;/th&gt;
+            &lt;th style=&quot;width: 80px; text-align: center;&quot;&gt;操作&lt;/th&gt;
           &lt;/tr&gt;
         &lt;/thead&gt;
-        &lt;tbody id=&quot;resultTableBody&quot;&gt;
-          &lt;!-- 动态填充 --&gt;
-        &lt;/tbody&gt;
+        &lt;tbody id=&quot;resultBody&quot;&gt;&lt;/tbody&gt;
       &lt;/table&gt;
     &lt;/div&gt;
   &lt;/div&gt;
 &lt;/div&gt;
 
 &lt;script&gt;
-  let allFolderFiles = []; // 存储上传的全部原始 File 对象
-  let matchedFiles = [];   // 存储匹配出的文件数组 [{ file, asin }]
+  let rawFiles = [];
+  let matchedList = [];
+  let currentPreset = 'all';
+
+  const PRESETS = {
+    all: [],
+    excel: ['.xlsx', '.xls', '.csv'],
+    image: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif', '.ico'],
+    doc: ['.pdf', '.doc', '.docx', '.txt', '.rtf', '.md', '.ppt', '.pptx'],
+    archive: ['.zip', '.rar', '.7z', '.tar', '.gz'],
+    video: ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv']
+  };
 
   const folderInput = document.getElementById('folderInput');
-  const asinInput = document.getElementById('asinInput');
-  const asinCount = document.getElementById('asinCount');
+  const targetKeywords = document.getElementById('targetKeywords');
+  const excludeKeywords = document.getElementById('excludeKeywords');
+  const kwCount = document.getElementById('kwCount');
   const btnFilter = document.getElementById('btnFilter');
   const uploadText = document.getElementById('uploadText');
   const resultCard = document.getElementById('resultCard');
-  const resultTableBody = document.getElementById('resultTableBody');
+  const resultBody = document.getElementById('resultBody');
   const missedAlert = document.getElementById('missedAlert');
+  const customExtInput = document.getElementById('customExtInput');
 
-  // 1. 文件夹选择监听
-  folderInput.addEventListener('change', (e) =&gt; {
-    handleFiles(e.target.files);
-  });
+  // 1. 文件夹拖拽与选择
+  folderInput.addEventListener('change', (e) =&gt; handleSelectedFiles(e.target.files));
 
-  // 支持拖拽文件夹
   const dropArea = document.getElementById('dropArea');
-  ['dragenter', 'dragover'].forEach(name =&gt; {
-    dropArea.addEventListener(name, (e) =&gt; { e.preventDefault(); dropArea.style.borderColor = '#2563eb'; });
-  });
-  ['dragleave', 'drop'].forEach(name =&gt; {
-    dropArea.addEventListener(name, (e) =&gt; { e.preventDefault(); dropArea.style.borderColor = '#cbd5e1'; });
-  });
+  ['dragenter', 'dragover'].forEach(n =&gt; dropArea.addEventListener(n, (e) =&gt; { e.preventDefault(); dropArea.style.borderColor = '#2563eb'; }));
+  ['dragleave', 'drop'].forEach(n =&gt; dropArea.addEventListener(n, (e) =&gt; { e.preventDefault(); dropArea.style.borderColor = '#cbd5e1'; }));
   dropArea.addEventListener('drop', (e) =&gt; {
-    if (e.dataTransfer.files &amp;&amp; e.dataTransfer.files.length &gt; 0) {
-      handleFiles(e.dataTransfer.files);
-    }
+    e.preventDefault();
+    if (e.dataTransfer.files?.length) handleSelectedFiles(e.dataTransfer.files);
   });
 
-  function handleFiles(fileList) {
-    // 过滤出 excel/csv 相关文件
-    allFolderFiles = Array.from(fileList).filter(f =&gt; {
-      const name = f.name.toLowerCase();
-      return name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv');
+  function handleSelectedFiles(fileList) {
+    rawFiles = Array.from(fileList);
+    if (!rawFiles.length) return;
+    uploadText.innerHTML = `已就绪：已索引文件夹内 &lt;b&gt;${rawFiles.length}&lt;/b&gt; 个文件`;
+    checkReady();
+  }
+
+  // 2. 格式预设过滤器切换
+  document.querySelectorAll('.pill').forEach(pill =&gt; {
+    pill.addEventListener('click', () =&gt; {
+      document.querySelectorAll('.pill').forEach(p =&gt; p.classList.remove('active'));
+      pill.classList.add('active');
+      currentPreset = pill.dataset.preset;
+      customExtInput.value = '';
     });
+  });
 
-    if (allFolderFiles.length === 0) {
-      alert('所选文件夹中没有发现 Excel (.xlsx, .xls) 或 CSV 文件，请重新选择！');
-      return;
+  customExtInput.addEventListener('input', () =&gt; {
+    if (customExtInput.value.trim()) {
+      document.querySelectorAll('.pill').forEach(p =&gt; p.classList.remove('active'));
+      currentPreset = 'custom';
+    } else {
+      document.querySelector('.pill[data-preset=&quot;all&quot;]').classList.add('active');
+      currentPreset = 'all';
     }
+  });
 
-    uploadText.innerHTML = `已就绪：共加载 &lt;b&gt;${allFolderFiles.length}&lt;/b&gt; 个表格文件`;
-    checkReady();
-  }
-
-  // 2. ASIN 输入框监听
-  asinInput.addEventListener('input', () =&gt; {
-    const asins = parseAsins(asinInput.value);
-    asinCount.textContent = asins.length;
+  // 3. 目标关键词输入解析
+  targetKeywords.addEventListener('input', () =&gt; {
+    const list = parseInputList(targetKeywords.value);
+    kwCount.textContent = list.length;
     checkReady();
   });
 
-  function clearAsinInput() {
-    asinInput.value = '';
-    asinCount.textContent = '0';
-    checkReady();
-  }
-
-  // 解析并清洗 ASIN
-  function parseAsins(text) {
+  function parseInputList(text) {
     if (!text) return [];
-    // 按照换行、逗号、分号、空格拆分
-    const tokens = text.split(/[\s,，;；\r\n]+/);
-    const set = new Set();
-    tokens.forEach(t =&gt; {
-      const clean = t.trim().toUpperCase();
-      if (clean.length &gt;= 8) { // ASIN 通常 10 位，这里给个合理边界
-        set.add(clean);
-      }
-    });
-    return Array.from(set);
+    return Array.from(new Set(text.split(/[\s,，;；\r\n]+/).map(s =&gt; s.trim()).filter(Boolean)));
   }
 
   function checkReady() {
-    const asins = parseAsins(asinInput.value);
-    btnFilter.disabled = !(allFolderFiles.length &gt; 0 &amp;&amp; asins.length &gt; 0);
+    const kws = parseInputList(targetKeywords.value);
+    btnFilter.disabled = !(rawFiles.length &gt; 0 &amp;&amp; kws.length &gt; 0);
   }
 
-  // 3. 执行匹配筛选
+  function clearAllInputs() {
+    targetKeywords.value = '';
+    excludeKeywords.value = '';
+    kwCount.textContent = '0';
+    checkReady();
+  }
+
+  // 获取允许的后缀列表
+  function getAllowedExtensions() {
+    if (currentPreset === 'custom') {
+      return customExtInput.value.split(/[,，\s]+/)
+        .map(s =&gt; s.trim().toLowerCase())
+        .filter(Boolean)
+        .map(s =&gt; s.startsWith('.') ? s : '.' + s);
+    }
+    return PRESETS[currentPreset] || [];
+  }
+
+  // 4. 执行多维筛选
   function doFilter() {
-    const targetAsins = parseAsins(asinInput.value);
-    if (!targetAsins.length || !allFolderFiles.length) return;
+    const targets = parseInputList(targetKeywords.value);
+    const excludes = parseInputList(excludeKeywords.value);
+    const allowedExts = getAllowedExtensions();
+    const mode = document.getElementById('matchMode').value;
+    const caseSensitive = document.getElementById('caseSensitive').checked;
 
-    matchedFiles = [];
-    const matchedAsinSet = new Set();
+    matchedList = [];
+    const hitKeywordsSet = new Set();
 
-    for (const file of allFolderFiles) {
-      const upperName = file.name.toUpperCase();
-      // 在文件名中查找是否命中了用户填写的某个 ASIN
-      for (const asin of targetAsins) {
-        if (upperName.includes(asin)) {
-          matchedFiles.push({ file, asin });
-          matchedAsinSet.add(asin);
-          break; // 每个文件只匹配归属一个 ASIN
+    // 预编译正则提高几十倍速度
+    let regexTargets = [];
+    if (mode === 'regex') {
+      regexTargets = targets.map(t =&gt; {
+        try { return { kw: t, reg: new RegExp(t, caseSensitive ? '' : 'i') }; }
+        catch (e) { return null; }
+      }).filter(Boolean);
+    }
+
+    for (const file of rawFiles) {
+      const fileName = file.name;
+      const lowerName = fileName.toLowerCase();
+
+      // 1. 检查扩展名是否符合过滤规则
+      if (allowedExts.length &gt; 0) {
+        const hasExt = allowedExts.some(ext =&gt; lowerName.endsWith(ext));
+        if (!hasExt) continue;
+      }
+
+      // 2. 检查排除词
+      if (excludes.length &gt; 0) {
+        const testTarget = caseSensitive ? fileName : lowerName;
+        const isExcluded = excludes.some(ex =&gt; {
+          const exClean = caseSensitive ? ex : ex.toLowerCase();
+          return testTarget.includes(exClean);
+        });
+        if (isExcluded) continue;
+      }
+
+      // 3. 匹配目标关键词
+      let matchedKeyword = null;
+      if (mode === 'regex') {
+        for (const rObj of regexTargets) {
+          if (rObj.reg.test(fileName)) {
+            matchedKeyword = rObj.kw;
+            break;
+          }
         }
+      } else if (mode === 'exactWord') {
+        // 使用分隔符（标点、空格、下划线、减号等）全词边界匹配
+        for (const kw of targets) {
+          const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;');
+          const borderReg = new RegExp(`(^|[^a-zA-Z0-9])` + escaped + `([^a-zA-Z0-9]|$)`, caseSensitive ? '' : 'i');
+          if (borderReg.test(fileName)) {
+            matchedKeyword = kw;
+            break;
+          }
+        }
+      } else {
+        // 包含匹配 (contains)
+        const checkStr = caseSensitive ? fileName : lowerName;
+        for (const kw of targets) {
+          const kwStr = caseSensitive ? kw : kw.toLowerCase();
+          if (checkStr.includes(kwStr)) {
+            matchedKeyword = kw;
+            break;
+          }
+        }
+      }
+
+      if (matchedKeyword) {
+        matchedList.push({ file, matchedKeyword, selected: true });
+        hitKeywordsSet.add(matchedKeyword);
       }
     }
 
-    renderResults(targetAsins, matchedAsinSet);
+    renderResults(targets, hitKeywordsSet);
   }
 
-  // 渲染匹配结果
-  function renderResults(targetAsins, matchedAsinSet) {
+  // 渲染结果
+  function renderResults(targets, hitKeywordsSet) {
     resultCard.style.display = 'block';
-    document.getElementById('totalFilesCount').textContent = allFolderFiles.length;
-    document.getElementById('matchedFilesCount').textContent = matchedFiles.length;
+    document.getElementById('totalScanned').textContent = rawFiles.length;
+    document.getElementById('matchedCount').textContent = matchedList.length;
 
-    // 计算总大小
-    const totalBytes = matchedFiles.reduce((acc, curr) =&gt; acc + curr.file.size, 0);
-    document.getElementById('totalSizeText').textContent = (totalBytes / (1024 * 1024)).toFixed(2) + ' MB';
-
-    // 检查未匹配到的 ASIN 并预警
-    const missed = targetAsins.filter(a =&gt; !matchedAsinSet.has(a));
+    // 未命中关键词展示
+    const missed = targets.filter(t =&gt; !hitKeywordsSet.has(t));
     if (missed.length &gt; 0) {
       missedAlert.style.display = 'block';
-      missedAlert.innerHTML = `⚠️ &lt;b&gt;以下 ${missed.length} 个 ASIN 未能在文件夹中找到匹配的 Excel 文件：&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;word-break:break-all; font-family:monospace; margin-top:4px; display:inline-block;&quot;&gt;${missed.join(', ')}&lt;/span&gt;`;
+      document.getElementById('missedCountNum').textContent = missed.length;
+      document.getElementById('missedListText').textContent = missed.join(', ');
+      window._lastMissed = missed;
     } else {
       missedAlert.style.display = 'none';
+      window._lastMissed = [];
     }
 
-    // 渲染表格
-    resultTableBody.innerHTML = '';
-    if (matchedFiles.length === 0) {
-      resultTableBody.innerHTML = `&lt;tr&gt;&lt;td colspan=&quot;5&quot; class=&quot;empty-state&quot;&gt;没有找到任何符合条件的表格，请核对文件名命名或 ASIN 拼写。&lt;/td&gt;&lt;/tr&gt;`;
-      return;
-    }
-
-    matchedFiles.forEach((item, index) =&gt; {
-      const tr = document.createElement('tr');
-      const sizeStr = (item.file.size / 1024).toFixed(1) + ' KB';
-      tr.innerHTML = `
-        &lt;td style=&quot;color:var(--text-sub);&quot;&gt;${index + 1}&lt;/td&gt;
-        &lt;td&gt;&lt;span class=&quot;tag-asin&quot;&gt;${item.asin}&lt;/span&gt;&lt;/td&gt;
-        &lt;td style=&quot;word-break:break-all; font-weight:500;&quot;&gt;${item.file.name}&lt;/td&gt;
-        &lt;td style=&quot;color:var(--text-sub);&quot;&gt;${sizeStr}&lt;/td&gt;
-        &lt;td style=&quot;text-align: center;&quot;&gt;
-          &lt;button class=&quot;btn-sm-download&quot; onclick=&quot;downloadSingleFile(${index})&quot;&gt;下载&lt;/button&gt;
-        &lt;/td&gt;
-      `;
-      resultTableBody.appendChild(tr);
-    });
-
-    // 滚动到结果卡片
+    renderTable();
+    updateSelectedSummary();
     resultCard.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // 4. 单文件下载
-  function downloadSingleFile(index) {
-    const item = matchedFiles[index];
+  function getFileIcon(filename) {
+    const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+    if (['.xlsx', '.xls', '.csv'].includes(ext)) return '📊';
+    if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'].includes(ext)) return '🖼️';
+    if (['.pdf'].includes(ext)) return '📕';
+    if (['.doc', '.docx', '.txt', '.md'].includes(ext)) return '📄';
+    if (['.zip', '.rar', '.7z', '.tar'].includes(ext)) return '📦';
+    if (['.mp4', '.mov', '.avi'].includes(ext)) return '🎬';
+    return '📎';
+  }
+
+  function renderTable() {
+    resultBody.innerHTML = '';
+    if (!matchedList.length) {
+      resultBody.innerHTML = `&lt;tr&gt;&lt;td colspan=&quot;7&quot; style=&quot;text-align:center; padding:32px; color:var(--text-sub);&quot;&gt;没有找到符合当前条件的文件。&lt;/td&gt;&lt;/tr&gt;`;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    matchedList.forEach((item, index) =&gt; {
+      const tr = document.createElement('tr');
+      const ext = item.file.name.slice(item.file.name.lastIndexOf('.')).toLowerCase() || '未知';
+      const sizeStr = item.file.size &gt; 1048576
+        ? (item.file.size / 1048576).toFixed(2) + ' MB'
+        : (item.file.size / 1024).toFixed(1) + ' KB';
+      const displayPath = item.file.webkitRelativePath || item.file.name;
+
+      tr.innerHTML = `
+        &lt;td style=&quot;text-align: center;&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;row-check&quot; data-idx=&quot;${index}&quot; ${item.selected ? 'checked' : ''}&gt;&lt;/td&gt;
+        &lt;td style=&quot;color:var(--text-sub);&quot;&gt;${index + 1}&lt;/td&gt;
+        &lt;td&gt;&lt;span class=&quot;tag-ext&quot;&gt;${getFileIcon(item.file.name)} ${ext}&lt;/span&gt;&lt;/td&gt;
+        &lt;td&gt;&lt;span class=&quot;tag-kw&quot;&gt;${item.matchedKeyword}&lt;/span&gt;&lt;/td&gt;
+        &lt;td style=&quot;word-break:break-all;&quot;&gt;&lt;b&gt;${item.file.name}&lt;/b&gt;&lt;div style=&quot;font-size:11px;color:var(--text-sub);&quot;&gt;${displayPath}&lt;/div&gt;&lt;/td&gt;
+        &lt;td style=&quot;color:var(--text-sub); font-size:12px;&quot;&gt;${sizeStr}&lt;/td&gt;
+        &lt;td style=&quot;text-align: center;&quot;&gt;
+          &lt;button class=&quot;btn-outline btn-sm&quot; onclick=&quot;downloadSingle(${index})&quot;&gt;下载&lt;/button&gt;
+        &lt;/td&gt;
+      `;
+      fragment.appendChild(tr);
+    });
+    resultBody.appendChild(fragment);
+
+    // 绑定多选框
+    resultBody.querySelectorAll('.row-check').forEach(ck =&gt; {
+      ck.addEventListener('change', (e) =&gt; {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        matchedList[idx].selected = e.target.checked;
+        updateSelectedSummary();
+      });
+    });
+  }
+
+  function updateSelectedSummary() {
+    const selected = matchedList.filter(item =&gt; item.selected);
+    document.getElementById('selectedCount').textContent = selected.length;
+    const totalBytes = selected.reduce((sum, item) =&gt; sum + item.file.size, 0);
+    document.getElementById('totalSize').textContent = (totalBytes / (1024 * 1024)).toFixed(2) + ' MB';
+    document.getElementById('checkMaster').checked = (selected.length === matchedList.length &amp;&amp; matchedList.length &gt; 0);
+  }
+
+  function toggleSelectAll(val) {
+    matchedList.forEach(item =&gt; item.selected = val);
+    renderTable();
+    updateSelectedSummary();
+  }
+  function toggleSelectInvert() {
+    matchedList.forEach(item =&gt; item.selected = !item.selected);
+    renderTable();
+    updateSelectedSummary();
+  }
+
+  function copyMissedKeywords() {
+    if (!window._lastMissed?.length) return;
+    navigator.clipboard.writeText(window._lastMissed.join('\n')).then(() =&gt; {
+      alert('已复制未命中的关键词列表到剪贴板！');
+    });
+  }
+
+  function downloadSingle(idx) {
+    const item = matchedList[idx];
     if (!item) return;
     const url = URL.createObjectURL(item.file);
     const a = document.createElement('a');
@@ -16112,77 +16295,82 @@ B09XYZ8888, B087654321
     URL.revokeObjectURL(url);
   }
 
-  // 5. 直接导出到本地文件夹（Web File System Access API）
-  async function exportToLocalFolder() {
-    if (!matchedFiles.length) return;
+  // 5. 直接写入本地目标文件夹 (File System Access API)
+  async function exportToFolder() {
+    const itemsToExport = matchedList.filter(i =&gt; i.selected);
+    if (!itemsToExport.length) { alert('请至少勾选一个文件！'); return; }
 
-    // 检查浏览器支持情况
     if (!('showDirectoryPicker' in window)) {
-      alert('您的当前浏览器不支持直接写入文件夹，将自动为您使用【打包下载 (ZIP)】方式。建议使用最新版本的 Chrome 或 Edge 浏览器体验直接写入功能。');
+      alert('您的浏览器不支持直接向本地文件夹写入文件，将为您自动采用【ZIP 打包下载】方式。（建议使用 Chrome 或 Edge 体验直接保存文件夹功能）');
       exportToZip();
       return;
     }
 
     try {
-      // 打开本地目录选择弹窗
       const dirHandle = await window.showDirectoryPicker();
       showProgress(true);
-
-      let savedCount = 0;
-      const total = matchedFiles.length;
+      const keepStructure = document.getElementById('keepFolderStructure').checked;
+      const total = itemsToExport.length;
 
       for (let i = 0; i &lt; total; i++) {
-        const item = matchedFiles[i];
-        updateProgress(i + 1, total, `正在写入文件 (${i + 1}/${total}): ${item.file.name}`);
+        const item = itemsToExport[i];
+        updateProgress(i + 1, total, `正在写入本地 (${i + 1}/${total}): ${item.file.name}`);
 
-        // 在选定的文件夹中创建同名文件并写入二进制流
-        const fileHandle = await dirHandle.getFileHandle(item.file.name, { create: true });
+        let targetDir = dirHandle;
+        // 如果选择保留层级结构
+        if (keepStructure &amp;&amp; item.file.webkitRelativePath) {
+          const parts = item.file.webkitRelativePath.split('/').slice(1, -1);
+          for (const p of parts) {
+            targetDir = await targetDir.getDirectoryHandle(p, { create: true });
+          }
+        }
+
+        const fileHandle = await targetDir.getFileHandle(item.file.name, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(item.file);
         await writable.close();
-        savedCount++;
       }
 
       showProgress(false);
-      alert(`🎉 导出成功！已将 ${savedCount} 个 Excel 表格原样保存到你指定的本地文件夹。`);
+      alert(`🎉 导出完成！已成功将 ${total} 个文件原样写入所选本地文件夹。`);
     } catch (err) {
       showProgress(false);
-      if (err.name !== 'AbortError') {
-        console.error(err);
-        alert('写入本地文件夹失败：' + err.message);
-      }
+      if (err.name !== 'AbortError') alert('写入文件夹失败: ' + err.message);
     }
   }
 
-  // 6. 打包下载为 ZIP
+  // 6. 打包导出 ZIP
   async function exportToZip() {
-    if (!matchedFiles.length) return;
-    if (typeof JSZip === 'undefined') {
-      alert('压缩组件未能成功加载，请确保能正常访问外部网络。');
-      return;
-    }
+    const itemsToExport = matchedList.filter(i =&gt; i.selected);
+    if (!itemsToExport.length) { alert('请至少勾选一个文件！'); return; }
 
     try {
       showProgress(true);
       const zip = new JSZip();
-      const total = matchedFiles.length;
+      const keepStructure = document.getElementById('keepFolderStructure').checked;
+      const total = itemsToExport.length;
 
       for (let i = 0; i &lt; total; i++) {
-        const item = matchedFiles[i];
-        updateProgress(i + 1, total, `正在压缩打包 (${i + 1}/${total}): ${item.file.name}`);
-        zip.file(item.file.name, item.file);
+        const item = itemsToExport[i];
+        updateProgress(i + 1, total, `正在添加压缩包 (${i + 1}/${total}): ${item.file.name}`);
+
+        if (keepStructure &amp;&amp; item.file.webkitRelativePath) {
+          const cleanRelPath = item.file.webkitRelativePath.replace(/^[^/]+\//, '');
+          zip.file(cleanRelPath, item.file);
+        } else {
+          zip.file(item.file.name, item.file);
+        }
       }
 
-      updateProgress(total, total, '压缩包构建中，即将调起下载...');
+      updateProgress(total, total, '正在生成 ZIP 压缩文件...');
       const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }, (metadata) =&gt; {
-        updateProgress(metadata.percent, 100, `压缩处理进度: ${metadata.percent.toFixed(0)}%`);
+        updateProgress(metadata.percent, 100, `打包进度: ${metadata.percent.toFixed(0)}%`);
       });
 
       const a = document.createElement('a');
       const url = URL.createObjectURL(content);
       a.href = url;
-      const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, '');
-      a.download = `ASIN_Excels_Export_${dateStr}.zip`;
+      a.download = `Filtered_Files_${new Date().toISOString().slice(0,10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -16191,28 +16379,675 @@ B09XYZ8888, B087654321
       showProgress(false);
     } catch (err) {
       showProgress(false);
-      console.error(err);
       alert('打包 ZIP 失败: ' + err.message);
     }
   }
 
-  // 进度条控制工具
   function showProgress(show) {
     document.getElementById('progressBarWrap').style.display = show ? 'block' : 'none';
     document.getElementById('progressText').style.display = show ? 'block' : 'none';
-    if (!show) {
-      document.getElementById('progressBar').style.width = '0%';
-    }
+    if (!show) document.getElementById('progressBar').style.width = '0%';
   }
-  function updateProgress(current, total, text) {
-    const pct = Math.round((current / total) * 100);
-    document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('progressText').textContent = text;
+  function updateProgress(curr, total, txt) {
+    const p = Math.round((curr / total) * 100);
+    document.getElementById('progressBar').style.width = p + '%';
+    document.getElementById('progressText').textContent = txt;
   }
 &lt;/script&gt;
 
 &lt;/body&gt;
-&lt;/html&gt;">
+&lt;/html&gt;
+
+
+
+&lt;!--&lt;!DOCTYPE html&gt;--&gt;
+&lt;!--&lt;html lang=&quot;zh-CN&quot;&gt;--&gt;
+&lt;!--&lt;head&gt;--&gt;
+&lt;!--  &lt;meta charset=&quot;UTF-8&quot;&gt;--&gt;
+&lt;!--  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;--&gt;
+&lt;!--  &lt;title&gt;Excel 批量提取与导出工具&lt;/title&gt;--&gt;
+&lt;!--  &amp;lt;!&amp;ndash; 引入 JSZip 库用于 ZIP 打包备份导出 &amp;ndash;&amp;gt;--&gt;
+&lt;!--  &lt;script src=&quot;https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js&quot;&gt;&lt;/script&gt;--&gt;
+&lt;!--  &lt;style&gt;--&gt;
+&lt;!--    :root {--&gt;
+&lt;!--      &amp;#45;&amp;#45;primary-color: #2563eb;--&gt;
+&lt;!--      &amp;#45;&amp;#45;primary-hover: #1d4ed8;--&gt;
+&lt;!--      &amp;#45;&amp;#45;success-color: #059669;--&gt;
+&lt;!--      &amp;#45;&amp;#45;success-hover: #047857;--&gt;
+&lt;!--      &amp;#45;&amp;#45;warning-color: #d97706;--&gt;
+&lt;!--      &amp;#45;&amp;#45;danger-color: #dc2626;--&gt;
+&lt;!--      &amp;#45;&amp;#45;bg-color: #f8fafc;--&gt;
+&lt;!--      &amp;#45;&amp;#45;card-bg: #ffffff;--&gt;
+&lt;!--      &amp;#45;&amp;#45;border-color: #e2e8f0;--&gt;
+&lt;!--      &amp;#45;&amp;#45;text-main: #1e293b;--&gt;
+&lt;!--      &amp;#45;&amp;#45;text-sub: #64748b;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    * { box-sizing: border-box; margin: 0; padding: 0; }--&gt;
+&lt;!--    body {--&gt;
+&lt;!--      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, sans-serif;--&gt;
+&lt;!--      background-color: var(&amp;#45;&amp;#45;bg-color);--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-main);--&gt;
+&lt;!--      padding: 24px 16px;--&gt;
+&lt;!--      line-height: 1.5;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    .container {--&gt;
+&lt;!--      max-width: 1000px;--&gt;
+&lt;!--      margin: 0 auto;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    header {--&gt;
+&lt;!--      margin-bottom: 24px;--&gt;
+&lt;!--      text-align: center;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    header h1 {--&gt;
+&lt;!--      font-size: 24px;--&gt;
+&lt;!--      font-weight: 700;--&gt;
+&lt;!--      color: #0f172a;--&gt;
+&lt;!--      margin-bottom: 6px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    header p {--&gt;
+&lt;!--      font-size: 14px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-sub);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    .card {--&gt;
+&lt;!--      background: var(&amp;#45;&amp;#45;card-bg);--&gt;
+&lt;!--      border: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--      border-radius: 12px;--&gt;
+&lt;!--      padding: 20px;--&gt;
+&lt;!--      margin-bottom: 20px;--&gt;
+&lt;!--      box-shadow: 0 1px 3px rgba(0,0,0,0.05);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    .card-title {--&gt;
+&lt;!--      font-size: 16px;--&gt;
+&lt;!--      font-weight: 600;--&gt;
+&lt;!--      margin-bottom: 14px;--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--      gap: 8px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .badge-step {--&gt;
+&lt;!--      background: #eff6ff;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--      border-radius: 50%;--&gt;
+&lt;!--      width: 22px;--&gt;
+&lt;!--      height: 22px;--&gt;
+&lt;!--      display: inline-flex;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--      justify-content: center;--&gt;
+&lt;!--      font-size: 12px;--&gt;
+&lt;!--      font-weight: 700;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* 文件夹上传框 */--&gt;
+&lt;!--    .upload-box {--&gt;
+&lt;!--      border: 2px dashed #cbd5e1;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      padding: 24px;--&gt;
+&lt;!--      text-align: center;--&gt;
+&lt;!--      cursor: pointer;--&gt;
+&lt;!--      transition: all 0.2s;--&gt;
+&lt;!--      background: #fdfdfd;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .upload-box:hover {--&gt;
+&lt;!--      border-color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--      background: #f0f7ff;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .upload-icon {--&gt;
+&lt;!--      font-size: 32px;--&gt;
+&lt;!--      margin-bottom: 8px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .upload-text {--&gt;
+&lt;!--      font-size: 14px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-main);--&gt;
+&lt;!--      font-weight: 500;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .upload-tip {--&gt;
+&lt;!--      font-size: 12px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-sub);--&gt;
+&lt;!--      margin-top: 4px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    input[type=&quot;file&quot;] { display: none; }--&gt;
+
+&lt;!--    /* ASIN 输入框 */--&gt;
+&lt;!--    textarea {--&gt;
+&lt;!--      width: 100%;--&gt;
+&lt;!--      height: 100px;--&gt;
+&lt;!--      padding: 10px 12px;--&gt;
+&lt;!--      border: 1px solid #cbd5e1;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      font-size: 13px;--&gt;
+&lt;!--      font-family: inherit;--&gt;
+&lt;!--      resize: vertical;--&gt;
+&lt;!--      outline: none;--&gt;
+&lt;!--      transition: border-color 0.2s;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    textarea:focus {--&gt;
+&lt;!--      border-color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--      box-shadow: 0 0 0 2px rgba(37,99,235,0.15);--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .input-hint {--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      justify-content: space-between;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--      margin-top: 6px;--&gt;
+&lt;!--      font-size: 12px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-sub);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* 按钮组 */--&gt;
+&lt;!--    .btn-group {--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      gap: 12px;--&gt;
+&lt;!--      flex-wrap: wrap;--&gt;
+&lt;!--      margin-top: 14px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    button {--&gt;
+&lt;!--      display: inline-flex;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--      gap: 6px;--&gt;
+&lt;!--      padding: 9px 16px;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      font-size: 13px;--&gt;
+&lt;!--      font-weight: 600;--&gt;
+&lt;!--      cursor: pointer;--&gt;
+&lt;!--      border: 1px solid transparent;--&gt;
+&lt;!--      transition: all 0.15s;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    button:disabled {--&gt;
+&lt;!--      opacity: 0.5;--&gt;
+&lt;!--      cursor: not-allowed;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .btn-primary { background: var(&amp;#45;&amp;#45;primary-color); color: #fff; }--&gt;
+&lt;!--    .btn-primary:hover:not(:disabled) { background: var(&amp;#45;&amp;#45;primary-hover); }--&gt;
+
+&lt;!--    .btn-success { background: var(&amp;#45;&amp;#45;success-color); color: #fff; }--&gt;
+&lt;!--    .btn-success:hover:not(:disabled) { background: var(&amp;#45;&amp;#45;success-hover); }--&gt;
+
+&lt;!--    .btn-outline {--&gt;
+&lt;!--      background: #fff;--&gt;
+&lt;!--      border-color: #cbd5e1;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-main);--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .btn-outline:hover:not(:disabled) {--&gt;
+&lt;!--      background: #f1f5f9;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* 状态与统计栏 */--&gt;
+&lt;!--    .stat-banner {--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      gap: 16px;--&gt;
+&lt;!--      flex-wrap: wrap;--&gt;
+&lt;!--      margin-bottom: 14px;--&gt;
+&lt;!--      padding: 10px 14px;--&gt;
+&lt;!--      background: #f1f5f9;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      font-size: 13px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .stat-item {--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--      gap: 6px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .stat-val {--&gt;
+&lt;!--      font-weight: 700;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* 警告与提示 */--&gt;
+&lt;!--    .alert {--&gt;
+&lt;!--      padding: 10px 14px;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      font-size: 12px;--&gt;
+&lt;!--      margin-bottom: 12px;--&gt;
+&lt;!--      display: none;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .alert-warning {--&gt;
+&lt;!--      background: #fffbeb;--&gt;
+&lt;!--      border: 1px solid #fde68a;--&gt;
+&lt;!--      color: #92400e;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* 进度条 */--&gt;
+&lt;!--    .progress-bar-wrap {--&gt;
+&lt;!--      display: none;--&gt;
+&lt;!--      margin: 12px 0;--&gt;
+&lt;!--      background: #e2e8f0;--&gt;
+&lt;!--      border-radius: 6px;--&gt;
+&lt;!--      height: 8px;--&gt;
+&lt;!--      overflow: hidden;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .progress-bar {--&gt;
+&lt;!--      width: 0%;--&gt;
+&lt;!--      height: 100%;--&gt;
+&lt;!--      background: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--      transition: width 0.2s;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* 结果列表表格 */--&gt;
+&lt;!--    .table-container {--&gt;
+&lt;!--      max-height: 480px;--&gt;
+&lt;!--      overflow-y: auto;--&gt;
+&lt;!--      border: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    table {--&gt;
+&lt;!--      width: 100%;--&gt;
+&lt;!--      border-collapse: collapse;--&gt;
+&lt;!--      text-align: left;--&gt;
+&lt;!--      font-size: 13px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    th, td {--&gt;
+&lt;!--      padding: 10px 12px;--&gt;
+&lt;!--      border-bottom: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--    }--&gt;
+&lt;!--    th {--&gt;
+&lt;!--      background: #f8fafc;--&gt;
+&lt;!--      font-weight: 600;--&gt;
+&lt;!--      position: sticky;--&gt;
+&lt;!--      top: 0;--&gt;
+&lt;!--      z-index: 10;--&gt;
+&lt;!--      color: #475569;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    tbody tr:hover {--&gt;
+&lt;!--      background: #f8fafc;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .tag-asin {--&gt;
+&lt;!--      display: inline-block;--&gt;
+&lt;!--      padding: 2px 6px;--&gt;
+&lt;!--      background: #e0f2fe;--&gt;
+&lt;!--      color: #0369a1;--&gt;
+&lt;!--      border-radius: 4px;--&gt;
+&lt;!--      font-size: 12px;--&gt;
+&lt;!--      font-weight: 600;--&gt;
+&lt;!--      font-family: monospace;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .btn-sm-download {--&gt;
+&lt;!--      padding: 4px 8px;--&gt;
+&lt;!--      font-size: 12px;--&gt;
+&lt;!--      border-radius: 4px;--&gt;
+&lt;!--      border: 1px solid #cbd5e1;--&gt;
+&lt;!--      background: #fff;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .btn-sm-download:hover {--&gt;
+&lt;!--      background: #eff6ff;--&gt;
+&lt;!--      border-color: #93c5fd;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;primary-color);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    .empty-state {--&gt;
+&lt;!--      padding: 40px;--&gt;
+&lt;!--      text-align: center;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;text-sub);--&gt;
+&lt;!--      font-size: 13px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--  &lt;/style&gt;--&gt;
+&lt;!--&lt;/head&gt;--&gt;
+&lt;!--&lt;body&gt;--&gt;
+
+&lt;!--&lt;div class=&quot;container&quot;&gt;--&gt;
+&lt;!--  &lt;header&gt;--&gt;
+&lt;!--    &lt;h1&gt;Excel 批量提取与导出工具&lt;/h1&gt;--&gt;
+&lt;!--    &lt;p&gt;针对类似 &lt;code&gt;US-B0B1VL7SCV-sales-20261020.xlsx&lt;/code&gt; 格式快速筛选提取，支持一键直接导出到本地文件夹&lt;/p&gt;--&gt;
+&lt;!--  &lt;/header&gt;--&gt;
+
+&lt;!--  &amp;lt;!&amp;ndash; 步骤 1: 上传文件夹 &amp;ndash;&amp;gt;--&gt;
+&lt;!--  &lt;div class=&quot;card&quot;&gt;--&gt;
+&lt;!--    &lt;div class=&quot;card-title&quot;&gt;--&gt;
+&lt;!--      &lt;span class=&quot;badge-step&quot;&gt;1&lt;/span&gt;--&gt;
+&lt;!--      &lt;span&gt;选择数据所在文件夹&lt;/span&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;upload-box&quot; id=&quot;dropArea&quot; onclick=&quot;document.getElementById('folderInput').click()&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;upload-icon&quot;&gt;📂&lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;upload-text&quot; id=&quot;uploadText&quot;&gt;点击或拖拽包含 Excel 的总文件夹到此处&lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;upload-tip&quot;&gt;支持包含数百/数千张 Excel 表格的庞大目录，全部本地秒级处理&lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;input type=&quot;file&quot; id=&quot;folderInput&quot; webkitdirectory directory multiple accept=&quot;.xlsx,.xls,.csv&quot;&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+
+&lt;!--  &amp;lt;!&amp;ndash; 步骤 2: 目标 ASIN 输入 &amp;ndash;&amp;gt;--&gt;
+&lt;!--  &lt;div class=&quot;card&quot;&gt;--&gt;
+&lt;!--    &lt;div class=&quot;card-title&quot;&gt;--&gt;
+&lt;!--      &lt;span class=&quot;badge-step&quot;&gt;2&lt;/span&gt;--&gt;
+&lt;!--      &lt;span&gt;输入要提取的目标 ASIN&lt;/span&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;textarea id=&quot;asinInput&quot; placeholder=&quot;在此粘贴你需要提取的 ASIN，例如：--&gt;
+&lt;!--B0B1VL7SCV--&gt;
+&lt;!--B09XYZ8888, B087654321--&gt;
+&lt;!--支持逗号、空格、换行等任意方式混排分隔...&quot;&gt;&lt;/textarea&gt;--&gt;
+&lt;!--    &lt;div class=&quot;input-hint&quot;&gt;--&gt;
+&lt;!--      &lt;span&gt;已识别目标 ASIN: &lt;b id=&quot;asinCount&quot; style=&quot;color:var(&amp;#45;&amp;#45;primary-color);&quot;&gt;0&lt;/b&gt; 个&lt;/span&gt;--&gt;
+&lt;!--      &lt;button class=&quot;btn-outline&quot; style=&quot;padding:4px 8px; font-size:12px;&quot; onclick=&quot;clearAsinInput()&quot;&gt;清空输入&lt;/button&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;btn-group&quot;&gt;--&gt;
+&lt;!--      &lt;button class=&quot;btn-primary&quot; id=&quot;btnFilter&quot; onclick=&quot;doFilter()&quot; disabled&gt;--&gt;
+&lt;!--        🔍 开始匹配筛选--&gt;
+&lt;!--      &lt;/button&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+
+&lt;!--  &amp;lt;!&amp;ndash; 步骤 3: 匹配结果展示与导出 &amp;ndash;&amp;gt;--&gt;
+&lt;!--  &lt;div class=&quot;card&quot; id=&quot;resultCard&quot; style=&quot;display:none;&quot;&gt;--&gt;
+&lt;!--    &lt;div class=&quot;card-title&quot; style=&quot;justify-content:space-between; flex-wrap:wrap;&quot;&gt;--&gt;
+&lt;!--      &lt;div style=&quot;display:flex; align-items:center; gap:8px;&quot;&gt;--&gt;
+&lt;!--        &lt;span class=&quot;badge-step&quot;&gt;3&lt;/span&gt;--&gt;
+&lt;!--        &lt;span&gt;匹配结果与导出&lt;/span&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;btn-group&quot; style=&quot;margin-top:0;&quot;&gt;--&gt;
+&lt;!--        &amp;lt;!&amp;ndash; 现代化直接存到本地文件夹 (Chrome / Edge 支持) &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;button class=&quot;btn-success&quot; id=&quot;btnExportFolder&quot; onclick=&quot;exportToLocalFolder()&quot;&gt;--&gt;
+&lt;!--          📁 直接导出到本地文件夹--&gt;
+&lt;!--        &lt;/button&gt;--&gt;
+&lt;!--        &amp;lt;!&amp;ndash; ZIP 兼容下载 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;button class=&quot;btn-primary&quot; id=&quot;btnExportZip&quot; onclick=&quot;exportToZip()&quot;&gt;--&gt;
+&lt;!--          📦 打包下载 (ZIP)--&gt;
+&lt;!--        &lt;/button&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 进度条 &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div class=&quot;progress-bar-wrap&quot; id=&quot;progressBarWrap&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;progress-bar&quot; id=&quot;progressBar&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;div id=&quot;progressText&quot; style=&quot;font-size:12px; color:var(&amp;#45;&amp;#45;text-sub); display:none; margin-bottom:10px;&quot;&gt;&lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 统计指标 &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div class=&quot;stat-banner&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;stat-item&quot;&gt;总扫描文件: &lt;span class=&quot;stat-val&quot; id=&quot;totalFilesCount&quot;&gt;0&lt;/span&gt;&lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;stat-item&quot;&gt;符合文件: &lt;span class=&quot;stat-val&quot; id=&quot;matchedFilesCount&quot; style=&quot;color:var(&amp;#45;&amp;#45;success-color);&quot;&gt;0&lt;/span&gt;&lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;stat-item&quot;&gt;总大小: &lt;span class=&quot;stat-val&quot; id=&quot;totalSizeText&quot;&gt;0 MB&lt;/span&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 未匹配提示 &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div class=&quot;alert alert-warning&quot; id=&quot;missedAlert&quot;&gt;&lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 表格展示 &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div class=&quot;table-container&quot;&gt;--&gt;
+&lt;!--      &lt;table&gt;--&gt;
+&lt;!--        &lt;thead&gt;--&gt;
+&lt;!--          &lt;tr&gt;--&gt;
+&lt;!--            &lt;th style=&quot;width: 50px;&quot;&gt;序号&lt;/th&gt;--&gt;
+&lt;!--            &lt;th style=&quot;width: 140px;&quot;&gt;匹配到的 ASIN&lt;/th&gt;--&gt;
+&lt;!--            &lt;th&gt;文件名&lt;/th&gt;--&gt;
+&lt;!--            &lt;th style=&quot;width: 100px;&quot;&gt;大小&lt;/th&gt;--&gt;
+&lt;!--            &lt;th style=&quot;width: 90px; text-align: center;&quot;&gt;操作&lt;/th&gt;--&gt;
+&lt;!--          &lt;/tr&gt;--&gt;
+&lt;!--        &lt;/thead&gt;--&gt;
+&lt;!--        &lt;tbody id=&quot;resultTableBody&quot;&gt;--&gt;
+&lt;!--          &amp;lt;!&amp;ndash; 动态填充 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;/tbody&gt;--&gt;
+&lt;!--      &lt;/table&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+&lt;!--&lt;/div&gt;--&gt;
+
+&lt;!--&lt;script&gt;--&gt;
+&lt;!--  let allFolderFiles = []; // 存储上传的全部原始 File 对象--&gt;
+&lt;!--  let matchedFiles = [];   // 存储匹配出的文件数组 [{ file, asin }]--&gt;
+
+&lt;!--  const folderInput = document.getElementById('folderInput');--&gt;
+&lt;!--  const asinInput = document.getElementById('asinInput');--&gt;
+&lt;!--  const asinCount = document.getElementById('asinCount');--&gt;
+&lt;!--  const btnFilter = document.getElementById('btnFilter');--&gt;
+&lt;!--  const uploadText = document.getElementById('uploadText');--&gt;
+&lt;!--  const resultCard = document.getElementById('resultCard');--&gt;
+&lt;!--  const resultTableBody = document.getElementById('resultTableBody');--&gt;
+&lt;!--  const missedAlert = document.getElementById('missedAlert');--&gt;
+
+&lt;!--  // 1. 文件夹选择监听--&gt;
+&lt;!--  folderInput.addEventListener('change', (e) =&gt; {--&gt;
+&lt;!--    handleFiles(e.target.files);--&gt;
+&lt;!--  });--&gt;
+
+&lt;!--  // 支持拖拽文件夹--&gt;
+&lt;!--  const dropArea = document.getElementById('dropArea');--&gt;
+&lt;!--  ['dragenter', 'dragover'].forEach(name =&gt; {--&gt;
+&lt;!--    dropArea.addEventListener(name, (e) =&gt; { e.preventDefault(); dropArea.style.borderColor = '#2563eb'; });--&gt;
+&lt;!--  });--&gt;
+&lt;!--  ['dragleave', 'drop'].forEach(name =&gt; {--&gt;
+&lt;!--    dropArea.addEventListener(name, (e) =&gt; { e.preventDefault(); dropArea.style.borderColor = '#cbd5e1'; });--&gt;
+&lt;!--  });--&gt;
+&lt;!--  dropArea.addEventListener('drop', (e) =&gt; {--&gt;
+&lt;!--    if (e.dataTransfer.files &amp;&amp; e.dataTransfer.files.length &gt; 0) {--&gt;
+&lt;!--      handleFiles(e.dataTransfer.files);--&gt;
+&lt;!--    }--&gt;
+&lt;!--  });--&gt;
+
+&lt;!--  function handleFiles(fileList) {--&gt;
+&lt;!--    // 过滤出 excel/csv 相关文件--&gt;
+&lt;!--    allFolderFiles = Array.from(fileList).filter(f =&gt; {--&gt;
+&lt;!--      const name = f.name.toLowerCase();--&gt;
+&lt;!--      return name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv');--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    if (allFolderFiles.length === 0) {--&gt;
+&lt;!--      alert('所选文件夹中没有发现 Excel (.xlsx, .xls) 或 CSV 文件，请重新选择！');--&gt;
+&lt;!--      return;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    uploadText.innerHTML = `已就绪：共加载 &lt;b&gt;${allFolderFiles.length}&lt;/b&gt; 个表格文件`;--&gt;
+&lt;!--    checkReady();--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 2. ASIN 输入框监听--&gt;
+&lt;!--  asinInput.addEventListener('input', () =&gt; {--&gt;
+&lt;!--    const asins = parseAsins(asinInput.value);--&gt;
+&lt;!--    asinCount.textContent = asins.length;--&gt;
+&lt;!--    checkReady();--&gt;
+&lt;!--  });--&gt;
+
+&lt;!--  function clearAsinInput() {--&gt;
+&lt;!--    asinInput.value = '';--&gt;
+&lt;!--    asinCount.textContent = '0';--&gt;
+&lt;!--    checkReady();--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 解析并清洗 ASIN--&gt;
+&lt;!--  function parseAsins(text) {--&gt;
+&lt;!--    if (!text) return [];--&gt;
+&lt;!--    // 按照换行、逗号、分号、空格拆分--&gt;
+&lt;!--    const tokens = text.split(/[\s,，;；\r\n]+/);--&gt;
+&lt;!--    const set = new Set();--&gt;
+&lt;!--    tokens.forEach(t =&gt; {--&gt;
+&lt;!--      const clean = t.trim().toUpperCase();--&gt;
+&lt;!--      if (clean.length &gt;= 8) { // ASIN 通常 10 位，这里给个合理边界--&gt;
+&lt;!--        set.add(clean);--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+&lt;!--    return Array.from(set);--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  function checkReady() {--&gt;
+&lt;!--    const asins = parseAsins(asinInput.value);--&gt;
+&lt;!--    btnFilter.disabled = !(allFolderFiles.length &gt; 0 &amp;&amp; asins.length &gt; 0);--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 3. 执行匹配筛选--&gt;
+&lt;!--  function doFilter() {--&gt;
+&lt;!--    const targetAsins = parseAsins(asinInput.value);--&gt;
+&lt;!--    if (!targetAsins.length || !allFolderFiles.length) return;--&gt;
+
+&lt;!--    matchedFiles = [];--&gt;
+&lt;!--    const matchedAsinSet = new Set();--&gt;
+
+&lt;!--    for (const file of allFolderFiles) {--&gt;
+&lt;!--      const upperName = file.name.toUpperCase();--&gt;
+&lt;!--      // 在文件名中查找是否命中了用户填写的某个 ASIN--&gt;
+&lt;!--      for (const asin of targetAsins) {--&gt;
+&lt;!--        if (upperName.includes(asin)) {--&gt;
+&lt;!--          matchedFiles.push({ file, asin });--&gt;
+&lt;!--          matchedAsinSet.add(asin);--&gt;
+&lt;!--          break; // 每个文件只匹配归属一个 ASIN--&gt;
+&lt;!--        }--&gt;
+&lt;!--      }--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    renderResults(targetAsins, matchedAsinSet);--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 渲染匹配结果--&gt;
+&lt;!--  function renderResults(targetAsins, matchedAsinSet) {--&gt;
+&lt;!--    resultCard.style.display = 'block';--&gt;
+&lt;!--    document.getElementById('totalFilesCount').textContent = allFolderFiles.length;--&gt;
+&lt;!--    document.getElementById('matchedFilesCount').textContent = matchedFiles.length;--&gt;
+
+&lt;!--    // 计算总大小--&gt;
+&lt;!--    const totalBytes = matchedFiles.reduce((acc, curr) =&gt; acc + curr.file.size, 0);--&gt;
+&lt;!--    document.getElementById('totalSizeText').textContent = (totalBytes / (1024 * 1024)).toFixed(2) + ' MB';--&gt;
+
+&lt;!--    // 检查未匹配到的 ASIN 并预警--&gt;
+&lt;!--    const missed = targetAsins.filter(a =&gt; !matchedAsinSet.has(a));--&gt;
+&lt;!--    if (missed.length &gt; 0) {--&gt;
+&lt;!--      missedAlert.style.display = 'block';--&gt;
+&lt;!--      missedAlert.innerHTML = `⚠️ &lt;b&gt;以下 ${missed.length} 个 ASIN 未能在文件夹中找到匹配的 Excel 文件：&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;word-break:break-all; font-family:monospace; margin-top:4px; display:inline-block;&quot;&gt;${missed.join(', ')}&lt;/span&gt;`;--&gt;
+&lt;!--    } else {--&gt;
+&lt;!--      missedAlert.style.display = 'none';--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    // 渲染表格--&gt;
+&lt;!--    resultTableBody.innerHTML = '';--&gt;
+&lt;!--    if (matchedFiles.length === 0) {--&gt;
+&lt;!--      resultTableBody.innerHTML = `&lt;tr&gt;&lt;td colspan=&quot;5&quot; class=&quot;empty-state&quot;&gt;没有找到任何符合条件的表格，请核对文件名命名或 ASIN 拼写。&lt;/td&gt;&lt;/tr&gt;`;--&gt;
+&lt;!--      return;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    matchedFiles.forEach((item, index) =&gt; {--&gt;
+&lt;!--      const tr = document.createElement('tr');--&gt;
+&lt;!--      const sizeStr = (item.file.size / 1024).toFixed(1) + ' KB';--&gt;
+&lt;!--      tr.innerHTML = `--&gt;
+&lt;!--        &lt;td style=&quot;color:var(&amp;#45;&amp;#45;text-sub);&quot;&gt;${index + 1}&lt;/td&gt;--&gt;
+&lt;!--        &lt;td&gt;&lt;span class=&quot;tag-asin&quot;&gt;${item.asin}&lt;/span&gt;&lt;/td&gt;--&gt;
+&lt;!--        &lt;td style=&quot;word-break:break-all; font-weight:500;&quot;&gt;${item.file.name}&lt;/td&gt;--&gt;
+&lt;!--        &lt;td style=&quot;color:var(&amp;#45;&amp;#45;text-sub);&quot;&gt;${sizeStr}&lt;/td&gt;--&gt;
+&lt;!--        &lt;td style=&quot;text-align: center;&quot;&gt;--&gt;
+&lt;!--          &lt;button class=&quot;btn-sm-download&quot; onclick=&quot;downloadSingleFile(${index})&quot;&gt;下载&lt;/button&gt;--&gt;
+&lt;!--        &lt;/td&gt;--&gt;
+&lt;!--      `;--&gt;
+&lt;!--      resultTableBody.appendChild(tr);--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    // 滚动到结果卡片--&gt;
+&lt;!--    resultCard.scrollIntoView({ behavior: 'smooth' });--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 4. 单文件下载--&gt;
+&lt;!--  function downloadSingleFile(index) {--&gt;
+&lt;!--    const item = matchedFiles[index];--&gt;
+&lt;!--    if (!item) return;--&gt;
+&lt;!--    const url = URL.createObjectURL(item.file);--&gt;
+&lt;!--    const a = document.createElement('a');--&gt;
+&lt;!--    a.href = url;--&gt;
+&lt;!--    a.download = item.file.name;--&gt;
+&lt;!--    document.body.appendChild(a);--&gt;
+&lt;!--    a.click();--&gt;
+&lt;!--    document.body.removeChild(a);--&gt;
+&lt;!--    URL.revokeObjectURL(url);--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 5. 直接导出到本地文件夹（Web File System Access API）--&gt;
+&lt;!--  async function exportToLocalFolder() {--&gt;
+&lt;!--    if (!matchedFiles.length) return;--&gt;
+
+&lt;!--    // 检查浏览器支持情况--&gt;
+&lt;!--    if (!('showDirectoryPicker' in window)) {--&gt;
+&lt;!--      alert('您的当前浏览器不支持直接写入文件夹，将自动为您使用【打包下载 (ZIP)】方式。建议使用最新版本的 Chrome 或 Edge 浏览器体验直接写入功能。');--&gt;
+&lt;!--      exportToZip();--&gt;
+&lt;!--      return;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    try {--&gt;
+&lt;!--      // 打开本地目录选择弹窗--&gt;
+&lt;!--      const dirHandle = await window.showDirectoryPicker();--&gt;
+&lt;!--      showProgress(true);--&gt;
+
+&lt;!--      let savedCount = 0;--&gt;
+&lt;!--      const total = matchedFiles.length;--&gt;
+
+&lt;!--      for (let i = 0; i &lt; total; i++) {--&gt;
+&lt;!--        const item = matchedFiles[i];--&gt;
+&lt;!--        updateProgress(i + 1, total, `正在写入文件 (${i + 1}/${total}): ${item.file.name}`);--&gt;
+
+&lt;!--        // 在选定的文件夹中创建同名文件并写入二进制流--&gt;
+&lt;!--        const fileHandle = await dirHandle.getFileHandle(item.file.name, { create: true });--&gt;
+&lt;!--        const writable = await fileHandle.createWritable();--&gt;
+&lt;!--        await writable.write(item.file);--&gt;
+&lt;!--        await writable.close();--&gt;
+&lt;!--        savedCount++;--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      showProgress(false);--&gt;
+&lt;!--      alert(`🎉 导出成功！已将 ${savedCount} 个 Excel 表格原样保存到你指定的本地文件夹。`);--&gt;
+&lt;!--    } catch (err) {--&gt;
+&lt;!--      showProgress(false);--&gt;
+&lt;!--      if (err.name !== 'AbortError') {--&gt;
+&lt;!--        console.error(err);--&gt;
+&lt;!--        alert('写入本地文件夹失败：' + err.message);--&gt;
+&lt;!--      }--&gt;
+&lt;!--    }--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 6. 打包下载为 ZIP--&gt;
+&lt;!--  async function exportToZip() {--&gt;
+&lt;!--    if (!matchedFiles.length) return;--&gt;
+&lt;!--    if (typeof JSZip === 'undefined') {--&gt;
+&lt;!--      alert('压缩组件未能成功加载，请确保能正常访问外部网络。');--&gt;
+&lt;!--      return;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    try {--&gt;
+&lt;!--      showProgress(true);--&gt;
+&lt;!--      const zip = new JSZip();--&gt;
+&lt;!--      const total = matchedFiles.length;--&gt;
+
+&lt;!--      for (let i = 0; i &lt; total; i++) {--&gt;
+&lt;!--        const item = matchedFiles[i];--&gt;
+&lt;!--        updateProgress(i + 1, total, `正在压缩打包 (${i + 1}/${total}): ${item.file.name}`);--&gt;
+&lt;!--        zip.file(item.file.name, item.file);--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      updateProgress(total, total, '压缩包构建中，即将调起下载...');--&gt;
+&lt;!--      const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }, (metadata) =&gt; {--&gt;
+&lt;!--        updateProgress(metadata.percent, 100, `压缩处理进度: ${metadata.percent.toFixed(0)}%`);--&gt;
+&lt;!--      });--&gt;
+
+&lt;!--      const a = document.createElement('a');--&gt;
+&lt;!--      const url = URL.createObjectURL(content);--&gt;
+&lt;!--      a.href = url;--&gt;
+&lt;!--      const dateStr = new Date().toISOString().slice(0,10).replace(/-/g, '');--&gt;
+&lt;!--      a.download = `ASIN_Excels_Export_${dateStr}.zip`;--&gt;
+&lt;!--      document.body.appendChild(a);--&gt;
+&lt;!--      a.click();--&gt;
+&lt;!--      document.body.removeChild(a);--&gt;
+&lt;!--      URL.revokeObjectURL(url);--&gt;
+
+&lt;!--      showProgress(false);--&gt;
+&lt;!--    } catch (err) {--&gt;
+&lt;!--      showProgress(false);--&gt;
+&lt;!--      console.error(err);--&gt;
+&lt;!--      alert('打包 ZIP 失败: ' + err.message);--&gt;
+&lt;!--    }--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  // 进度条控制工具--&gt;
+&lt;!--  function showProgress(show) {--&gt;
+&lt;!--    document.getElementById('progressBarWrap').style.display = show ? 'block' : 'none';--&gt;
+&lt;!--    document.getElementById('progressText').style.display = show ? 'block' : 'none';--&gt;
+&lt;!--    if (!show) {--&gt;
+&lt;!--      document.getElementById('progressBar').style.width = '0%';--&gt;
+&lt;!--    }--&gt;
+&lt;!--  }--&gt;
+&lt;!--  function updateProgress(current, total, text) {--&gt;
+&lt;!--    const pct = Math.round((current / total) * 100);--&gt;
+&lt;!--    document.getElementById('progressBar').style.width = pct + '%';--&gt;
+&lt;!--    document.getElementById('progressText').textContent = text;--&gt;
+&lt;!--  }--&gt;
+&lt;!--&lt;/script&gt;--&gt;
+
+&lt;!--&lt;/body&gt;--&gt;
+&lt;!--&lt;/html&gt;--&gt;">
       </iframe>
      </div>
     </div>
