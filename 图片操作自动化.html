@@ -3749,6 +3749,9 @@
             --primary-hover: #1d4ed8;
             --success-color: #10b981;
             --danger-color: #ef4444;
+            --warning-bg: #fffbeb;
+            --warning-border: #fde68a;
+            --warning-text: #b45309;
             --bg-color: #f8fafc;
             --card-bg: #ffffff;
             --text-main: #1e293b;
@@ -3760,7 +3763,7 @@
             font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif; }
 
         body { background-color: var(--bg-color); color: var(--text-main); padding: 24px 16px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 1240px; }
+        .container { width: 100%; max-width: 1280px; }
 
         header { margin-bottom: 20px; text-align: center; }
         header h1 { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
@@ -3811,6 +3814,7 @@
         .col-tag { background: #ffffff; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px;
             font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: grab; user-select: none; }
         .col-tag.is-new { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; font-weight: 500; }
+        .col-tag.is-ratio { background: #fefce8; border-color: #fef08a; color: #854d0e; font-weight: 500; }
         .col-btn-arrow { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 11px; padding: 0 2px; }
         .col-btn-arrow:hover { color: var(--primary-color); }
 
@@ -3830,6 +3834,14 @@
         .order-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;
             border-radius: 50%; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; flex: 0 0 auto; }
         .order-name { font-weight: 600; }
+
+        /* 占比配置卡片 */
+        .ratio-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; }
+        .ratio-title { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .ratio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .ratio-field { display: flex; flex-direction: column; gap: 4px; }
+        .ratio-field label { font-size: 12px; color: #78350f; font-weight: 600; }
+        .ratio-preview-list { font-size: 12px; color: #92400e; background: #fef3c7; padding: 8px 12px; border-radius: 6px; border: 1px dashed #fcd34d; line-height: 1.6; }
 
         .metric-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
             background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
@@ -3858,6 +3870,7 @@
         tr:hover td { background-color: #f1f5f9; }
 
         .badge-new { background-color: #dbeafe; color: #1d4ed8; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+        .badge-ratio { background-color: #fef08a; color: #854d0e; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
 
         .status-msg { margin-top: 12px; font-size: 13px; padding: 10px 12px; border-radius: 6px; display: none; }
         .status-msg.error { display: block; background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
@@ -3948,14 +3961,14 @@
         &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;!-- 功能三：两级分组（优化版） --&gt;
+    &lt;!-- 功能三：两级分组与占比分析（优化升级） --&gt;
     &lt;div id=&quot;groupTab&quot; class=&quot;tab-content&quot;&gt;
         &lt;div class=&quot;card&quot;&gt;
             &lt;div class=&quot;upload-area&quot;&gt;
                 &lt;input type=&quot;file&quot; id=&quot;groupFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'group')&quot;&gt;
                 &lt;div class=&quot;upload-icon&quot;&gt;📊&lt;/div&gt;
-                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽任意 Excel 文件到这里进行两级分组统计&lt;/div&gt;
-                &lt;div class=&quot;upload-tip&quot;&gt;一级分组与二级分组都会分别计算全部指标；自动保留原表其余列（取首个非空值）&lt;/div&gt;
+                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽任意 Excel 文件到这里进行两级分组与销售占比统计&lt;/div&gt;
+                &lt;div class=&quot;upload-tip&quot;&gt;支持细组在大组中销量占比，以及当前色号在SKU全部销售中的占比分析&lt;/div&gt;
             &lt;/div&gt;
 
             &lt;div id=&quot;groupStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;
@@ -3966,8 +3979,7 @@
                     &lt;span&gt;1. 选择【一级大类分组】字段 (Large Group)&lt;/span&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;config-desc&quot;&gt;
-                    💡 大类汇总维度（例如：&lt;code&gt;修正面料&lt;/code&gt;、&lt;code&gt;色号&lt;/code&gt;）。勾选后可拖拽或点击 ▲▼ 调整字段优先级顺序。
-                    系统会按这些字段分组，并对每个大组计算&lt;b&gt;全部指标&lt;/b&gt;（生成 &lt;code&gt;大组_指标名&lt;/code&gt; 列）。
+                    💡 大类汇总维度（例如：&lt;code&gt;修正面料&lt;/code&gt;、&lt;code&gt;色号&lt;/code&gt;）。勾选后可拖拽或点击 ▲▼ 调整顺序。
                 &lt;/div&gt;
                 &lt;div class=&quot;checkbox-grid&quot; id=&quot;largeGroupContainer&quot;&gt;&lt;/div&gt;
                 &lt;div class=&quot;order-box&quot; id=&quot;largeOrderBox&quot; style=&quot;display: none;&quot;&gt;
@@ -3980,8 +3992,7 @@
                     &lt;span&gt;2. 选择【二级细分组】字段 (Sub Group)&lt;/span&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;config-desc&quot;&gt;
-                    💡 进一步细分的维度（例如：&lt;code&gt;SKU&lt;/code&gt;、&lt;code&gt;子ASIN&lt;/code&gt;）。最终结果的每一行代表一个细分组，
-                    并计算&lt;b&gt;全部指标&lt;/b&gt;（生成 &lt;code&gt;细组_指标名&lt;/code&gt; 列）。
+                    💡 细分维度（例如：&lt;code&gt;SKU&lt;/code&gt;、&lt;code&gt;子ASIN&lt;/code&gt;）。最终结果的每一行代表一个细分组。
                 &lt;/div&gt;
                 &lt;div class=&quot;checkbox-grid&quot; id=&quot;subGroupContainer&quot;&gt;&lt;/div&gt;
                 &lt;div class=&quot;order-box&quot; id=&quot;subOrderBox&quot; style=&quot;display: none;&quot;&gt;
@@ -3989,14 +4000,70 @@
                     &lt;div class=&quot;order-list&quot; id=&quot;subOrderList&quot;&gt;&lt;/div&gt;
                 &lt;/div&gt;
 
+                &lt;!-- 占比与交叉分析配置（本次新增核心功能） --&gt;
+                &lt;div class=&quot;config-title&quot;&gt;
+                    &lt;span&gt;3. 销量占比与交叉销售分析配置 (Sales Ratio)&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;config-desc&quot;&gt;
+                    💡 自动计算当前细组在大组中的占比，以及某大类属性（如色号）在主体（如SKU）全局销售中的贡献比例。
+                &lt;/div&gt;
+
+                &lt;div class=&quot;ratio-box&quot;&gt;
+                    &lt;div class=&quot;ratio-title&quot;&gt;
+                        &lt;span&gt;✨ 交叉占比分析：当前属性在主体中的销售比例 (如：色号占SKU销量比例)&lt;/span&gt;
+                    &lt;/div&gt;
+                    &lt;div style=&quot;margin-bottom: 10px;&quot;&gt;
+                        &lt;label class=&quot;checkbox-item&quot; style=&quot;font-weight:600; color:#92400e;&quot;&gt;
+                            &lt;input type=&quot;checkbox&quot; id=&quot;enableCrossRatio&quot; checked onchange=&quot;updateRatioFieldsVisibility()&quot;&gt;
+                            启用【当前色号在SKU中的销量 / SKU全部色号总销量 / 色号占SKU销售比例】计算
+                        &lt;/label&gt;
+                    &lt;/div&gt;
+
+                    &lt;div id=&quot;crossRatioControls&quot; class=&quot;ratio-grid&quot;&gt;
+                        &lt;div class=&quot;ratio-field&quot;&gt;
+                            &lt;label&gt;基准销量列（分子/分母所用的数值列）：&lt;/label&gt;
+                            &lt;select id=&quot;ratioSalesCol&quot; onchange=&quot;syncRatioCustomNames()&quot;&gt;&lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;ratio-field&quot;&gt;
+                            &lt;label&gt;对比主体字段（分母分组，如：SKU）：&lt;/label&gt;
+                            &lt;select id=&quot;ratioSubjectCol&quot; onchange=&quot;syncRatioCustomNames()&quot;&gt;&lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;ratio-field&quot;&gt;
+                            &lt;label&gt;维度名称字段（如：色号 / 颜色）：&lt;/label&gt;
+                            &lt;select id=&quot;ratioDimCol&quot; onchange=&quot;syncRatioCustomNames()&quot;&gt;&lt;/select&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div id=&quot;crossRatioNames&quot; style=&quot;margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;&quot;&gt;
+                        &lt;div class=&quot;ratio-field&quot;&gt;
+                            &lt;label&gt;输出列名 1 (分子)：&lt;/label&gt;
+                            &lt;input type=&quot;text&quot; id=&quot;nameColCurrentSales&quot; value=&quot;当前颜色在SKU中的销量&quot;&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;ratio-field&quot;&gt;
+                            &lt;label&gt;输出列名 2 (分母)：&lt;/label&gt;
+                            &lt;input type=&quot;text&quot; id=&quot;nameColTotalSales&quot; value=&quot;SKU全部颜色总销量&quot;&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;ratio-field&quot;&gt;
+                            &lt;label&gt;输出列名 3 (比例)：&lt;/label&gt;
+                            &lt;input type=&quot;text&quot; id=&quot;nameColRatio&quot; value=&quot;色号占SKU销售比例&quot;&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div style=&quot;margin-top: 12px; border-top: 1px dashed #fcd34d; padding-top: 10px;&quot;&gt;
+                        &lt;label class=&quot;checkbox-item&quot; style=&quot;font-weight:600; color:#92400e;&quot;&gt;
+                            &lt;input type=&quot;checkbox&quot; id=&quot;enableSubGroupShare&quot; checked&gt;
+                            同时生成【细组在大组中的销量占比】列（如：&lt;code&gt;SKU销量占比 = 细组销量 / 大组总销量&lt;/code&gt;）
+                        &lt;/label&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
                 &lt;!-- 指标配置 --&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
-                    &lt;span&gt;3. 数值指标计算配置（可自由添加多个）&lt;/span&gt;
+                    &lt;span&gt;4. 其他数值指标计算配置（销量求和、均价加权平均等）&lt;/span&gt;
                     &lt;button type=&quot;button&quot; class=&quot;btn btn-mini&quot; onclick=&quot;addMetricRow()&quot;&gt;➕ 添加指标&lt;/button&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;config-desc&quot;&gt;
-                    💡 每条指标都会同时在一级分组和二级分组两个层级计算：
-                    一级分组结果为 &lt;code&gt;大组_输出列名&lt;/code&gt;，二级分组结果为 &lt;code&gt;细组_输出列名&lt;/code&gt;。
+                    💡 每条指标会分别在一级分组和二级分组计算；如需生成“SKU销售均价”，可在此配置加权平均或算术平均。
                 &lt;/div&gt;
                 &lt;div id=&quot;metricList&quot;&gt;&lt;/div&gt;
 
@@ -4012,7 +4079,7 @@
             &lt;div id=&quot;groupColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;
                 &lt;div class=&quot;config-title&quot;&gt;
                     &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;
-                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整导出顺序&lt;/span&gt;
+                    &lt;span style=&quot;font-size: 12px; color: var(--text-sub);&quot;&gt;💡 拖拽黄色/蓝色标签或点击 ◀ ▶ 调整导出顺序&lt;/span&gt;
                 &lt;/div&gt;
                 &lt;div class=&quot;column-tags-container&quot; id=&quot;groupColumnTags&quot;&gt;&lt;/div&gt;
             &lt;/div&gt;
@@ -4112,7 +4179,7 @@
         }
     }
 
-    /* ================= 逻辑 1：SKU &amp; 颜色（保持不变） ================= */
+    /* ================= 逻辑 1：SKU &amp; 颜色（未改动） ================= */
     function extractSku(p) {
         if (!p || typeof p !== 'string') return p || '';
         const patterns = [/_[\u4e00-\u9fa5].*/, /-[\u4e00-\u9fa5].*/, / [\u4e00-\u9fa5].*/, /[\u4e00-\u9fa5].*/];
@@ -4161,7 +4228,7 @@
         renderPreviewTable('sku');
     }
 
-    /* ================= 逻辑 2：拆解材质（保持不变） ================= */
+    /* ================= 逻辑 2：拆解材质（未改动） ================= */
     function containsForbiddenWords(t) {
         return ['women', 'sexy', 'womens', 'size', 'this'].some(w =&gt; t.toLowerCase().includes(w));
     }
@@ -4209,16 +4276,16 @@
     }
 
     /* ================================================================
-       逻辑 3：两级分组统计（一级与二级分别计算全部指标）
+       逻辑 3：两级分组与销量占比统计（优化升级）
        ================================================================ */
 
     let groupSelection = { large: [], sub: [] };
     let metricSeq = 0;
 
     const AGG_LABELS = {
-        sum: '求和',
-        avg: '算术平均',
-        wavg: '加权平均',
+        sum: '销量',
+        avg: '销售均价_算术平均',
+        wavg: '销售均价_加权平均',
         max: '最大值',
         min: '最小值',
         count: '计数',
@@ -4231,6 +4298,11 @@
         }[c]));
     }
     function round2(n) { return Math.round(n * 100) / 100; }
+    function formatPercent(num, den) {
+        if (!den || isNaN(den) || den === 0) return '0.00%';
+        const p = (Number(num) / Number(den)) * 100;
+        return (Math.round(p * 100) / 100).toFixed(2) + '%';
+    }
     function toNumber(v) {
         if (v === null || v === undefined || v === '') return NaN;
         if (typeof v === 'number') return v;
@@ -4238,7 +4310,7 @@
         return isNaN(n) ? NaN : n;
     }
 
-    /* ---------- 初始化 ---------- */
+    /* ---------- 初始化两级分组工具 ---------- */
     function initTwoLevelGroupTool(data, baseName, count, columns) {
         appState.group.rawData = data;
         appState.group.rawColumns = columns;
@@ -4247,13 +4319,13 @@
         document.getElementById('groupFileInfo').innerHTML =
             `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;
         document.getElementById('groupStatus').textContent =
-            `✅ 成功读取 ${columns.length} 个字段！请在下方选择两级分组维度与统计指标。`;
+            `✅ 成功读取 ${columns.length} 个字段！请在下方核对分组维度、销量占比与指标配置。`;
         document.getElementById('groupStatus').className = 'status-msg success';
 
         groupSelection = { large: [], sub: [] };
         metricSeq = 0;
 
-        // 一级分组复选框
+        // 1. 一级分组复选框（大类）
         const largeContainer = document.getElementById('largeGroupContainer');
         largeContainer.innerHTML = '';
         columns.forEach(col =&gt; {
@@ -4271,11 +4343,11 @@
             largeContainer.appendChild(label);
         });
 
-        // 二级分组复选框
+        // 2. 二级分组复选框（细组）
         const subContainer = document.getElementById('subGroupContainer');
         subContainer.innerHTML = '';
         columns.forEach(col =&gt; {
-            const isDefault = ['SKU', 'ASIN', '子ASIN', '颜色'].includes(col);
+            const isDefault = ['SKU', '子ASIN'].includes(col);
             const label = document.createElement('label');
             label.className = 'checkbox-item';
             const cb = document.createElement('input');
@@ -4292,21 +4364,70 @@
         renderOrderList('large');
         renderOrderList('sub');
 
-        // 默认指标
+        // 3. 智能初始化占比配置下拉框
+        initRatioOptions(columns);
+
+        // 4. 指标配置（默认添加销量和均价）
         const metricList = document.getElementById('metricList');
         metricList.innerHTML = '';
 
         const salesCandidate = columns.find(c =&gt; ['销量', '总销量', 'SKU销量', 'Sales', 'Quantity'].includes(c));
         const priceCandidate = columns.find(c =&gt; ['销售均价', '均价', '价格', 'Price', '售价'].includes(c));
 
-        if (salesCandidate) addMetricRow({ col: salesCandidate, agg: 'sum' });
+        if (salesCandidate) {
+            addMetricRow({ col: salesCandidate, agg: 'sum', name: '销量' });
+        }
         if (priceCandidate) {
-            addMetricRow({ col: priceCandidate, agg: 'wavg', weight: salesCandidate || '' });
-            addMetricRow({ col: priceCandidate, agg: 'avg' });
+            addMetricRow({ col: priceCandidate, agg: 'wavg', weight: salesCandidate || '', name: '销售均价_加权平均' });
+            addMetricRow({ col: priceCandidate, agg: 'avg', name: '销售均价_算术平均' });
         }
         if (!salesCandidate &amp;&amp; !priceCandidate) addMetricRow({});
 
         document.getElementById('groupConfigBox').style.display = 'block';
+    }
+
+    /* ---------- 占比分析字段选项初始化 ---------- */
+    function initRatioOptions(columns) {
+        const salesSel = document.getElementById('ratioSalesCol');
+        const subjSel = document.getElementById('ratioSubjectCol');
+        const dimSel = document.getElementById('ratioDimCol');
+
+        salesSel.innerHTML = '';
+        subjSel.innerHTML = '';
+        dimSel.innerHTML = '';
+
+        columns.forEach(c =&gt; {
+            salesSel.appendChild(new Option(c, c));
+            subjSel.appendChild(new Option(c, c));
+            dimSel.appendChild(new Option(c, c));
+        });
+
+        // 智能默认匹配
+        const defSales = columns.find(c =&gt; /销量|sales|quantity/i.test(c)) || columns[0];
+        const defSubj = columns.find(c =&gt; /^SKU$/i.test(c)) || columns.find(c =&gt; /SKU|子ASIN|款号/i.test(c)) || columns[0];
+        const defDim = columns.find(c =&gt; /色号|颜色|color/i.test(c)) || (columns.length &gt; 1 ? columns[1] : columns[0]);
+
+        if (defSales) salesSel.value = defSales;
+        if (defSubj) subjSel.value = defSubj;
+        if (defDim) dimSel.value = defDim;
+
+        syncRatioCustomNames();
+    }
+
+    function updateRatioFieldsVisibility() {
+        const enabled = document.getElementById('enableCrossRatio').checked;
+        document.getElementById('crossRatioControls').style.opacity = enabled ? '1' : '0.4';
+        document.getElementById('crossRatioNames').style.opacity = enabled ? '1' : '0.4';
+    }
+
+    function syncRatioCustomNames() {
+        const subj = document.getElementById('ratioSubjectCol').value || 'SKU';
+        const dim = document.getElementById('ratioDimCol').value || '色号';
+        const sales = document.getElementById('ratioSalesCol').value || '销量';
+
+        document.getElementById('nameColCurrentSales').value = `当前${dim}在${subj}中的${sales}`;
+        document.getElementById('nameColTotalSales').value = `${subj}全部${dim}总${sales}`;
+        document.getElementById('nameColRatio').value = `${dim}占${subj}销售比例`;
     }
 
     /* ---------- 分组字段勾选 / 排序 ---------- */
@@ -4319,6 +4440,13 @@
             if (i &gt;= 0) arr.splice(i, 1);
         }
         renderOrderList(scope);
+
+        // 如果变动了分组，更新占比字段的推荐
+        if (scope === 'sub' &amp;&amp; checked) {
+            const subjSel = document.getElementById('ratioSubjectCol');
+            if (subjSel &amp;&amp; col) subjSel.value = col;
+            syncRatioCustomNames();
+        }
     }
 
     let dragOrderInfo = null;
@@ -4382,8 +4510,11 @@
         renderOrderList(scope);
     }
 
-    /* ---------- 指标行 ---------- */
+    /* ---------- 指标行管理 ---------- */
     function autoMetricName(col, agg) {
+        if (agg === 'sum') return `${col}`;
+        if (agg === 'wavg') return `${col}_加权平均`;
+        if (agg === 'avg') return `${col}_算术平均`;
         return `${col}_${AGG_LABELS[agg] || agg}`;
     }
 
@@ -4409,8 +4540,8 @@
                 &lt;label&gt;计算方式&lt;/label&gt;
                 &lt;select class=&quot;metric-agg&quot;&gt;
                     &lt;option value=&quot;sum&quot;&gt;求和&lt;/option&gt;
-                    &lt;option value=&quot;avg&quot;&gt;算术平均&lt;/option&gt;
                     &lt;option value=&quot;wavg&quot;&gt;加权平均&lt;/option&gt;
+                    &lt;option value=&quot;avg&quot;&gt;算术平均&lt;/option&gt;
                     &lt;option value=&quot;max&quot;&gt;最大值&lt;/option&gt;
                     &lt;option value=&quot;min&quot;&gt;最小值&lt;/option&gt;
                     &lt;option value=&quot;count&quot;&gt;计数(非空)&lt;/option&gt;
@@ -4418,12 +4549,12 @@
                 &lt;/select&gt;
             &lt;/div&gt;
             &lt;div class=&quot;metric-cell metric-weight-cell&quot;&gt;
-                &lt;label&gt;权重字段&lt;/label&gt;
+                &lt;label&gt;权重字段 (加权平均使用)&lt;/label&gt;
                 &lt;select class=&quot;metric-weight&quot;&gt;${opts(preset.weight)}&lt;/select&gt;
             &lt;/div&gt;
             &lt;div class=&quot;metric-cell&quot;&gt;
-                &lt;label&gt;输出列名（不含前缀）&lt;/label&gt;
-                &lt;input type=&quot;text&quot; class=&quot;metric-name&quot; placeholder=&quot;留空自动生成&quot;&gt;
+                &lt;label&gt;输出列名&lt;/label&gt;
+                &lt;input type=&quot;text&quot; class=&quot;metric-name&quot; placeholder=&quot;自定义列名&quot;&gt;
             &lt;/div&gt;
             &lt;button type=&quot;button&quot; class=&quot;btn-remove&quot; title=&quot;删除该指标&quot;&gt;✕&lt;/button&gt;
         `;
@@ -4472,7 +4603,6 @@
         }
     }
 
-    /* ---------- 指标计算 ---------- */
     function computeMetricValue(rows, m) {
         if (m.agg === 'count') {
             let c = 0;
@@ -4521,12 +4651,10 @@
         }
     }
 
-    /* ---------- 收集指标配置 ---------- */
     function collectMetrics() {
         const rows = document.querySelectorAll('#metricList .metric-row');
         const list = [];
-        // 防止最终列名（含前缀）与原始列、已有列冲突
-        const usedNames = new Set(appState.group.rawColumns || []);
+        const usedNames = new Set();
 
         rows.forEach(row =&gt; {
             const col = row.querySelector('.metric-col').value;
@@ -4536,17 +4664,11 @@
             const weight = row.querySelector('.metric-weight').value;
             let name = (row.querySelector('.metric-name').value || '').trim() || autoMetricName(col, agg);
 
-            // 保证 name、大组_name、细组_name 均不冲突
             let base = name, i = 2;
-            while (
-                usedNames.has(name) ||
-                usedNames.has('大组_' + name) ||
-                usedNames.has('细组_' + name)
-            ) {
+            while (usedNames.has(name)) {
                 name = `${base}_${i++}`;
             }
-            usedNames.add('大组_' + name);
-            usedNames.add('细组_' + name);
+            usedNames.add(name);
 
             list.push({ col, agg, weight, name });
         });
@@ -4554,7 +4676,6 @@
         return list;
     }
 
-    /* ---------- 辅助：取组内第一个非空值 ---------- */
     function getFirstNonEmptyVal(rows, col) {
         for (let r of rows) {
             const val = r[col];
@@ -4563,7 +4684,7 @@
         return '';
     }
 
-    /* ---------- 执行两级分组统计 ---------- */
+    /* ================= 执行核心聚合与占比计算 ================= */
     function executeAdvancedGroupAggregation() {
         const rawData = appState.group.rawData;
         if (!rawData || rawData.length === 0) {
@@ -4585,10 +4706,31 @@
             return;
         }
 
-        const allGroupKeys = Array.from(new Set([...largeGroupCols, ...subGroupCols]));
         const GROUP_SEP = '|||';
+        const allGroupKeys = Array.from(new Set([...largeGroupCols, ...subGroupCols]));
 
-        /* ---------- 一级分组：原始行聚合，计算全部指标 ---------- */
+        // 占比配置参数
+        const enableCrossRatio = document.getElementById('enableCrossRatio').checked;
+        const ratioSalesCol = document.getElementById('ratioSalesCol').value;
+        const ratioSubjectCol = document.getElementById('ratioSubjectCol').value;
+        const ratioDimCol = document.getElementById('ratioDimCol').value;
+
+        const nameColCurrentSales = (document.getElementById('nameColCurrentSales').value || '当前颜色在SKU中的销量').trim();
+        const nameColTotalSales = (document.getElementById('nameColTotalSales').value || 'SKU全部颜色总销量').trim();
+        const nameColRatio = (document.getElementById('nameColRatio').value || '色号占SKU销售比例').trim();
+        const enableSubGroupShare = document.getElementById('enableSubGroupShare').checked;
+
+        /* ---------- 1. 全局主体销量汇总 (分母：SKU全部颜色总销量) ---------- */
+        const subjectGlobalSalesMap = new Map();
+        if (enableCrossRatio &amp;&amp; ratioSubjectCol &amp;&amp; ratioSalesCol) {
+            rawData.forEach(r =&gt; {
+                const subjVal = String(r[ratioSubjectCol] !== undefined &amp;&amp; r[ratioSubjectCol] !== null ? r[ratioSubjectCol] : '').trim();
+                const v = toNumber(r[ratioSalesCol]) || 0;
+                subjectGlobalSalesMap.set(subjVal, (subjectGlobalSalesMap.get(subjVal) || 0) + v);
+            });
+        }
+
+        /* ---------- 2. 一级大类汇总 (面料色号_组总销量) ---------- */
         const largeMap = new Map();
         rawData.forEach(row =&gt; {
             const lk = largeGroupCols
@@ -4598,16 +4740,30 @@
             largeMap.get(lk).push(row);
         });
 
-        const largeMetricMap = new Map(); // largeKey -&gt; { metricName: value }
+        // 命名大组销量指标列名
+        let largeSalesColName = '大组总销量';
+        if (largeGroupCols.length &gt; 0) {
+            largeSalesColName = largeGroupCols.map(c =&gt; c.replace(/修正/g, '')).join('') + '_组总销量';
+        }
+
+        const largeMetricMap = new Map();
         largeMap.forEach((rows, lk) =&gt; {
             const vals = {};
             metrics.forEach(m =&gt; {
                 vals[m.name] = computeMetricValue(rows, m);
             });
+            // 大组销量汇总值（用于计算细组占比）
+            let mainLargeSales = 0;
+            if (ratioSalesCol) {
+                mainLargeSales = rows.reduce((acc, r) =&gt; acc + (toNumber(r[ratioSalesCol]) || 0), 0);
+            } else {
+                mainLargeSales = vals[metrics[0].name] || 0;
+            }
+            vals.__largeTotalSales = mainLargeSales;
             largeMetricMap.set(lk, vals);
         });
 
-        /* ---------- 二级分组：组合键聚合，计算全部指标 ---------- */
+        /* ---------- 3. 二级细组聚合 ---------- */
         const subMap = new Map();
         rawData.forEach(row =&gt; {
             const key = allGroupKeys
@@ -4619,94 +4775,131 @@
 
         const subResults = [];
         const metricSourceCols = new Set(metrics.map(m =&gt; m.col));
+        if (ratioSalesCol) metricSourceCols.add(ratioSalesCol);
+
+        // 细组名称（如 SKU销量占比）
+        const subMainCol = subGroupCols[0] || '细组';
+        const subShareColName = `${subMainCol}销量占比`;
 
         subMap.forEach((rows) =&gt; {
             const summaryRow = {};
 
-            // 一级分组字段值
+            // 1. 一级分组字段
             largeGroupCols.forEach(k =&gt; {
                 summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';
             });
-            // 二级分组字段值
+
+            // 大组总指标（面料色号_组总销量）
+            const lk = largeGroupCols
+                .map(k =&gt; String(rows[0][k] !== undefined &amp;&amp; rows[0][k] !== null ? rows[0][k] : ''))
+                .join(GROUP_SEP);
+            const lv = largeMetricMap.get(lk) || {};
+
+            const largeSalesValue = round2(lv.__largeTotalSales || 0);
+            summaryRow[largeSalesColName] = largeSalesValue;
+
+            // 2. 二级分组字段
             subGroupCols.forEach(k =&gt; {
                 if (!(k in summaryRow)) summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';
             });
 
-            const lk = largeGroupCols
-                .map(k =&gt; String(rows[0][k] !== undefined &amp;&amp; rows[0][k] !== null ? rows[0][k] : ''))
-                .join(GROUP_SEP);
-
-            // 大组指标（同一大组内所有细组共享相同值）
-            const lv = largeMetricMap.get(lk) || {};
+            // 细组各项指标计算
             metrics.forEach(m =&gt; {
-                summaryRow['大组_' + m.name] = (lv[m.name] !== undefined) ? lv[m.name] : '';
+                summaryRow[m.name] = computeMetricValue(rows, m);
             });
 
-            // 细组指标
-            metrics.forEach(m =&gt; {
-                summaryRow['细组_' + m.name] = computeMetricValue(rows, m);
-            });
+            // 细组销量值
+            const currentSubSales = round2(rows.reduce((acc, r) =&gt; acc + (toNumber(r[ratioSalesCol]) || 0), 0));
 
-            // 原表其余所有列：取细组内第一个非空值
+            // 3. 细组在大组中的销量占比 (如 SKU销量占比)
+            if (enableSubGroupShare) {
+                summaryRow[subShareColName] = formatPercent(currentSubSales, largeSalesValue);
+            }
+
+            // 4. 交叉占比计算 (当前色号在SKU中的销量 / SKU全部色号总销量 / 色号占SKU销售比例)
+            if (enableCrossRatio) {
+                const subjVal = String(rows[0][ratioSubjectCol] !== undefined &amp;&amp; rows[0][ratioSubjectCol] !== null ? rows[0][ratioSubjectCol] : '').trim();
+                const totalSubjectSales = round2(subjectGlobalSalesMap.get(subjVal) || 0);
+
+                summaryRow[nameColCurrentSales] = currentSubSales;
+                summaryRow[nameColTotalSales] = totalSubjectSales;
+                summaryRow[nameColRatio] = formatPercent(currentSubSales, totalSubjectSales);
+            }
+
+            // 5. 原表其余列提取第一个非空值
             appState.group.rawColumns.forEach(origCol =&gt; {
-                if (!allGroupKeys.includes(origCol) &amp;&amp; !metricSourceCols.has(origCol)) {
+                if (!allGroupKeys.includes(origCol) &amp;&amp; !metricSourceCols.has(origCol) &amp;&amp; !(origCol in summaryRow)) {
                     summaryRow[origCol] = getFirstNonEmptyVal(rows, origCol);
                 }
             });
 
-            summaryRow.__largeKey = lk;
+            summaryRow.__largeSortVal = largeSalesValue;
+            summaryRow.__subSortVal = currentSubSales;
             subResults.push(summaryRow);
         });
 
-        /* ---------- 排序：大组指标 → 一级分组字段 → 细组指标 ---------- */
+        /* ---------- 4. 排序：大组销量降序 → 一级分组升序 → 细组销量降序 ---------- */
         subResults.sort((a, b) =&gt; {
-            // 1. 大组指标（按配置顺序，依次降序）
-            for (const m of metrics) {
-                const key = '大组_' + m.name;
-                const va = Number(a[key]) || 0;
-                const vb = Number(b[key]) || 0;
-                if (vb !== va) return vb - va;
-            }
+            if (b.__largeSortVal !== a.__largeSortVal) return b.__largeSortVal - a.__largeSortVal;
 
-            // 2. 一级分组字段（按用户顺序，依次升序）
             for (const lk of largeGroupCols) {
                 const cmp = String(a[lk] !== undefined ? a[lk] : '')
                     .localeCompare(String(b[lk] !== undefined ? b[lk] : ''), 'zh-CN', { numeric: true });
                 if (cmp !== 0) return cmp;
             }
 
-            // 3. 细组指标（按配置顺序，依次降序）
-            for (const m of metrics) {
-                const key = '细组_' + m.name;
-                const va = Number(a[key]) || 0;
-                const vb = Number(b[key]) || 0;
-                if (vb !== va) return vb - va;
-            }
-
-            return 0;
+            return b.__subSortVal - a.__subSortVal;
         });
 
-        /* ---------- 表头顺序 ---------- */
-        const frontCols = [];
-        largeGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });
-        metrics.forEach(m =&gt; frontCols.push('大组_' + m.name));
-        subGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });
-        metrics.forEach(m =&gt; frontCols.push('细组_' + m.name));
+        /* ---------- 5. 构建规范的表头顺序（紧贴截图结构） ---------- */
+        const orderedCols = [];
 
-        const remainingCols = appState.group.rawColumns.filter(c =&gt;
-            !frontCols.includes(c) &amp;&amp; !metricSourceCols.has(c)
-        );
+        // 1. 一级分组字段（如 修正面料、色号）
+        largeGroupCols.forEach(c =&gt; { if (!orderedCols.includes(c)) orderedCols.push(c); });
 
-        const finalColumns = [...frontCols, ...remainingCols];
+        // 2. 大组总销量（如 面料色号_组总销量）
+        if (!orderedCols.includes(largeSalesColName)) orderedCols.push(largeSalesColName);
 
-        // 清理临时字段
-        subResults.forEach(r =&gt; { delete r.__largeKey; });
+        // 3. 二级细组字段（如 SKU）
+        subGroupCols.forEach(c =&gt; { if (!orderedCols.includes(c)) orderedCols.push(c); });
+
+        // 4. 细组核心销量列（若指标中有“销量”或“SKU销量”）
+        const salesMetric = metrics.find(m =&gt; m.agg === 'sum');
+        if (salesMetric &amp;&amp; !orderedCols.includes(salesMetric.name)) orderedCols.push(salesMetric.name);
+
+        // 5. 细组在大组销量占比（如 SKU销量占比）
+        if (enableSubGroupShare &amp;&amp; !orderedCols.includes(subShareColName)) orderedCols.push(subShareColName);
+
+        // 6. 核心交叉占比三列（如 当前颜色在SKU中的销量、SKU全部颜色总销量、色号占SKU销售比例）
+        if (enableCrossRatio) {
+            [nameColCurrentSales, nameColTotalSales, nameColRatio].forEach(c =&gt; {
+                if (!orderedCols.includes(c)) orderedCols.push(c);
+            });
+        }
+
+        // 7. 其余细组指标（如 SKU销售均价_加权平均、算术平均）
+        metrics.forEach(m =&gt; {
+            if (!orderedCols.includes(m.name)) orderedCols.push(m.name);
+        });
+
+        // 8. 原始表格其余所有列
+        appState.group.rawColumns.forEach(c =&gt; {
+            if (!orderedCols.includes(c) &amp;&amp; !metricSourceCols.has(c)) {
+                orderedCols.push(c);
+            }
+        });
+
+        // 清理排序临时字段
+        subResults.forEach(r =&gt; {
+            delete r.__largeSortVal;
+            delete r.__subSortVal;
+        });
 
         appState.group.data = subResults;
-        appState.group.columns = finalColumns;
+        appState.group.columns = orderedCols;
 
         document.getElementById('groupResultCount').textContent =
-            `共聚合出 ${subResults.length} 个细分组 / ${finalColumns.length} 个字段`;
+            `共聚合出 ${subResults.length} 个细分组 / ${orderedCols.length} 个字段`;
         document.getElementById('groupDownloadBtn').disabled = false;
 
         initColumnTags('group');
@@ -4716,9 +4909,13 @@
     /* ================= 通用：表头拖拽 / 预览 / 下载 ================= */
     let draggedIndex = null;
 
+    function isRatioColumn(col) {
+        return /占|比例|全部.*总销量|当前.*销量|占比/.test(col);
+    }
+
     function isComputedColumn(type, col) {
         if (type === 'group') {
-            if (/^大组_/.test(col) || /^细组_/.test(col)) return true;
+            if (isRatioColumn(col) || /_组总销量|均价|平均/.test(col)) return true;
             return !(appState.group.rawColumns || []).includes(col);
         }
         return ['SKU', '颜色', '颜色英文', '材质(成分)'].includes(col);
@@ -4734,8 +4931,14 @@
 
         columns.forEach((col, index) =&gt; {
             const tag = document.createElement('div');
+            const isRatio = isRatioColumn(col);
             const isNew = isComputedColumn(type, col);
-            tag.className = `col-tag ${isNew ? 'is-new' : ''}`;
+
+            let tagClass = 'col-tag';
+            if (isRatio) tagClass += ' is-ratio';
+            else if (isNew) tagClass += ' is-new';
+
+            tag.className = tagClass;
             tag.draggable = true;
             tag.dataset.index = index;
 
@@ -4793,7 +4996,9 @@
         const trHead = document.createElement('tr');
         columns.forEach(h =&gt; {
             const th = document.createElement('th');
-            if (isComputedColumn(type, h)) {
+            if (isRatioColumn(h)) {
+                th.innerHTML = `${escHtml(h)} &lt;span class=&quot;badge-ratio&quot;&gt;占比分析&lt;/span&gt;`;
+            } else if (isComputedColumn(type, h)) {
                 th.innerHTML = `${escHtml(h)} &lt;span class=&quot;badge-new&quot;&gt;计算字段&lt;/span&gt;`;
             } else {
                 th.textContent = h;
@@ -4827,7 +5032,1100 @@
 &lt;/script&gt;
 
 &lt;/body&gt;
-&lt;/html&gt;">
+&lt;/html&gt;
+
+&lt;!--&lt;!DOCTYPE html&gt;--&gt;
+&lt;!--&lt;html lang=&quot;zh-CN&quot;&gt;--&gt;
+&lt;!--&lt;head&gt;--&gt;
+&lt;!--    &lt;meta charset=&quot;UTF-8&quot;&gt;--&gt;
+&lt;!--    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;--&gt;
+&lt;!--    &lt;title&gt;数据提取_分组统计&lt;/title&gt;--&gt;
+&lt;!--    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;--&gt;
+&lt;!--    &lt;style&gt;--&gt;
+&lt;!--        :root {--&gt;
+&lt;!--            &amp;#45;&amp;#45;primary-color: #2563eb;--&gt;
+&lt;!--            &amp;#45;&amp;#45;primary-hover: #1d4ed8;--&gt;
+&lt;!--            &amp;#45;&amp;#45;success-color: #10b981;--&gt;
+&lt;!--            &amp;#45;&amp;#45;danger-color: #ef4444;--&gt;
+&lt;!--            &amp;#45;&amp;#45;bg-color: #f8fafc;--&gt;
+&lt;!--            &amp;#45;&amp;#45;card-bg: #ffffff;--&gt;
+&lt;!--            &amp;#45;&amp;#45;text-main: #1e293b;--&gt;
+&lt;!--            &amp;#45;&amp;#45;text-sub: #64748b;--&gt;
+&lt;!--            &amp;#45;&amp;#45;border-color: #e2e8f0;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        * { box-sizing: border-box; margin: 0; padding: 0;--&gt;
+&lt;!--            font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif; }--&gt;
+
+&lt;!--        body { background-color: var(&amp;#45;&amp;#45;bg-color); color: var(&amp;#45;&amp;#45;text-main); padding: 24px 16px; display: flex; justify-content: center; }--&gt;
+&lt;!--        .container { width: 100%; max-width: 1240px; }--&gt;
+
+&lt;!--        header { margin-bottom: 20px; text-align: center; }--&gt;
+&lt;!--        header h1 { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }--&gt;
+&lt;!--        header p { color: var(&amp;#45;&amp;#45;text-sub); font-size: 14px; }--&gt;
+
+&lt;!--        .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(&amp;#45;&amp;#45;border-color); margin-bottom: 20px; }--&gt;
+&lt;!--        .tab-btn { background: none; border: none; padding: 11px 22px; font-size: 15px; font-weight: 600;--&gt;
+&lt;!--            color: var(&amp;#45;&amp;#45;text-sub); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }--&gt;
+&lt;!--        .tab-btn.active { color: var(&amp;#45;&amp;#45;primary-color); border-bottom-color: var(&amp;#45;&amp;#45;primary-color); }--&gt;
+
+&lt;!--        .tab-content { display: none; }--&gt;
+&lt;!--        .tab-content.active { display: block; }--&gt;
+
+&lt;!--        .card { background: var(&amp;#45;&amp;#45;card-bg); border-radius: 12px; padding: 24px;--&gt;
+&lt;!--            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);--&gt;
+&lt;!--            border: 1px solid var(&amp;#45;&amp;#45;border-color); }--&gt;
+
+&lt;!--        .upload-area { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 26px 20px; text-align: center;--&gt;
+&lt;!--            background: #f8fafc; cursor: pointer; transition: all 0.2s; position: relative; }--&gt;
+&lt;!--        .upload-area:hover { border-color: var(&amp;#45;&amp;#45;primary-color); background: #eff6ff; }--&gt;
+&lt;!--        .upload-area input[type=&quot;file&quot;] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }--&gt;
+&lt;!--        .upload-icon { font-size: 32px; margin-bottom: 6px; }--&gt;
+&lt;!--        .upload-text { font-size: 14px; font-weight: 500; color: var(&amp;#45;&amp;#45;text-main); }--&gt;
+&lt;!--        .upload-tip { font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub); margin-top: 4px; }--&gt;
+
+&lt;!--        .actions-bar { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }--&gt;
+&lt;!--        .file-info { font-size: 14px; color: var(&amp;#45;&amp;#45;text-sub); }--&gt;
+&lt;!--        .file-info span { font-weight: 600; color: var(&amp;#45;&amp;#45;text-main); }--&gt;
+
+&lt;!--        .btn { background-color: var(&amp;#45;&amp;#45;primary-color); color: white; border: none; padding: 10px 18px;--&gt;
+&lt;!--            border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;--&gt;
+&lt;!--            display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; }--&gt;
+&lt;!--        .btn:hover { background-color: var(&amp;#45;&amp;#45;primary-hover); }--&gt;
+&lt;!--        .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }--&gt;
+&lt;!--        .btn-download { background-color: var(&amp;#45;&amp;#45;success-color); }--&gt;
+&lt;!--        .btn-download:hover { background-color: #059669; }--&gt;
+&lt;!--        .btn-mini { padding: 5px 12px; font-size: 12px; }--&gt;
+
+&lt;!--        .config-box { margin-top: 18px; background: #f8fafc; border: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--            border-radius: 8px; padding: 20px; }--&gt;
+
+&lt;!--        .config-title { font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 10px;--&gt;
+&lt;!--            display: flex; justify-content: space-between; align-items: center; gap: 10px; }--&gt;
+
+&lt;!--        .config-desc { font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub); margin-bottom: 12px; line-height: 1.7; }--&gt;
+
+&lt;!--        .column-tags-container { display: flex; flex-wrap: wrap; gap: 8px; }--&gt;
+&lt;!--        .col-tag { background: #ffffff; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px;--&gt;
+&lt;!--            font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: grab; user-select: none; }--&gt;
+&lt;!--        .col-tag.is-new { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; font-weight: 500; }--&gt;
+&lt;!--        .col-btn-arrow { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 11px; padding: 0 2px; }--&gt;
+&lt;!--        .col-btn-arrow:hover { color: var(&amp;#45;&amp;#45;primary-color); }--&gt;
+
+&lt;!--        .checkbox-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;--&gt;
+&lt;!--            background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; }--&gt;
+&lt;!--        .checkbox-item { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }--&gt;
+
+&lt;!--        .order-box { background: #ffffff; border: 1px dashed #bfdbfe; border-radius: 6px;--&gt;
+&lt;!--            padding: 10px 12px; margin-bottom: 16px; }--&gt;
+&lt;!--        .order-box-title { font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub); font-weight: 600; margin-bottom: 8px; }--&gt;
+&lt;!--        .order-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }--&gt;
+&lt;!--        .order-item { display: inline-flex; align-items: center; gap: 5px; background: #eff6ff;--&gt;
+&lt;!--            border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 6px; padding: 4px 8px;--&gt;
+&lt;!--            font-size: 13px; cursor: grab; user-select: none; transition: box-shadow .15s; }--&gt;
+&lt;!--        .order-item:hover { box-shadow: 0 1px 4px rgba(37, 99, 235, .25); }--&gt;
+&lt;!--        .order-item.dragging { opacity: .35; }--&gt;
+&lt;!--        .order-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;--&gt;
+&lt;!--            border-radius: 50%; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; flex: 0 0 auto; }--&gt;
+&lt;!--        .order-name { font-weight: 600; }--&gt;
+
+&lt;!--        .metric-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;--&gt;
+&lt;!--            background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }--&gt;
+&lt;!--        .metric-cell { display: flex; flex-direction: column; gap: 4px; flex: 1 1 140px; min-width: 120px; }--&gt;
+&lt;!--        .metric-cell &gt; label { font-size: 12px; color: #64748b; font-weight: 500; }--&gt;
+&lt;!--        .metric-cell select, .metric-cell input[type=&quot;text&quot;] { width: 100%; }--&gt;
+
+&lt;!--        .btn-remove { flex: 0 0 auto; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;--&gt;
+&lt;!--            border-radius: 6px; width: 34px; height: 34px; cursor: pointer; font-size: 13px; margin-bottom: 1px; }--&gt;
+&lt;!--        .btn-remove:hover { background: #fecaca; }--&gt;
+
+&lt;!--        select, input[type=&quot;text&quot;] { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;--&gt;
+&lt;!--            font-size: 13px; outline: none; background: #fff; }--&gt;
+&lt;!--        select:focus, input[type=&quot;text&quot;]:focus { border-color: var(&amp;#45;&amp;#45;primary-color); }--&gt;
+
+&lt;!--        .preview-section { margin-top: 24px; border-top: 1px solid var(&amp;#45;&amp;#45;border-color); padding-top: 20px; }--&gt;
+&lt;!--        .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }--&gt;
+&lt;!--        .preview-header h3 { font-size: 16px; font-weight: 600; }--&gt;
+
+&lt;!--        .table-responsive { width: 100%; overflow-x: auto; border: 1px solid var(&amp;#45;&amp;#45;border-color);--&gt;
+&lt;!--            border-radius: 6px; max-height: 520px; overflow-y: auto; }--&gt;
+&lt;!--        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; white-space: nowrap; }--&gt;
+&lt;!--        th, td { padding: 10px 14px; border-bottom: 1px solid var(&amp;#45;&amp;#45;border-color); border-right: 1px solid #f1f5f9; }--&gt;
+&lt;!--        th { background-color: #f1f5f9; color: #475569; font-weight: 600; position: sticky; top: 0; z-index: 1; }--&gt;
+&lt;!--        tr:nth-child(even) td { background-color: #fafafa; }--&gt;
+&lt;!--        tr:hover td { background-color: #f1f5f9; }--&gt;
+
+&lt;!--        .badge-new { background-color: #dbeafe; color: #1d4ed8; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }--&gt;
+
+&lt;!--        .status-msg { margin-top: 12px; font-size: 13px; padding: 10px 12px; border-radius: 6px; display: none; }--&gt;
+&lt;!--        .status-msg.error { display: block; background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }--&gt;
+&lt;!--        .status-msg.success { display: block; background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }--&gt;
+&lt;!--    &lt;/style&gt;--&gt;
+&lt;!--&lt;/head&gt;--&gt;
+&lt;!--&lt;body&gt;--&gt;
+
+&lt;!--&lt;div class=&quot;container&quot;&gt;--&gt;
+&lt;!--    &lt;header&gt;--&gt;
+&lt;!--        &lt;h1&gt;数据提取_分组统计&lt;/h1&gt;--&gt;
+&lt;!--        &lt;p&gt;纯本地解析 · 零依赖安全运行 · 支持两级分组透视、多表合并、全列信息首位非空匹配&lt;/p&gt;--&gt;
+&lt;!--    &lt;/header&gt;--&gt;
+
+&lt;!--    &lt;div class=&quot;tabs&quot;&gt;--&gt;
+&lt;!--        &lt;button class=&quot;tab-btn active&quot; onclick=&quot;switchTab('skuTab', this)&quot;&gt;1. 提取 SKU &amp; 颜色 (多表合并)&lt;/button&gt;--&gt;
+&lt;!--        &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('fabricTab', this)&quot;&gt;2. 拆解材质(成分)&lt;/button&gt;--&gt;
+&lt;!--        &lt;button class=&quot;tab-btn&quot; onclick=&quot;switchTab('groupTab', this)&quot;&gt;3. 两级分组与销量均价统计&lt;/button&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 功能一：提取SKU &amp; 颜色（未改动） &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div id=&quot;skuTab&quot; class=&quot;tab-content active&quot;&gt;--&gt;
+&lt;!--        &lt;div class=&quot;card&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;upload-area&quot;&gt;--&gt;
+&lt;!--                &lt;input type=&quot;file&quot; id=&quot;skuFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'sku')&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-icon&quot;&gt;📂&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽 Excel 文件到这里（支持多选自动合并）&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-tip&quot;&gt;按住 Ctrl/Shift 选择多表；自动对齐表头，识别「品名」及「MSKU / *SKU」&lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div id=&quot;skuStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--            &lt;div id=&quot;skuColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-title&quot;&gt;--&gt;
+&lt;!--                    &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;--&gt;
+&lt;!--                    &lt;span style=&quot;font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整列顺序&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;column-tags-container&quot; id=&quot;skuColumnTags&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;actions-bar&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;file-info&quot; id=&quot;skuFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;--&gt;
+&lt;!--                &lt;button class=&quot;btn btn-download&quot; id=&quot;skuDownloadBtn&quot; onclick=&quot;downloadExcel('sku')&quot; disabled&gt;--&gt;
+&lt;!--                    📥 导出处理后的 Excel--&gt;
+&lt;!--                &lt;/button&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;preview-section&quot; id=&quot;skuPreviewSection&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;preview-header&quot;&gt;--&gt;
+&lt;!--                    &lt;h3&gt;处理结果预览 (前 10 行)&lt;/h3&gt;--&gt;
+&lt;!--                    &lt;span style=&quot;font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub);&quot;&gt;已新增「SKU」、「颜色」、「颜色英文」&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;table-responsive&quot;&gt;--&gt;
+&lt;!--                    &lt;table id=&quot;skuTable&quot;&gt;&lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;/table&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 功能二：拆解材质（未改动） &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div id=&quot;fabricTab&quot; class=&quot;tab-content&quot;&gt;--&gt;
+&lt;!--        &lt;div class=&quot;card&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;upload-area&quot;&gt;--&gt;
+&lt;!--                &lt;input type=&quot;file&quot; id=&quot;fabricFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'fabric')&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-icon&quot;&gt;🧵&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽 Excel 文件到这里（支持多选合并）&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-tip&quot;&gt;需包含「详细参数」列&lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div id=&quot;fabricStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--            &lt;div id=&quot;fabricColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-title&quot;&gt;--&gt;
+&lt;!--                    &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;--&gt;
+&lt;!--                    &lt;span style=&quot;font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整列顺序&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;column-tags-container&quot; id=&quot;fabricColumnTags&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;actions-bar&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;file-info&quot; id=&quot;fabricFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;--&gt;
+&lt;!--                &lt;button class=&quot;btn btn-download&quot; id=&quot;fabricDownloadBtn&quot; onclick=&quot;downloadExcel('fabric')&quot; disabled&gt;--&gt;
+&lt;!--                    📥 导出处理后的 Excel--&gt;
+&lt;!--                &lt;/button&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;preview-section&quot; id=&quot;fabricPreviewSection&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;preview-header&quot;&gt;--&gt;
+&lt;!--                    &lt;h3&gt;处理结果预览 (前 10 行)&lt;/h3&gt;--&gt;
+&lt;!--                    &lt;span style=&quot;font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub);&quot;&gt;已新增「材质(成分)」&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;table-responsive&quot;&gt;--&gt;
+&lt;!--                    &lt;table id=&quot;fabricTable&quot;&gt;&lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;/table&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 功能三：两级分组（优化版） &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div id=&quot;groupTab&quot; class=&quot;tab-content&quot;&gt;--&gt;
+&lt;!--        &lt;div class=&quot;card&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;upload-area&quot;&gt;--&gt;
+&lt;!--                &lt;input type=&quot;file&quot; id=&quot;groupFileInput&quot; accept=&quot;.xlsx, .xls&quot; multiple onchange=&quot;handleFile(event, 'group')&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-icon&quot;&gt;📊&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-text&quot;&gt;点击或拖拽任意 Excel 文件到这里进行两级分组统计&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;upload-tip&quot;&gt;一级分组与二级分组都会分别计算全部指标；自动保留原表其余列（取首个非空值）&lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div id=&quot;groupStatus&quot; class=&quot;status-msg&quot;&gt;&lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div id=&quot;groupConfigBox&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &amp;lt;!&amp;ndash; 一级分组 &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-title&quot;&gt;--&gt;
+&lt;!--                    &lt;span&gt;1. 选择【一级大类分组】字段 (Large Group)&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-desc&quot;&gt;--&gt;
+&lt;!--                    💡 大类汇总维度（例如：&lt;code&gt;修正面料&lt;/code&gt;、&lt;code&gt;色号&lt;/code&gt;）。勾选后可拖拽或点击 ▲▼ 调整字段优先级顺序。--&gt;
+&lt;!--                    系统会按这些字段分组，并对每个大组计算&lt;b&gt;全部指标&lt;/b&gt;（生成 &lt;code&gt;大组_指标名&lt;/code&gt; 列）。--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;checkbox-grid&quot; id=&quot;largeGroupContainer&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;order-box&quot; id=&quot;largeOrderBox&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;order-box-title&quot;&gt;📌 已选一级分组字段顺序（可拖拽排序）：&lt;/div&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;order-list&quot; id=&quot;largeOrderList&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+
+&lt;!--                &amp;lt;!&amp;ndash; 二级分组 &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-title&quot;&gt;--&gt;
+&lt;!--                    &lt;span&gt;2. 选择【二级细分组】字段 (Sub Group)&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-desc&quot;&gt;--&gt;
+&lt;!--                    💡 进一步细分的维度（例如：&lt;code&gt;SKU&lt;/code&gt;、&lt;code&gt;子ASIN&lt;/code&gt;）。最终结果的每一行代表一个细分组，--&gt;
+&lt;!--                    并计算&lt;b&gt;全部指标&lt;/b&gt;（生成 &lt;code&gt;细组_指标名&lt;/code&gt; 列）。--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;checkbox-grid&quot; id=&quot;subGroupContainer&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;order-box&quot; id=&quot;subOrderBox&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;order-box-title&quot;&gt;📌 已选二级分组字段顺序（可拖拽排序）：&lt;/div&gt;--&gt;
+&lt;!--                    &lt;div class=&quot;order-list&quot; id=&quot;subOrderList&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+
+&lt;!--                &amp;lt;!&amp;ndash; 指标配置 &amp;ndash;&amp;gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-title&quot;&gt;--&gt;
+&lt;!--                    &lt;span&gt;3. 数值指标计算配置（可自由添加多个）&lt;/span&gt;--&gt;
+&lt;!--                    &lt;button type=&quot;button&quot; class=&quot;btn btn-mini&quot; onclick=&quot;addMetricRow()&quot;&gt;➕ 添加指标&lt;/button&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-desc&quot;&gt;--&gt;
+&lt;!--                    💡 每条指标都会同时在一级分组和二级分组两个层级计算：--&gt;
+&lt;!--                    一级分组结果为 &lt;code&gt;大组_输出列名&lt;/code&gt;，二级分组结果为 &lt;code&gt;细组_输出列名&lt;/code&gt;。--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div id=&quot;metricList&quot;&gt;&lt;/div&gt;--&gt;
+
+&lt;!--                &lt;div class=&quot;config-desc&quot; style=&quot;margin-bottom: 0;&quot;&gt;--&gt;
+&lt;!--                    📌 &lt;b&gt;原表其余所有字段处理规则&lt;/b&gt;：自动保留原表所有未选列，并自动提取该细分组内&lt;b&gt;第一个不为空的真实内容&lt;/b&gt;。--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+
+&lt;!--                &lt;div style=&quot;margin-top: 18px; text-align: right;&quot;&gt;--&gt;
+&lt;!--                    &lt;button class=&quot;btn&quot; onclick=&quot;executeAdvancedGroupAggregation()&quot;&gt;🚀 执行两级分组统计分析&lt;/button&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div id=&quot;groupColumnOrderSection&quot; class=&quot;config-box&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;config-title&quot;&gt;--&gt;
+&lt;!--                    &lt;span&gt;🛠️ 自定义导出表头顺序&lt;/span&gt;--&gt;
+&lt;!--                    &lt;span style=&quot;font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub);&quot;&gt;💡 拖拽标签或点击 ◀ ▶ 调整导出顺序&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;column-tags-container&quot; id=&quot;groupColumnTags&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div class=&quot;actions-bar&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;file-info&quot; id=&quot;groupFileInfo&quot;&gt;未选择任何文件&lt;/div&gt;--&gt;
+&lt;!--                &lt;button class=&quot;btn btn-download&quot; id=&quot;groupDownloadBtn&quot; onclick=&quot;downloadExcel('group')&quot; disabled&gt;--&gt;
+&lt;!--                    📥 导出统计结果 Excel--&gt;
+&lt;!--                &lt;/button&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div class=&quot;preview-section&quot; id=&quot;groupPreviewSection&quot; style=&quot;display: none;&quot;&gt;--&gt;
+&lt;!--                &lt;div class=&quot;preview-header&quot;&gt;--&gt;
+&lt;!--                    &lt;h3&gt;统计结果预览 (前 100 行)&lt;/h3&gt;--&gt;
+&lt;!--                    &lt;span id=&quot;groupResultCount&quot; style=&quot;font-size: 12px; color: var(&amp;#45;&amp;#45;text-sub);&quot;&gt;&lt;/span&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--                &lt;div class=&quot;table-responsive&quot;&gt;--&gt;
+&lt;!--                    &lt;table id=&quot;groupTable&quot;&gt;&lt;thead&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;/tbody&gt;&lt;/table&gt;--&gt;
+&lt;!--                &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--&lt;/div&gt;--&gt;
+
+&lt;!--&lt;script&gt;--&gt;
+&lt;!--    /* ================= 全局状态 ================= */--&gt;
+&lt;!--    const appState = {--&gt;
+&lt;!--        sku: { rawData: null, data: null, fileName: &quot;&quot;, columns: [] },--&gt;
+&lt;!--        fabric: { rawData: null, data: null, fileName: &quot;&quot;, columns: [] },--&gt;
+&lt;!--        group: { rawData: null, data: null, fileName: &quot;&quot;, columns: [], rawColumns: [] }--&gt;
+&lt;!--    };--&gt;
+
+&lt;!--    function switchTab(tabId, element) {--&gt;
+&lt;!--        document.querySelectorAll('.tab-btn').forEach(btn =&gt; btn.classList.remove('active'));--&gt;
+&lt;!--        document.querySelectorAll('.tab-content').forEach(content =&gt; content.classList.remove('active'));--&gt;
+&lt;!--        element.classList.add('active');--&gt;
+&lt;!--        document.getElementById(tabId).classList.add('active');--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function readExcelFile(file) {--&gt;
+&lt;!--        return new Promise((resolve, reject) =&gt; {--&gt;
+&lt;!--            const reader = new FileReader();--&gt;
+&lt;!--            reader.onload = (e) =&gt; {--&gt;
+&lt;!--                try {--&gt;
+&lt;!--                    const data = new Uint8Array(e.target.result);--&gt;
+&lt;!--                    const workbook = XLSX.read(data, { type: 'array' });--&gt;
+&lt;!--                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];--&gt;
+&lt;!--                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: &quot;&quot; });--&gt;
+&lt;!--                    resolve(jsonData);--&gt;
+&lt;!--                } catch (err) { reject(err); }--&gt;
+&lt;!--            };--&gt;
+&lt;!--            reader.onerror = reject;--&gt;
+&lt;!--            reader.readAsArrayBuffer(file);--&gt;
+&lt;!--        });--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    async function handleFile(event, type) {--&gt;
+&lt;!--        const files = Array.from(event.target.files);--&gt;
+&lt;!--        if (!files || files.length === 0) return;--&gt;
+
+&lt;!--        const statusEl = document.getElementById(`${type}Status`);--&gt;
+&lt;!--        const downloadBtn = document.getElementById(`${type}DownloadBtn`);--&gt;
+&lt;!--        const previewSection = document.getElementById(`${type}PreviewSection`);--&gt;
+
+&lt;!--        statusEl.className = 'status-msg';--&gt;
+&lt;!--        statusEl.style.display = 'none';--&gt;
+
+&lt;!--        try {--&gt;
+&lt;!--            const results = await Promise.all(files.map(f =&gt; readExcelFile(f)));--&gt;
+&lt;!--            let mergedData = [];--&gt;
+&lt;!--            let columnSet = new Set();--&gt;
+
+&lt;!--            results.forEach(sheetData =&gt; {--&gt;
+&lt;!--                if (sheetData &amp;&amp; sheetData.length &gt; 0) {--&gt;
+&lt;!--                    Object.keys(sheetData[0]).forEach(k =&gt; columnSet.add(k));--&gt;
+&lt;!--                    mergedData.push(...sheetData);--&gt;
+&lt;!--                }--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            if (mergedData.length === 0) throw new Error(&quot;所选文件中没有发现有效数据！&quot;);--&gt;
+
+&lt;!--            const baseName = files.length === 1 ? files[0].name.replace(/\.[^/.]+$/, &quot;&quot;) : `已合并_${files.length}个文件`;--&gt;
+&lt;!--            const allCols = Array.from(columnSet);--&gt;
+
+&lt;!--            if (type === 'sku') {--&gt;
+&lt;!--                processSkuData(mergedData, baseName, files.length, allCols);--&gt;
+&lt;!--            } else if (type === 'fabric') {--&gt;
+&lt;!--                processFabricData(mergedData, baseName, files.length, allCols);--&gt;
+&lt;!--            } else if (type === 'group') {--&gt;
+&lt;!--                initTwoLevelGroupTool(mergedData, baseName, files.length, allCols);--&gt;
+&lt;!--            }--&gt;
+&lt;!--        } catch (err) {--&gt;
+&lt;!--            statusEl.textContent = `❌ 解析出错：${err.message}`;--&gt;
+&lt;!--            statusEl.className = 'status-msg error';--&gt;
+&lt;!--            downloadBtn.disabled = true;--&gt;
+&lt;!--            previewSection.style.display = 'none';--&gt;
+&lt;!--        }--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* ================= 逻辑 1：SKU &amp; 颜色（保持不变） ================= */--&gt;
+&lt;!--    function extractSku(p) {--&gt;
+&lt;!--        if (!p || typeof p !== 'string') return p || '';--&gt;
+&lt;!--        const patterns = [/_[\u4e00-\u9fa5].*/, /-[\u4e00-\u9fa5].*/, / [\u4e00-\u9fa5].*/, /[\u4e00-\u9fa5].*/];--&gt;
+&lt;!--        for (let pat of patterns) if (pat.test(p)) return p.replace(pat, '').trim();--&gt;
+&lt;!--        return p.trim();--&gt;
+&lt;!--    }--&gt;
+&lt;!--    function extractColor(p) {--&gt;
+&lt;!--        if (!p || typeof p !== 'string') return '';--&gt;
+&lt;!--        const match = p.match(/[\u4e00-\u9fa5]/g);--&gt;
+&lt;!--        return match ? match.join('') : '';--&gt;
+&lt;!--    }--&gt;
+&lt;!--    function extractColorEnglish(orig, sku) {--&gt;
+&lt;!--        if (!orig || typeof orig !== 'string') return '';--&gt;
+&lt;!--        let c = orig;--&gt;
+&lt;!--        if (sku) c = c.replace(new RegExp(sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;'), 'g'), '');--&gt;
+&lt;!--        if (c.includes('_')) c = c.substring(0, c.lastIndexOf('_'));--&gt;
+&lt;!--        return c.replace(/^[_ \s]+|[_ \s]+$/g, '');--&gt;
+&lt;!--    }--&gt;
+&lt;!--    function processSkuData(data, baseName, count, initialCols) {--&gt;
+&lt;!--        data.forEach(row =&gt; {--&gt;
+&lt;!--            const productName = String(row['品名'] !== undefined ? row['品名'] : '');--&gt;
+&lt;!--            let originalEnglish = '';--&gt;
+&lt;!--            if (row['MSKU'] !== undefined) originalEnglish = String(row['MSKU']);--&gt;
+&lt;!--            else if (row['*SKU'] !== undefined) originalEnglish = String(row['*SKU']);--&gt;
+&lt;!--            else if (row['msku'] !== undefined) originalEnglish = String(row['msku']);--&gt;
+&lt;!--            else if (row['sku'] !== undefined) originalEnglish = String(row['sku']);--&gt;
+
+&lt;!--            const sku = extractSku(productName);--&gt;
+&lt;!--            row['SKU'] = sku;--&gt;
+&lt;!--            row['颜色'] = extractColor(productName);--&gt;
+&lt;!--            row['颜色英文'] = extractColorEnglish(originalEnglish, sku);--&gt;
+&lt;!--        });--&gt;
+&lt;!--        let finalColumns = [...initialCols];--&gt;
+&lt;!--        ['SKU', '颜色', '颜色英文'].forEach(c =&gt; { if (!finalColumns.includes(c)) finalColumns.push(c); });--&gt;
+
+&lt;!--        appState.sku.data = data;--&gt;
+&lt;!--        appState.sku.fileName = `${baseName}_提取SKU.xlsx`;--&gt;
+&lt;!--        appState.sku.columns = finalColumns;--&gt;
+
+&lt;!--        document.getElementById('skuFileInfo').innerHTML = `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;--&gt;
+&lt;!--        document.getElementById('skuStatus').textContent = `✅ 成功处理 ${data.length} 行数据！`;--&gt;
+&lt;!--        document.getElementById('skuStatus').className = 'status-msg success';--&gt;
+&lt;!--        document.getElementById('skuDownloadBtn').disabled = false;--&gt;
+
+&lt;!--        initColumnTags('sku');--&gt;
+&lt;!--        renderPreviewTable('sku');--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* ================= 逻辑 2：拆解材质（保持不变） ================= */--&gt;
+&lt;!--    function containsForbiddenWords(t) {--&gt;
+&lt;!--        return ['women', 'sexy', 'womens', 'size', 'this'].some(w =&gt; t.toLowerCase().includes(w));--&gt;
+&lt;!--    }--&gt;
+&lt;!--    function parseFabricType(detail) {--&gt;
+&lt;!--        if (!detail) return '';--&gt;
+&lt;!--        const match = String(detail).match(/Fabric type[:：]\s*(.*?)(?:\||$)/i);--&gt;
+&lt;!--        if (!match) return '';--&gt;
+&lt;!--        const content = match[1].trim();--&gt;
+&lt;!--        const matches = [...content.matchAll(/(\d+(?:\.\d+)?)%\s*([a-zA-Z]+)/g)];--&gt;
+&lt;!--        if (matches.length &gt; 0) {--&gt;
+&lt;!--            const parts = [];--&gt;
+&lt;!--            for (let m of matches) {--&gt;
+&lt;!--                if (m[2].toLowerCase() === 'brand') continue;--&gt;
+&lt;!--                parts.push(`${m[1]}% ${m[2].trim()}`);--&gt;
+&lt;!--            }--&gt;
+&lt;!--            return parts.join('，');--&gt;
+&lt;!--        } else {--&gt;
+&lt;!--            let res = '';--&gt;
+&lt;!--            if (content.includes('.')) {--&gt;
+&lt;!--                res = content.split('.')[0].trim();--&gt;
+&lt;!--                if (res.split(/\s+/).filter(Boolean).length &gt; 8 || containsForbiddenWords(res)) res = '';--&gt;
+&lt;!--            } else {--&gt;
+&lt;!--                const words = content.trim().split(/\s+/).filter(Boolean);--&gt;
+&lt;!--                res = (words.length &gt; 5 || containsForbiddenWords(content)) ? '' : content.trim();--&gt;
+&lt;!--            }--&gt;
+&lt;!--            return res;--&gt;
+&lt;!--        }--&gt;
+&lt;!--    }--&gt;
+&lt;!--    function processFabricData(data, baseName, count, initialCols) {--&gt;
+&lt;!--        data.forEach(row =&gt; { row['材质(成分)'] = parseFabricType(row['详细参数']); });--&gt;
+&lt;!--        let finalColumns = [...initialCols];--&gt;
+&lt;!--        if (!finalColumns.includes('材质(成分)')) finalColumns.push('材质(成分)');--&gt;
+
+&lt;!--        appState.fabric.data = data;--&gt;
+&lt;!--        appState.fabric.fileName = `${baseName}_已拆材质.xlsx`;--&gt;
+&lt;!--        appState.fabric.columns = finalColumns;--&gt;
+
+&lt;!--        document.getElementById('fabricFileInfo').innerHTML = `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;--&gt;
+&lt;!--        document.getElementById('fabricStatus').textContent = `✅ 成功处理 ${data.length} 行数据！`;--&gt;
+&lt;!--        document.getElementById('fabricStatus').className = 'status-msg success';--&gt;
+&lt;!--        document.getElementById('fabricDownloadBtn').disabled = false;--&gt;
+
+&lt;!--        initColumnTags('fabric');--&gt;
+&lt;!--        renderPreviewTable('fabric');--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* ================================================================--&gt;
+&lt;!--       逻辑 3：两级分组统计（一级与二级分别计算全部指标）--&gt;
+&lt;!--       ================================================================ */--&gt;
+
+&lt;!--    let groupSelection = { large: [], sub: [] };--&gt;
+&lt;!--    let metricSeq = 0;--&gt;
+
+&lt;!--    const AGG_LABELS = {--&gt;
+&lt;!--        sum: '求和',--&gt;
+&lt;!--        avg: '算术平均',--&gt;
+&lt;!--        wavg: '加权平均',--&gt;
+&lt;!--        max: '最大值',--&gt;
+&lt;!--        min: '最小值',--&gt;
+&lt;!--        count: '计数',--&gt;
+&lt;!--        countd: '去重计数'--&gt;
+&lt;!--    };--&gt;
+
+&lt;!--    function escHtml(s) {--&gt;
+&lt;!--        return String(s).replace(/[&amp;&lt;&gt;&quot;']/g, c =&gt; ({--&gt;
+&lt;!--            '&amp;': '&amp;amp;', '&lt;': '&amp;lt;', '&gt;': '&amp;gt;', '&quot;': '&amp;quot;', &quot;'&quot;: '&amp;#39;'--&gt;
+&lt;!--        }[c]));--&gt;
+&lt;!--    }--&gt;
+&lt;!--    function round2(n) { return Math.round(n * 100) / 100; }--&gt;
+&lt;!--    function toNumber(v) {--&gt;
+&lt;!--        if (v === null || v === undefined || v === '') return NaN;--&gt;
+&lt;!--        if (typeof v === 'number') return v;--&gt;
+&lt;!--        const n = Number(String(v).replace(/,/g, '').trim());--&gt;
+&lt;!--        return isNaN(n) ? NaN : n;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 初始化 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function initTwoLevelGroupTool(data, baseName, count, columns) {--&gt;
+&lt;!--        appState.group.rawData = data;--&gt;
+&lt;!--        appState.group.rawColumns = columns;--&gt;
+&lt;!--        appState.group.fileName = `${baseName}_两级统计结果.xlsx`;--&gt;
+
+&lt;!--        document.getElementById('groupFileInfo').innerHTML =--&gt;
+&lt;!--            `已加载: &lt;span&gt;${count &gt; 1 ? `${count} 个文件` : baseName}&lt;/span&gt; (共 ${data.length} 行)`;--&gt;
+&lt;!--        document.getElementById('groupStatus').textContent =--&gt;
+&lt;!--            `✅ 成功读取 ${columns.length} 个字段！请在下方选择两级分组维度与统计指标。`;--&gt;
+&lt;!--        document.getElementById('groupStatus').className = 'status-msg success';--&gt;
+
+&lt;!--        groupSelection = { large: [], sub: [] };--&gt;
+&lt;!--        metricSeq = 0;--&gt;
+
+&lt;!--        // 一级分组复选框--&gt;
+&lt;!--        const largeContainer = document.getElementById('largeGroupContainer');--&gt;
+&lt;!--        largeContainer.innerHTML = '';--&gt;
+&lt;!--        columns.forEach(col =&gt; {--&gt;
+&lt;!--            const isDefault = ['修正面料', '面料', '色号', '父ASIN'].includes(col);--&gt;
+&lt;!--            const label = document.createElement('label');--&gt;
+&lt;!--            label.className = 'checkbox-item';--&gt;
+&lt;!--            const cb = document.createElement('input');--&gt;
+&lt;!--            cb.type = 'checkbox';--&gt;
+&lt;!--            cb.value = col;--&gt;
+&lt;!--            cb.checked = isDefault;--&gt;
+&lt;!--            if (isDefault) groupSelection.large.push(col);--&gt;
+&lt;!--            cb.addEventListener('change', () =&gt; onGroupCheckboxChange('large', col, cb.checked));--&gt;
+&lt;!--            label.appendChild(cb);--&gt;
+&lt;!--            label.appendChild(document.createTextNode(' ' + col));--&gt;
+&lt;!--            largeContainer.appendChild(label);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        // 二级分组复选框--&gt;
+&lt;!--        const subContainer = document.getElementById('subGroupContainer');--&gt;
+&lt;!--        subContainer.innerHTML = '';--&gt;
+&lt;!--        columns.forEach(col =&gt; {--&gt;
+&lt;!--            const isDefault = ['SKU', 'ASIN', '子ASIN', '颜色'].includes(col);--&gt;
+&lt;!--            const label = document.createElement('label');--&gt;
+&lt;!--            label.className = 'checkbox-item';--&gt;
+&lt;!--            const cb = document.createElement('input');--&gt;
+&lt;!--            cb.type = 'checkbox';--&gt;
+&lt;!--            cb.value = col;--&gt;
+&lt;!--            cb.checked = isDefault;--&gt;
+&lt;!--            if (isDefault) groupSelection.sub.push(col);--&gt;
+&lt;!--            cb.addEventListener('change', () =&gt; onGroupCheckboxChange('sub', col, cb.checked));--&gt;
+&lt;!--            label.appendChild(cb);--&gt;
+&lt;!--            label.appendChild(document.createTextNode(' ' + col));--&gt;
+&lt;!--            subContainer.appendChild(label);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        renderOrderList('large');--&gt;
+&lt;!--        renderOrderList('sub');--&gt;
+
+&lt;!--        // 默认指标--&gt;
+&lt;!--        const metricList = document.getElementById('metricList');--&gt;
+&lt;!--        metricList.innerHTML = '';--&gt;
+
+&lt;!--        const salesCandidate = columns.find(c =&gt; ['销量', '总销量', 'SKU销量', 'Sales', 'Quantity'].includes(c));--&gt;
+&lt;!--        const priceCandidate = columns.find(c =&gt; ['销售均价', '均价', '价格', 'Price', '售价'].includes(c));--&gt;
+
+&lt;!--        if (salesCandidate) addMetricRow({ col: salesCandidate, agg: 'sum' });--&gt;
+&lt;!--        if (priceCandidate) {--&gt;
+&lt;!--            addMetricRow({ col: priceCandidate, agg: 'wavg', weight: salesCandidate || '' });--&gt;
+&lt;!--            addMetricRow({ col: priceCandidate, agg: 'avg' });--&gt;
+&lt;!--        }--&gt;
+&lt;!--        if (!salesCandidate &amp;&amp; !priceCandidate) addMetricRow({});--&gt;
+
+&lt;!--        document.getElementById('groupConfigBox').style.display = 'block';--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 分组字段勾选 / 排序 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function onGroupCheckboxChange(scope, col, checked) {--&gt;
+&lt;!--        const arr = groupSelection[scope];--&gt;
+&lt;!--        if (checked) {--&gt;
+&lt;!--            if (!arr.includes(col)) arr.push(col);--&gt;
+&lt;!--        } else {--&gt;
+&lt;!--            const i = arr.indexOf(col);--&gt;
+&lt;!--            if (i &gt;= 0) arr.splice(i, 1);--&gt;
+&lt;!--        }--&gt;
+&lt;!--        renderOrderList(scope);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    let dragOrderInfo = null;--&gt;
+
+&lt;!--    function renderOrderList(scope) {--&gt;
+&lt;!--        const listEl = document.getElementById(`${scope}OrderList`);--&gt;
+&lt;!--        const boxEl = document.getElementById(`${scope}OrderBox`);--&gt;
+&lt;!--        const arr = groupSelection[scope];--&gt;
+
+&lt;!--        listEl.innerHTML = '';--&gt;
+
+&lt;!--        if (!arr || arr.length === 0) {--&gt;
+&lt;!--            boxEl.style.display = 'none';--&gt;
+&lt;!--            return;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        boxEl.style.display = 'block';--&gt;
+
+&lt;!--        arr.forEach((col, idx) =&gt; {--&gt;
+&lt;!--            const item = document.createElement('div');--&gt;
+&lt;!--            item.className = 'order-item';--&gt;
+&lt;!--            item.draggable = true;--&gt;
+&lt;!--            item.dataset.index = idx;--&gt;
+&lt;!--            item.dataset.scope = scope;--&gt;
+&lt;!--            item.innerHTML =--&gt;
+&lt;!--                `&lt;span class=&quot;order-num&quot;&gt;${idx + 1}&lt;/span&gt;` +--&gt;
+&lt;!--                `&lt;span class=&quot;order-name&quot;&gt;${escHtml(col)}&lt;/span&gt;` +--&gt;
+&lt;!--                `&lt;button type=&quot;button&quot; class=&quot;col-btn-arrow&quot; title=&quot;上移&quot; onclick=&quot;moveGroupOrder('${scope}', ${idx}, -1)&quot;&gt;▲&lt;/button&gt;` +--&gt;
+&lt;!--                `&lt;button type=&quot;button&quot; class=&quot;col-btn-arrow&quot; title=&quot;下移&quot; onclick=&quot;moveGroupOrder('${scope}', ${idx}, 1)&quot;&gt;▼&lt;/button&gt;`;--&gt;
+
+&lt;!--            item.addEventListener('dragstart', () =&gt; {--&gt;
+&lt;!--                dragOrderInfo = { scope, index: idx };--&gt;
+&lt;!--                item.classList.add('dragging');--&gt;
+&lt;!--            });--&gt;
+&lt;!--            item.addEventListener('dragend', () =&gt; {--&gt;
+&lt;!--                item.classList.remove('dragging');--&gt;
+&lt;!--                dragOrderInfo = null;--&gt;
+&lt;!--            });--&gt;
+&lt;!--            item.addEventListener('dragover', e =&gt; e.preventDefault());--&gt;
+&lt;!--            item.addEventListener('drop', e =&gt; {--&gt;
+&lt;!--                e.preventDefault();--&gt;
+&lt;!--                if (!dragOrderInfo || dragOrderInfo.scope !== scope) return;--&gt;
+&lt;!--                const from = dragOrderInfo.index;--&gt;
+&lt;!--                const to = idx;--&gt;
+&lt;!--                if (from === to) return;--&gt;
+&lt;!--                const [moved] = arr.splice(from, 1);--&gt;
+&lt;!--                arr.splice(to, 0, moved);--&gt;
+&lt;!--                renderOrderList(scope);--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            listEl.appendChild(item);--&gt;
+&lt;!--        });--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function moveGroupOrder(scope, index, dir) {--&gt;
+&lt;!--        const arr = groupSelection[scope];--&gt;
+&lt;!--        const target = index + dir;--&gt;
+&lt;!--        if (target &lt; 0 || target &gt;= arr.length) return;--&gt;
+&lt;!--        const tmp = arr[index];--&gt;
+&lt;!--        arr[index] = arr[target];--&gt;
+&lt;!--        arr[target] = tmp;--&gt;
+&lt;!--        renderOrderList(scope);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 指标行 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function autoMetricName(col, agg) {--&gt;
+&lt;!--        return `${col}_${AGG_LABELS[agg] || agg}`;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function addMetricRow(preset) {--&gt;
+&lt;!--        preset = preset || {};--&gt;
+&lt;!--        const list = document.getElementById('metricList');--&gt;
+&lt;!--        const cols = appState.group.rawColumns || [];--&gt;
+
+&lt;!--        const opts = (sel) =&gt; cols.map(c =&gt;--&gt;
+&lt;!--            `&lt;option value=&quot;${escHtml(c)}&quot;${c === sel ? ' selected' : ''}&gt;${escHtml(c)}&lt;/option&gt;`--&gt;
+&lt;!--        ).join('');--&gt;
+
+&lt;!--        const row = document.createElement('div');--&gt;
+&lt;!--        row.className = 'metric-row';--&gt;
+&lt;!--        row.dataset.uid = ++metricSeq;--&gt;
+
+&lt;!--        row.innerHTML = `--&gt;
+&lt;!--            &lt;div class=&quot;metric-cell&quot;&gt;--&gt;
+&lt;!--                &lt;label&gt;统计字段&lt;/label&gt;--&gt;
+&lt;!--                &lt;select class=&quot;metric-col&quot;&gt;${opts(preset.col)}&lt;/select&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;metric-cell&quot;&gt;--&gt;
+&lt;!--                &lt;label&gt;计算方式&lt;/label&gt;--&gt;
+&lt;!--                &lt;select class=&quot;metric-agg&quot;&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;sum&quot;&gt;求和&lt;/option&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;avg&quot;&gt;算术平均&lt;/option&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;wavg&quot;&gt;加权平均&lt;/option&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;max&quot;&gt;最大值&lt;/option&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;min&quot;&gt;最小值&lt;/option&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;count&quot;&gt;计数(非空)&lt;/option&gt;--&gt;
+&lt;!--                    &lt;option value=&quot;countd&quot;&gt;去重计数&lt;/option&gt;--&gt;
+&lt;!--                &lt;/select&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;metric-cell metric-weight-cell&quot;&gt;--&gt;
+&lt;!--                &lt;label&gt;权重字段&lt;/label&gt;--&gt;
+&lt;!--                &lt;select class=&quot;metric-weight&quot;&gt;${opts(preset.weight)}&lt;/select&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;div class=&quot;metric-cell&quot;&gt;--&gt;
+&lt;!--                &lt;label&gt;输出列名（不含前缀）&lt;/label&gt;--&gt;
+&lt;!--                &lt;input type=&quot;text&quot; class=&quot;metric-name&quot; placeholder=&quot;留空自动生成&quot;&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn-remove&quot; title=&quot;删除该指标&quot;&gt;✕&lt;/button&gt;--&gt;
+&lt;!--        `;--&gt;
+
+&lt;!--        list.appendChild(row);--&gt;
+
+&lt;!--        const colSel = row.querySelector('.metric-col');--&gt;
+&lt;!--        const aggSel = row.querySelector('.metric-agg');--&gt;
+&lt;!--        const weightSel = row.querySelector('.metric-weight');--&gt;
+&lt;!--        const nameInput = row.querySelector('.metric-name');--&gt;
+
+&lt;!--        if (preset.col) colSel.value = preset.col;--&gt;
+&lt;!--        if (preset.agg) aggSel.value = preset.agg;--&gt;
+&lt;!--        if (preset.weight) weightSel.value = preset.weight;--&gt;
+&lt;!--        if (preset.name) {--&gt;
+&lt;!--            nameInput.value = preset.name;--&gt;
+&lt;!--            row.dataset.nameEdited = '1';--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        colSel.addEventListener('change', () =&gt; syncMetricRow(row, false));--&gt;
+&lt;!--        aggSel.addEventListener('change', () =&gt; syncMetricRow(row, false));--&gt;
+&lt;!--        weightSel.addEventListener('change', () =&gt; syncMetricRow(row, false));--&gt;
+&lt;!--        nameInput.addEventListener('input', () =&gt; { row.dataset.nameEdited = '1'; });--&gt;
+
+&lt;!--        row.querySelector('.btn-remove').addEventListener('click', () =&gt; {--&gt;
+&lt;!--            const all = document.querySelectorAll('#metricList .metric-row');--&gt;
+&lt;!--            if (all.length &lt;= 1) {--&gt;
+&lt;!--                alert('至少保留一条指标配置。');--&gt;
+&lt;!--                return;--&gt;
+&lt;!--            }--&gt;
+&lt;!--            row.remove();--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        syncMetricRow(row, !preset.name);--&gt;
+&lt;!--        return row;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function syncMetricRow(row, forceName) {--&gt;
+&lt;!--        const agg = row.querySelector('.metric-agg').value;--&gt;
+&lt;!--        const col = row.querySelector('.metric-col').value;--&gt;
+&lt;!--        row.querySelector('.metric-weight-cell').style.display = (agg === 'wavg') ? '' : 'none';--&gt;
+
+&lt;!--        const nameInput = row.querySelector('.metric-name');--&gt;
+&lt;!--        if (forceName || !row.dataset.nameEdited) {--&gt;
+&lt;!--            nameInput.value = autoMetricName(col, agg);--&gt;
+&lt;!--        }--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 指标计算 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function computeMetricValue(rows, m) {--&gt;
+&lt;!--        if (m.agg === 'count') {--&gt;
+&lt;!--            let c = 0;--&gt;
+&lt;!--            rows.forEach(r =&gt; {--&gt;
+&lt;!--                const v = r[m.col];--&gt;
+&lt;!--                if (v !== null &amp;&amp; v !== undefined &amp;&amp; String(v).trim() !== '') c++;--&gt;
+&lt;!--            });--&gt;
+&lt;!--            return c;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        if (m.agg === 'countd') {--&gt;
+&lt;!--            const set = new Set();--&gt;
+&lt;!--            rows.forEach(r =&gt; {--&gt;
+&lt;!--                const v = r[m.col];--&gt;
+&lt;!--                if (v !== null &amp;&amp; v !== undefined &amp;&amp; String(v).trim() !== '') {--&gt;
+&lt;!--                    set.add(String(v).trim());--&gt;
+&lt;!--                }--&gt;
+&lt;!--            });--&gt;
+&lt;!--            return set.size;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        const pairs = [];--&gt;
+&lt;!--        rows.forEach(r =&gt; {--&gt;
+&lt;!--            const v = toNumber(r[m.col]);--&gt;
+&lt;!--            if (isNaN(v)) return;--&gt;
+&lt;!--            let w = 1;--&gt;
+&lt;!--            if (m.agg === 'wavg') {--&gt;
+&lt;!--                const wv = toNumber(r[m.weight]);--&gt;
+&lt;!--                w = isNaN(wv) ? 0 : wv;--&gt;
+&lt;!--            }--&gt;
+&lt;!--            pairs.push([v, w]);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        if (pairs.length === 0) return (m.agg === 'sum') ? 0 : '';--&gt;
+
+&lt;!--        switch (m.agg) {--&gt;
+&lt;!--            case 'sum':  return round2(pairs.reduce((a, p) =&gt; a + p[0], 0));--&gt;
+&lt;!--            case 'avg':  return round2(pairs.reduce((a, p) =&gt; a + p[0], 0) / pairs.length);--&gt;
+&lt;!--            case 'wavg': {--&gt;
+&lt;!--                const totalW = pairs.reduce((a, p) =&gt; a + p[1], 0);--&gt;
+&lt;!--                if (totalW &gt; 0) return round2(pairs.reduce((a, p) =&gt; a + p[0] * p[1], 0) / totalW);--&gt;
+&lt;!--                return round2(pairs.reduce((a, p) =&gt; a + p[0], 0) / pairs.length);--&gt;
+&lt;!--            }--&gt;
+&lt;!--            case 'max':  return round2(Math.max(...pairs.map(p =&gt; p[0])));--&gt;
+&lt;!--            case 'min':  return round2(Math.min(...pairs.map(p =&gt; p[0])));--&gt;
+&lt;!--            default:     return '';--&gt;
+&lt;!--        }--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 收集指标配置 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function collectMetrics() {--&gt;
+&lt;!--        const rows = document.querySelectorAll('#metricList .metric-row');--&gt;
+&lt;!--        const list = [];--&gt;
+&lt;!--        // 防止最终列名（含前缀）与原始列、已有列冲突--&gt;
+&lt;!--        const usedNames = new Set(appState.group.rawColumns || []);--&gt;
+
+&lt;!--        rows.forEach(row =&gt; {--&gt;
+&lt;!--            const col = row.querySelector('.metric-col').value;--&gt;
+&lt;!--            if (!col) return;--&gt;
+
+&lt;!--            const agg = row.querySelector('.metric-agg').value;--&gt;
+&lt;!--            const weight = row.querySelector('.metric-weight').value;--&gt;
+&lt;!--            let name = (row.querySelector('.metric-name').value || '').trim() || autoMetricName(col, agg);--&gt;
+
+&lt;!--            // 保证 name、大组_name、细组_name 均不冲突--&gt;
+&lt;!--            let base = name, i = 2;--&gt;
+&lt;!--            while (--&gt;
+&lt;!--                usedNames.has(name) ||--&gt;
+&lt;!--                usedNames.has('大组_' + name) ||--&gt;
+&lt;!--                usedNames.has('细组_' + name)--&gt;
+&lt;!--            ) {--&gt;
+&lt;!--                name = `${base}_${i++}`;--&gt;
+&lt;!--            }--&gt;
+&lt;!--            usedNames.add('大组_' + name);--&gt;
+&lt;!--            usedNames.add('细组_' + name);--&gt;
+
+&lt;!--            list.push({ col, agg, weight, name });--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        return list;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 辅助：取组内第一个非空值 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function getFirstNonEmptyVal(rows, col) {--&gt;
+&lt;!--        for (let r of rows) {--&gt;
+&lt;!--            const val = r[col];--&gt;
+&lt;!--            if (val !== undefined &amp;&amp; val !== null &amp;&amp; String(val).trim() !== '') return val;--&gt;
+&lt;!--        }--&gt;
+&lt;!--        return '';--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 执行两级分组统计 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--    function executeAdvancedGroupAggregation() {--&gt;
+&lt;!--        const rawData = appState.group.rawData;--&gt;
+&lt;!--        if (!rawData || rawData.length === 0) {--&gt;
+&lt;!--            alert('请先上传 Excel 文件！');--&gt;
+&lt;!--            return;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        const largeGroupCols = groupSelection.large.slice();--&gt;
+&lt;!--        const subGroupCols = groupSelection.sub.slice();--&gt;
+
+&lt;!--        if (largeGroupCols.length === 0 &amp;&amp; subGroupCols.length === 0) {--&gt;
+&lt;!--            alert('请至少在一级大类或二级细分组中选择一个分组字段！');--&gt;
+&lt;!--            return;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        const metrics = collectMetrics();--&gt;
+&lt;!--        if (metrics.length === 0) {--&gt;
+&lt;!--            alert('请至少添加一条有效的指标配置！');--&gt;
+&lt;!--            return;--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        const allGroupKeys = Array.from(new Set([...largeGroupCols, ...subGroupCols]));--&gt;
+&lt;!--        const GROUP_SEP = '|||';--&gt;
+
+&lt;!--        /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 一级分组：原始行聚合，计算全部指标 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--        const largeMap = new Map();--&gt;
+&lt;!--        rawData.forEach(row =&gt; {--&gt;
+&lt;!--            const lk = largeGroupCols--&gt;
+&lt;!--                .map(k =&gt; String(row[k] !== undefined &amp;&amp; row[k] !== null ? row[k] : ''))--&gt;
+&lt;!--                .join(GROUP_SEP);--&gt;
+&lt;!--            if (!largeMap.has(lk)) largeMap.set(lk, []);--&gt;
+&lt;!--            largeMap.get(lk).push(row);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        const largeMetricMap = new Map(); // largeKey -&gt; { metricName: value }--&gt;
+&lt;!--        largeMap.forEach((rows, lk) =&gt; {--&gt;
+&lt;!--            const vals = {};--&gt;
+&lt;!--            metrics.forEach(m =&gt; {--&gt;
+&lt;!--                vals[m.name] = computeMetricValue(rows, m);--&gt;
+&lt;!--            });--&gt;
+&lt;!--            largeMetricMap.set(lk, vals);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 二级分组：组合键聚合，计算全部指标 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--        const subMap = new Map();--&gt;
+&lt;!--        rawData.forEach(row =&gt; {--&gt;
+&lt;!--            const key = allGroupKeys--&gt;
+&lt;!--                .map(k =&gt; String(row[k] !== undefined &amp;&amp; row[k] !== null ? row[k] : ''))--&gt;
+&lt;!--                .join(GROUP_SEP);--&gt;
+&lt;!--            if (!subMap.has(key)) subMap.set(key, []);--&gt;
+&lt;!--            subMap.get(key).push(row);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        const subResults = [];--&gt;
+&lt;!--        const metricSourceCols = new Set(metrics.map(m =&gt; m.col));--&gt;
+
+&lt;!--        subMap.forEach((rows) =&gt; {--&gt;
+&lt;!--            const summaryRow = {};--&gt;
+
+&lt;!--            // 一级分组字段值--&gt;
+&lt;!--            largeGroupCols.forEach(k =&gt; {--&gt;
+&lt;!--                summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';--&gt;
+&lt;!--            });--&gt;
+&lt;!--            // 二级分组字段值--&gt;
+&lt;!--            subGroupCols.forEach(k =&gt; {--&gt;
+&lt;!--                if (!(k in summaryRow)) summaryRow[k] = rows[0][k] !== undefined ? rows[0][k] : '';--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            const lk = largeGroupCols--&gt;
+&lt;!--                .map(k =&gt; String(rows[0][k] !== undefined &amp;&amp; rows[0][k] !== null ? rows[0][k] : ''))--&gt;
+&lt;!--                .join(GROUP_SEP);--&gt;
+
+&lt;!--            // 大组指标（同一大组内所有细组共享相同值）--&gt;
+&lt;!--            const lv = largeMetricMap.get(lk) || {};--&gt;
+&lt;!--            metrics.forEach(m =&gt; {--&gt;
+&lt;!--                summaryRow['大组_' + m.name] = (lv[m.name] !== undefined) ? lv[m.name] : '';--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            // 细组指标--&gt;
+&lt;!--            metrics.forEach(m =&gt; {--&gt;
+&lt;!--                summaryRow['细组_' + m.name] = computeMetricValue(rows, m);--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            // 原表其余所有列：取细组内第一个非空值--&gt;
+&lt;!--            appState.group.rawColumns.forEach(origCol =&gt; {--&gt;
+&lt;!--                if (!allGroupKeys.includes(origCol) &amp;&amp; !metricSourceCols.has(origCol)) {--&gt;
+&lt;!--                    summaryRow[origCol] = getFirstNonEmptyVal(rows, origCol);--&gt;
+&lt;!--                }--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            summaryRow.__largeKey = lk;--&gt;
+&lt;!--            subResults.push(summaryRow);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 排序：大组指标 → 一级分组字段 → 细组指标 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--        subResults.sort((a, b) =&gt; {--&gt;
+&lt;!--            // 1. 大组指标（按配置顺序，依次降序）--&gt;
+&lt;!--            for (const m of metrics) {--&gt;
+&lt;!--                const key = '大组_' + m.name;--&gt;
+&lt;!--                const va = Number(a[key]) || 0;--&gt;
+&lt;!--                const vb = Number(b[key]) || 0;--&gt;
+&lt;!--                if (vb !== va) return vb - va;--&gt;
+&lt;!--            }--&gt;
+
+&lt;!--            // 2. 一级分组字段（按用户顺序，依次升序）--&gt;
+&lt;!--            for (const lk of largeGroupCols) {--&gt;
+&lt;!--                const cmp = String(a[lk] !== undefined ? a[lk] : '')--&gt;
+&lt;!--                    .localeCompare(String(b[lk] !== undefined ? b[lk] : ''), 'zh-CN', { numeric: true });--&gt;
+&lt;!--                if (cmp !== 0) return cmp;--&gt;
+&lt;!--            }--&gt;
+
+&lt;!--            // 3. 细组指标（按配置顺序，依次降序）--&gt;
+&lt;!--            for (const m of metrics) {--&gt;
+&lt;!--                const key = '细组_' + m.name;--&gt;
+&lt;!--                const va = Number(a[key]) || 0;--&gt;
+&lt;!--                const vb = Number(b[key]) || 0;--&gt;
+&lt;!--                if (vb !== va) return vb - va;--&gt;
+&lt;!--            }--&gt;
+
+&lt;!--            return 0;--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        /* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 表头顺序 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--        const frontCols = [];--&gt;
+&lt;!--        largeGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });--&gt;
+&lt;!--        metrics.forEach(m =&gt; frontCols.push('大组_' + m.name));--&gt;
+&lt;!--        subGroupCols.forEach(c =&gt; { if (!frontCols.includes(c)) frontCols.push(c); });--&gt;
+&lt;!--        metrics.forEach(m =&gt; frontCols.push('细组_' + m.name));--&gt;
+
+&lt;!--        const remainingCols = appState.group.rawColumns.filter(c =&gt;--&gt;
+&lt;!--            !frontCols.includes(c) &amp;&amp; !metricSourceCols.has(c)--&gt;
+&lt;!--        );--&gt;
+
+&lt;!--        const finalColumns = [...frontCols, ...remainingCols];--&gt;
+
+&lt;!--        // 清理临时字段--&gt;
+&lt;!--        subResults.forEach(r =&gt; { delete r.__largeKey; });--&gt;
+
+&lt;!--        appState.group.data = subResults;--&gt;
+&lt;!--        appState.group.columns = finalColumns;--&gt;
+
+&lt;!--        document.getElementById('groupResultCount').textContent =--&gt;
+&lt;!--            `共聚合出 ${subResults.length} 个细分组 / ${finalColumns.length} 个字段`;--&gt;
+&lt;!--        document.getElementById('groupDownloadBtn').disabled = false;--&gt;
+
+&lt;!--        initColumnTags('group');--&gt;
+&lt;!--        renderPreviewTable('group');--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* ================= 通用：表头拖拽 / 预览 / 下载 ================= */--&gt;
+&lt;!--    let draggedIndex = null;--&gt;
+
+&lt;!--    function isComputedColumn(type, col) {--&gt;
+&lt;!--        if (type === 'group') {--&gt;
+&lt;!--            if (/^大组_/.test(col) || /^细组_/.test(col)) return true;--&gt;
+&lt;!--            return !(appState.group.rawColumns || []).includes(col);--&gt;
+&lt;!--        }--&gt;
+&lt;!--        return ['SKU', '颜色', '颜色英文', '材质(成分)'].includes(col);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function initColumnTags(type) {--&gt;
+&lt;!--        const section = document.getElementById(`${type}ColumnOrderSection`);--&gt;
+&lt;!--        const container = document.getElementById(`${type}ColumnTags`);--&gt;
+&lt;!--        container.innerHTML = '';--&gt;
+&lt;!--        section.style.display = 'block';--&gt;
+
+&lt;!--        const columns = appState[type].columns;--&gt;
+
+&lt;!--        columns.forEach((col, index) =&gt; {--&gt;
+&lt;!--            const tag = document.createElement('div');--&gt;
+&lt;!--            const isNew = isComputedColumn(type, col);--&gt;
+&lt;!--            tag.className = `col-tag ${isNew ? 'is-new' : ''}`;--&gt;
+&lt;!--            tag.draggable = true;--&gt;
+&lt;!--            tag.dataset.index = index;--&gt;
+
+&lt;!--            tag.innerHTML = `--&gt;
+&lt;!--                &lt;button class=&quot;col-btn-arrow&quot; onclick=&quot;moveColumn('${type}', ${index}, -1)&quot; title=&quot;前移&quot;&gt;◀&lt;/button&gt;--&gt;
+&lt;!--                &lt;span&gt;${escHtml(col)}&lt;/span&gt;--&gt;
+&lt;!--                &lt;button class=&quot;col-btn-arrow&quot; onclick=&quot;moveColumn('${type}', ${index}, 1)&quot; title=&quot;后移&quot;&gt;▶&lt;/button&gt;--&gt;
+&lt;!--            `;--&gt;
+
+&lt;!--            tag.addEventListener('dragstart', () =&gt; { draggedIndex = index; tag.style.opacity = '0.4'; });--&gt;
+&lt;!--            tag.addEventListener('dragend', () =&gt; { tag.style.opacity = '1'; draggedIndex = null; });--&gt;
+&lt;!--            tag.addEventListener('dragover', (e) =&gt; e.preventDefault());--&gt;
+&lt;!--            tag.addEventListener('drop', (e) =&gt; {--&gt;
+&lt;!--                e.preventDefault();--&gt;
+&lt;!--                const targetIndex = parseInt(tag.dataset.index);--&gt;
+&lt;!--                if (draggedIndex !== null &amp;&amp; draggedIndex !== targetIndex) {--&gt;
+&lt;!--                    const item = columns.splice(draggedIndex, 1)[0];--&gt;
+&lt;!--                    columns.splice(targetIndex, 0, item);--&gt;
+&lt;!--                    initColumnTags(type);--&gt;
+&lt;!--                    renderPreviewTable(type);--&gt;
+&lt;!--                }--&gt;
+&lt;!--            });--&gt;
+
+&lt;!--            container.appendChild(tag);--&gt;
+&lt;!--        });--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function moveColumn(type, index, direction) {--&gt;
+&lt;!--        const columns = appState[type].columns;--&gt;
+&lt;!--        const targetIndex = index + direction;--&gt;
+&lt;!--        if (targetIndex &lt; 0 || targetIndex &gt;= columns.length) return;--&gt;
+&lt;!--        const temp = columns[index];--&gt;
+&lt;!--        columns[index] = columns[targetIndex];--&gt;
+&lt;!--        columns[targetIndex] = temp;--&gt;
+&lt;!--        initColumnTags(type);--&gt;
+&lt;!--        renderPreviewTable(type);--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function renderPreviewTable(type) {--&gt;
+&lt;!--        const table = document.getElementById(`${type}Table`);--&gt;
+&lt;!--        const thead = table.querySelector('thead');--&gt;
+&lt;!--        const tbody = table.querySelector('tbody');--&gt;
+&lt;!--        const previewSection = document.getElementById(`${type}PreviewSection`);--&gt;
+
+&lt;!--        thead.innerHTML = '';--&gt;
+&lt;!--        tbody.innerHTML = '';--&gt;
+
+&lt;!--        const data = appState[type].data;--&gt;
+&lt;!--        const columns = appState[type].columns;--&gt;
+&lt;!--        if (!data || data.length === 0 || !columns) return;--&gt;
+
+&lt;!--        const limit = (type === 'group') ? 100 : 10;--&gt;
+&lt;!--        const previewRows = data.slice(0, limit);--&gt;
+
+&lt;!--        const trHead = document.createElement('tr');--&gt;
+&lt;!--        columns.forEach(h =&gt; {--&gt;
+&lt;!--            const th = document.createElement('th');--&gt;
+&lt;!--            if (isComputedColumn(type, h)) {--&gt;
+&lt;!--                th.innerHTML = `${escHtml(h)} &lt;span class=&quot;badge-new&quot;&gt;计算字段&lt;/span&gt;`;--&gt;
+&lt;!--            } else {--&gt;
+&lt;!--                th.textContent = h;--&gt;
+&lt;!--            }--&gt;
+&lt;!--            trHead.appendChild(th);--&gt;
+&lt;!--        });--&gt;
+&lt;!--        thead.appendChild(trHead);--&gt;
+
+&lt;!--        previewRows.forEach(row =&gt; {--&gt;
+&lt;!--            const tr = document.createElement('tr');--&gt;
+&lt;!--            columns.forEach(h =&gt; {--&gt;
+&lt;!--                const td = document.createElement('td');--&gt;
+&lt;!--                td.textContent = row[h] !== undefined ? row[h] : '';--&gt;
+&lt;!--                tr.appendChild(td);--&gt;
+&lt;!--            });--&gt;
+&lt;!--            tbody.appendChild(tr);--&gt;
+&lt;!--        });--&gt;
+
+&lt;!--        previewSection.style.display = 'block';--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function downloadExcel(type) {--&gt;
+&lt;!--        const target = appState[type];--&gt;
+&lt;!--        if (!target.data || !target.columns) return;--&gt;
+
+&lt;!--        const worksheet = XLSX.utils.json_to_sheet(target.data, { header: target.columns });--&gt;
+&lt;!--        const workbook = XLSX.utils.book_new();--&gt;
+&lt;!--        XLSX.utils.book_append_sheet(workbook, worksheet, &quot;统计结果&quot;);--&gt;
+&lt;!--        XLSX.writeFile(workbook, target.fileName || '统计结果.xlsx');--&gt;
+&lt;!--    }--&gt;
+&lt;!--&lt;/script&gt;--&gt;
+
+&lt;!--&lt;/body&gt;--&gt;
+&lt;!--&lt;/html&gt;--&gt;">
       </iframe>
      </div>
     </div>
