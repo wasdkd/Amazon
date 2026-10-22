@@ -4782,11 +4782,11 @@ async function exportSingleZip() {
     }
 
     // 4. 打包并生成 ZIP (75% -> 100%)
-    updateExportProgress(75, '正在压缩生成 ZIP 文件...');
+    // 4. 打包并生成 ZIP (极速秒打包)
+    updateExportProgress(75, '正在快速封装 ZIP 文件...');
     const blob = await zip.generateAsync({
       type: 'blob',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 1 }
+      compression: 'STORE'
     }, (metadata) => {
       const currentPct = 75 + Math.round(metadata.percent * 0.25);
       updateExportProgress(currentPct, `正在打包压缩 ZIP 文件 (${metadata.percent.toFixed(0)}%)...`);
@@ -4986,11 +4986,11 @@ async function exportSummaryZip() {
     }
 
     // 4. 打包并生成 ZIP (75% -> 100%)
-    updateExportProgress(75, '正在压缩生成 ZIP 文件...');
+    // 4. 打包并生成 ZIP (极速秒打包)
+    updateExportProgress(75, '正在快速封装 ZIP 文件...');
     const blob = await zip.generateAsync({
       type: 'blob',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 1 }
+      compression: 'STORE'
     }, (metadata) => {
       const currentPct = 75 + Math.round(metadata.percent * 0.25);
       updateExportProgress(currentPct, `正在打包压缩 ZIP 文件 (${metadata.percent.toFixed(0)}%)...`);
