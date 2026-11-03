@@ -3219,7 +3219,7 @@
   <h2>⑤ 单款视图</h2>
   <div class="row" style="margin-bottom:10px;">
     <button id="btnSingleSortSales" class="primary">按汇总销量降序排序</button>
-    <button id="btnSingleSortParent">按款号/父ASIN排序</button>
+<!--    <button id="btnSingleSortParent">按款号/父ASIN排序</button>-->
     <span id="singleSortSummary" class="summary" style="margin:0;">当前：按汇总销量降序</span>
   </div>
   <div id="singleView"></div>
@@ -5783,12 +5783,12 @@ $('btnSingleSortSales').addEventListener('click', () => {
   renderSingleView();
   saveStateDebounced();
 });
-$('btnSingleSortParent').addEventListener('click', () => {
-  state.singleSortMode = 'parent';
-  sortSingleView();
-  renderSingleView();
-  saveStateDebounced();
-});
+// $('btnSingleSortParent').addEventListener('click', () => {
+//   state.singleSortMode = 'parent';
+//   sortSingleView();
+//   renderSingleView();
+//   saveStateDebounced();
+// });
 
 $('btnProcess').addEventListener('click', async () => {
   const status = $('processSummary');
@@ -5927,6 +5927,7 @@ window.addEventListener('beforeunload', () => {
 
 </body>
 </html>
+
 
 
 
