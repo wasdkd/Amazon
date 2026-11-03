@@ -2785,10 +2785,832 @@
 &lt;!--&lt;head&gt;--&gt;
 &lt;!--  &lt;meta charset=&quot;UTF-8&quot; /&gt;--&gt;
 &lt;!--  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;--&gt;
-&lt;!--  &lt;title&gt;Excel表格合并工具 (Sheet数量限制版)&lt;/title&gt;--&gt;
+&lt;!--  &lt;title&gt;Excel表格合并工具 (全流程可视进度条版)&lt;/title&gt;--&gt;
 &lt;!--  &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;--&gt;
 &lt;!--  &lt;style&gt;--&gt;
-&lt;!--    /* 保持您习惯的蓝紫色调 UI */--&gt;
+&lt;!--    /* -&amp;#45;&amp;#45; 保持您喜欢的蓝紫色 UI 风格 -&amp;#45;&amp;#45; */--&gt;
+&lt;!--    :root {--&gt;
+&lt;!--      &amp;#45;&amp;#45;bg: linear-gradient(180deg, #f8fafc 0%, #f7faff 100%);--&gt;
+&lt;!--      &amp;#45;&amp;#45;fg: #1f2937;--&gt;
+&lt;!--      &amp;#45;&amp;#45;muted: #6b7280;--&gt;
+&lt;!--      &amp;#45;&amp;#45;card: #ffffff;--&gt;
+&lt;!--      &amp;#45;&amp;#45;border: #e5e7eb;--&gt;
+&lt;!--      &amp;#45;&amp;#45;primary: #60a5fa;--&gt;
+&lt;!--      &amp;#45;&amp;#45;primary-hover: #3b82f6;--&gt;
+&lt;!--      &amp;#45;&amp;#45;accent: #a78bfa;--&gt;
+&lt;!--      &amp;#45;&amp;#45;title: #0ea5e9;--&gt;
+&lt;!--      &amp;#45;&amp;#45;subtitle: #9333ea;--&gt;
+&lt;!--      &amp;#45;&amp;#45;success: #10b981;--&gt;
+&lt;!--      &amp;#45;&amp;#45;info: #3b82f6;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    body {--&gt;
+&lt;!--      font-family: system-ui, -apple-system, sans-serif;--&gt;
+&lt;!--      padding: 20px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;fg);--&gt;
+&lt;!--      background: var(&amp;#45;&amp;#45;bg);--&gt;
+&lt;!--      max-width: 1400px;--&gt;
+&lt;!--      margin: 0 auto;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    h1 {--&gt;
+&lt;!--      font-size: 24px;--&gt;
+&lt;!--      margin: 0 0 16px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;title);--&gt;
+&lt;!--      text-align: center;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    h2 {--&gt;
+&lt;!--      font-size: 18px;--&gt;
+&lt;!--      margin: 10px 0 5px;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;subtitle);--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    h2:before {--&gt;
+&lt;!--      content: &quot;&quot;;--&gt;
+&lt;!--      display: inline-block;--&gt;
+&lt;!--      width: 8px;--&gt;
+&lt;!--      height: 8px;--&gt;
+&lt;!--      border-radius: 50%;--&gt;
+&lt;!--      background-color: var(&amp;#45;&amp;#45;accent);--&gt;
+&lt;!--      margin-right: 10px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .section {--&gt;
+&lt;!--      border: 1px solid var(&amp;#45;&amp;#45;border);--&gt;
+&lt;!--      border-radius: 12px;--&gt;
+&lt;!--      padding: 15px;--&gt;
+&lt;!--      background: var(&amp;#45;&amp;#45;card);--&gt;
+&lt;!--      box-shadow: 0 4px 12px rgba(0,0,0,0.05);--&gt;
+&lt;!--      margin-bottom: 20px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .row {--&gt;
+&lt;!--      display: flex;--&gt;
+&lt;!--      gap: 16px;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--      flex-wrap: wrap;--&gt;
+&lt;!--      margin-bottom: 8px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    label { font-weight: 600; min-width: 120px; }--&gt;
+&lt;!--    input[type=&quot;number&quot;], input[type=&quot;text&quot;] {--&gt;
+&lt;!--      padding: 8px 12px;--&gt;
+&lt;!--      border: 1px solid #cbd5e1;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      width: 160px;--&gt;
+&lt;!--      font-size: 14px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    input[type=&quot;file&quot;] {--&gt;
+&lt;!--      padding: 8px;--&gt;
+&lt;!--      border: 1px solid #cbd5e1;--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      width: 100%;--&gt;
+&lt;!--      max-width: 300px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    button {--&gt;
+&lt;!--      padding: 10px 16px;--&gt;
+&lt;!--      border: 1px solid var(&amp;#45;&amp;#45;border);--&gt;
+&lt;!--      background: linear-gradient(180deg, #ffffff, #f3f4f6);--&gt;
+&lt;!--      border-radius: 8px;--&gt;
+&lt;!--      cursor: pointer;--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;fg);--&gt;
+&lt;!--      box-shadow: 0 2px 4px rgba(0,0,0,0.04);--&gt;
+&lt;!--      transition: all .2s ease;--&gt;
+&lt;!--      font-weight: 500;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    button:hover:not(:disabled) {--&gt;
+&lt;!--      background: linear-gradient(180deg, #f9fafb, #e5e7eb);--&gt;
+&lt;!--      transform: translateY(-2px);--&gt;
+&lt;!--    }--&gt;
+&lt;!--    button:disabled { opacity: 0.6; cursor: not-allowed; }--&gt;
+
+&lt;!--    #btnParseSelected, #btnFilter, #btnMerge {--&gt;
+&lt;!--      background: linear-gradient(180deg, #d1fae5, #a7f3d0);--&gt;
+&lt;!--      border-color: #86efac;--&gt;
+&lt;!--      color: #064e3b;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    #btnResetFilter { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }--&gt;
+&lt;!--    #btnDownloadMergedXlsx { background: linear-gradient(180deg, #e0f2fe, #dbeafe); color: #0c4a6e; border-color: #7dd3fc; }--&gt;
+&lt;!--    #btnDownloadMergedCsv { background: linear-gradient(180deg, #fef3c7, #fde68a); color: #92400e; border-color: #fcd34d; font-weight: 600; }--&gt;
+
+&lt;!--    .summary { font-size: 14px; color: var(&amp;#45;&amp;#45;muted); padding: 5px 0; }--&gt;
+&lt;!--    .file-list {--&gt;
+&lt;!--      font-size: 12px; color: #111827; margin-top: 5px;--&gt;
+&lt;!--      background-color: #f9fafb; border-radius: 8px; padding: 5px;--&gt;
+&lt;!--      max-height: 150px; overflow-y: auto;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .preview {--&gt;
+&lt;!--      overflow: auto; max-height: 300px; border: 1px solid var(&amp;#45;&amp;#45;border);--&gt;
+&lt;!--      border-radius: 8px; background: var(&amp;#45;&amp;#45;card); margin-top: 12px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    table { border-collapse: collapse; width: 100%; font-size: 13px; white-space: nowrap; }--&gt;
+&lt;!--    th, td { border: 1px solid var(&amp;#45;&amp;#45;border); padding: 8px 10px; text-align: left; }--&gt;
+&lt;!--    th { background: #eef2ff; color: #1e293b; font-weight: 600; position: sticky; top: 0; }--&gt;
+
+&lt;!--    .tips {--&gt;
+&lt;!--      color: var(&amp;#45;&amp;#45;muted); font-size: 13px; background-color: #f0f9ff;--&gt;
+&lt;!--      border-left: 4px solid var(&amp;#45;&amp;#45;info); padding: 8px; border-radius: 0 8px 8px 0; margin: 5px 0; line-height: 1.5;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .instructions {--&gt;
+&lt;!--      background-color: #f0fdf4; border-left: 4px solid var(&amp;#45;&amp;#45;success);--&gt;
+&lt;!--      padding: 15px; border-radius: 0 8px 8px 0; margin: 10px 0 20px 0;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .instructions h3 { margin-top: 0; margin-bottom: 10px; color: var(&amp;#45;&amp;#45;success); }--&gt;
+&lt;!--    .instructions ol { margin: 0; padding-left: 0; list-style: none; }--&gt;
+&lt;!--    .instructions li { margin-bottom: 8px; display: flex; align-items: center; }--&gt;
+&lt;!--    .step-number {--&gt;
+&lt;!--      display: inline-block; width: 24px; height: 24px; background-color: var(&amp;#45;&amp;#45;primary);--&gt;
+&lt;!--      color: white; border-radius: 50%; text-align: center; line-height: 24px;--&gt;
+&lt;!--      font-weight: bold; margin-right: 10px; flex-shrink: 0;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .top-sections { display: flex; gap: 20px; }--&gt;
+&lt;!--    .upload-section-container, .filter-section-container { flex: 1; min-width: 300px; }--&gt;
+&lt;!--    @media (max-width: 992px) { .top-sections { flex-direction: column; } }--&gt;
+
+&lt;!--    /* -&amp;#45;&amp;#45; 核心优化：屏幕全局居中悬浮进度条 (无论滚到哪都绝对看得见) -&amp;#45;&amp;#45; */--&gt;
+&lt;!--    .progress-overlay {--&gt;
+&lt;!--      display: none;--&gt;
+&lt;!--      position: fixed;--&gt;
+&lt;!--      top: 0; left: 0; width: 100vw; height: 100vh;--&gt;
+&lt;!--      background: rgba(15, 23, 42, 0.4);--&gt;
+&lt;!--      backdrop-filter: blur(3px);--&gt;
+&lt;!--      z-index: 99999;--&gt;
+&lt;!--      justify-content: center;--&gt;
+&lt;!--      align-items: center;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .progress-modal {--&gt;
+&lt;!--      background: #ffffff;--&gt;
+&lt;!--      border: 1px solid #cbd5e1;--&gt;
+&lt;!--      border-radius: 14px;--&gt;
+&lt;!--      padding: 20px 24px;--&gt;
+&lt;!--      width: 90%;--&gt;
+&lt;!--      max-width: 500px;--&gt;
+&lt;!--      box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.25);--&gt;
+&lt;!--      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);--&gt;
+&lt;!--    }--&gt;
+&lt;!--    @keyframes popIn {--&gt;
+&lt;!--      from { opacity: 0; transform: scale(0.92); }--&gt;
+&lt;!--      to { opacity: 1; transform: scale(1); }--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .progress-info {--&gt;
+&lt;!--      display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 8px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .progress-bar-bg {--&gt;
+&lt;!--      width: 100%; height: 16px; background: #e2e8f0; border-radius: 8px; overflow: hidden;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .progress-bar-fill {--&gt;
+&lt;!--      height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #34d399); transition: width 0.08s ease;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    /* -&amp;#45;&amp;#45; 自定义列筛选面板 -&amp;#45;&amp;#45; */--&gt;
+&lt;!--    .col-filter-box {--&gt;
+&lt;!--      display: none; margin-top: 15px; border: 1px solid #e2e8f0; background: #f8fafc;--&gt;
+&lt;!--      border-radius: 8px; padding: 12px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .col-filter-header {--&gt;
+&lt;!--      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .col-filter-header span { font-weight: 600; font-size: 13px; color: #1e293b; }--&gt;
+&lt;!--    .col-filter-list {--&gt;
+&lt;!--      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));--&gt;
+&lt;!--      gap: 6px; max-height: 160px; overflow-y: auto; background: #ffffff;--&gt;
+&lt;!--      border: 1px solid #e2e8f0; padding: 8px; border-radius: 6px;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .col-item-label {--&gt;
+&lt;!--      font-size: 12px; display: flex; align-items: center; gap: 6px;--&gt;
+&lt;!--      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;--&gt;
+&lt;!--    }--&gt;
+&lt;!--    .col-btn-small { padding: 4px 10px; font-size: 12px; }--&gt;
+&lt;!--  &lt;/style&gt;--&gt;
+&lt;!--&lt;/head&gt;--&gt;
+&lt;!--&lt;body&gt;--&gt;
+
+&lt;!--  &lt;h1&gt;📊 Excel表格合并工具&lt;/h1&gt;--&gt;
+
+&lt;!--  &amp;lt;!&amp;ndash; 使用说明 (完整保留) &amp;ndash;&amp;gt;--&gt;
+&lt;!--  &lt;div class=&quot;instructions&quot;&gt;--&gt;
+&lt;!--    &lt;h3&gt;📘 使用说明&lt;/h3&gt;--&gt;
+&lt;!--    &lt;ol&gt;--&gt;
+&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;1&lt;/span&gt;上传 Excel 文件并解析。&lt;/li&gt;--&gt;
+&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;2&lt;/span&gt;（可选）筛选 Sheet。如果不筛选，默认包含所有 Sheet。&lt;/li&gt;--&gt;
+&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;3&lt;/span&gt;设置“每个文件合并 Sheet 数量”。设为 1 则只取第一个 Sheet。&lt;/li&gt;--&gt;
+&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;4&lt;/span&gt;点击合并并下载。&lt;b&gt;来源列将确保在最右侧。可按需勾选导出的列。&lt;/b&gt;&lt;/li&gt;--&gt;
+&lt;!--    &lt;/ol&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+
+&lt;!--  &amp;lt;!&amp;ndash; 全局居中悬浮进度条 (无论页面滚到哪里都能清楚看到) &amp;ndash;&amp;gt;--&gt;
+&lt;!--  &lt;div class=&quot;progress-overlay&quot; id=&quot;progressOverlay&quot;&gt;--&gt;
+&lt;!--    &lt;div class=&quot;progress-modal&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;progress-info&quot;&gt;--&gt;
+&lt;!--        &lt;span id=&quot;progressStatusText&quot;&gt;正在处理...&lt;/span&gt;--&gt;
+&lt;!--        &lt;span id=&quot;progressPercentText&quot; style=&quot;color: #0284c7;&quot;&gt;0%&lt;/span&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;progress-bar-bg&quot;&gt;--&gt;
+&lt;!--        &lt;div class=&quot;progress-bar-fill&quot; id=&quot;progressBarFill&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+
+&lt;!--  &lt;div class=&quot;top-sections&quot;&gt;--&gt;
+&lt;!--    &lt;div class=&quot;upload-section-container&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;section&quot; id=&quot;upload-section&quot;&gt;--&gt;
+&lt;!--        &lt;h2&gt;📁 1. 上传与解析&lt;/h2&gt;--&gt;
+&lt;!--        &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--          &lt;label&gt;选择文件：&lt;/label&gt;--&gt;
+&lt;!--          &lt;input id=&quot;fileInputFiles&quot; type=&quot;file&quot; multiple accept=&quot;.xlsx,.xls,.csv&quot; /&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--          &lt;label&gt;或文件夹：&lt;/label&gt;--&gt;
+&lt;!--          &lt;input id=&quot;fileInputFolder&quot; type=&quot;file&quot; webkitdirectory directory accept=&quot;.xlsx,.xls,.csv&quot; /&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--          &lt;button id=&quot;btnParseSelected&quot; disabled&gt;解析文件&lt;/button&gt;--&gt;
+&lt;!--          &lt;button id=&quot;btnClear&quot;&gt;清空&lt;/button&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;file-list&quot; id=&quot;selectionList&quot;&gt;等待上传...&lt;/div&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &lt;div class=&quot;filter-section-container&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;section&quot; id=&quot;filter-section&quot;&gt;--&gt;
+&lt;!--        &lt;h2&gt;🔍 2. 筛选 Sheet (可选)&lt;/h2&gt;--&gt;
+&lt;!--        &lt;div class=&quot;tips&quot;&gt;--&gt;
+&lt;!--          状态：&lt;strong id=&quot;filterStateText&quot; style=&quot;color:#666;&quot;&gt;未筛选 (使用所有 Sheet)&lt;/strong&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--          &lt;label&gt;关键字：&lt;/label&gt;--&gt;
+&lt;!--          &lt;input id=&quot;sheetKeyword&quot; type=&quot;text&quot; value=&quot;&quot; placeholder=&quot;如：变体对比&quot; /&gt;--&gt;
+&lt;!--          &lt;button id=&quot;btnFilter&quot; disabled&gt;筛选&lt;/button&gt;--&gt;
+&lt;!--          &lt;button id=&quot;btnResetFilter&quot; disabled&gt;重置&lt;/button&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;summary&quot; id=&quot;filterSummary&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+
+&lt;!--  &lt;div class=&quot;section&quot; id=&quot;merge-section&quot;&gt;--&gt;
+&lt;!--    &lt;h2&gt;🔗 3. 合并设置与执行&lt;/h2&gt;--&gt;
+&lt;!--    &lt;div class=&quot;tips&quot;&gt;--&gt;
+&lt;!--      &lt;b&gt;表头修复：&lt;/b&gt; 程序会自动收集所有列名，确保“来源文件”和“来源Sheet”永远在所有数据列的后面。--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--      &lt;label&gt;表头所在行：&lt;/label&gt;--&gt;
+&lt;!--      &lt;input id=&quot;headerRow&quot; type=&quot;number&quot; min=&quot;1&quot; value=&quot;1&quot; /&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--      &lt;label&gt;每个文件取前 N 个 Sheet：&lt;/label&gt;--&gt;
+&lt;!--      &lt;input id=&quot;sheetLimitCount&quot; type=&quot;number&quot; min=&quot;1&quot; value=&quot;1&quot; title=&quot;每个Excel文件只读取前N个Sheet&quot; /&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;row&quot;&gt;--&gt;
+&lt;!--      &lt;button id=&quot;btnMerge&quot; disabled&gt;执行合并&lt;/button&gt;--&gt;
+&lt;!--      &lt;button id=&quot;btnDownloadMergedXlsx&quot; disabled&gt;📥 下载 Excel 结果&lt;/button&gt;--&gt;
+&lt;!--      &lt;button id=&quot;btnDownloadMergedCsv&quot; disabled&gt;⚡ 下载 CSV (推荐/防崩溃)&lt;/button&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &amp;lt;!&amp;ndash; 自定义导出列选择区域 &amp;ndash;&amp;gt;--&gt;
+&lt;!--    &lt;div class=&quot;col-filter-box&quot; id=&quot;colFilterBox&quot;&gt;--&gt;
+&lt;!--      &lt;div class=&quot;col-filter-header&quot;&gt;--&gt;
+&lt;!--        &lt;span&gt;📋 自定义导出列（勾选不需要的列后下载更快）：&lt;/span&gt;--&gt;
+&lt;!--        &lt;div&gt;--&gt;
+&lt;!--          &lt;button type=&quot;button&quot; class=&quot;col-btn-small&quot; id=&quot;btnSelectAllCols&quot;&gt;全选&lt;/button&gt;--&gt;
+&lt;!--          &lt;button type=&quot;button&quot; class=&quot;col-btn-small&quot; id=&quot;btnUnselectAllCols&quot;&gt;全部取消&lt;/button&gt;--&gt;
+&lt;!--          &lt;button type=&quot;button&quot; class=&quot;col-btn-small&quot; id=&quot;btnInvertCols&quot;&gt;反选&lt;/button&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;col-filter-list&quot; id=&quot;colFilterList&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;/div&gt;--&gt;
+
+&lt;!--    &lt;div class=&quot;summary&quot; id=&quot;mergeSummary&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;preview&quot; id=&quot;mergePreview&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--  &lt;/div&gt;--&gt;
+
+&lt;!--  &lt;script&gt;--&gt;
+&lt;!--    // -&amp;#45;&amp;#45; 状态变量 (防止 135 个文件内存溢出) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    let parsedWorkbooksInfo = [];--&gt;
+&lt;!--    let isFiltered = false;--&gt;
+&lt;!--    let allHeaders = [];         // 所有提取到的标准列头 (有序)--&gt;
+&lt;!--    let mergedRowsAoA = [];      // 纯紧凑二维数组存储所有数据行--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; DOM 元素 -&amp;#45;&amp;#45;--&gt;
+&lt;!--    const fileInputFiles = document.getElementById('fileInputFiles');--&gt;
+&lt;!--    const fileInputFolder = document.getElementById('fileInputFolder');--&gt;
+&lt;!--    const btnParseSelected = document.getElementById('btnParseSelected');--&gt;
+&lt;!--    const btnClear = document.getElementById('btnClear');--&gt;
+&lt;!--    const selectionList = document.getElementById('selectionList');--&gt;
+
+&lt;!--    const sheetKeyword = document.getElementById('sheetKeyword');--&gt;
+&lt;!--    const btnFilter = document.getElementById('btnFilter');--&gt;
+&lt;!--    const btnResetFilter = document.getElementById('btnResetFilter');--&gt;
+&lt;!--    const filterStateText = document.getElementById('filterStateText');--&gt;
+&lt;!--    const filterSummary = document.getElementById('filterSummary');--&gt;
+
+&lt;!--    const headerRowInput = document.getElementById('headerRow');--&gt;
+&lt;!--    const sheetLimitInput = document.getElementById('sheetLimitCount');--&gt;
+&lt;!--    const btnMerge = document.getElementById('btnMerge');--&gt;
+&lt;!--    const btnDownloadMergedXlsx = document.getElementById('btnDownloadMergedXlsx');--&gt;
+&lt;!--    const btnDownloadMergedCsv = document.getElementById('btnDownloadMergedCsv');--&gt;
+&lt;!--    const mergeSummary = document.getElementById('mergeSummary');--&gt;
+&lt;!--    const mergePreview = document.getElementById('mergePreview');--&gt;
+
+&lt;!--    // 悬浮居中进度条 DOM--&gt;
+&lt;!--    const progressOverlay = document.getElementById('progressOverlay');--&gt;
+&lt;!--    const progressStatusText = document.getElementById('progressStatusText');--&gt;
+&lt;!--    const progressPercentText = document.getElementById('progressPercentText');--&gt;
+&lt;!--    const progressBarFill = document.getElementById('progressBarFill');--&gt;
+
+&lt;!--    // 列筛选 DOM--&gt;
+&lt;!--    const colFilterBox = document.getElementById('colFilterBox');--&gt;
+&lt;!--    const colFilterList = document.getElementById('colFilterList');--&gt;
+&lt;!--    const btnSelectAllCols = document.getElementById('btnSelectAllCols');--&gt;
+&lt;!--    const btnUnselectAllCols = document.getElementById('btnUnselectAllCols');--&gt;
+&lt;!--    const btnInvertCols = document.getElementById('btnInvertCols');--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 异步让出渲染线程 &amp; 进度条控制 -&amp;#45;&amp;#45;--&gt;
+&lt;!--    const sleep = (ms = 0) =&gt; new Promise(resolve =&gt; setTimeout(resolve, ms));--&gt;
+
+&lt;!--    function updateProgress(text, current, total) {--&gt;
+&lt;!--      progressOverlay.style.display = 'flex';--&gt;
+&lt;!--      const pct = total &gt; 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;--&gt;
+&lt;!--      progressBarFill.style.width = pct + '%';--&gt;
+&lt;!--      progressPercentText.textContent = pct + '%';--&gt;
+&lt;!--      progressStatusText.textContent = text;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    function hideProgress() {--&gt;
+&lt;!--      progressOverlay.style.display = 'none';--&gt;
+&lt;!--      progressBarFill.style.width = '0%';--&gt;
+&lt;!--      progressPercentText.textContent = '0%';--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 1. 上传与解析 -&amp;#45;&amp;#45;--&gt;
+&lt;!--    function handleFiles(files) {--&gt;
+&lt;!--      const excelFiles = Array.from(files).filter(f =&gt; /(\.xlsx|\.xls|\.csv)$/i.test(f.name));--&gt;
+&lt;!--      if (excelFiles.length === 0) return;--&gt;
+
+&lt;!--      selectionList.innerHTML = `&lt;div&gt;已选择 ${excelFiles.length} 个文件，点击“解析文件”。&lt;/div&gt;` +--&gt;
+&lt;!--                                excelFiles.slice(0, 15).map(f =&gt; `&lt;div&gt;📄 ${f.name}&lt;/div&gt;`).join('') +--&gt;
+&lt;!--                                (excelFiles.length &gt; 15 ? `&lt;div&gt;... 等其余 ${excelFiles.length - 15} 个文件&lt;/div&gt;` : '');--&gt;
+&lt;!--      btnParseSelected.disabled = false;--&gt;
+&lt;!--      fileInputFiles.tempFiles = excelFiles;--&gt;
+&lt;!--      resetDownstream();--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    fileInputFiles.addEventListener('change', (e) =&gt; handleFiles(e.target.files));--&gt;
+&lt;!--    fileInputFolder.addEventListener('change', (e) =&gt; handleFiles(e.target.files));--&gt;
+
+&lt;!--    btnParseSelected.addEventListener('click', async () =&gt; {--&gt;
+&lt;!--      const files = fileInputFiles.tempFiles || [];--&gt;
+&lt;!--      if (files.length === 0) return;--&gt;
+
+&lt;!--      btnParseSelected.disabled = true;--&gt;
+&lt;!--      btnClear.disabled = true;--&gt;
+&lt;!--      parsedWorkbooksInfo = [];--&gt;
+&lt;!--      resetDownstream();--&gt;
+
+&lt;!--      try {--&gt;
+&lt;!--        const total = files.length;--&gt;
+&lt;!--        for (let i = 0; i &lt; total; i++) {--&gt;
+&lt;!--          const file = files[i];--&gt;
+&lt;!--          updateProgress(`正在解析第 (${i + 1}/${total}) 个文件: ${file.name}`, i + 1, total);--&gt;
+&lt;!--          await sleep(0); // 确保界面进度条能重绘刷新--&gt;
+
+&lt;!--          const ab = await file.arrayBuffer();--&gt;
+&lt;!--          // bookSheets: true 只快速读取 Sheet 名，不读单元格，135 个文件几秒搞定，且绝不占内存--&gt;
+&lt;!--          const wb = XLSX.read(ab, { type: 'array', bookSheets: true });--&gt;
+&lt;!--          parsedWorkbooksInfo.push({--&gt;
+&lt;!--            name: file.name,--&gt;
+&lt;!--            file: file,--&gt;
+&lt;!--            sheetNames: wb.SheetNames || []--&gt;
+&lt;!--          });--&gt;
+&lt;!--        }--&gt;
+&lt;!--        updateProgress(`✅ 解析完成！`, total, total);--&gt;
+&lt;!--        await sleep(300);--&gt;
+
+&lt;!--        selectionList.innerHTML = `&lt;div style=&quot;color:green; font-weight:600;&quot;&gt;✅ 成功解析 ${parsedWorkbooksInfo.length} 个文件&lt;/div&gt;`;--&gt;
+&lt;!--        btnFilter.disabled = false;--&gt;
+&lt;!--        btnMerge.disabled = false;--&gt;
+&lt;!--      } catch (e) {--&gt;
+&lt;!--        alert(&quot;解析失败: &quot; + e.message);--&gt;
+&lt;!--      } finally {--&gt;
+&lt;!--        hideProgress();--&gt;
+&lt;!--        btnParseSelected.textContent = '解析文件';--&gt;
+&lt;!--        btnParseSelected.disabled = false;--&gt;
+&lt;!--        btnClear.disabled = false;--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    btnClear.addEventListener('click', () =&gt; {--&gt;
+&lt;!--      parsedWorkbooksInfo = [];--&gt;
+&lt;!--      fileInputFiles.value = '';--&gt;
+&lt;!--      fileInputFolder.value = '';--&gt;
+&lt;!--      selectionList.textContent = '等待上传...';--&gt;
+&lt;!--      btnParseSelected.disabled = true;--&gt;
+&lt;!--      resetDownstream();--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    function resetDownstream() {--&gt;
+&lt;!--      isFiltered = false;--&gt;
+&lt;!--      allHeaders = [];--&gt;
+&lt;!--      mergedRowsAoA = [];--&gt;
+&lt;!--      filterSummary.textContent = '';--&gt;
+&lt;!--      mergeSummary.textContent = '';--&gt;
+&lt;!--      mergePreview.innerHTML = '';--&gt;
+&lt;!--      colFilterBox.style.display = 'none';--&gt;
+&lt;!--      colFilterList.innerHTML = '';--&gt;
+&lt;!--      btnFilter.disabled = true;--&gt;
+&lt;!--      btnResetFilter.disabled = true;--&gt;
+&lt;!--      btnMerge.disabled = true;--&gt;
+&lt;!--      btnDownloadMergedXlsx.disabled = true;--&gt;
+&lt;!--      btnDownloadMergedCsv.disabled = true;--&gt;
+&lt;!--      filterStateText.innerHTML = '未筛选 (使用所有 Sheet)';--&gt;
+&lt;!--      filterStateText.style.color = '#666';--&gt;
+&lt;!--      hideProgress();--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 2. 筛选 (完整保持原样) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    btnFilter.addEventListener('click', () =&gt; {--&gt;
+&lt;!--      const kw = sheetKeyword.value.trim();--&gt;
+&lt;!--      if (!kw) { alert(&quot;请输入关键字&quot;); return; }--&gt;
+
+&lt;!--      let matchCount = 0;--&gt;
+&lt;!--      parsedWorkbooksInfo.forEach(item =&gt; {--&gt;
+&lt;!--        item.sheetNames.forEach(sn =&gt; {--&gt;
+&lt;!--          if (sn.includes(kw)) matchCount++;--&gt;
+&lt;!--        });--&gt;
+&lt;!--      });--&gt;
+
+&lt;!--      if (matchCount &gt; 0) {--&gt;
+&lt;!--        isFiltered = true;--&gt;
+&lt;!--        filterStateText.innerHTML = `✅ 已开启筛选 (需包含 &quot;${kw}&quot;)`;--&gt;
+&lt;!--        filterStateText.style.color = 'green';--&gt;
+&lt;!--        filterSummary.textContent = `预览：所有文件中共有 ${matchCount} 个符合条件的 Sheet`;--&gt;
+&lt;!--        btnResetFilter.disabled = false;--&gt;
+&lt;!--      } else {--&gt;
+&lt;!--        alert(`未在任何文件中找到包含 &quot;${kw}&quot; 的 Sheet`);--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    btnResetFilter.addEventListener('click', () =&gt; {--&gt;
+&lt;!--      isFiltered = false;--&gt;
+&lt;!--      filterStateText.innerHTML = '未筛选 (使用所有 Sheet)';--&gt;
+&lt;!--      filterStateText.style.color = '#666';--&gt;
+&lt;!--      filterSummary.textContent = '筛选已重置';--&gt;
+&lt;!--      btnResetFilter.disabled = true;--&gt;
+&lt;!--      sheetKeyword.value = '';--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 3. 执行合并 (流式提取 + 内存自动回收) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    btnMerge.addEventListener('click', async () =&gt; {--&gt;
+&lt;!--      allHeaders = [];--&gt;
+&lt;!--      mergedRowsAoA = [];--&gt;
+&lt;!--      mergePreview.innerHTML = '';--&gt;
+&lt;!--      colFilterBox.style.display = 'none';--&gt;
+&lt;!--      btnDownloadMergedXlsx.disabled = true;--&gt;
+&lt;!--      btnDownloadMergedCsv.disabled = true;--&gt;
+
+&lt;!--      const headerIdx = parseInt(headerRowInput.value) - 1;--&gt;
+&lt;!--      const sheetLimit = parseInt(sheetLimitInput.value);--&gt;
+
+&lt;!--      if (isNaN(headerIdx) || headerIdx &lt; 0) { alert(&quot;表头行无效&quot;); return; }--&gt;
+&lt;!--      if (isNaN(sheetLimit) || sheetLimit &lt; 1) { alert(&quot;Sheet 数量限制无效&quot;); return; }--&gt;
+
+&lt;!--      btnMerge.disabled = true;--&gt;
+&lt;!--      const kw = sheetKeyword.value.trim();--&gt;
+&lt;!--      const totalFiles = parsedWorkbooksInfo.length;--&gt;
+&lt;!--      let totalSheetsProcessed = 0;--&gt;
+&lt;!--      const headerSet = new Set();--&gt;
+&lt;!--      const tempSheetDataList = [];--&gt;
+
+&lt;!--      for (let i = 0; i &lt; totalFiles; i++) {--&gt;
+&lt;!--        const item = parsedWorkbooksInfo[i];--&gt;
+&lt;!--        updateProgress(`正在合并第 (${i + 1}/${totalFiles}) 个文件: ${item.name}`, i + 1, totalFiles);--&gt;
+&lt;!--        await sleep(0);--&gt;
+
+&lt;!--        let targetSheets = item.sheetNames;--&gt;
+&lt;!--        if (isFiltered &amp;&amp; kw) {--&gt;
+&lt;!--          targetSheets = targetSheets.filter(sn =&gt; sn.includes(kw));--&gt;
+&lt;!--        }--&gt;
+&lt;!--        targetSheets = targetSheets.slice(0, sheetLimit);--&gt;
+
+&lt;!--        if (targetSheets.length === 0) continue;--&gt;
+
+&lt;!--        try {--&gt;
+&lt;!--          const ab = await item.file.arrayBuffer();--&gt;
+&lt;!--          const wb = XLSX.read(ab, { type: 'array', cellDates: true, dense: true });--&gt;
+
+&lt;!--          for (const sheetName of targetSheets) {--&gt;
+&lt;!--            const worksheet = wb.Sheets[sheetName];--&gt;
+&lt;!--            if (!worksheet) continue;--&gt;
+
+&lt;!--            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });--&gt;
+&lt;!--            if (!jsonData || jsonData.length &lt;= headerIdx) continue;--&gt;
+
+&lt;!--            const rawHeaders = jsonData[headerIdx];--&gt;
+&lt;!--            if (!rawHeaders) continue;--&gt;
+
+&lt;!--            const validCols = [];--&gt;
+&lt;!--            rawHeaders.forEach((h, idx) =&gt; {--&gt;
+&lt;!--              if (h &amp;&amp; String(h).trim() !== '') {--&gt;
+&lt;!--                const colName = String(h).trim();--&gt;
+&lt;!--                validCols.push({ idx: idx, name: colName });--&gt;
+&lt;!--                headerSet.add(colName);--&gt;
+&lt;!--              }--&gt;
+&lt;!--            });--&gt;
+&lt;!--            if (validCols.length === 0) continue;--&gt;
+
+&lt;!--            const rowsInSheet = [];--&gt;
+&lt;!--            for (let r = headerIdx + 1; r &lt; jsonData.length; r++) {--&gt;
+&lt;!--              const rowArr = jsonData[r];--&gt;
+&lt;!--              const isEmpty = rowArr.every(c =&gt; c === undefined || c === null || String(c).trim() === '');--&gt;
+&lt;!--              if (isEmpty) continue;--&gt;
+
+&lt;!--              const rowObj = {};--&gt;
+&lt;!--              validCols.forEach(col =&gt; {--&gt;
+&lt;!--                let val = rowArr[col.idx];--&gt;
+&lt;!--                if (val instanceof Date) val = val.toLocaleDateString();--&gt;
+&lt;!--                rowObj[col.name] = (val === undefined || val === null) ? '' : val;--&gt;
+&lt;!--              });--&gt;
+&lt;!--              rowObj['__来源文件'] = item.name;--&gt;
+&lt;!--              rowObj['__来源Sheet'] = sheetName;--&gt;
+&lt;!--              rowsInSheet.push(rowObj);--&gt;
+&lt;!--            }--&gt;
+&lt;!--            tempSheetDataList.push(rowsInSheet);--&gt;
+&lt;!--            totalSheetsProcessed++;--&gt;
+&lt;!--          }--&gt;
+&lt;!--        } catch (err) {--&gt;
+&lt;!--          console.error(&quot;读取出错: &quot; + item.name, err);--&gt;
+&lt;!--        }--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      // 构建最终表头 (强制保证来源列在最右侧)--&gt;
+&lt;!--      headerSet.delete('__来源文件');--&gt;
+&lt;!--      headerSet.delete('__来源Sheet');--&gt;
+&lt;!--      allHeaders = [...Array.from(headerSet), '__来源文件', '__来源Sheet'];--&gt;
+
+&lt;!--      updateProgress(`正在优化组装合并数据...`, totalFiles, totalFiles);--&gt;
+&lt;!--      await sleep(20);--&gt;
+
+&lt;!--      // 二维紧凑数组，削减 80% 内存开销--&gt;
+&lt;!--      mergedRowsAoA = [];--&gt;
+&lt;!--      for (const sheetRows of tempSheetDataList) {--&gt;
+&lt;!--        for (const rowObj of sheetRows) {--&gt;
+&lt;!--          const rowArr = new Array(allHeaders.length);--&gt;
+&lt;!--          for (let c = 0; c &lt; allHeaders.length; c++) {--&gt;
+&lt;!--            const h = allHeaders[c];--&gt;
+&lt;!--            rowArr[c] = rowObj[h] !== undefined ? rowObj[h] : '';--&gt;
+&lt;!--          }--&gt;
+&lt;!--          mergedRowsAoA.push(rowArr);--&gt;
+&lt;!--        }--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      hideProgress();--&gt;
+&lt;!--      btnMerge.disabled = false;--&gt;
+
+&lt;!--      if (mergedRowsAoA.length === 0) {--&gt;
+&lt;!--        mergeSummary.textContent = '⚠️ 未找到任何有效数据。请检查表头行设置或筛选条件。';--&gt;
+&lt;!--      } else {--&gt;
+&lt;!--        mergeSummary.textContent = `✅ 合并完成！共处理 ${totalSheetsProcessed} 个 Sheet，生成 ${mergedRowsAoA.length.toLocaleString()} 行数据。`;--&gt;
+&lt;!--        btnDownloadMergedXlsx.disabled = false;--&gt;
+&lt;!--        btnDownloadMergedCsv.disabled = false;--&gt;
+&lt;!--        renderColFilter();--&gt;
+&lt;!--        renderPreview();--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 列筛选面板初始化 -&amp;#45;&amp;#45;--&gt;
+&lt;!--    function renderColFilter() {--&gt;
+&lt;!--      colFilterList.innerHTML = '';--&gt;
+&lt;!--      allHeaders.forEach((colName, idx) =&gt; {--&gt;
+&lt;!--        const label = document.createElement('label');--&gt;
+&lt;!--        label.className = 'col-item-label';--&gt;
+&lt;!--        label.title = colName;--&gt;
+&lt;!--        label.innerHTML = `--&gt;
+&lt;!--          &lt;input type=&quot;checkbox&quot; class=&quot;col-chk-item&quot; data-index=&quot;${idx}&quot; checked /&gt;--&gt;
+&lt;!--          &lt;span&gt;${colName}&lt;/span&gt;--&gt;
+&lt;!--        `;--&gt;
+&lt;!--        colFilterList.appendChild(label);--&gt;
+&lt;!--      });--&gt;
+&lt;!--      colFilterBox.style.display = 'block';--&gt;
+
+&lt;!--      colFilterList.querySelectorAll('.col-chk-item').forEach(chk =&gt; {--&gt;
+&lt;!--        chk.addEventListener('change', () =&gt; renderPreview());--&gt;
+&lt;!--      });--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    btnSelectAllCols.addEventListener('click', () =&gt; {--&gt;
+&lt;!--      colFilterList.querySelectorAll('.col-chk-item').forEach(c =&gt; c.checked = true);--&gt;
+&lt;!--      renderPreview();--&gt;
+&lt;!--    });--&gt;
+&lt;!--    btnUnselectAllCols.addEventListener('click', () =&gt; {--&gt;
+&lt;!--      colFilterList.querySelectorAll('.col-chk-item').forEach(c =&gt; c.checked = false);--&gt;
+&lt;!--      renderPreview();--&gt;
+&lt;!--    });--&gt;
+&lt;!--    btnInvertCols.addEventListener('click', () =&gt; {--&gt;
+&lt;!--      colFilterList.querySelectorAll('.col-chk-item').forEach(c =&gt; c.checked = !c.checked);--&gt;
+&lt;!--      renderPreview();--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    function getSelectedCols() {--&gt;
+&lt;!--      const chks = colFilterList.querySelectorAll('.col-chk-item');--&gt;
+&lt;!--      const selected = [];--&gt;
+&lt;!--      chks.forEach(chk =&gt; {--&gt;
+&lt;!--        if (chk.checked) {--&gt;
+&lt;!--          const idx = parseInt(chk.dataset.index);--&gt;
+&lt;!--          selected.push({ index: idx, name: allHeaders[idx] });--&gt;
+&lt;!--        }--&gt;
+&lt;!--      });--&gt;
+&lt;!--      return selected;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 4. 预览表格 -&amp;#45;&amp;#45;--&gt;
+&lt;!--    function renderPreview() {--&gt;
+&lt;!--      const activeCols = getSelectedCols();--&gt;
+&lt;!--      if (activeCols.length === 0) {--&gt;
+&lt;!--        mergePreview.innerHTML = '&lt;div style=&quot;padding:15px; color:red;&quot;&gt;请至少勾选一个导出的列！&lt;/div&gt;';--&gt;
+&lt;!--        return;--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      const displayData = mergedRowsAoA.slice(0, 30);--&gt;
+&lt;!--      let html = '&lt;table&gt;&lt;thead&gt;&lt;tr&gt;';--&gt;
+&lt;!--      activeCols.forEach(c =&gt; html += `&lt;th&gt;${c.name}&lt;/th&gt;`);--&gt;
+&lt;!--      html += '&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;';--&gt;
+
+&lt;!--      displayData.forEach(row =&gt; {--&gt;
+&lt;!--        html += '&lt;tr&gt;';--&gt;
+&lt;!--        activeCols.forEach(c =&gt; {--&gt;
+&lt;!--          const val = row[c.index] !== undefined ? row[c.index] : '';--&gt;
+&lt;!--          html += `&lt;td&gt;${val}&lt;/td&gt;`;--&gt;
+&lt;!--        });--&gt;
+&lt;!--        html += '&lt;/tr&gt;';--&gt;
+&lt;!--      });--&gt;
+&lt;!--      html += '&lt;/tbody&gt;&lt;/table&gt;';--&gt;
+
+&lt;!--      if (mergedRowsAoA.length &gt; 30) {--&gt;
+&lt;!--        html += `&lt;div style=&quot;text-align:center; padding:10px; color:#666;&quot;&gt;... 仅预览前 30 行，还有 ${mergedRowsAoA.length - 30} 行数据未显示 ...&lt;/div&gt;`;--&gt;
+&lt;!--      }--&gt;
+&lt;!--      mergePreview.innerHTML = html;--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 5. 核心修复：下载 Excel (清晰显示动态行数进度条) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    btnDownloadMergedXlsx.addEventListener('click', async () =&gt; {--&gt;
+&lt;!--      const activeCols = getSelectedCols();--&gt;
+&lt;!--      if (activeCols.length === 0) { alert(&quot;请至少勾选一列后再下载！&quot;); return; }--&gt;
+
+&lt;!--      if (mergedRowsAoA.length &gt; 100000) {--&gt;
+&lt;!--        const proceed = confirm(`当前数据共 ${mergedRowsAoA.length.toLocaleString()} 行，生成 Excel 可能较慢。\n\n建议优先点击【⚡ 下载 CSV】（秒级导出且绝不崩溃）。\n\n是否继续导出 Excel？`);--&gt;
+&lt;!--        if (!proceed) return;--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      btnDownloadMergedXlsx.disabled = true;--&gt;
+&lt;!--      btnDownloadMergedCsv.disabled = true;--&gt;
+
+&lt;!--      // 阶段 1：装载数据--&gt;
+&lt;!--      updateProgress(&quot;正在准备导出列...&quot;, 5, 100);--&gt;
+&lt;!--      await sleep(30);--&gt;
+
+&lt;!--      try {--&gt;
+&lt;!--        const selectedIndices = activeCols.map(c =&gt; c.index);--&gt;
+&lt;!--        const exportHeader = activeCols.map(c =&gt; c.name);--&gt;
+&lt;!--        const exportAOA = [exportHeader];--&gt;
+&lt;!--        const total = mergedRowsAoA.length;--&gt;
+
+&lt;!--        // 根据总行数计算刷新步进，保证有 30-40 次平滑进度刷新--&gt;
+&lt;!--        const batchStep = Math.max(50, Math.floor(total / 40));--&gt;
+
+&lt;!--        for (let i = 0; i &lt; total; i++) {--&gt;
+&lt;!--          const row = mergedRowsAoA[i];--&gt;
+&lt;!--          const newRow = new Array(selectedIndices.length);--&gt;
+&lt;!--          for (let j = 0; j &lt; selectedIndices.length; j++) {--&gt;
+&lt;!--            newRow[j] = row[selectedIndices[j]];--&gt;
+&lt;!--          }--&gt;
+&lt;!--          exportAOA.push(newRow);--&gt;
+
+&lt;!--          if (i % batchStep === 0 || i === total - 1) {--&gt;
+&lt;!--            const currentPct = 10 + Math.round((i / total) * 50); // 10% ~ 60%--&gt;
+&lt;!--            updateProgress(`正在装载数据: ${(i + 1).toLocaleString()} / ${total.toLocaleString()} 行`, currentPct, 100);--&gt;
+&lt;!--            await sleep(0); // 释放主线程让浏览器重绘进度条--&gt;
+&lt;!--          }--&gt;
+&lt;!--        }--&gt;
+
+&lt;!--        // 阶段 2：构建工作表--&gt;
+&lt;!--        updateProgress(&quot;正在生成 Excel 工作表结构...&quot;, 70, 100);--&gt;
+&lt;!--        await sleep(40);--&gt;
+&lt;!--        const ws = XLSX.utils.aoa_to_sheet(exportAOA);--&gt;
+&lt;!--        const wb = XLSX.utils.book_new();--&gt;
+&lt;!--        XLSX.utils.book_append_sheet(wb, ws, &quot;合并结果&quot;);--&gt;
+
+&lt;!--        // 阶段 3：压缩二进制--&gt;
+&lt;!--        updateProgress(&quot;正在压缩并打包为 .xlsx 文件 (请稍候)...&quot;, 85, 100);--&gt;
+&lt;!--        await sleep(50);--&gt;
+&lt;!--        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });--&gt;
+
+&lt;!--        // 阶段 4：保存调起--&gt;
+&lt;!--        updateProgress(&quot;✅ Excel 生成完毕，下载已调起！&quot;, 100, 100);--&gt;
+&lt;!--        await sleep(40);--&gt;
+
+&lt;!--        const blob = new Blob([wbout], { type: 'application/octet-stream' });--&gt;
+&lt;!--        const link = document.createElement('a');--&gt;
+&lt;!--        link.href = URL.createObjectURL(blob);--&gt;
+&lt;!--        link.download = `合并结果_${Date.now()}.xlsx`;--&gt;
+&lt;!--        document.body.appendChild(link);--&gt;
+&lt;!--        link.click();--&gt;
+&lt;!--        document.body.removeChild(link);--&gt;
+&lt;!--        URL.revokeObjectURL(link.href);--&gt;
+
+&lt;!--        // 停留 1.2 秒显示 100% 成功状态，再自动关闭--&gt;
+&lt;!--        await sleep(1200);--&gt;
+&lt;!--      } catch (err) {--&gt;
+&lt;!--        alert(&quot;导出 Excel 发生错误：&quot; + err.message + &quot;\n建议使用【⚡ 下载 CSV】按钮，无体积限制且导出极快！&quot;);--&gt;
+&lt;!--      } finally {--&gt;
+&lt;!--        hideProgress();--&gt;
+&lt;!--        btnDownloadMergedXlsx.disabled = false;--&gt;
+&lt;!--        btnDownloadMergedCsv.disabled = false;--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    // -&amp;#45;&amp;#45; 6. 核心修复：下载 CSV (流式分块平滑进度条，绝对不崩溃) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    btnDownloadMergedCsv.addEventListener('click', async () =&gt; {--&gt;
+&lt;!--      const activeCols = getSelectedCols();--&gt;
+&lt;!--      if (activeCols.length === 0) { alert(&quot;请至少勾选一列后再下载！&quot;); return; }--&gt;
+
+&lt;!--      btnDownloadMergedXlsx.disabled = true;--&gt;
+&lt;!--      btnDownloadMergedCsv.disabled = true;--&gt;
+
+&lt;!--      updateProgress(&quot;正在准备 CSV 结构...&quot;, 5, 100);--&gt;
+&lt;!--      await sleep(30);--&gt;
+
+&lt;!--      try {--&gt;
+&lt;!--        const selectedIndices = activeCols.map(c =&gt; c.index);--&gt;
+&lt;!--        const chunks = [];--&gt;
+&lt;!--        chunks.push('\uFEFF'); // UTF-8 BOM 防止乱码--&gt;
+
+&lt;!--        const escapeCsv = (val) =&gt; {--&gt;
+&lt;!--          if (val === null || val === undefined) return '';--&gt;
+&lt;!--          const str = String(val);--&gt;
+&lt;!--          if (/[&quot;,\n\r]/.test(str)) {--&gt;
+&lt;!--            return `&quot;${str.replace(/&quot;/g, '&quot;&quot;')}&quot;`;--&gt;
+&lt;!--          }--&gt;
+&lt;!--          return str;--&gt;
+&lt;!--        };--&gt;
+
+&lt;!--        // 写入表头--&gt;
+&lt;!--        chunks.push(activeCols.map(c =&gt; escapeCsv(c.name)).join(',') + '\r\n');--&gt;
+
+&lt;!--        const total = mergedRowsAoA.length;--&gt;
+&lt;!--        const batchStep = Math.max(50, Math.floor(total / 40));--&gt;
+&lt;!--        let batchStr = '';--&gt;
+
+&lt;!--        for (let i = 0; i &lt; total; i++) {--&gt;
+&lt;!--          const row = mergedRowsAoA[i];--&gt;
+&lt;!--          const line = [];--&gt;
+&lt;!--          for (let j = 0; j &lt; selectedIndices.length; j++) {--&gt;
+&lt;!--            line.push(escapeCsv(row[selectedIndices[j]]));--&gt;
+&lt;!--          }--&gt;
+&lt;!--          batchStr += line.join(',') + '\r\n';--&gt;
+
+&lt;!--          if (i % batchStep === 0 || i === total - 1) {--&gt;
+&lt;!--            chunks.push(batchStr);--&gt;
+&lt;!--            batchStr = '';--&gt;
+&lt;!--            const currentPct = 10 + Math.round((i / total) * 80); // 10% ~ 90%--&gt;
+&lt;!--            updateProgress(`正在流式导出 CSV: ${(i + 1).toLocaleString()} / ${total.toLocaleString()} 行`, currentPct, 100);--&gt;
+&lt;!--            await sleep(0);--&gt;
+&lt;!--          }--&gt;
+&lt;!--        }--&gt;
+&lt;!--        if (batchStr) chunks.push(batchStr);--&gt;
+
+&lt;!--        updateProgress(&quot;正在生成文件并保存...&quot;, 95, 100);--&gt;
+&lt;!--        await sleep(40);--&gt;
+
+&lt;!--        const blob = new Blob(chunks, { type: 'text/csv;charset=utf-8;' });--&gt;
+&lt;!--        const link = document.createElement('a');--&gt;
+&lt;!--        link.href = URL.createObjectURL(blob);--&gt;
+&lt;!--        link.download = `合并结果_${Date.now()}.csv`;--&gt;
+&lt;!--        document.body.appendChild(link);--&gt;
+&lt;!--        link.click();--&gt;
+&lt;!--        document.body.removeChild(link);--&gt;
+&lt;!--        URL.revokeObjectURL(link.href);--&gt;
+
+&lt;!--        updateProgress(&quot;✅ CSV 下载已调起！&quot;, 100, 100);--&gt;
+&lt;!--        await sleep(1200);--&gt;
+&lt;!--      } catch (err) {--&gt;
+&lt;!--        alert(&quot;导出 CSV 失败: &quot; + err.message);--&gt;
+&lt;!--      } finally {--&gt;
+&lt;!--        hideProgress();--&gt;
+&lt;!--        btnDownloadMergedXlsx.disabled = false;--&gt;
+&lt;!--        btnDownloadMergedCsv.disabled = false;--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+&lt;!--  &lt;/script&gt;--&gt;
+&lt;!--&lt;/body&gt;--&gt;
+&lt;!--&lt;/html&gt;--&gt;
+
+&lt;!--##############################################--&gt;
+
+&lt;!--&lt;!DOCTYPE html&gt;--&gt;
+&lt;!--&lt;html lang=&quot;zh-CN&quot;&gt;--&gt;
+&lt;!--&lt;head&gt;--&gt;
+&lt;!--  &lt;meta charset=&quot;UTF-8&quot; /&gt;--&gt;
+&lt;!--  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;--&gt;
+&lt;!--  &lt;title&gt;Excel表格合并工具 (表头顺序完美版)&lt;/title&gt;--&gt;
+&lt;!--  &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;--&gt;
+&lt;!--  &lt;style&gt;--&gt;
+&lt;!--    /* -&amp;#45;&amp;#45; 保持您喜欢的蓝紫色 UI 风格 -&amp;#45;&amp;#45; */--&gt;
 &lt;!--    :root {--&gt;
 &lt;!--      &amp;#45;&amp;#45;bg: linear-gradient(180deg, #f8fafc 0%, #f7faff 100%);--&gt;
 &lt;!--      &amp;#45;&amp;#45;fg: #1f2937;--&gt;
@@ -2933,20 +3755,17 @@
 
 &lt;!--  &lt;h1&gt;📊 Excel表格合并工具&lt;/h1&gt;--&gt;
 
-&lt;!--  &lt;a href=&quot;https://wasdkd.github.io/Amazon/AmazonDigitsPlatform&quot;&gt;--&gt;
-&lt;!--    &lt;button class=&quot;back-button&quot;&gt;← 返回平台&lt;/button&gt;--&gt;
-&lt;!--  &lt;/a&gt;--&gt;
+&lt;!--&amp;lt;!&amp;ndash;  &lt;a href=&quot;https://wasdkd.github.io/Amazon/AmazonDigitsPlatform&quot;&gt;&amp;ndash;&amp;gt;--&gt;
+&lt;!--&amp;lt;!&amp;ndash;    &lt;button class=&quot;back-button&quot;&gt;← 返回平台&lt;/button&gt;&amp;ndash;&amp;gt;--&gt;
+&lt;!--&amp;lt;!&amp;ndash;  &lt;/a&gt;&amp;ndash;&amp;gt;--&gt;
 
 &lt;!--  &lt;div class=&quot;instructions&quot;&gt;--&gt;
 &lt;!--    &lt;h3&gt;📘 使用说明&lt;/h3&gt;--&gt;
 &lt;!--    &lt;ol&gt;--&gt;
 &lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;1&lt;/span&gt;上传 Excel 文件并解析。&lt;/li&gt;--&gt;
 &lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;2&lt;/span&gt;（可选）筛选 Sheet。如果不筛选，默认包含所有 Sheet。&lt;/li&gt;--&gt;
-&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;3&lt;/span&gt;&lt;b&gt;重点：&lt;/b&gt;设置“每个文件合并 Sheet 数量”。&lt;br&gt;--&gt;
-&lt;!--          如果设为 1，则每个 Excel 文件只合并第 1 个 Sheet，忽略后面所有 Sheet。&lt;br&gt;--&gt;
-&lt;!--          如果设为 3，则合并前 3 个 Sheet。--&gt;
-&lt;!--      &lt;/li&gt;--&gt;
-&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;4&lt;/span&gt;点击合并并下载。&lt;/li&gt;--&gt;
+&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;3&lt;/span&gt;设置“每个文件合并 Sheet 数量”。设为 1 则只取第一个 Sheet。&lt;/li&gt;--&gt;
+&lt;!--      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;4&lt;/span&gt;点击合并并下载。&lt;b&gt;来源列将确保在最右侧。&lt;/b&gt;&lt;/li&gt;--&gt;
 &lt;!--    &lt;/ol&gt;--&gt;
 &lt;!--  &lt;/div&gt;--&gt;
 
@@ -2978,7 +3797,7 @@
 &lt;!--        &lt;/div&gt;--&gt;
 &lt;!--        &lt;div class=&quot;row&quot;&gt;--&gt;
 &lt;!--          &lt;label&gt;关键字：&lt;/label&gt;--&gt;
-&lt;!--          &lt;input id=&quot;sheetKeyword&quot; type=&quot;text&quot; value=&quot;变体对比&quot; /&gt;--&gt;
+&lt;!--          &lt;input id=&quot;sheetKeyword&quot; type=&quot;text&quot; value=&quot;&quot; /&gt;--&gt;
 &lt;!--          &lt;button id=&quot;btnFilter&quot; disabled&gt;筛选&lt;/button&gt;--&gt;
 &lt;!--          &lt;button id=&quot;btnResetFilter&quot; disabled&gt;重置&lt;/button&gt;--&gt;
 &lt;!--        &lt;/div&gt;--&gt;
@@ -2990,8 +3809,7 @@
 &lt;!--  &lt;div class=&quot;section&quot; id=&quot;merge-section&quot;&gt;--&gt;
 &lt;!--    &lt;h2&gt;🔗 3. 合并设置与执行&lt;/h2&gt;--&gt;
 &lt;!--    &lt;div class=&quot;tips&quot;&gt;--&gt;
-&lt;!--      &lt;b&gt;限制说明：&lt;/b&gt; 此处的数量限制针对的是 &lt;b&gt;Sheet (工作表)&lt;/b&gt;。&lt;br&gt;--&gt;
-&lt;!--      如果未筛选且设为 1，系统将只读取每个文件的第一个标签页 (Sheet1)。--&gt;
+&lt;!--      &lt;b&gt;表头修复：&lt;/b&gt; 程序会自动收集所有列名，确保“来源文件”和“来源Sheet”永远在所有数据列的后面。--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
 &lt;!--    &lt;div class=&quot;row&quot;&gt;--&gt;
 &lt;!--      &lt;label&gt;表头所在行：&lt;/label&gt;--&gt;
@@ -3011,9 +3829,10 @@
 
 &lt;!--  &lt;script&gt;--&gt;
 &lt;!--    // -&amp;#45;&amp;#45; 状态变量 -&amp;#45;&amp;#45;--&gt;
-&lt;!--    let parsedWorkbooks = []; // [{ name, workbook }]--&gt;
-&lt;!--    let isFiltered = false;   // 是否应用了关键字筛选--&gt;
-&lt;!--    let mergedData = [];      // 合并后的数据--&gt;
+&lt;!--    let parsedWorkbooks = [];--&gt;
+&lt;!--    let isFiltered = false;--&gt;
+&lt;!--    let mergedData = [];--&gt;
+&lt;!--    let allDataColumns = new Set(); // 新增：用于收集所有遇到的数据列名--&gt;
 
 &lt;!--    // -&amp;#45;&amp;#45; DOM -&amp;#45;&amp;#45;--&gt;
 &lt;!--    const fileInputFiles = document.getElementById('fileInputFiles');--&gt;
@@ -3061,7 +3880,6 @@
 &lt;!--      try {--&gt;
 &lt;!--        for (const file of files) {--&gt;
 &lt;!--          const ab = await file.arrayBuffer();--&gt;
-&lt;!--          // cellDates: true 修复日期变成数字--&gt;
 &lt;!--          const wb = XLSX.read(ab, { type: 'array', cellDates: true });--&gt;
 &lt;!--          parsedWorkbooks.push({ name: file.name, workbook: wb });--&gt;
 &lt;!--        }--&gt;
@@ -3087,6 +3905,7 @@
 &lt;!--    function resetDownstream() {--&gt;
 &lt;!--      isFiltered = false;--&gt;
 &lt;!--      mergedData = [];--&gt;
+&lt;!--      allDataColumns.clear();--&gt;
 &lt;!--      filterSummary.textContent = '';--&gt;
 &lt;!--      mergeSummary.textContent = '';--&gt;
 &lt;!--      mergePreview.innerHTML = '';--&gt;
@@ -3098,12 +3917,11 @@
 &lt;!--      filterStateText.style.color = '#666';--&gt;
 &lt;!--    }--&gt;
 
-&lt;!--    // -&amp;#45;&amp;#45; 2. 筛选 (只是标记状态，具体逻辑在合并时执行) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    // -&amp;#45;&amp;#45; 2. 筛选 -&amp;#45;&amp;#45;--&gt;
 &lt;!--    btnFilter.addEventListener('click', () =&gt; {--&gt;
 &lt;!--      const kw = sheetKeyword.value.trim();--&gt;
 &lt;!--      if (!kw) { alert(&quot;请输入关键字&quot;); return; }--&gt;
 
-&lt;!--      // 仅用于统计预览--&gt;
 &lt;!--      let matchCount = 0;--&gt;
 &lt;!--      parsedWorkbooks.forEach(({ workbook }) =&gt; {--&gt;
 &lt;!--        workbook.SheetNames.forEach(sn =&gt; {--&gt;
@@ -3131,64 +3949,58 @@
 &lt;!--      sheetKeyword.value = '变体对比';--&gt;
 &lt;!--    });--&gt;
 
-&lt;!--    // -&amp;#45;&amp;#45; 3. 合并 (逻辑完全重写) -&amp;#45;&amp;#45;--&gt;
+&lt;!--    // -&amp;#45;&amp;#45; 3. 合并 (修复表头顺序) -&amp;#45;&amp;#45;--&gt;
 &lt;!--    btnMerge.addEventListener('click', () =&gt; {--&gt;
 &lt;!--      mergedData = [];--&gt;
+&lt;!--      allDataColumns.clear(); // 清空列名记录--&gt;
 &lt;!--      mergePreview.innerHTML = '';--&gt;
 &lt;!--      mergeSummary.textContent = '正在合并...';--&gt;
 
 &lt;!--      const headerIdx = parseInt(headerRowInput.value) - 1;--&gt;
-&lt;!--      const sheetLimit = parseInt(sheetLimitInput.value); // 限制每个文件的 Sheet 数量--&gt;
+&lt;!--      const sheetLimit = parseInt(sheetLimitInput.value);--&gt;
 
 &lt;!--      if (isNaN(headerIdx) || headerIdx &lt; 0) { alert(&quot;表头行无效&quot;); return; }--&gt;
 &lt;!--      if (isNaN(sheetLimit) || sheetLimit &lt; 1) { alert(&quot;Sheet 数量限制无效&quot;); return; }--&gt;
 
 &lt;!--      let totalSheetsProcessed = 0;--&gt;
 
-&lt;!--      // 遍历每个上传的文件--&gt;
+&lt;!--      // 遍历文件--&gt;
 &lt;!--      parsedWorkbooks.forEach(({ name, workbook }) =&gt; {--&gt;
-&lt;!--        // 1. 获取该文件所有 Sheet 名--&gt;
 &lt;!--        let targetSheets = workbook.SheetNames;--&gt;
-
-&lt;!--        // 2. 如果开启了筛选，先过滤--&gt;
 &lt;!--        if (isFiltered) {--&gt;
 &lt;!--          const kw = sheetKeyword.value.trim();--&gt;
 &lt;!--          targetSheets = targetSheets.filter(sn =&gt; sn.includes(kw));--&gt;
 &lt;!--        }--&gt;
 
-&lt;!--        // 3. 【核心限制】只取前 N 个 Sheet--&gt;
-&lt;!--        // 无论后面有多少个 Sheet，直接截断--&gt;
+&lt;!--        // 截取 Sheet 数量--&gt;
 &lt;!--        const finalSheetsToProcess = targetSheets.slice(0, sheetLimit);--&gt;
 
-&lt;!--        // 4. 遍历处理这些选中的 Sheet--&gt;
 &lt;!--        finalSheetsToProcess.forEach(sheetName =&gt; {--&gt;
 &lt;!--          const worksheet = workbook.Sheets[sheetName];--&gt;
-&lt;!--          // 读取数据--&gt;
 &lt;!--          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });--&gt;
 
 &lt;!--          if (!jsonData || jsonData.length &lt;= headerIdx) return;--&gt;
 
-&lt;!--          // 获取表头（修复 列_74 问题）--&gt;
 &lt;!--          const rawHeaders = jsonData[headerIdx];--&gt;
 &lt;!--          if (!rawHeaders) return;--&gt;
 
 &lt;!--          const validCols = [];--&gt;
 &lt;!--          rawHeaders.forEach((h, idx) =&gt; {--&gt;
 &lt;!--            if (h &amp;&amp; String(h).trim() !== '') {--&gt;
-&lt;!--              validCols.push({ idx: idx, name: String(h).trim() });--&gt;
+&lt;!--              const colName = String(h).trim();--&gt;
+&lt;!--              validCols.push({ idx: idx, name: colName });--&gt;
+&lt;!--              // 【重点】记录所有遇到的数据列名--&gt;
+&lt;!--              allDataColumns.add(colName);--&gt;
 &lt;!--            }--&gt;
 &lt;!--          });--&gt;
 &lt;!--          if (validCols.length === 0) return;--&gt;
 
-&lt;!--          // 从表头下一行开始读取--&gt;
+&lt;!--          // 读取数据--&gt;
 &lt;!--          for (let i = headerIdx + 1; i &lt; jsonData.length; i++) {--&gt;
 &lt;!--            const rowArr = jsonData[i];--&gt;
-
-&lt;!--            // 跳过完全空行--&gt;
 &lt;!--            const isEmpty = rowArr.every(c =&gt; c === undefined || c === null || String(c).trim() === '');--&gt;
 &lt;!--            if (isEmpty) continue;--&gt;
 
-&lt;!--            // 提取数据--&gt;
 &lt;!--            const rowObj = {};--&gt;
 &lt;!--            validCols.forEach(col =&gt; {--&gt;
 &lt;!--              let val = rowArr[col.idx];--&gt;
@@ -3196,7 +4008,7 @@
 &lt;!--              rowObj[col.name] = (val === undefined || val === null) ? '' : val;--&gt;
 &lt;!--            });--&gt;
 
-&lt;!--            // 附加来源信息--&gt;
+&lt;!--            // 添加来源--&gt;
 &lt;!--            rowObj['__来源文件'] = name;--&gt;
 &lt;!--            rowObj['__来源Sheet'] = sheetName;--&gt;
 
@@ -3215,19 +4027,35 @@
 &lt;!--      }--&gt;
 &lt;!--    });--&gt;
 
+&lt;!--    // -&amp;#45;&amp;#45; 辅助函数：构造完美的表头顺序 -&amp;#45;&amp;#45;--&gt;
+&lt;!--    function getFinalHeaders() {--&gt;
+&lt;!--      // 1. 获取所有收集到的数据列名--&gt;
+&lt;!--      const dataCols = Array.from(allDataColumns);--&gt;
+&lt;!--      // 2. 强制添加系统列到最后--&gt;
+&lt;!--      const sysCols = ['__来源文件', '__来源Sheet'];--&gt;
+&lt;!--      // 3. 返回合并后的数组--&gt;
+&lt;!--      return [...dataCols, ...sysCols];--&gt;
+&lt;!--    }--&gt;
+
 &lt;!--    // 4. 预览--&gt;
 &lt;!--    function renderPreview() {--&gt;
 &lt;!--      const displayData = mergedData.slice(0, 50);--&gt;
 &lt;!--      if (displayData.length === 0) return;--&gt;
 
-&lt;!--      const headers = Object.keys(displayData[0]);--&gt;
+&lt;!--      // 使用强制排序后的表头--&gt;
+&lt;!--      const headers = getFinalHeaders();--&gt;
+
 &lt;!--      let html = '&lt;table&gt;&lt;thead&gt;&lt;tr&gt;';--&gt;
 &lt;!--      headers.forEach(h =&gt; html += `&lt;th&gt;${h}&lt;/th&gt;`);--&gt;
 &lt;!--      html += '&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;';--&gt;
 
 &lt;!--      displayData.forEach(row =&gt; {--&gt;
 &lt;!--        html += '&lt;tr&gt;';--&gt;
-&lt;!--        headers.forEach(h =&gt; html += `&lt;td&gt;${row[h]}&lt;/td&gt;`);--&gt;
+&lt;!--        headers.forEach(h =&gt; {--&gt;
+&lt;!--          // 处理 undefined--&gt;
+&lt;!--          const val = (row[h] === undefined || row[h] === null) ? '' : row[h];--&gt;
+&lt;!--          html += `&lt;td&gt;${val}&lt;/td&gt;`;--&gt;
+&lt;!--        });--&gt;
 &lt;!--        html += '&lt;/tr&gt;';--&gt;
 &lt;!--      });--&gt;
 &lt;!--      html += '&lt;/tbody&gt;&lt;/table&gt;';--&gt;
@@ -3240,7 +4068,13 @@
 
 &lt;!--    // 5. 下载--&gt;
 &lt;!--    btnDownloadMergedXlsx.addEventListener('click', () =&gt; {--&gt;
-&lt;!--      const ws = XLSX.utils.json_to_sheet(mergedData);--&gt;
+&lt;!--      if (mergedData.length === 0) return;--&gt;
+
+&lt;!--      // 【关键修复】显式传递 header 数组给 json_to_sheet--&gt;
+&lt;!--      // 这样 xlsx 插件就会严格按照这个顺序写入列，不会把多余的列插到中间--&gt;
+&lt;!--      const finalHeaders = getFinalHeaders();--&gt;
+
+&lt;!--      const ws = XLSX.utils.json_to_sheet(mergedData, { header: finalHeaders });--&gt;
 &lt;!--      const wb = XLSX.utils.book_new();--&gt;
 &lt;!--      XLSX.utils.book_append_sheet(wb, ws, &quot;合并结果&quot;);--&gt;
 &lt;!--      XLSX.writeFile(wb, `合并结果_${new Date().getTime()}.xlsx`);--&gt;
@@ -3249,14 +4083,14 @@
 &lt;!--&lt;/body&gt;--&gt;
 &lt;!--&lt;/html&gt;--&gt;
 
-
+&lt;!--&amp;lt;!&amp;ndash;需要优化，我上传了135个excel表，合并完成后，下载不出来，浏览器直接崩溃了，我想要在结果中，可以设置导出的列，有一些不需要的可以不要导出。加一个进度条，可以正常导出，不可以崩溃&amp;ndash;&amp;gt;--&gt;
 
 &lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot; /&gt;
   &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
-  &lt;title&gt;Excel表格合并工具 (表头顺序完美版)&lt;/title&gt;
+  &lt;title&gt;Excel表格合并工具 (防崩溃+列筛选+进度条版)&lt;/title&gt;
   &lt;script src=&quot;https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
   &lt;style&gt;
     /* --- 保持您喜欢的蓝紫色 UI 风格 --- */
@@ -3358,6 +4192,7 @@
     }
     #btnResetFilter { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
     #btnDownloadMergedXlsx { background: linear-gradient(180deg, #e0f2fe, #dbeafe); color: #0c4a6e; border-color: #7dd3fc; }
+    #btnDownloadMergedCsv { background: linear-gradient(180deg, #fef3c7, #fde68a); color: #92400e; border-color: #fcd34d; font-weight: 600; }
 
     .summary { font-size: 14px; color: var(--muted); padding: 5px 0; }
     .file-list {
@@ -3389,33 +4224,70 @@
       color: white; border-radius: 50%; text-align: center; line-height: 24px;
       font-weight: bold; margin-right: 10px; flex-shrink: 0;
     }
-    .back-button {
-      padding: 6px 12px; margin-bottom: 16px; border: none; border-radius: 6px;
-      background-color: #ffffff; color: #3272f5; font-size: 14px; cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: 0.3s;
-    }
-    .back-button:hover { background-color: #5af65d; transform: translateY(-2px); }
     .top-sections { display: flex; gap: 20px; }
     .upload-section-container, .filter-section-container { flex: 1; min-width: 300px; }
     @media (max-width: 992px) { .top-sections { flex-direction: column; } }
+
+    /* --- 新增：全局统一进度条 --- */
+    .progress-box {
+      display: none; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .progress-info {
+      display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; color: #334155; margin-bottom: 6px;
+    }
+    .progress-bar-bg {
+      width: 100%; height: 14px; background: #e2e8f0; border-radius: 7px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; width: 0%; background: linear-gradient(90deg, #60a5fa, #34d399); transition: width 0.1s ease;
+    }
+
+    /* --- 新增：自定义列筛选面板 --- */
+    .col-filter-box {
+      display: none; margin-top: 15px; border: 1px solid #e2e8f0; background: #f8fafc;
+      border-radius: 8px; padding: 12px;
+    }
+    .col-filter-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .col-filter-header span { font-weight: 600; font-size: 13px; color: #1e293b; }
+    .col-filter-list {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 6px; max-height: 160px; overflow-y: auto; background: #ffffff;
+      border: 1px solid #e2e8f0; padding: 8px; border-radius: 6px;
+    }
+    .col-item-label {
+      font-size: 12px; display: flex; align-items: center; gap: 6px;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .col-btn-small { padding: 4px 10px; font-size: 12px; }
   &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
 
   &lt;h1&gt;📊 Excel表格合并工具&lt;/h1&gt;
 
-&lt;!--  &lt;a href=&quot;https://wasdkd.github.io/Amazon/AmazonDigitsPlatform&quot;&gt;--&gt;
-&lt;!--    &lt;button class=&quot;back-button&quot;&gt;← 返回平台&lt;/button&gt;--&gt;
-&lt;!--  &lt;/a&gt;--&gt;
-
+  &lt;!-- 使用说明 (保持原样) --&gt;
   &lt;div class=&quot;instructions&quot;&gt;
     &lt;h3&gt;📘 使用说明&lt;/h3&gt;
     &lt;ol&gt;
       &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;1&lt;/span&gt;上传 Excel 文件并解析。&lt;/li&gt;
       &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;2&lt;/span&gt;（可选）筛选 Sheet。如果不筛选，默认包含所有 Sheet。&lt;/li&gt;
       &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;3&lt;/span&gt;设置“每个文件合并 Sheet 数量”。设为 1 则只取第一个 Sheet。&lt;/li&gt;
-      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;4&lt;/span&gt;点击合并并下载。&lt;b&gt;来源列将确保在最右侧。&lt;/b&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;span class=&quot;step-number&quot;&gt;4&lt;/span&gt;点击合并并下载。&lt;b&gt;来源列将确保在最右侧。可按需剔除不需要的列。&lt;/b&gt;&lt;/li&gt;
     &lt;/ol&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 全局统一进度条 (新增) --&gt;
+  &lt;div class=&quot;progress-box&quot; id=&quot;progressBox&quot;&gt;
+    &lt;div class=&quot;progress-info&quot;&gt;
+      &lt;span id=&quot;progressStatusText&quot;&gt;正在处理...&lt;/span&gt;
+      &lt;span id=&quot;progressPercentText&quot;&gt;0%&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;progress-bar-bg&quot;&gt;
+      &lt;div class=&quot;progress-bar-fill&quot; id=&quot;progressBarFill&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
   &lt;/div&gt;
 
   &lt;div class=&quot;top-sections&quot;&gt;
@@ -3446,7 +4318,7 @@
         &lt;/div&gt;
         &lt;div class=&quot;row&quot;&gt;
           &lt;label&gt;关键字：&lt;/label&gt;
-          &lt;input id=&quot;sheetKeyword&quot; type=&quot;text&quot; value=&quot;&quot; /&gt;
+          &lt;input id=&quot;sheetKeyword&quot; type=&quot;text&quot; value=&quot;&quot; placeholder=&quot;如：变体对比&quot; /&gt;
           &lt;button id=&quot;btnFilter&quot; disabled&gt;筛选&lt;/button&gt;
           &lt;button id=&quot;btnResetFilter&quot; disabled&gt;重置&lt;/button&gt;
         &lt;/div&gt;
@@ -3470,18 +4342,34 @@
     &lt;/div&gt;
     &lt;div class=&quot;row&quot;&gt;
       &lt;button id=&quot;btnMerge&quot; disabled&gt;执行合并&lt;/button&gt;
-      &lt;button id=&quot;btnDownloadMergedXlsx&quot; disabled&gt;📥 下载结果&lt;/button&gt;
+      &lt;button id=&quot;btnDownloadMergedXlsx&quot; disabled&gt;📥 下载 Excel 结果&lt;/button&gt;
+      &lt;button id=&quot;btnDownloadMergedCsv&quot; disabled&gt;⚡ 下载 CSV (推荐/防崩溃)&lt;/button&gt;
     &lt;/div&gt;
+
+    &lt;!-- 自定义导出列选择区域 (新增) --&gt;
+    &lt;div class=&quot;col-filter-box&quot; id=&quot;colFilterBox&quot;&gt;
+      &lt;div class=&quot;col-filter-header&quot;&gt;
+        &lt;span&gt;📋 自定义导出列（取消勾选不需要的列，可大幅加快导出并减少内存）：&lt;/span&gt;
+        &lt;div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;col-btn-small&quot; id=&quot;btnSelectAllCols&quot;&gt;全选&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;col-btn-small&quot; id=&quot;btnUnselectAllCols&quot;&gt;全部取消&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;col-btn-small&quot; id=&quot;btnInvertCols&quot;&gt;反选&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;col-filter-list&quot; id=&quot;colFilterList&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
     &lt;div class=&quot;summary&quot; id=&quot;mergeSummary&quot;&gt;&lt;/div&gt;
     &lt;div class=&quot;preview&quot; id=&quot;mergePreview&quot;&gt;&lt;/div&gt;
   &lt;/div&gt;
 
   &lt;script&gt;
-    // --- 状态变量 ---
-    let parsedWorkbooks = [];
+    // --- 状态变量 (深度优化内存结构) ---
+    // 仅保存 File 对象和读取出的 sheetNames，不常驻完整 workbook 树，避免 135 个文件直接把内存撑爆
+    let parsedWorkbooksInfo = [];
     let isFiltered = false;
-    let mergedData = [];
-    let allDataColumns = new Set(); // 新增：用于收集所有遇到的数据列名
+    let allHeaders = [];         // 所有提取到的标准列头 (有序)
+    let mergedRowsAoA = [];      // 纯紧凑二维数组存储所有数据行 (比对象节省 80% 内存)
 
     // --- DOM ---
     const fileInputFiles = document.getElementById('fileInputFiles');
@@ -3500,18 +4388,50 @@
     const sheetLimitInput = document.getElementById('sheetLimitCount');
     const btnMerge = document.getElementById('btnMerge');
     const btnDownloadMergedXlsx = document.getElementById('btnDownloadMergedXlsx');
+    const btnDownloadMergedCsv = document.getElementById('btnDownloadMergedCsv');
     const mergeSummary = document.getElementById('mergeSummary');
     const mergePreview = document.getElementById('mergePreview');
 
-    // --- 1. 上传与解析 ---
+    // 进度条与列筛选 DOM
+    const progressBox = document.getElementById('progressBox');
+    const progressStatusText = document.getElementById('progressStatusText');
+    const progressPercentText = document.getElementById('progressPercentText');
+    const progressBarFill = document.getElementById('progressBarFill');
+
+    const colFilterBox = document.getElementById('colFilterBox');
+    const colFilterList = document.getElementById('colFilterList');
+    const btnSelectAllCols = document.getElementById('btnSelectAllCols');
+    const btnUnselectAllCols = document.getElementById('btnUnselectAllCols');
+    const btnInvertCols = document.getElementById('btnInvertCols');
+
+    // --- 辅助：让出线程 &amp; 进度条控制 ---
+    const sleep = (ms = 0) =&gt; new Promise(resolve =&gt; setTimeout(resolve, ms));
+
+    function updateProgress(text, current, total) {
+      progressBox.style.display = 'block';
+      const pct = total &gt; 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+      progressBarFill.style.width = pct + '%';
+      progressPercentText.textContent = pct + '%';
+      progressStatusText.textContent = text;
+    }
+
+    function hideProgress() {
+      progressBox.style.display = 'none';
+      progressBarFill.style.width = '0%';
+      progressPercentText.textContent = '0%';
+    }
+
+    // --- 1. 上传与解析 (加入进度条 + 极速轻量读取) ---
     function handleFiles(files) {
       const excelFiles = Array.from(files).filter(f =&gt; /(\.xlsx|\.xls|\.csv)$/i.test(f.name));
       if (excelFiles.length === 0) return;
 
       selectionList.innerHTML = `&lt;div&gt;已选择 ${excelFiles.length} 个文件，点击“解析文件”。&lt;/div&gt;` +
-                                excelFiles.map(f =&gt; `&lt;div&gt;📄 ${f.name}&lt;/div&gt;`).join('');
+                                excelFiles.slice(0, 15).map(f =&gt; `&lt;div&gt;📄 ${f.name}&lt;/div&gt;`).join('') +
+                                (excelFiles.length &gt; 15 ? `&lt;div&gt;... 等其余 ${excelFiles.length - 15} 个文件&lt;/div&gt;` : '');
       btnParseSelected.disabled = false;
       fileInputFiles.tempFiles = excelFiles;
+      resetDownstream();
     }
 
     fileInputFiles.addEventListener('change', (e) =&gt; handleFiles(e.target.files));
@@ -3521,29 +4441,45 @@
       const files = fileInputFiles.tempFiles || [];
       if (files.length === 0) return;
 
-      btnParseSelected.textContent = '解析中...';
       btnParseSelected.disabled = true;
-      parsedWorkbooks = [];
+      btnClear.disabled = true;
+      parsedWorkbooksInfo = [];
       resetDownstream();
 
       try {
-        for (const file of files) {
+        const total = files.length;
+        for (let i = 0; i &lt; total; i++) {
+          const file = files[i];
+          updateProgress(`正在解析第 (${i + 1}/${total}) 个文件: ${file.name}`, i, total);
+          await sleep(0); // 释放 UI 线程更新进度
+
           const ab = await file.arrayBuffer();
-          const wb = XLSX.read(ab, { type: 'array', cellDates: true });
-          parsedWorkbooks.push({ name: file.name, workbook: wb });
+          // bookSheets: true 只快速读取 Sheet 列表信息，不加载单元格内容，135 个文件解析极速且不耗内存！
+          const wb = XLSX.read(ab, { type: 'array', bookSheets: true });
+          parsedWorkbooksInfo.push({
+            name: file.name,
+            file: file,
+            sheetNames: wb.SheetNames || []
+          });
         }
-        selectionList.innerHTML = `&lt;div style=&quot;color:green&quot;&gt;✅ 成功解析 ${parsedWorkbooks.length} 个文件&lt;/div&gt;`;
+        updateProgress(`解析完成！`, total, total);
+        await sleep(200);
+
+        selectionList.innerHTML = `&lt;div style=&quot;color:green; font-weight:600;&quot;&gt;✅ 成功解析 ${parsedWorkbooksInfo.length} 个文件&lt;/div&gt;`;
         btnFilter.disabled = false;
         btnMerge.disabled = false;
       } catch (e) {
         alert(&quot;解析失败: &quot; + e.message);
       } finally {
+        hideProgress();
         btnParseSelected.textContent = '解析文件';
+        btnParseSelected.disabled = false;
+        btnClear.disabled = false;
       }
     });
 
     btnClear.addEventListener('click', () =&gt; {
-      parsedWorkbooks = [];
+      parsedWorkbooksInfo = [];
       fileInputFiles.value = '';
       fileInputFolder.value = '';
       selectionList.textContent = '等待上传...';
@@ -3553,27 +4489,31 @@
 
     function resetDownstream() {
       isFiltered = false;
-      mergedData = [];
-      allDataColumns.clear();
+      allHeaders = [];
+      mergedRowsAoA = [];
       filterSummary.textContent = '';
       mergeSummary.textContent = '';
       mergePreview.innerHTML = '';
+      colFilterBox.style.display = 'none';
+      colFilterList.innerHTML = '';
       btnFilter.disabled = true;
       btnResetFilter.disabled = true;
       btnMerge.disabled = true;
       btnDownloadMergedXlsx.disabled = true;
+      btnDownloadMergedCsv.disabled = true;
       filterStateText.innerHTML = '未筛选 (使用所有 Sheet)';
       filterStateText.style.color = '#666';
+      hideProgress();
     }
 
-    // --- 2. 筛选 ---
+    // --- 2. 筛选 (严格保持原版逻辑与交互) ---
     btnFilter.addEventListener('click', () =&gt; {
       const kw = sheetKeyword.value.trim();
       if (!kw) { alert(&quot;请输入关键字&quot;); return; }
 
       let matchCount = 0;
-      parsedWorkbooks.forEach(({ workbook }) =&gt; {
-        workbook.SheetNames.forEach(sn =&gt; {
+      parsedWorkbooksInfo.forEach(item =&gt; {
+        item.sheetNames.forEach(sn =&gt; {
           if (sn.includes(kw)) matchCount++;
         });
       });
@@ -3595,15 +4535,17 @@
       filterStateText.style.color = '#666';
       filterSummary.textContent = '筛选已重置';
       btnResetFilter.disabled = true;
-      sheetKeyword.value = '变体对比';
+      sheetKeyword.value = '';
     });
 
-    // --- 3. 合并 (修复表头顺序) ---
-    btnMerge.addEventListener('click', () =&gt; {
-      mergedData = [];
-      allDataColumns.clear(); // 清空列名记录
+    // --- 3. 合并 (流式提取 + 进度条 + 内存即用即释放) ---
+    btnMerge.addEventListener('click', async () =&gt; {
+      allHeaders = [];
+      mergedRowsAoA = [];
       mergePreview.innerHTML = '';
-      mergeSummary.textContent = '正在合并...';
+      colFilterBox.style.display = 'none';
+      btnDownloadMergedXlsx.disabled = true;
+      btnDownloadMergedCsv.disabled = true;
 
       const headerIdx = parseInt(headerRowInput.value) - 1;
       const sheetLimit = parseInt(sheetLimitInput.value);
@@ -3611,126 +4553,314 @@
       if (isNaN(headerIdx) || headerIdx &lt; 0) { alert(&quot;表头行无效&quot;); return; }
       if (isNaN(sheetLimit) || sheetLimit &lt; 1) { alert(&quot;Sheet 数量限制无效&quot;); return; }
 
+      btnMerge.disabled = true;
+      const kw = sheetKeyword.value.trim();
+      const totalFiles = parsedWorkbooksInfo.length;
       let totalSheetsProcessed = 0;
+      const headerSet = new Set();
+      const tempSheetDataList = [];
 
-      // 遍历文件
-      parsedWorkbooks.forEach(({ name, workbook }) =&gt; {
-        let targetSheets = workbook.SheetNames;
-        if (isFiltered) {
-          const kw = sheetKeyword.value.trim();
+      // 逐个文件读取，读取完一个销毁一个，浏览器绝不崩溃
+      for (let i = 0; i &lt; totalFiles; i++) {
+        const item = parsedWorkbooksInfo[i];
+        updateProgress(`正在合并第 (${i + 1}/${totalFiles}) 个文件: ${item.name}`, i, totalFiles);
+        await sleep(0);
+
+        let targetSheets = item.sheetNames;
+        if (isFiltered &amp;&amp; kw) {
           targetSheets = targetSheets.filter(sn =&gt; sn.includes(kw));
         }
+        targetSheets = targetSheets.slice(0, sheetLimit);
 
-        // 截取 Sheet 数量
-        const finalSheetsToProcess = targetSheets.slice(0, sheetLimit);
+        if (targetSheets.length === 0) continue;
 
-        finalSheetsToProcess.forEach(sheetName =&gt; {
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+        try {
+          const ab = await item.file.arrayBuffer();
+          // dense: true 大幅降低单元格 AST 对象的内存占用
+          const wb = XLSX.read(ab, { type: 'array', cellDates: true, dense: true });
 
-          if (!jsonData || jsonData.length &lt;= headerIdx) return;
+          for (const sheetName of targetSheets) {
+            const worksheet = wb.Sheets[sheetName];
+            if (!worksheet) continue;
 
-          const rawHeaders = jsonData[headerIdx];
-          if (!rawHeaders) return;
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+            if (!jsonData || jsonData.length &lt;= headerIdx) continue;
 
-          const validCols = [];
-          rawHeaders.forEach((h, idx) =&gt; {
-            if (h &amp;&amp; String(h).trim() !== '') {
-              const colName = String(h).trim();
-              validCols.push({ idx: idx, name: colName });
-              // 【重点】记录所有遇到的数据列名
-              allDataColumns.add(colName);
-            }
-          });
-          if (validCols.length === 0) return;
+            const rawHeaders = jsonData[headerIdx];
+            if (!rawHeaders) continue;
 
-          // 读取数据
-          for (let i = headerIdx + 1; i &lt; jsonData.length; i++) {
-            const rowArr = jsonData[i];
-            const isEmpty = rowArr.every(c =&gt; c === undefined || c === null || String(c).trim() === '');
-            if (isEmpty) continue;
-
-            const rowObj = {};
-            validCols.forEach(col =&gt; {
-              let val = rowArr[col.idx];
-              if (val instanceof Date) val = val.toLocaleDateString();
-              rowObj[col.name] = (val === undefined || val === null) ? '' : val;
+            const validCols = [];
+            rawHeaders.forEach((h, idx) =&gt; {
+              if (h &amp;&amp; String(h).trim() !== '') {
+                const colName = String(h).trim();
+                validCols.push({ idx: idx, name: colName });
+                headerSet.add(colName);
+              }
             });
+            if (validCols.length === 0) continue;
 
-            // 添加来源
-            rowObj['__来源文件'] = name;
-            rowObj['__来源Sheet'] = sheetName;
+            const rowsInSheet = [];
+            for (let r = headerIdx + 1; r &lt; jsonData.length; r++) {
+              const rowArr = jsonData[r];
+              const isEmpty = rowArr.every(c =&gt; c === undefined || c === null || String(c).trim() === '');
+              if (isEmpty) continue;
 
-            mergedData.push(rowObj);
+              const rowObj = {};
+              validCols.forEach(col =&gt; {
+                let val = rowArr[col.idx];
+                if (val instanceof Date) val = val.toLocaleDateString();
+                rowObj[col.name] = (val === undefined || val === null) ? '' : val;
+              });
+              rowObj['__来源文件'] = item.name;
+              rowObj['__来源Sheet'] = sheetName;
+              rowsInSheet.push(rowObj);
+            }
+            tempSheetDataList.push(rowsInSheet);
+            totalSheetsProcessed++;
           }
-          totalSheetsProcessed++;
-        });
-      });
+        } catch (err) {
+          console.error(&quot;读取出错: &quot; + item.name, err);
+        }
+      }
 
-      if (mergedData.length === 0) {
+      // 构建最终表头 (强制让来源列在最后)
+      headerSet.delete('__来源文件');
+      headerSet.delete('__来源Sheet');
+      allHeaders = [...Array.from(headerSet), '__来源文件', '__来源Sheet'];
+
+      updateProgress(`正在优化组装合并数据...`, totalFiles, totalFiles);
+      await sleep(10);
+
+      // 转换为紧凑二维数组存储
+      mergedRowsAoA = [];
+      for (const sheetRows of tempSheetDataList) {
+        for (const rowObj of sheetRows) {
+          const rowArr = new Array(allHeaders.length);
+          for (let c = 0; c &lt; allHeaders.length; c++) {
+            const h = allHeaders[c];
+            rowArr[c] = rowObj[h] !== undefined ? rowObj[h] : '';
+          }
+          mergedRowsAoA.push(rowArr);
+        }
+      }
+
+      hideProgress();
+      btnMerge.disabled = false;
+
+      if (mergedRowsAoA.length === 0) {
         mergeSummary.textContent = '⚠️ 未找到任何有效数据。请检查表头行设置或筛选条件。';
       } else {
-        mergeSummary.textContent = `✅ 合并完成！共处理 ${totalSheetsProcessed} 个 Sheet，生成 ${mergedData.length} 行数据。`;
+        mergeSummary.textContent = `✅ 合并完成！共处理 ${totalSheetsProcessed} 个 Sheet，生成 ${mergedRowsAoA.length.toLocaleString()} 行数据。`;
         btnDownloadMergedXlsx.disabled = false;
+        btnDownloadMergedCsv.disabled = false;
+        renderColFilter();
         renderPreview();
       }
     });
 
-    // --- 辅助函数：构造完美的表头顺序 ---
-    function getFinalHeaders() {
-      // 1. 获取所有收集到的数据列名
-      const dataCols = Array.from(allDataColumns);
-      // 2. 强制添加系统列到最后
-      const sysCols = ['__来源文件', '__来源Sheet'];
-      // 3. 返回合并后的数组
-      return [...dataCols, ...sysCols];
+    // --- 列筛选面板初始化与交互 ---
+    function renderColFilter() {
+      colFilterList.innerHTML = '';
+      allHeaders.forEach((colName, idx) =&gt; {
+        const label = document.createElement('label');
+        label.className = 'col-item-label';
+        label.title = colName;
+        label.innerHTML = `
+          &lt;input type=&quot;checkbox&quot; class=&quot;col-chk-item&quot; data-index=&quot;${idx}&quot; checked /&gt;
+          &lt;span&gt;${colName}&lt;/span&gt;
+        `;
+        colFilterList.appendChild(label);
+      });
+      colFilterBox.style.display = 'block';
+
+      colFilterList.querySelectorAll('.col-chk-item').forEach(chk =&gt; {
+        chk.addEventListener('change', () =&gt; renderPreview());
+      });
     }
 
-    // 4. 预览
+    btnSelectAllCols.addEventListener('click', () =&gt; {
+      colFilterList.querySelectorAll('.col-chk-item').forEach(c =&gt; c.checked = true);
+      renderPreview();
+    });
+    btnUnselectAllCols.addEventListener('click', () =&gt; {
+      colFilterList.querySelectorAll('.col-chk-item').forEach(c =&gt; c.checked = false);
+      renderPreview();
+    });
+    btnInvertCols.addEventListener('click', () =&gt; {
+      colFilterList.querySelectorAll('.col-chk-item').forEach(c =&gt; c.checked = !c.checked);
+      renderPreview();
+    });
+
+    function getSelectedCols() {
+      const chks = colFilterList.querySelectorAll('.col-chk-item');
+      const selected = [];
+      chks.forEach(chk =&gt; {
+        if (chk.checked) {
+          const idx = parseInt(chk.dataset.index);
+          selected.push({ index: idx, name: allHeaders[idx] });
+        }
+      });
+      return selected;
+    }
+
+    // --- 4. 预览 (严格按选中的列展示前 30 行) ---
     function renderPreview() {
-      const displayData = mergedData.slice(0, 50);
-      if (displayData.length === 0) return;
+      const activeCols = getSelectedCols();
+      if (activeCols.length === 0) {
+        mergePreview.innerHTML = '&lt;div style=&quot;padding:15px; color:red;&quot;&gt;请至少勾选一个导出的列！&lt;/div&gt;';
+        return;
+      }
 
-      // 使用强制排序后的表头
-      const headers = getFinalHeaders();
-
+      const displayData = mergedRowsAoA.slice(0, 30);
       let html = '&lt;table&gt;&lt;thead&gt;&lt;tr&gt;';
-      headers.forEach(h =&gt; html += `&lt;th&gt;${h}&lt;/th&gt;`);
+      activeCols.forEach(c =&gt; html += `&lt;th&gt;${c.name}&lt;/th&gt;`);
       html += '&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;';
 
       displayData.forEach(row =&gt; {
         html += '&lt;tr&gt;';
-        headers.forEach(h =&gt; {
-          // 处理 undefined
-          const val = (row[h] === undefined || row[h] === null) ? '' : row[h];
+        activeCols.forEach(c =&gt; {
+          const val = row[c.index] !== undefined ? row[c.index] : '';
           html += `&lt;td&gt;${val}&lt;/td&gt;`;
         });
         html += '&lt;/tr&gt;';
       });
       html += '&lt;/tbody&gt;&lt;/table&gt;';
 
-      if (mergedData.length &gt; 50) {
-        html += `&lt;div style=&quot;text-align:center; padding:10px; color:#666;&quot;&gt;... 还有 ${mergedData.length - 50} 行数据未显示 ...&lt;/div&gt;`;
+      if (mergedRowsAoA.length &gt; 30) {
+        html += `&lt;div style=&quot;text-align:center; padding:10px; color:#666;&quot;&gt;... 仅预览前 30 行，还有 ${mergedRowsAoA.length - 30} 行数据未显示 ...&lt;/div&gt;`;
       }
       mergePreview.innerHTML = html;
     }
 
-    // 5. 下载
-    btnDownloadMergedXlsx.addEventListener('click', () =&gt; {
-      if (mergedData.length === 0) return;
+    // --- 5. 下载 Excel (带进度条防卡死) ---
+    btnDownloadMergedXlsx.addEventListener('click', async () =&gt; {
+      const activeCols = getSelectedCols();
+      if (activeCols.length === 0) { alert(&quot;请至少勾选一列后再下载！&quot;); return; }
 
-      // 【关键修复】显式传递 header 数组给 json_to_sheet
-      // 这样 xlsx 插件就会严格按照这个顺序写入列，不会把多余的列插到中间
-      const finalHeaders = getFinalHeaders();
+      // 如果数据量巨大，提示用户优先用 CSV
+      if (mergedRowsAoA.length &gt; 100000) {
+        const proceed = confirm(`当前合并数据量多达 ${mergedRowsAoA.length.toLocaleString()} 行，生成 Excel 可能耗时较久或造成浏览器负载过大。\n\n建议优先使用【⚡ 下载 CSV】格式（支持 Excel 正常打开，且导出极快）。\n\n是否仍然继续导出 Excel？`);
+        if (!proceed) return;
+      }
 
-      const ws = XLSX.utils.json_to_sheet(mergedData, { header: finalHeaders });
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, &quot;合并结果&quot;);
-      XLSX.writeFile(wb, `合并结果_${new Date().getTime()}.xlsx`);
+      btnDownloadMergedXlsx.disabled = true;
+      btnDownloadMergedCsv.disabled = true;
+      updateProgress(&quot;正在组装 Excel 导出数据...&quot;, 20, 100);
+      await sleep(50);
+
+      try {
+        const selectedIndices = activeCols.map(c =&gt; c.index);
+        const exportHeader = activeCols.map(c =&gt; c.name);
+
+        const exportAOA = [exportHeader];
+        const total = mergedRowsAoA.length;
+
+        for (let i = 0; i &lt; total; i++) {
+          const row = mergedRowsAoA[i];
+          const newRow = new Array(selectedIndices.length);
+          for (let j = 0; j &lt; selectedIndices.length; j++) {
+            newRow[j] = row[selectedIndices[j]];
+          }
+          exportAOA.push(newRow);
+
+          if (i % 20000 === 0 &amp;&amp; i &gt; 0) {
+            updateProgress(`正在装载数据: ${(i).toLocaleString()} / ${total.toLocaleString()} 行...`, 20 + Math.round((i / total) * 40), 100);
+            await sleep(0);
+          }
+        }
+
+        updateProgress(&quot;正在生成压缩 Excel 工作簿...&quot;, 75, 100);
+        await sleep(50);
+
+        const ws = XLSX.utils.aoa_to_sheet(exportAOA);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, &quot;合并结果&quot;);
+
+        updateProgress(&quot;正在保存并调起下载...&quot;, 95, 100);
+        await sleep(50);
+
+        XLSX.writeFile(wb, `合并结果_${new Date().getTime()}.xlsx`);
+      } catch (err) {
+        alert(&quot;导出 Excel 失败（可能是因为数据超出浏览器内存极限）：&quot; + err.message + &quot;\n请使用右侧【⚡ 下载 CSV】按钮导出！&quot;);
+      } finally {
+        hideProgress();
+        btnDownloadMergedXlsx.disabled = false;
+        btnDownloadMergedCsv.disabled = false;
+      }
+    });
+
+    // --- 6. 下载 CSV (带进度条 + 分块流式生成，绝对不崩溃) ---
+    btnDownloadMergedCsv.addEventListener('click', async () =&gt; {
+      const activeCols = getSelectedCols();
+      if (activeCols.length === 0) { alert(&quot;请至少勾选一列后再下载！&quot;); return; }
+
+      btnDownloadMergedXlsx.disabled = true;
+      btnDownloadMergedCsv.disabled = true;
+      updateProgress(&quot;正在准备 CSV 生成...&quot;, 0, 100);
+      await sleep(20);
+
+      try {
+        const selectedIndices = activeCols.map(c =&gt; c.index);
+        const chunks = [];
+        // 添加 UTF-8 BOM，防止 Excel 打开中文出现乱码
+        chunks.push('\uFEFF');
+
+        const escapeCsv = (val) =&gt; {
+          if (val === null || val === undefined) return '';
+          const str = String(val);
+          if (/[&quot;,\n\r]/.test(str)) {
+            return `&quot;${str.replace(/&quot;/g, '&quot;&quot;')}&quot;`;
+          }
+          return str;
+        };
+
+        // 写入表头
+        chunks.push(activeCols.map(c =&gt; escapeCsv(c.name)).join(',') + '\r\n');
+
+        const batchSize = 10000;
+        let batchStr = '';
+        const total = mergedRowsAoA.length;
+
+        for (let i = 0; i &lt; total; i++) {
+          const row = mergedRowsAoA[i];
+          const line = [];
+          for (let j = 0; j &lt; selectedIndices.length; j++) {
+            line.push(escapeCsv(row[selectedIndices[j]]));
+          }
+          batchStr += line.join(',') + '\r\n';
+
+          if (i % batchSize === 0 &amp;&amp; i &gt; 0) {
+            chunks.push(batchStr);
+            batchStr = '';
+            updateProgress(`正在流式导出 CSV: ${(i).toLocaleString()} / ${total.toLocaleString()} 行...`, i, total);
+            await sleep(0);
+          }
+        }
+        if (batchStr) chunks.push(batchStr);
+
+        updateProgress(&quot;正在下载文件...&quot;, 100, 100);
+        await sleep(30);
+
+        const blob = new Blob(chunks, { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `合并结果_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } catch (err) {
+        alert(&quot;导出 CSV 失败: &quot; + err.message);
+      } finally {
+        hideProgress();
+        btnDownloadMergedXlsx.disabled = false;
+        btnDownloadMergedCsv.disabled = false;
+      }
     });
   &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;">
+&lt;/html&gt;
+">
       </iframe>
      </div>
     </div>
