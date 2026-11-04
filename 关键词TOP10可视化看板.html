@@ -98,6 +98,31 @@
         .th-meta { background: var(--navy-header); color: #ffffff; white-space: nowrap; }
         .th-top { background: var(--orange-top); color: #000000; min-width: 95px; }
 
+        /* 可排序列样式 */
+        .th-sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .th-sortable:hover {
+            background: #1e3a5f;
+            color: #f59e0b;
+        }
+        .th-sortable.active-sort {
+            background: #1e3a5f;
+            color: #f59e0b;
+        }
+        .sort-icon {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 11px;
+            opacity: 0.6;
+        }
+        .active-sort .sort-icon {
+            opacity: 1;
+            font-weight: 900;
+        }
+
         .data-table tbody tr { cursor: pointer; transition: background 0.15s; }
         .data-table tbody tr:hover { background: #eff6ff !important; }
         .data-table td {
@@ -216,7 +241,7 @@
         </h1>
     </div>
     <div style="font-size:12px; opacity:0.8;">
-        生成时间: 2026-11-02
+        生成时间: 2026-11-04
     </div>
 </div>
 
@@ -232,6 +257,17 @@
 
         <!-- 自适应数值区间筛选 -->
         <div id="filterNumericContainer" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+
+        <!-- 新增：排序控制快捷下拉与按钮 -->
+        <div class="filter-item">
+            <label>指标排序</label>
+            <div style="display:flex; gap:4px; align-items:center;">
+                <select id="sortFieldSelect" onchange="onSortSelectChange(this.value)" style="min-width: 120px;">
+                    <option value="-1">默认顺序 (不排序)</option>
+                </select>
+                <button type="button" class="btn" id="sortOrderBtn" style="padding:4px 8px; background:#475569; font-size:12px;" onclick="toggleSortOrder()" title="切换升序/降序">降序 ▼</button>
+            </div>
+        </div>
 
         <div class="filter-item">
             <label>&nbsp;</label>
@@ -265,7 +301,7 @@
 
 <div class="bottom-bar">
     <div style="font-size:12px; color:#64748b;">
-        💡 提示：<strong>鼠标悬停图片</strong>可无遮挡放大；<strong>单击任意一行</strong>可呼出大图聚焦弹窗看款。
+        💡 提示：<strong>点击数值列标题</strong>可快速切换升降序；<strong>悬停图片</strong>放大预览；<strong>单击任意一行</strong>弹窗大图看款。
     </div>
     <div class="pagination-ctrl" id="bottomPagination">
         <button onclick="goPage(-1)" class="btn-prev">上一页</button>
@@ -318,6 +354,12 @@
     let filteredIndices = [];
     let focusedRowIndexInFiltered = -1;
 
+    // 排序控制状态：fieldIdx 代表 NUM_FIELDS 数组的索引，-1 表示不排序
+    let currentSort = {
+        fieldIdx: -1,
+        order: 'desc' // 'desc' 或 'asc'
+    };
+
     // 字段映射与状态集合
     const filterState = {};
     FILTER_COLS.forEach(f => { filterState[f.idx] = new Set(['__ALL__']); });
@@ -330,8 +372,8 @@
     // 初始化控件
     window.addEventListener('DOMContentLoaded', () => {
         buildDynamicFilterControls();
-        renderTableHeader();
         const saved = restoreFilterState();
+        renderTableHeader();
         updateDropdownOptions();
         applyFilters(true);
         setupHoverPreview();
@@ -372,6 +414,11 @@
                 </div>
             </div>
         `).join('');
+
+        // 填充排序下拉框选项
+        const sortSelect = document.getElementById('sortFieldSelect');
+        sortSelect.innerHTML = '<option value="-1">默认顺序 (不排序)</option>' +
+            NUM_FIELDS.map((f, idx) => `<option value="${idx}">${f.name}</option>`).join('');
     }
 
     // 记忆管理
@@ -381,6 +428,7 @@
                 search: document.getElementById('globalSearch').value || '',
                 nums: {},
                 filters: {},
+                sort: currentSort,
                 page: currentPage,
                 scrollY: document.getElementById('tableContainer').scrollTop || 0
             };
@@ -416,6 +464,12 @@
                     if (state.filters[f.idx]) filterState[f.idx] = new Set(state.filters[f.idx]);
                 });
             }
+            if (state.sort) {
+                currentSort = state.sort;
+                const sortSelect = document.getElementById('sortFieldSelect');
+                if (sortSelect) sortSelect.value = currentSort.fieldIdx;
+                updateSortBtnText();
+            }
             if (state.page) currentPage = state.page;
             return state;
         } catch(e) { return null; }
@@ -435,7 +489,6 @@
         target.style.display = isOpen ? 'none' : 'block';
     }
 
-    // 完全修复特殊符号的全选逻辑
     function handleSelectAll(idx, elem) {
         const set = filterState[idx];
         const box = document.getElementById('opts_f_' + idx);
@@ -479,6 +532,55 @@
             };
         });
         return ranges;
+    }
+
+    // ================= 排序核心逻辑 =================
+    function updateSortBtnText() {
+        const btn = document.getElementById('sortOrderBtn');
+        if (!btn) return;
+        if (currentSort.order === 'asc') {
+            btn.textContent = '升序 ▲';
+            btn.style.background = '#2563eb';
+        } else {
+            btn.textContent = '降序 ▼';
+            btn.style.background = '#475569';
+        }
+    }
+
+    function toggleSortOrder() {
+        currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+        updateSortBtnText();
+        renderTableHeader();
+        applyFilters(false);
+    }
+
+    function onSortSelectChange(val) {
+        currentSort.fieldIdx = parseInt(val, 10);
+        renderTableHeader();
+        applyFilters(false);
+    }
+
+    function handleHeaderSort(numIdx) {
+        if (currentSort.fieldIdx === numIdx) {
+            if (currentSort.order === 'desc') {
+                currentSort.order = 'asc';
+            } else {
+                // 降序 -> 升序 -> 还原不排序
+                currentSort.fieldIdx = -1;
+                currentSort.order = 'desc';
+            }
+        } else {
+            currentSort.fieldIdx = numIdx;
+            currentSort.order = 'desc';
+        }
+
+        // 同步顶部下拉选框与按钮
+        const sel = document.getElementById('sortFieldSelect');
+        if (sel) sel.value = currentSort.fieldIdx;
+        updateSortBtnText();
+
+        renderTableHeader();
+        applyFilters(false);
     }
 
     // 核心轻量匹配算法
@@ -568,6 +670,11 @@
     function resetAllFilters() {
         localStorage.removeItem(STORAGE_KEY);
         document.getElementById('globalSearch').value = '';
+        currentSort = { fieldIdx: -1, order: 'desc' };
+        const sortSelect = document.getElementById('sortFieldSelect');
+        if (sortSelect) sortSelect.value = -1;
+        updateSortBtnText();
+
         NUM_FIELDS.forEach(f => {
             document.getElementById('num_min_' + f.key).value = '';
             document.getElementById('num_max_' + f.key).value = '';
@@ -578,6 +685,7 @@
             const allCb = document.getElementById('all_f_' + f.idx);
             if (allCb) allCb.checked = true;
         });
+        renderTableHeader();
         updateDropdownOptions();
         applyFilters(false);
     }
@@ -591,6 +699,25 @@
             if (matchRow(ROWS_DATA[i], null, queryText, numRanges)) {
                 filteredIndices.push(i);
             }
+        }
+
+        // 执行排序逻辑（若指定了排序列）
+        if (currentSort.fieldIdx >= 0 && currentSort.fieldIdx < NUM_FIELDS.length) {
+            const sIdx = currentSort.fieldIdx;
+            const isAsc = currentSort.order === 'asc';
+            filteredIndices.sort((a, b) => {
+                const valA = ROWS_DATA[a][1][sIdx];
+                const valB = ROWS_DATA[b][1][sIdx];
+                const aNull = (valA === null || valA === undefined || isNaN(valA));
+                const bNull = (valB === null || valB === undefined || isNaN(valB));
+
+                // 空值统一置底
+                if (aNull && bNull) return 0;
+                if (aNull) return 1;
+                if (bNull) return -1;
+
+                return isAsc ? (valA - valB) : (valB - valA);
+            });
         }
 
         document.getElementById('countBadge').textContent = `共 ${filteredIndices.length} 条记录`;
@@ -619,13 +746,33 @@
                 summary.push(`${f.name}: <strong>${minText} ~ ${maxText}</strong>`);
             }
         });
+        if (currentSort.fieldIdx >= 0 && currentSort.fieldIdx < NUM_FIELDS.length) {
+            const sf = NUM_FIELDS[currentSort.fieldIdx];
+            const dir = currentSort.order === 'asc' ? '升序 ↑' : '降序 ↓';
+            summary.push(`排序: <strong>${sf.name} (${dir})</strong>`);
+        }
         const el = document.getElementById('activeFilterSummary');
         el.innerHTML = summary.length ? ('有效筛选：' + summary.join(' &nbsp;|&nbsp; ')) : '当前筛选：显示全部数据 (无限制)';
     }
 
     function renderTableHeader() {
         const headRow = document.getElementById('tableHeadRow');
-        let html = META_COLS.map(c => `<th class="th-meta">${c}</th>`).join('');
+        let html = META_COLS.map((colName, cIdx) => {
+            const numIdx = NUM_FIELDS.findIndex(f => f.col_idx === cIdx);
+            if (numIdx !== -1) {
+                // 该列为数值列，支持排序
+                const isCurrent = (currentSort.fieldIdx === numIdx);
+                const sortIcon = isCurrent ? (currentSort.order === 'asc' ? '▲' : '▼') : '⇅';
+                const activeClass = isCurrent ? 'th-sortable active-sort' : 'th-sortable';
+                const titleTip = isCurrent ? `当前${currentSort.order === 'asc' ? '升序' : '降序'}，点击切换` : '点击按此列排序';
+                return `<th class="th-meta ${activeClass}" onclick="handleHeaderSort(${numIdx})" title="${titleTip}">
+                            ${colName}<span class="sort-icon">${sortIcon}</span>
+                        </th>`;
+            } else {
+                return `<th class="th-meta">${colName}</th>`;
+            }
+        }).join('');
+
         for (let i = 1; i <= 10; i++) {
             html += `<th class="th-top">TOP${i}</th>`;
         }
@@ -762,7 +909,7 @@
         }
     }
 
-    // ================= 全新：行聚焦大图全屏弹窗 =================
+    // ================= 行聚焦大图全屏弹窗 =================
     function openRowModal(filteredIdx) {
         if (filteredIdx < 0 || filteredIdx >= filteredIndices.length) return;
         focusedRowIndexInFiltered = filteredIdx;
@@ -770,7 +917,6 @@
         const metaVals = row[0];
         const tops = row[2];
 
-        // 提取关键词
         const kwIdx = META_COLS.findIndex(c => c.includes('关键词') && !c.includes('中文'));
         const kwName = kwIdx >= 0 ? metaVals[kwIdx] : metaVals[0];
         const zhIdx = META_COLS.findIndex(c => c.includes('中文'));
@@ -779,13 +925,11 @@
         document.getElementById('rfKeyword').textContent = kwName;
         document.getElementById('rfSubTitle').textContent = zhName ? '(' + zhName + ')' : '';
 
-        // 标签栏
         const tagBox = document.getElementById('rfMetaTags');
         tagBox.innerHTML = META_COLS.map((c, i) => `
             <div class="rf-tag"><strong>${c}:</strong> ${metaVals[i] || '-'}</div>
         `).join('');
 
-        // 10图大卡片展示区
         const grid = document.getElementById('rfProductGrid');
         let gridHtml = '';
         for (let i = 0; i < 10; i++) {
