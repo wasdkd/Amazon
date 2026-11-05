@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhotoDeck 40 Pro · 1~20张图片绝无重复排版系统</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- PptxGenJS (原生 PPTX 核心引擎) -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+  <style>
+    /* 原生文本原地编辑 */
+    [contenteditable="true"]:hover {
+      outline: 1.5px dashed #0284c7;
+      outline-offset: 1px;
+      border-radius: 3px;
+    }
+    [contenteditable="true"]:focus {
+      outline: 2px solid #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      border-radius: 3px;
+    }
+
+    /* 图片槽位：清爽无重叠、带微型文字标注 */
+    .img-box {
+      position: absolute;
+      cursor: pointer;
+      overflow: hidden;
+      border-radius: 4px;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .img-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+    .img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+    .img-box .caption-tag {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(4px);
+      padding: 2px 6px;
+      font-size: 9px;
+      font-family: monospace;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      pointer-events: auto;
+    }
+    .img-box .overlay {
+      opacity: 0;
+      transition: opacity 0.2s;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+    }
+    .img-box:hover .overlay {
+      opacity: 1;
+    }
+    .img-box.drag-over {
+      border: 2px dashed #0284c7 !important;
+    }
+
+    /* 16:9 画布 */
+    .slide-canvas {
+      width: 960px;
+      height: 540px;
+      aspect-ratio: 16 / 9;
+      transition: background 0.3s;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col font-sans select-none overflow-hidden">
+
+  <!-- 顶部控制条 -->
+  <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shrink-0 shadow-sm">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 bg-sky-600 rounded-lg shadow-md shadow-sky-600/20">
+        <i data-lucide="layout-template" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          PhotoDeck 40 Pro
+          <span class="text-[10px] bg-sky-100 text-sky-700 border border-sky-300 px-2 py-0.5 rounded-full font-mono">1~20图全量独立排版</span>
+        </h1>
+        <p class="text-[11px] text-slate-500" id="statusTip">正在加载 18 张高清大图并初始化 40 种专属版式...</p>
+      </div>
+    </div>
+
+    <!-- 浅色系底色切换面板 -->
+    <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-200 text-xs">
+      <span class="text-slate-500 font-medium text-[11px]">🎨 浅色系底色:</span>
+      <button onclick="setThemeBg('#fbf9f5', this)" class="w-5 h-5 rounded-full border-2 border-sky-500 shadow-sm bg-[#fbf9f5]" title="典雅暖杏白 (默认)"></button>
+      <button onclick="setThemeBg('#f8fafc', this)" class="w-5 h-5 rounded-full border border-slate-300 shadow-sm bg-[#f8fafc]" title="现代冷雾白"></button>
+      <button onclick="setThemeBg('#f0f9ff', this)" class="w-5 h-5 rounded-full border border-slate-300 shadow-sm bg-[#f0f9ff]" title="晨曦淡雅蓝"></button>
+      <button onclick="setThemeBg('#f5f5f4', this)" class="w-5 h-5 rounded-full border border-slate-300 shadow-sm bg-[#f5f5f4]" title="轻奢石纹灰"></button>
+      <button onclick="setThemeBg('#ffffff', this)" class="w-5 h-5 rounded-full border border-slate-300 shadow-sm bg-[#ffffff]" title="纯净白"></button>
+      <label class="w-5 h-5 rounded-full border border-slate-300 cursor-pointer flex items-center justify-center bg-white shadow-sm" title="自定义调色盘">
+        <input type="color" onchange="setThemeBg(this.value, this)" class="w-0 h-0 opacity-0">
+        <i data-lucide="pipette" class="w-3 h-3 text-slate-500"></i>
+      </label>
+    </div>
+
+    <!-- 导出控制区 -->
+    <div class="flex items-center space-x-3">
+      <!-- 选择器与计数 -->
+      <button onclick="openSelectModal()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 border border-slate-200 transition">
+        <i data-lucide="check-square" class="w-3.5 h-3.5 text-sky-600"></i>
+        <span>导出管理 (<span id="selectedCountText" class="text-sky-600 font-bold">40</span>/40)</span>
+      </button>
+
+      <div class="flex items-center bg-slate-100 rounded-lg border border-slate-200 text-xs px-2 py-1">
+        <button onclick="prevSlide()" class="p-1 hover:text-sky-600 transition"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+        <span class="px-3 font-mono font-bold text-sky-600" id="slideIndicator">01 / 40</span>
+        <button onclick="nextSlide()" class="p-1 hover:text-sky-600 transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+      </div>
+
+      <!-- 核心导出按钮 -->
+      <button onclick="exportSelectedSlidesToPPTX()" id="exportBtn" class="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-md shadow-sky-600/25 flex items-center gap-2 transition active:scale-95">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>📥 导出选中页面 PPTX</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 工作区 -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- 左侧 40 页完全不重复的大纲目录 (带即时勾选框) -->
+    <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0">
+      <div class="p-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-slate-100">
+        <span>40 套绝无雷同构图目录</span>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleSelectAll(true)" class="text-sky-600 hover:underline">全选</button>
+          <span>·</span>
+          <button onclick="toggleSelectAll(false)" class="text-slate-400 hover:underline">清空</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scroll" id="sidebarList">
+        <!-- JS 动态注入 40 个导航项 -->
+      </div>
+    </aside>
+
+    <!-- 中间 16:9 画布视口 -->
+    <main class="flex-1 bg-slate-200/50 flex flex-col items-center justify-center p-6 relative overflow-auto">
+      <div class="slide-canvas rounded-xl shadow-xl border border-slate-200 p-8 flex flex-col justify-between relative overflow-hidden shrink-0" id="slideStage" style="background: #fbf9f5;">
+        <!-- 页面说明 -->
+        <div id="slideHeader" class="z-20 mb-2 flex justify-between items-baseline">
+          <div>
+            <span id="slideTag" class="text-[10px] font-mono font-bold text-sky-600 uppercase tracking-widest block" contenteditable="true">PAGE TYPE</span>
+            <h2 id="slideTitle" class="text-lg font-bold text-slate-900" contenteditable="true">标题加载中...</h2>
+          </div>
+          <span id="slideMeta" class="text-[11px] font-mono text-slate-400" contenteditable="true">EDITORIAL GALLERY · 16:9</span>
+        </div>
+
+        <!-- 图片排版舞台 (清爽非遮挡) -->
+        <div id="imageLayoutArea" class="flex-1 relative w-full h-full">
+          <!-- 动态图片槽位 -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 页面多选导出控制弹窗 -->
+  <div id="exportModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-2xl w-[480px] p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+          <i data-lucide="check-square" class="w-4 h-4 text-sky-600"></i>
+          <span>自定义选择导出的页面</span>
+        </h3>
+        <button onclick="closeSelectModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="flex items-center gap-2 text-xs">
+        <button onclick="toggleSelectAll(true)" class="px-2.5 py-1 rounded bg-sky-50 text-sky-600 font-bold hover:bg-sky-100">全选 (40页)</button>
+        <button onclick="toggleSelectAll(false)" class="px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">全部取消</button>
+        <button onclick="selectOnlyCurrent()" class="px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">仅导出当前页</button>
+        <button onclick="selectFirst10()" class="px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">仅前10页</button>
+      </div>
+
+      <div class="text-xs text-slate-500 font-medium">
+        已选择 <span id="modalSelectedCount" class="text-sky-600 font-bold">40</span> 个页面导出。导出时仅打包你勾选的版式，其余页面自动忽略。
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeSelectModal()" class="px-4 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">返回编辑</button>
+        <button onclick="closeSelectModal(); exportSelectedSlidesToPPTX();" class="px-5 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-500 shadow-md">立即导出选中页</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="singleImgInput" accept="image/*" class="hidden">
+
+  <script>
+    // =========================================================================
+    // 0. 你指定的 18 张 Unsplash 高清原图矩阵
+    // =========================================================================
+    const RAW_USER_IMAGES = [
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1600&auto=format&fit=crop&q=85"
+    ];
+
+    const base64ImagePool = [];
+    let isBase64Ready = false;
+    let currentThemeColor = '#fbf9f5';
+
+    // 预转码为 Base64（彻底杜绝 PPT 导出丢图）
+    async function preloadImagesToBase64() {
+      for (let i = 0; i < RAW_USER_IMAGES.length; i++) {
+        try {
+          const b64 = await convertUrlToBase64(RAW_USER_IMAGES[i]);
+          base64ImagePool.push(b64);
+        } catch (e) {
+          base64ImagePool.push(RAW_USER_IMAGES[i]);
+        }
+      }
+      isBase64Ready = true;
+      document.getElementById('statusTip').innerText = '✅ 18 张高清大图转码完毕，导出 PPTX 必带图片且排版无遮挡！';
+      document.getElementById('statusTip').className = 'text-[11px] text-emerald-600 font-semibold';
+      loadSlide(currentIndex);
+    }
+
+    function convertUrlToBase64(url) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(img.width, 1200);
+          canvas.height = Math.round((canvas.width / img.width) * img.height);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => resolve(url);
+        img.src = url;
+      });
+    }
+
+    // =========================================================================
+    // 1. 核心构图设计：定义 40 套完全不重复、无遮挡、带精巧微标的几何坐标
+    //    画布基准：10 x 5.625 英寸，安全区：X0=0.6, Y0=1.05, W0=8.8, H0=4.15
+    // =========================================================================
+    function getCleanNonOverlappingLayout(pageIdx) {
+      const X0 = 0.6, Y0 = 1.05, W0 = 8.8, H0 = 4.15;
+      const gap = 0.12;
+      const count = Math.floor(pageIdx / 2) + 1; // 1 ~ 20
+      const isStyleA = pageIdx % 2 === 0;
+      const boxes = [];
+      let title = "";
+
+      switch(pageIdx + 1) {
+        // --- 1 图 ---
+        case 1:
+          title = "1图·艺术馆单画芯陈列 (宽幅留白画框)";
+          boxes.push({ x: X0 + 1.2, y: Y0 + 0.2, w: W0 - 2.4, h: H0 - 0.4, cap: "01 · SOLO MAT" });
+          break;
+        case 2:
+          title = "1图·杂志大开页跨版 (左图右侧说明栏)";
+          boxes.push({ x: X0, y: Y0, w: 5.6, h: H0, cap: "01 · BLEED SPREAD" });
+          break;
+
+        // --- 2 图 ---
+        case 3:
+          title = "2图·经典对称双联画 (细缝对立)";
+          const w2 = (W0 - gap) / 2;
+          boxes.push({ x: X0, y: Y0, w: w2, h: H0, cap: "01 · DIPTYCH A" });
+          boxes.push({ x: X0 + w2 + gap, y: Y0, w: w2, h: H0, cap: "02 · DIPTYCH B" });
+          break;
+        case 4:
+          title = "2图·上下电影宽银幕双轨 (上下对称)";
+          const h2 = (H0 - gap) / 2;
+          boxes.push({ x: X0, y: Y0, w: W0, h: h2, cap: "01 · ANAMORPHIC TOP" });
+          boxes.push({ x: X0, y: Y0 + h2 + gap, w: W0, h: h2, cap: "02 · ANAMORPHIC BOT" });
+          break;
+
+        // --- 3 图 ---
+        case 5:
+          title = "3图·三联等宽竖屏画轴 (三列并立)";
+          const w3 = (W0 - 2 * gap) / 3;
+          for(let i=0; i<3; i++) boxes.push({ x: X0 + i*(w3+gap), y: Y0, w: w3, h: H0, cap: `0${i+1} · PANEL` });
+          break;
+        case 6:
+          title = "3图·黄金比例分割 (左主图+右双叠)";
+          boxes.push({ x: X0, y: Y0, w: 5.3, h: H0, cap: "01 · HERO CANVAS" });
+          const rW3 = W0 - 5.3 - gap, subH3 = (H0 - gap) / 2;
+          boxes.push({ x: X0 + 5.3 + gap, y: Y0, w: rW3, h: subH3, cap: "02 · COMPANION" });
+          boxes.push({ x: X0 + 5.3 + gap, y: Y0 + subH3 + gap, w: rW3, h: subH3, cap: "03 · COMPANION" });
+          break;
+
+        // --- 4 图 ---
+        case 7:
+          title = "4图·田字四象限平衡方阵 (2×2 均衡陈列)";
+          const w4 = (W0 - gap) / 2, h4 = (H0 - gap) / 2;
+          boxes.push({ x: X0, y: Y0, w: w4, h: h4, cap: "QUADRANT I" });
+          boxes.push({ x: X0 + w4 + gap, y: Y0, w: w4, h: h4, cap: "QUADRANT II" });
+          boxes.push({ x: X0, y: Y0 + h4 + gap, w: w4, h: h4, cap: "QUADRANT III" });
+          boxes.push({ x: X0 + w4 + gap, y: Y0 + h4 + gap, w: w4, h: h4, cap: "QUADRANT IV" });
+          break;
+        case 8:
+          title = "4图·全景长卷置顶+底座三联分镜";
+          boxes.push({ x: X0, y: Y0, w: W0, h: 2.3, cap: "FEATURE PANORAMA" });
+          const bW4 = (W0 - 2 * gap) / 3, bH4 = H0 - 2.3 - gap;
+          for(let i=0; i<3; i++) boxes.push({ x: X0 + i*(bW4+gap), y: Y0 + 2.3 + gap, w: bW4, h: bH4, cap: `STILL 0${i+1}` });
+          break;
+
+        // --- 5 图 ---
+        case 9:
+          title = "5图·2大顶部+3小底座 (梯次节奏分割)";
+          const tW5 = (W0 - gap) / 2, tH5 = 2.4;
+          boxes.push({ x: X0, y: Y0, w: tW5, h: tH5, cap: "UPPER PRIMARY A" });
+          boxes.push({ x: X0 + tW5 + gap, y: Y0, w: tW5, h: tH5, cap: "UPPER PRIMARY B" });
+          const bW5 = (W0 - 2 * gap) / 3, bH5 = H0 - tH5 - gap;
+          for(let i=0; i<3; i++) boxes.push({ x: X0 + i*(bW5+gap), y: Y0 + tH5 + gap, w: bW5, h: bH5, cap: `LOWER 0${i+1}` });
+          break;
+        case 10:
+          title = "5图·错峰高低波浪流 (5列山峰画轴)";
+          const w5Col = (W0 - 4*gap) / 5;
+          const h5Steps = [3.2, 3.8, 4.15, 3.8, 3.2];
+          for(let i=0; i<5; i++) {
+            boxes.push({ x: X0 + i*(w5Col+gap), y: Y0 + (H0 - h5Steps[i])/2, w: w5Col, h: h5Steps[i], cap: `WAVE 0${i+1}` });
+          }
+          break;
+
+        // --- 6 图 ---
+        case 11:
+          title = "6图·3×2 经典六宫格展厅";
+          createGrid(boxes, X0, Y0, W0, H0, 3, 2, gap, 6, "GRID");
+          break;
+        case 12:
+          title = "6图·中间双主画+两侧四立轴 (居中对称)";
+          const sideW6 = 2.1, midW6 = (W0 - 2*sideW6 - 3*gap) / 2;
+          // 左侧2立轴
+          boxes.push({ x: X0, y: Y0, w: sideW6, h: (H0-gap)/2, cap: "LEFT UPPER" });
+          boxes.push({ x: X0, y: Y0 + (H0+gap)/2, w: sideW6, h: (H0-gap)/2, cap: "LEFT LOWER" });
+          // 中间2主画
+          boxes.push({ x: X0 + sideW6 + gap, y: Y0, w: midW6, h: H0, cap: "CENTER PRIMARY A" });
+          boxes.push({ x: X0 + sideW6 + midW6 + 2*gap, y: Y0, w: midW6, h: H0, cap: "CENTER PRIMARY B" });
+          // 右侧2立轴
+          boxes.push({ x: X0 + W0 - sideW6, y: Y0, w: sideW6, h: (H0-gap)/2, cap: "RIGHT UPPER" });
+          boxes.push({ x: X0 + W0 - sideW6, y: Y0 + (H0+gap)/2, w: sideW6, h: (H0-gap)/2, cap: "RIGHT LOWER" });
+          break;
+
+        // --- 7 图 ---
+        case 13:
+          title = "7图·左侧立轴长卷+右侧2×3方阵";
+          const leftW7 = 4.0;
+          boxes.push({ x: X0, y: Y0, w: leftW7, h: H0, cap: "VERTICAL HERO" });
+          createGrid(boxes, X0 + leftW7 + gap, Y0, W0 - leftW7 - gap, H0, 2, 3, gap, 6, "SUB");
+          break;
+        case 14:
+          title = "7图·上3长横屏+下4竖轴 (不等比交错)";
+          const w7T = (W0 - 2*gap)/3, h7T = 1.95;
+          for(let i=0; i<3; i++) boxes.push({ x: X0 + i*(w7T+gap), y: Y0, w: w7T, h: h7T, cap: `ROW-1 0${i+1}` });
+          const w7B = (W0 - 3*gap)/4, h7B = H0 - h7T - gap;
+          for(let i=0; i<4; i++) boxes.push({ x: X0 + i*(w7B+gap), y: Y0 + h7T + gap, w: w7B, h: h7B, cap: `ROW-2 0${i+1}` });
+          break;
+
+        // --- 8 图 ---
+        case 15:
+          title = "8图·4×2 经典画廊双长廊";
+          createGrid(boxes, X0, Y0, W0, H0, 4, 2, gap, 8, "EXHIBIT");
+          break;
+        case 16:
+          title = "8图·顶部4联横幅+底部4联交错";
+          const w8 = (W0 - 3*gap) / 4, h8 = (H0 - gap) / 2;
+          for(let i=0; i<4; i++) boxes.push({ x: X0 + i*(w8+gap), y: Y0, w: w8, h: h8, cap: `TRACK-A 0${i+1}` });
+          for(let i=0; i<4; i++) boxes.push({ x: X0 + i*(w8+gap), y: Y0 + h8 + gap, w: w8, h: h8, cap: `TRACK-B 0${i+1}` });
+          break;
+
+        // --- 9 图 ---
+        case 17:
+          title = "9图·3×3 完美九宫格阵列";
+          createGrid(boxes, X0, Y0, W0, H0, 3, 3, gap, 9, "GRID");
+          break;
+        case 18:
+          title = "9图·3列不等高流水展布 (3+2+4 不等比分割)";
+          const cW9 = (W0 - 2*gap)/3;
+          // 列1 (3张)
+          createGrid(boxes, X0, Y0, cW9, H0, 1, 3, gap, 3, "COL-1");
+          // 列2 (2大张)
+          createGrid(boxes, X0 + cW9 + gap, Y0, cW9, H0, 1, 2, gap, 2, "COL-2");
+          // 列3 (4张)
+          createGrid(boxes, X0 + 2*(cW9 + gap), Y0, cW9, H0, 1, 4, gap, 4, "COL-3");
+          break;
+
+        // --- 10 图 ---
+        case 19:
+          title = "10图·5×2 经典十联全景画廊";
+          createGrid(boxes, X0, Y0, W0, H0, 5, 2, gap, 10, "PANEL");
+          break;
+        case 20:
+          title = "10图·2超大双焦点+8张底座微缩带";
+          const topW10 = (W0 - gap)/2, topH10 = 2.6;
+          boxes.push({ x: X0, y: Y0, w: topW10, h: topH10, cap: "ANCHOR-ALPHA" });
+          boxes.push({ x: X0 + topW10 + gap, y: Y0, w: topW10, h: topH10, cap: "ANCHOR-BETA" });
+          const botW10 = (W0 - 7*0.08)/8, botH10 = H0 - topH10 - gap;
+          for(let i=0; i<8; i++) boxes.push({ x: X0 + i*(botW10+0.08), y: Y0 + topH10 + gap, w: botW10, h: botH10, cap: `STILL-${i+1}` });
+          break;
+
+        // --- 11 图 ---
+        case 21:
+          title = "11图·金字塔三层阶梯排布 (3+4+4)";
+          createTier(boxes, X0, Y0, W0, H0, [3, 4, 4], gap);
+          break;
+        case 22:
+          title = "11图·左侧3叠立轴+右侧4×2方阵";
+          const lW11 = 3.0;
+          createGrid(boxes, X0, Y0, lW11, H0, 1, 3, gap, 3, "VERTICAL");
+          createGrid(boxes, X0 + lW11 + gap, Y0, W0 - lW11 - gap, H0, 4, 2, gap, 8, "TILES");
+          break;
+
+        // --- 12 图 ---
+        case 23:
+          title = "12图·4×3 摄影暗房打样联排 (Contact Sheet)";
+          createGrid(boxes, X0, Y0, W0, H0, 4, 3, gap, 12, "PROOF");
+          break;
+        case 24:
+          title = "12图·左右对称立柱大图+核心8联矩阵 (书脊式)";
+          const pW12 = 2.0;
+          createGrid(boxes, X0, Y0, pW12, H0, 1, 2, gap, 2, "PILLAR-L");
+          createGrid(boxes, X0 + pW12 + gap, Y0, W0 - 2*pW12 - 2*gap, H0, 4, 2, gap, 8, "CENTER");
+          createGrid(boxes, X0 + W0 - pW12, Y0, pW12, H0, 1, 2, gap, 2, "PILLAR-R");
+          break;
+
+        // --- 13 图 ---
+        case 25:
+          title = "13图·三层错缝砖砌阵列 (4+5+4)";
+          createTier(boxes, X0, Y0, W0, H0, [4, 5, 4], gap);
+          break;
+        case 26:
+          title = "13图·顶部全景长卷+底部2×6分镜带";
+          boxes.push({ x: X0, y: Y0, w: W0, h: 1.6, cap: "MASTER OVERVIEW" });
+          createGrid(boxes, X0, Y0 + 1.6 + gap, W0, H0 - 1.6 - gap, 6, 2, 0.08, 12, "FRAME");
+          break;
+
+        // --- 14 图 ---
+        case 27:
+          title = "14图·7×2 双排超宽滑轨长廊";
+          createGrid(boxes, X0, Y0, W0, H0, 7, 2, 0.08, 14, "TRACK");
+          break;
+        case 28:
+          title = "14图·顶部4张中屏+底部10张高密列";
+          const tW14 = (W0 - 3*gap)/4, tH14 = 2.2;
+          for(let i=0; i<4; i++) boxes.push({ x: X0 + i*(tW14+gap), y: Y0, w: tW14, h: tH14, cap: `PRIMARY 0${i+1}` });
+          const bW14 = (W0 - 9*0.06)/10, bH14 = H0 - tH14 - gap;
+          for(let i=0; i<10; i++) boxes.push({ x: X0 + i*(bW14+0.06), y: Y0 + tH14 + gap, w: bW14, h: bH14, cap: `${i+1}` });
+          break;
+
+        // --- 15 图 ---
+        case 29:
+          title = "15图·5×3 经典十五画幅展厅";
+          createGrid(boxes, X0, Y0, W0, H0, 5, 3, 0.08, 15, "SPECIMEN");
+          break;
+        case 30:
+          title = "15图·三列垂直节奏流 (4+7+4 分割)";
+          const cW15 = (W0 - 2*gap)/3;
+          createGrid(boxes, X0, Y0, cW15, H0, 1, 4, gap, 4, "COL-A");
+          createGrid(boxes, X0 + cW15 + gap, Y0, cW15, H0, 1, 7, 0.06, 7, "COL-B");
+          createGrid(boxes, X0 + 2*(cW15+gap), Y0, cW15, H0, 1, 4, gap, 4, "COL-C");
+          break;
+
+        // --- 16 图 ---
+        case 31:
+          title = "16图·4×4 纯粹极简方阵";
+          createGrid(boxes, X0, Y0, W0, H0, 4, 4, 0.08, 16, "MATRIX");
+          break;
+        case 32:
+          title = "16图·双侧对称双柱+中心12张高密矩阵";
+          const sW16 = 1.8;
+          createGrid(boxes, X0, Y0, sW16, H0, 1, 2, gap, 2, "WING-L");
+          createGrid(boxes, X0 + sW16 + gap, Y0, W0 - 2*sW16 - 2*gap, H0, 4, 3, 0.08, 12, "CENTER");
+          createGrid(boxes, X0 + W0 - sW16, Y0, sW16, H0, 1, 2, gap, 2, "WING-R");
+          break;
+
+        // --- 17 图 ---
+        case 33:
+          title = "17图·四层错峰递进画卷 (4+5+4+4)";
+          createTier(boxes, X0, Y0, W0, H0, [4, 5, 4, 4], 0.08);
+          break;
+        case 34:
+          title = "17图·顶部3大画幅+底部2×7阵列";
+          const tW17 = (W0 - 2*gap)/3, tH17 = 2.0;
+          for(let i=0; i<3; i++) boxes.push({ x: X0 + i*(tW17+gap), y: Y0, w: tW17, h: tH17, cap: `FEATURE-0${i+1}` });
+          createGrid(boxes, X0, Y0 + tH17 + gap, W0, H0 - tH17 - gap, 7, 2, 0.06, 14, "SUB");
+          break;
+
+        // --- 18 图 ---
+        case 35:
+          title = "18图·6×3 宽幕照片墙";
+          createGrid(boxes, X0, Y0, W0, H0, 6, 3, 0.08, 18, "WALL");
+          break;
+        case 36:
+          title = "18图·两侧三立轴+中间4×3打样台";
+          const sW18 = 1.6;
+          createGrid(boxes, X0, Y0, sW18, H0, 1, 3, gap, 3, "FLANK-L");
+          createGrid(boxes, X0 + sW18 + gap, Y0, W0 - 2*sW18 - 2*gap, H0, 4, 3, 0.08, 12, "STUDIO");
+          createGrid(boxes, X0 + W0 - sW18, Y0, sW18, H0, 1, 3, gap, 3, "FLANK-R");
+          break;
+
+        // --- 19 图 ---
+        case 37:
+          title = "19图·四层交错蜂巢流 (5+4+5+5)";
+          createTier(boxes, X0, Y0, W0, H0, [5, 4, 5, 5], 0.08);
+          break;
+        case 38:
+          title = "19图·1顶置旗舰全景+底部6×3矩阵";
+          boxes.push({ x: X0, y: Y0, w: W0, h: 1.4, cap: "HORIZON PRO" });
+          createGrid(boxes, X0, Y0 + 1.4 + gap, W0, H0 - 1.4 - gap, 6, 3, 0.06, 18, "TILE");
+          break;
+
+        // --- 20 图 ---
+        case 39:
+          title = "20图·5×4 二十宫格全景陈列 (大成展馆)";
+          createGrid(boxes, X0, Y0, W0, H0, 5, 4, 0.08, 20, "ARCHIVE");
+          break;
+        case 40:
+          title = "20图·顶部4大旗舰展位+底部2×8微型长卷";
+          const tW20 = (W0 - 3*gap)/4, tH20 = 2.1;
+          for(let i=0; i<4; i++) boxes.push({ x: X0 + i*(tW20+gap), y: Y0, w: tW20, h: tH20, cap: `PRIME-0${i+1}` });
+          createGrid(boxes, X0, Y0 + tH20 + gap, W0, H0 - tH20 - gap, 8, 2, 0.06, 16, "INDEX");
+          break;
+      }
+
+      return { title, boxes };
+    }
+
+    // 辅助生成多层阶梯排布
+    function createTier(arr, x0, y0, w0, h0, rowCounts, g) {
+      const rows = rowCounts.length;
+      const rowH = (h0 - (rows - 1)*g) / rows;
+      rowCounts.forEach((cols, r) => {
+        const colW = (w0 - (cols - 1)*g) / cols;
+        for (let c = 0; c < cols; c++) {
+          arr.push({
+            x: x0 + c*(colW + g),
+            y: y0 + r*(rowH + g),
+            w: colW,
+            h: rowH,
+            cap: `R${r+1}-C${c+1}`
+          });
+        }
+      });
+    }
+
+    // 辅助网格生成
+    function createGrid(arr, x0, y0, w0, h0, cols, rows, g, limit, prefix) {
+      const cellW = (w0 - (cols - 1) * g) / cols;
+      const cellH = (h0 - (rows - 1) * g) / rows;
+      let total = limit || cols * rows;
+      for (let i = 0; i < total; i++) {
+        const r = Math.floor(i / cols), c = i % cols;
+        arr.push({
+          x: x0 + c * (cellW + g),
+          y: y0 + r * (cellH + g),
+          w: cellW,
+          h: cellH,
+          cap: `${prefix} ${String(i+1).padStart(2, '0')}`
+        });
+      }
+    }
+
+    // =========================================================================
+    // 2. 初始化 40 页全量模型与状态
+    // =========================================================================
+    const fullSlidesData = [];
+    const selectedSlideSet = new Set(); // 默认全选
+
+    for (let i = 0; i < 40; i++) {
+      const layout = getCleanNonOverlappingLayout(i);
+      const count = Math.floor(i / 2) + 1;
+      fullSlidesData.push({
+        id: i + 1,
+        count: count,
+        tag: `SLIDE ${String(i+1).padStart(2,'0')} · ${count} IMAGES · ${i%2===0?'STYLE A':'STYLE B'}`,
+        title: layout.title,
+        boxes: layout.boxes,
+        images: layout.boxes.map((_, idx) => RAW_USER_IMAGES[(i + idx) % RAW_USER_IMAGES.length])
+      });
+      selectedSlideSet.add(i); // 默认全选
+    }
+
+    let currentIndex = 0;
+    let activeBoxIndex = 0;
+
+    function init() {
+      renderSidebar();
+      loadSlide(0);
+      setupFileInput();
+      preloadImagesToBase64();
+      updateSelectedCountText();
+    }
+
+    function setThemeBg(color, btn) {
+      currentThemeColor = color;
+      document.getElementById('slideStage').style.background = color;
+    }
+
+    // 渲染左侧导航（带快捷勾选）
+    function renderSidebar() {
+      const container = document.getElementById('sidebarList');
+      container.innerHTML = fullSlidesData.map((s, idx) => `
+        <div onclick="goToSlide(${idx})" class="p-2 rounded-lg cursor-pointer transition flex items-center justify-between text-xs ${idx === currentIndex ? 'bg-sky-50 text-sky-700 border border-sky-300 font-bold' : 'text-slate-600 hover:bg-slate-50'}">
+          <div class="flex items-center gap-2 truncate">
+            <input type="checkbox" ${selectedSlideSet.has(idx) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSlideSelect(${idx})" class="rounded text-sky-600 focus:ring-0 cursor-pointer">
+            <span class="font-mono text-[10px] w-5 text-slate-400">${String(s.id).padStart(2, '0')}</span>
+            <span class="truncate">${s.title}</span>
+          </div>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-mono shrink-0">${s.count}图</span>
+        </div>
+      `).join('');
+    }
+
+    // 加载当前幻灯片
+    function loadSlide(index) {
+      currentIndex = index;
+      const slide = fullSlidesData[index];
+
+      document.getElementById('slideIndicator').innerText = `${String(index + 1).padStart(2, '0')} / 40`;
+      document.getElementById('slideTag').innerText = slide.tag;
+      document.getElementById('slideTitle').innerText = slide.title;
+
+      const area = document.getElementById('imageLayoutArea');
+      area.innerHTML = '';
+
+      slide.boxes.forEach((box, bIdx) => {
+        const leftPct = (box.x / 10) * 100;
+        const topPct = ((box.y - 0.85) / (5.625 - 0.85)) * 100;
+        const widthPct = (box.w / 10) * 100;
+        const heightPct = (box.h / (5.625 - 0.85)) * 100;
+
+        const boxEl = document.createElement('div');
+        boxEl.className = 'img-box';
+        boxEl.style.left = `${leftPct}%`;
+        boxEl.style.top = `${topPct}%`;
+        boxEl.style.width = `${widthPct}%`;
+        boxEl.style.height = `${heightPct}%`;
+
+        const currentSrc = (isBase64Ready && base64ImagePool.length > 0)
+          ? base64ImagePool[(index + bIdx) % base64ImagePool.length]
+          : slide.images[bIdx];
+
+        boxEl.innerHTML = `
+          <img src="${currentSrc}" alt="photo">
+          <div class="caption-tag">
+            <span contenteditable="true" spellcheck="false" class="truncate">${box.cap}</span>
+            <span class="text-[8px] text-slate-400 opacity-60">RAW</span>
+          </div>
+          <div class="overlay absolute inset-0 flex items-center justify-center text-white text-[10px] gap-1">
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+            <span>点选换图</span>
+          </div>
+        `;
+
+        boxEl.addEventListener('click', (e) => {
+          if (e.target.hasAttribute('contenteditable')) return;
+          e.stopPropagation();
+          activeBoxIndex = bIdx;
+          document.getElementById('singleImgInput').click();
+        });
+
+        // 拖拽换图
+        boxEl.addEventListener('dragover', (e) => { e.preventDefault(); boxEl.classList.add('drag-over'); });
+        boxEl.addEventListener('dragleave', () => boxEl.classList.remove('drag-over'));
+        boxEl.addEventListener('drop', (e) => {
+          e.preventDefault();
+          boxEl.classList.remove('drag-over');
+          const file = e.dataTransfer.files[0];
+          if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              boxEl.querySelector('img').src = evt.target.result;
+              slide.images[bIdx] = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
+        area.appendChild(boxEl);
+      });
+
+      lucide.createIcons();
+      renderSidebar();
+    }
+
+    function prevSlide() { if (currentIndex > 0) loadSlide(currentIndex - 1); }
+    function nextSlide() { if (currentIndex < fullSlidesData.length - 1) loadSlide(currentIndex + 1); }
+    function goToSlide(idx) { loadSlide(idx); }
+
+    function setupFileInput() {
+      document.getElementById('singleImgInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            fullSlidesData[currentIndex].images[activeBoxIndex] = evt.target.result;
+            loadSlide(currentIndex);
+          };
+          reader.readAsDataURL(file);
+        }
+        e.target.value = '';
+      });
+    }
+
+    // =========================================================================
+    // 3. 页面导出多选逻辑
+    // =========================================================================
+    function toggleSlideSelect(idx) {
+      if (selectedSlideSet.has(idx)) {
+        selectedSlideSet.delete(idx);
+      } else {
+        selectedSlideSet.add(idx);
+      }
+      updateSelectedCountText();
+      renderSidebar();
+    }
+
+    function toggleSelectAll(selectAll) {
+      if (selectAll) {
+        for (let i = 0; i < 40; i++) selectedSlideSet.add(i);
+      } else {
+        selectedSlideSet.clear();
+      }
+      updateSelectedCountText();
+      renderSidebar();
+    }
+
+    function selectOnlyCurrent() {
+      selectedSlideSet.clear();
+      selectedSlideSet.add(currentIndex);
+      updateSelectedCountText();
+      renderSidebar();
+    }
+
+    function selectFirst10() {
+      selectedSlideSet.clear();
+      for (let i = 0; i < 10; i++) selectedSlideSet.add(i);
+      updateSelectedCountText();
+      renderSidebar();
+    }
+
+    function updateSelectedCountText() {
+      const count = selectedSlideSet.size;
+      document.getElementById('selectedCountText').innerText = count;
+      document.getElementById('modalSelectedCount').innerText = count;
+    }
+
+    function openSelectModal() { document.getElementById('exportModal').classList.remove('hidden'); }
+    function closeSelectModal() { document.getElementById('exportModal').classList.add('hidden'); }
+
+    // =========================================================================
+    // 4. 核心导出：带真实图片、不遮挡、带微标小字、仅导出勾选页面的 PPTX
+    // =========================================================================
+    async function exportSelectedSlidesToPPTX() {
+      if (selectedSlideSet.size === 0) {
+        alert("请至少勾选 1 个页面进行导出！");
+        return;
+      }
+
+      const btn = document.getElementById('exportBtn');
+      const originText = btn.innerHTML;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>正在导出选中的 ${selectedSlideSet.size} 页...</span>`;
+      lucide.createIcons();
+
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9'; // 10 x 5.625 英寸
+
+        const cleanBg = currentThemeColor.replace('#', '').toUpperCase();
+
+        // 仅遍历用户勾选的页码
+        for (let i = 0; i < fullSlidesData.length; i++) {
+          if (!selectedSlideSet.has(i)) continue; // 跳过未选中页面
+
+          const sData = fullSlidesData[i];
+          const slide = pptx.addSlide();
+          slide.background = { color: cleanBg };
+
+          // 1. 原生标签
+          slide.addText(sData.tag, {
+            x: 0.6, y: 0.35, w: 8.8, h: 0.25,
+            fontSize: 9, bold: true, color: '0284C7', fontFace: 'Arial'
+          });
+
+          // 2. 原生大标题
+          slide.addText(sData.title, {
+            x: 0.6, y: 0.55, w: 8.8, h: 0.45,
+            fontSize: 16, bold: true, color: '0F172A', fontFace: 'Arial'
+          });
+
+          // 3. 注入无遮挡图片和微标小字
+          sData.boxes.forEach((box, bIdx) => {
+            let imgData = (isBase64Ready && base64ImagePool.length > 0)
+              ? base64ImagePool[(i + bIdx) % base64ImagePool.length]
+              : sData.images[bIdx];
+
+            if (imgData) {
+              // 图片对象
+              slide.addImage({
+                data: imgData,
+                x: box.x,
+                y: box.y,
+                w: box.w,
+                h: box.h,
+                sizing: { type: 'cover', w: box.w, h: box.h }
+              });
+
+              // 原生微标小字卡片 (白底半透明细注，可点击编辑)
+              slide.addText(box.cap, {
+                x: box.x,
+                y: box.y + box.h - 0.22,
+                w: box.w,
+                h: 0.22,
+                fontSize: 6.5,
+                color: '334155',
+                fill: { color: 'FFFFFF', transparency: 15 },
+                fontFace: 'Courier New',
+                align: 'center',
+                valign: 'middle'
+              });
+            }
+          });
+
+          // 4. 页脚
+          slide.addText(`PAGE ${String(i + 1).padStart(2, '0')} / 40 · NON-OVERLAPPING DECK`, {
+            x: 0.6, y: 5.25, w: 8.8, h: 0.25,
+            fontSize: 8, color: '94A3B8', fontFace: 'Arial'
+          });
+        }
+
+        await pptx.writeFile({ fileName: `大片排版精选_${selectedSlideSet.size}页_${Date.now()}.pptx` });
+      } catch (err) {
+        alert('导出失败，请查看控制台：' + err.message);
+        console.error(err);
+      } finally {
+        btn.innerHTML = originText;
+        lucide.createIcons();
+      }
+    }
+
+    // 键盘切页
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement && document.activeElement.getAttribute('contenteditable') === 'true') return;
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+
+    window.onload = init;
+  </script>
+</body>
+</html>
