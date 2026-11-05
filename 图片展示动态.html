@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <!-- 🌟 锁定 1400px 电脑级大屏基准视口，手机端自动等比微缩，开启双指自由缩放 -->
+  <meta name="viewport" id="viewportMeta" content="width=1400, user-scalable=yes">
+  <script>
+    function adaptMobileViewport() {
+      var sw = window.screen.width;
+      var iw = window.innerWidth;
+      var w = (iw && iw < 1400) ? iw : ((sw && sw < 1400) ? sw : 1400);
+      if (w < 1400) {
+        var scale = w / 1400;
+        var meta = document.getElementById('viewportMeta');
+        if (meta) {
+          meta.content = 'width=1400, initial-scale=' + scale + ', minimum-scale=' + (scale * 0.4) + ', maximum-scale=3.5, user-scalable=yes';
+        }
+      }
+    }
+    adaptMobileViewport();
+    window.addEventListener('resize', adaptMobileViewport);
+    window.addEventListener('orientationchange', adaptMobileViewport);
+  </script>
+
+  <title>InfiniteFlow Master · 15套无缝多向流转展映系统 (已修复不动Bug)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google 字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+
+  <style id="dynamicAnimationStyles">
+    /* 核心无缝滚动关键帧 (采用强制 translate3d 硬件加速) */
+    @keyframes moveLeft {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+    @keyframes moveRight {
+      0% { transform: translate3d(-50%, 0, 0); }
+      100% { transform: translate3d(0, 0, 0); }
+    }
+    @keyframes moveUp {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(0, -50%, 0); }
+    }
+    @keyframes moveDown {
+      0% { transform: translate3d(0, -50%, 0); }
+      100% { transform: translate3d(0, 0, 0); }
+    }
+    @keyframes waveFloating {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-14px); }
+    }
+    @keyframes pulseScale {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    /* 运动类名赋予独立动画并锁定 infinite */
+    .anim-left { animation: moveLeft 32s linear infinite !important; }
+    .anim-right { animation: moveRight 32s linear infinite !important; }
+    .anim-up { animation: moveUp 36s linear infinite !important; }
+    .anim-down { animation: moveDown 36s linear infinite !important; }
+
+    /* 只有在按下暂停按钮时才冻结 */
+    body.is-paused .anim-left,
+    body.is-paused .anim-right,
+    body.is-paused .anim-up,
+    body.is-paused .anim-down,
+    body.is-paused .wave-anim {
+      animation-play-state: paused !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      touch-action: auto !important;
+    }
+    .font-mono-num { font-family: 'Space Grotesk', monospace; }
+
+    /* 3D 空间立体视差姿态 */
+    .diagonal-perspective {
+      transform: perspective(1400px) rotateX(16deg) rotateY(-8deg) rotateZ(-6deg) scale(1.15);
+      transform-origin: center center;
+    }
+    .accordion-perspective {
+      transform: perspective(1400px) rotateX(12deg) scale(1.05);
+      transform-origin: center center;
+    }
+    .v-chevron-perspective {
+      transform: perspective(1200px) rotateX(18deg) scale(1.1);
+      transform-origin: center center;
+    }
+
+    /* 1400x800 固定黄金展台容器 */
+    #stageCanvasBox {
+      width: 1400px;
+      height: 800px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 卡片高级精致阴影 */
+    .flow-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    body.is-paused .flow-card:hover {
+      border-color: #0284c7;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.25);
+    }
+    .flow-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+    .card-tag {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(4px);
+      padding: 2px 6px;
+      font-size: 9px;
+      font-family: monospace;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* 胶卷打孔效果 */
+    .film-sprockets::before, .film-sprockets::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; height: 10px;
+      background: radial-gradient(circle, #0f172a 40%, transparent 45%);
+      background-size: 16px 10px;
+      z-index: 20;
+    }
+    .film-sprockets::before { top: 2px; }
+    .film-sprockets::after { bottom: 2px; }
+  </style>
+</head>
+<body class="bg-[#fbf9f5] text-slate-800 min-h-screen flex flex-col select-none overflow-x-hidden transition-colors duration-300" id="mainBody">
+
+  <!-- ================= 顶部控制台 ================= -->
+  <header id="topControlBar" class="edit-only h-16 bg-white/95 border-b border-slate-200 flex items-center justify-between px-6 z-40 shrink-0 shadow-sm backdrop-blur-md sticky top-0">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 bg-sky-600 rounded-xl shadow-md shadow-sky-600/20">
+        <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+          InfiniteFlow Master
+          <span class="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold">已修复动效</span>
+        </h1>
+        <p class="text-[11px] text-slate-500">流速微调 · 15种构图 · 手机等比微缩 · 批量导入自选图</p>
+      </div>
+    </div>
+
+    <!-- 15 套动向模板选择 -->
+    <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+      <span class="text-slate-500 font-bold px-2 flex items-center gap-1"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>动效模板:</span>
+      <select id="templateSelect" onchange="switchTemplate(this.value)" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1 font-bold text-sky-700 outline-none text-xs cursor-pointer shadow-sm">
+        <option value="marquee-row">01. ⇄ 多行交错对流 (左右交替流动)</option>
+        <option value="stream-col" selected>02. ⇅ 多列纵向瀑布 (上下穿梭对流)</option>
+        <option value="diagonal-stream">03. ⤢ 3D 斜向传送带 (空间倾斜视差)</option>
+        <option value="speed-lanes">04. ⚡ 上下对向飞驰 (双半区高速对冲)</option>
+        <option value="wave-drift">05. 🌊 波浪呼吸巡游 (带起伏浮动振幅)</option>
+        <option value="converge-split">06. ⥤⥢ 向心对冲汇聚 (双侧往中轴对流)</option>
+        <option value="cross-traffic">07. ✛ 十字纵横穿插 (横纵双层立交视差)</option>
+        <option value="accordion-tilt">08. 🪗 手风琴折角对流 (带立体微倾角)</option>
+        <option value="masonry-brick">09. 🧱 错缝砖砌快轨 (不等宽砖面滑行)</option>
+        <option value="staircase-cascade">10. 🪜 阶梯斜向滑降 (多轨梯次滑落)</option>
+        <option value="kaleido-spiral">11. 🌀 四轨回形顺时针流 (外围闭环回旋)</option>
+        <option value="cinematic-pillar">12. 🏛️ 巨幕双立柱中轴穿梭 (左右纵柱+中横轨)</option>
+        <option value="fisheye-depth">13. 👁️ 鱼眼凸透镜视差流 (轴心微凸立体放大)</option>
+        <option value="v-chevron-flight">14. 📐 V字人字折角大雁飞行 (箭头矩阵纵深)</option>
+        <option value="film-contact-reel">15. 🎞️ 35mm 胶片打孔无级快轨 (复古黑胶齿孔)</option>
+      </select>
+    </div>
+
+    <!-- 控制面板 -->
+    <div class="flex items-center space-x-2.5">
+      <!-- 流速控制滑块 -->
+      <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 px-2.5 py-1 text-xs gap-1.5" title="自由调节流动速度">
+        <i data-lucide="gauge" class="w-3.5 h-3.5 text-slate-500"></i>
+        <span class="text-slate-500 text-[11px] font-medium">流速:</span>
+        <input type="range" min="0.3" max="3.0" value="1.0" step="0.1" id="speedSlider" oninput="changeSpeed(this.value)" class="w-16 accent-sky-600 cursor-pointer">
+        <span class="font-mono-num font-bold text-sky-700 text-[11px] w-7 text-right" id="speedText">1.0x</span>
+      </div>
+
+      <!-- 暂停/继续换图按钮 -->
+      <button onclick="togglePauseState()" id="pauseToggleBtn" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition active:scale-95">
+        <i data-lucide="pause" class="w-3.5 h-3.5" id="pauseBtnIcon"></i>
+        <span id="pauseBtnText">暂停换图</span>
+      </button>
+
+      <!-- 行/列数调节 -->
+      <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 px-2 py-1 text-xs gap-1">
+        <span class="text-slate-500 text-[11px]">行/列:</span>
+        <select id="rowCountSelect" onchange="changeRowCount(this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 font-bold text-sky-700 outline-none text-xs">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+
+      <!-- 缩放调节 -->
+      <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 px-2 py-1 text-xs gap-1">
+        <i data-lucide="zoom-in" class="w-3 h-3 text-slate-500"></i>
+        <input type="range" min="50" max="180" value="100" step="5" id="zoomSlider" oninput="changeZoom(this.value)" class="w-12 accent-sky-600 cursor-pointer">
+        <span class="font-mono-num font-bold text-sky-700 text-[11px] w-7 text-right" id="zoomText">100%</span>
+      </div>
+
+      <!-- 图片操作 -->
+      <button onclick="clearCurrentImages()" class="px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition flex items-center gap-1" title="清空预设图">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        <span>清空预设</span>
+      </button>
+
+      <label class="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 hover:bg-sky-100 text-sky-700 text-xs font-bold cursor-pointer transition flex items-center gap-1">
+        <i data-lucide="folder-up" class="w-3.5 h-3.5"></i>
+        <span>批量导入照片</span>
+        <input type="file" accept="image/*" multiple onchange="handleBatchUpload(this)" class="hidden">
+      </label>
+
+      <!-- 浅色底色 -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+        <button onclick="changeThemeBg('#fbf9f5')" class="w-4 h-4 rounded-full border-2 border-sky-500 shadow-sm bg-[#fbf9f5]" title="典雅暖杏白"></button>
+        <button onclick="changeThemeBg('#f8fafc')" class="w-4 h-4 rounded-full border border-slate-300 shadow-sm bg-[#f8fafc]" title="现代冷雾白"></button>
+        <button onclick="changeThemeBg('#f0f9ff')" class="w-4 h-4 rounded-full border border-slate-300 shadow-sm bg-[#f0f9ff]" title="晨曦淡雅蓝"></button>
+        <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer flex items-center justify-center bg-white shadow-sm" title="自定义色盘">
+          <input type="color" onchange="changeThemeBg(this.value)" class="w-0 h-0 opacity-0">
+          <i data-lucide="pipette" class="w-2.5 h-2.5 text-slate-500"></i>
+        </label>
+      </div>
+
+      <!-- 导出独立 HTML 按钮 -->
+      <button onclick="exportStandaloneHTML()" class="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-sky-600/20 flex items-center gap-1.5 transition active:scale-95">
+        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+        <span>导出当前页 HTML</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 画面主视口舞台 (1400x800 黄金大屏基准) ================= -->
+  <main class="flex-1 flex flex-col items-center justify-center p-4 relative overflow-auto">
+    <div id="zoomWrapper" class="transition-transform duration-150 origin-center flex items-center justify-center" style="transform: scale(1);">
+      <div id="stageCanvasBox" class="rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden flex items-center justify-center relative" style="background: inherit;">
+        <div id="dynamicStageMount" class="w-full h-full relative flex items-center justify-center overflow-hidden">
+          <!-- JS 自动生成内容 -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部微提示 -->
+  <div id="bottomHudBar" class="edit-only fixed bottom-4 left-6 z-40 bg-white/85 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-200 shadow-md flex items-center gap-2.5 text-xs text-slate-600 pointer-events-none">
+    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+    <span id="statusInfoText">运动已就绪！鼠标随意划过保持转动 · 点击右上角“暂停换图”可更换图片</span>
+  </div>
+
+  <input type="file" id="replaceSingleFileInput" accept="image/*" class="hidden">
+
+  <script id="engineScript">
+    const DEFAULT_PRESET_IMAGES = [
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1600&auto=format&fit=crop&q=85",
+      "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1600&auto=format&fit=crop&q=85"
+    ];
+
+    let PHOTO_LIST = [...DEFAULT_PRESET_IMAGES];
+    let currentTemplate = 'stream-col'; // 默认你截图中的纵向瀑布
+    let currentRows = 4;
+    let currentZoom = 1.0;
+    let currentSpeed = 1.0;
+    let currentThemeColor = '#fbf9f5';
+    let isPaused = false;
+    let activeCardImgElem = null;
+
+    function init() {
+      document.getElementById('templateSelect').value = currentTemplate;
+      applySpeedToCSS(currentSpeed);
+      renderTemplate();
+      setupImageReplacer();
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // 1. 动态注入关键帧动画（彻底规避变量单位失效导致不动的 Bug）
+    // =========================================================================
+    function changeSpeed(val) {
+      currentSpeed = parseFloat(val);
+      document.getElementById('speedText').innerText = currentSpeed.toFixed(1) + 'x';
+      applySpeedToCSS(currentSpeed);
+    }
+
+    function applySpeedToCSS(speed) {
+      const durH = (32 / speed).toFixed(2);
+      const durV = (36 / speed).toFixed(2);
+
+      const styleEl = document.getElementById('dynamicAnimationStyles');
+      styleEl.innerHTML = `
+        @keyframes moveLeft { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
+        @keyframes moveRight { 0% { transform: translate3d(-50%, 0, 0); } 100% { transform: translate3d(0, 0, 0); } }
+        @keyframes moveUp { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(0, -50%, 0); } }
+        @keyframes moveDown { 0% { transform: translate3d(0, -50%, 0); } 100% { transform: translate3d(0, 0, 0); } }
+        @keyframes waveFloating { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-14px); } }
+        @keyframes pulseScale { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+        .anim-left { animation: moveLeft ${durH}s linear infinite !important; will-change: transform; }
+        .anim-right { animation: moveRight ${durH}s linear infinite !important; will-change: transform; }
+        .anim-up { animation: moveUp ${durV}s linear infinite !important; will-change: transform; }
+        .anim-down { animation: moveDown ${durV}s linear infinite !important; will-change: transform; }
+
+        body.is-paused .anim-left,
+        body.is-paused .anim-right,
+        body.is-paused .anim-up,
+        body.is-paused .anim-down,
+        body.is-paused .wave-anim {
+          animation-play-state: paused !important;
+        }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; min-width: 1400px; width: 100%; margin: 0 auto; touch-action: auto !important; }
+        .font-mono-num { font-family: 'Space Grotesk', monospace; }
+        .diagonal-perspective { transform: perspective(1400px) rotateX(16deg) rotateY(-8deg) rotateZ(-6deg) scale(1.15); transform-origin: center center; }
+        .accordion-perspective { transform: perspective(1400px) rotateX(12deg) scale(1.05); transform-origin: center center; }
+        .v-chevron-perspective { transform: perspective(1200px) rotateX(18deg) scale(1.1); transform-origin: center center; }
+        #stageCanvasBox { width: 1400px; height: 800px; position: relative; overflow: hidden; }
+        .flow-card { position: relative; overflow: hidden; border-radius: 8px; background: #ffffff; box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.08); border: 1px solid rgba(0, 0, 0, 0.06); transition: border-color 0.2s, box-shadow 0.2s; cursor: pointer; }
+        body.is-paused .flow-card:hover { border-color: #0284c7; box-shadow: 0 10px 25px rgba(2, 132, 199, 0.25); }
+        .flow-card img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .card-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px); padding: 2px 6px; font-size: 9px; font-family: monospace; color: #475569; display: flex; justify-content: space-between; border-top: 1px solid rgba(0,0,0,0.05); }
+        .film-sprockets::before, .film-sprockets::after { content: ''; position: absolute; left: 0; right: 0; height: 10px; background: radial-gradient(circle, #0f172a 40%, transparent 45%); background-size: 16px 10px; z-index: 20; }
+        .film-sprockets::before { top: 2px; }
+        .film-sprockets::after { bottom: 2px; }
+      `;
+    }
+
+    // =========================================================================
+    // 2. 模板渲染系统 (修复高度溢出与位移计算阻断问题)
+    // =========================================================================
+    function switchTemplate(tpl) {
+      currentTemplate = tpl;
+      document.getElementById('templateSelect').value = tpl;
+      renderTemplate();
+      lucide.createIcons();
+    }
+
+    function renderTemplate() {
+      const mount = document.getElementById('dynamicStageMount');
+      mount.innerHTML = '';
+
+      if (PHOTO_LIST.length === 0) {
+        mount.innerHTML = `
+          <div class="flex flex-col items-center justify-center text-slate-400 space-y-3">
+            <i data-lucide="image" class="w-12 h-12 text-slate-300"></i>
+            <p class="text-sm font-bold">当前图片池为空</p>
+            <p class="text-xs">请点击顶部“批量导入照片”或“恢复预设”</p>
+            <button onclick="restorePresetImages()" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold shadow">恢复18张预设大图</button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      switch(currentTemplate) {
+        // --- 01. 多行交错对流 ---
+        case 'marquee-row': {
+          mount.className = "w-full h-full flex flex-col justify-between py-3 overflow-hidden relative";
+          const rowHeightPct = (100 / currentRows) - 1.5;
+          for (let r = 0; r < currentRows; r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full";
+            rowWrap.style.height = `${rowHeightPct}%`;
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-3.5`;
+            track.style.width = 'max-content';
+
+            const rowSubset = getShiftedPhotoList(r * 3);
+            const doubleList = rowSubset.concat(rowSubset);
+
+            track.innerHTML = doubleList.map((src, i) => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>R${r+1}-C${(i%rowSubset.length)+1}</span><span class="text-sky-600 font-bold">RAW</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            mount.appendChild(rowWrap);
+          }
+          break;
+        }
+
+        // --- 02. 多列纵向瀑布 (解决你截图卡住的核心关键) ---
+        case 'stream-col': {
+          mount.className = "w-full h-full flex justify-between px-6 overflow-hidden relative";
+          const cols = currentRows;
+          const colWidthPct = (100 / cols) - 1.5;
+
+          for (let c = 0; c < cols; c++) {
+            const dirClass = (c % 2 === 0) ? 'anim-up' : 'anim-down';
+            const colWrap = document.createElement('div');
+            colWrap.className = "overflow-hidden relative h-full";
+            colWrap.style.width = `${colWidthPct}%`;
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex flex-col gap-3.5`;
+            track.style.height = 'max-content';
+
+            const colSubset = getShiftedPhotoList(c * 2);
+            // 复制充足的倍数以保证平滑循环
+            const doubleList = colSubset.concat(colSubset);
+
+            track.innerHTML = doubleList.map((src, i) => `
+              <div class="flow-card w-full aspect-[4/3] shrink-0" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>COL 0${c+1}</span><span class="text-sky-600 font-bold">0${(i%colSubset.length)+1}</span></div>
+              </div>
+            `).join('');
+
+            colWrap.appendChild(track);
+            mount.appendChild(colWrap);
+          }
+          break;
+        }
+
+        // --- 03. 3D 斜向传送带 ---
+        case 'diagonal-stream': {
+          mount.className = "w-full h-full flex items-center justify-center overflow-hidden";
+          const diagWrap = document.createElement('div');
+          diagWrap.className = "diagonal-perspective flex flex-col gap-4 w-[140%] h-[140%]";
+
+          for (let r = 0; r < currentRows + 1; r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full h-[18%]";
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-4`;
+            track.style.width = 'max-content';
+            const doubleList = PHOTO_LIST.concat(PHOTO_LIST);
+
+            track.innerHTML = doubleList.map((src, i) => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-lg" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>DIAG · ${r+1}-${(i%PHOTO_LIST.length)+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            diagWrap.appendChild(rowWrap);
+          }
+          mount.appendChild(diagWrap);
+          break;
+        }
+
+        // --- 04. 上下对向飞驰 ---
+        case 'speed-lanes': {
+          mount.className = "w-full h-full flex flex-col justify-around py-4 overflow-hidden relative";
+          ['anim-left', 'anim-right'].forEach((dirClass, idx) => {
+            const laneWrap = document.createElement('div');
+            laneWrap.className = "flex overflow-hidden relative w-full h-[46%]";
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-5`;
+            track.style.width = 'max-content';
+            const doubleList = PHOTO_LIST.concat(PHOTO_LIST);
+
+            track.innerHTML = doubleList.map((src, i) => `
+              <div class="flow-card h-full aspect-[16/9] shrink-0 rounded-xl shadow-xl" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag text-xs font-bold">
+                  <span>EXPRESS LANE ${idx===0?'[NORTH ←]':'[SOUTH →]'}</span>
+                  <span class="text-sky-600 font-mono">#${i%PHOTO_LIST.length+1}</span>
+                </div>
+              </div>
+            `).join('');
+
+            laneWrap.appendChild(track);
+            mount.appendChild(laneWrap);
+          });
+          break;
+        }
+
+        // --- 05. 波浪呼吸巡游 ---
+        case 'wave-drift': {
+          mount.className = "w-full h-full flex flex-col justify-between py-4 overflow-hidden relative";
+          const rowHeightPct = (100 / currentRows) - 1.5;
+
+          for (let r = 0; r < currentRows; r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full";
+            rowWrap.style.height = `${rowHeightPct}%`;
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-4`;
+            track.style.width = 'max-content';
+            const doubleList = PHOTO_LIST.concat(PHOTO_LIST);
+
+            track.innerHTML = doubleList.map((src, i) => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0 wave-anim" style="animation: waveFloating ${3 + (i%3)*0.5}s ease-in-out infinite; animation-delay: ${(i%5)*0.2}s;" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>WAVE · ${r+1}-${(i%PHOTO_LIST.length)+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            mount.appendChild(rowWrap);
+          }
+          break;
+        }
+
+        // --- 06. 向心对冲汇聚 ---
+        case 'converge-split': {
+          mount.className = "w-full h-full flex items-center justify-between p-2 overflow-hidden relative";
+          const leftHalf = document.createElement('div');
+          leftHalf.className = "w-[49%] h-full flex flex-col justify-between overflow-hidden";
+          const rightHalf = document.createElement('div');
+          rightHalf.className = "w-[49%] h-full flex flex-col justify-between overflow-hidden";
+
+          for (let r = 0; r < currentRows; r++) {
+            const rL = document.createElement('div');
+            rL.className = "w-full h-[22%] flex overflow-hidden";
+            const tL = document.createElement('div');
+            tL.className = "anim-right flex items-center gap-3";
+            tL.style.width = 'max-content';
+            tL.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');
+            rL.appendChild(tL);
+            leftHalf.appendChild(rL);
+
+            const rR = document.createElement('div');
+            rR.className = "w-full h-[22%] flex overflow-hidden";
+            const tR = document.createElement('div');
+            tR.className = "anim-left flex items-center gap-3";
+            tR.style.width = 'max-content';
+            tR.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');
+            rR.appendChild(tR);
+            rightHalf.appendChild(rR);
+          }
+          mount.appendChild(leftHalf);
+          mount.appendChild(rightHalf);
+          break;
+        }
+
+        // --- 07. 十字纵横穿插 ---
+        case 'cross-traffic': {
+          mount.className = "w-full h-full relative overflow-hidden flex items-center justify-center";
+          const bgLayer = document.createElement('div');
+          bgLayer.className = "absolute inset-0 flex flex-col justify-between py-4 opacity-75";
+          for (let r = 0; r < 3; r++) {
+            const row = document.createElement('div');
+            row.className = "w-full h-[28%] flex overflow-hidden";
+            const track = document.createElement('div');
+            track.className = "anim-left flex items-center gap-4";
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');
+            row.appendChild(track);
+            bgLayer.appendChild(row);
+          }
+          mount.appendChild(bgLayer);
+
+          const fgLayer = document.createElement('div');
+          fgLayer.className = "absolute inset-0 flex justify-around px-28 pointer-events-none";
+          ['anim-up', 'anim-down'].forEach(dir => {
+            const col = document.createElement('div');
+            col.className = "w-[24%] h-full flex flex-col overflow-hidden pointer-events-auto shadow-2xl";
+            const track = document.createElement('div');
+            track.className = `${dir} flex flex-col gap-4`;
+            track.style.height = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card w-full aspect-[4/3] shrink-0 border-2 border-white" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');
+            col.appendChild(track);
+            fgLayer.appendChild(col);
+          });
+          mount.appendChild(fgLayer);
+          break;
+        }
+
+        // --- 08. 手风琴折角对流 ---
+        case 'accordion-tilt': {
+          mount.className = "w-full h-full accordion-perspective flex flex-col justify-between py-4 overflow-hidden relative";
+          for (let r = 0; r < currentRows; r++) {
+            const tiltAngle = (r % 2 === 0) ? 'rotateY(8deg)' : 'rotateY(-8deg)';
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";
+            rowWrap.style.transform = tiltAngle;
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-4`;
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-lg" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>ACCORDION ${r+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            mount.appendChild(rowWrap);
+          }
+          break;
+        }
+
+        // --- 09. 错缝砖砌快轨 ---
+        case 'masonry-brick': {
+          mount.className = "w-full h-full flex flex-col justify-between py-3 overflow-hidden relative";
+          for (let r = 0; r < currentRows; r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-3.5`;
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `
+              <div class="flow-card h-full ${i%2===0?'aspect-[16/9]':'aspect-[4/3]'} shrink-0" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>BRICK #${i%PHOTO_LIST.length+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            mount.appendChild(rowWrap);
+          }
+          break;
+        }
+
+        // --- 10. 阶梯斜向滑降 ---
+        case 'staircase-cascade': {
+          mount.className = "w-full h-full flex flex-col justify-between py-4 overflow-hidden relative";
+          for (let r = 0; r < currentRows; r++) {
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";
+            rowWrap.style.marginLeft = `${r * 40}px`;
+
+            const track = document.createElement('div');
+            track.className = `anim-left flex items-center gap-4`;
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-md" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>CASCADE ${r+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            mount.appendChild(rowWrap);
+          }
+          break;
+        }
+
+        // --- 11. 四轨回形顺时针流 ---
+        case 'kaleido-spiral': {
+          mount.className = "w-full h-full relative overflow-hidden p-3";
+          mount.innerHTML = `
+            <div class="absolute top-2 inset-x-2 h-[22%] overflow-hidden flex">
+              <div class="anim-right flex items-center gap-3.5" style="width:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div>
+            </div>
+            <div class="absolute bottom-2 inset-x-2 h-[22%] overflow-hidden flex">
+              <div class="anim-left flex items-center gap-3.5" style="width:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div>
+            </div>
+            <div class="absolute left-2 top-[24%] bottom-[24%] w-[20%] overflow-hidden flex flex-col">
+              <div class="anim-up flex flex-col gap-3" style="height:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card w-full aspect-[4/3] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div>
+            </div>
+            <div class="absolute right-2 top-[24%] bottom-[24%] w-[20%] overflow-hidden flex flex-col">
+              <div class="anim-down flex flex-col gap-3" style="height:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card w-full aspect-[4/3] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div>
+            </div>
+            <div class="absolute inset-[24%] flex items-center justify-center p-4">
+              <div class="w-full h-full rounded-2xl flow-card shadow-2xl border-2 border-white overflow-hidden relative" onclick="handleCardClick(this)">
+                <img src="${PHOTO_LIST[0]}">
+                <div class="absolute top-3 left-3 bg-black/60 px-3 py-1 rounded-full text-white text-[10px] font-mono">✦ ROTATING APEX</div>
+              </div>
+            </div>
+          `;
+          break;
+        }
+
+        // --- 12. 巨幕双立柱中轴穿梭 ---
+        case 'cinematic-pillar': {
+          mount.className = "w-full h-full flex justify-between p-3 overflow-hidden relative";
+          mount.innerHTML = `
+            <div class="w-[18%] h-full flex flex-col overflow-hidden shadow-2xl rounded-xl z-20">
+              <div class="anim-up flex flex-col gap-3" style="height:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card w-full aspect-[3/4] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div>
+            </div>
+            <div class="w-[62%] h-full flex flex-col justify-around overflow-hidden px-2">
+              <div class="h-[30%] overflow-hidden flex"><div class="anim-left flex items-center gap-3.5" style="width:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div></div>
+              <div class="h-[30%] overflow-hidden flex"><div class="anim-right flex items-center gap-3.5" style="width:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div></div>
+              <div class="h-[30%] overflow-hidden flex"><div class="anim-left flex items-center gap-3.5" style="width:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div></div>
+            </div>
+            <div class="w-[18%] h-full flex flex-col overflow-hidden shadow-2xl rounded-xl z-20">
+              <div class="anim-down flex flex-col gap-3" style="height:max-content;">${PHOTO_LIST.concat(PHOTO_LIST).map(s=>`<div class="flow-card w-full aspect-[3/4] shrink-0" onclick="handleCardClick(this)"><img src="${s}"></div>`).join('')}</div>
+            </div>
+          `;
+          break;
+        }
+
+        // --- 13. 鱼眼凸透镜视差流 ---
+        case 'fisheye-depth': {
+          mount.className = "w-full h-full flex flex-col justify-between py-3 overflow-hidden relative";
+          const rowHeightPct = (100 / currentRows) - 1.5;
+          for (let r = 0; r < currentRows; r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full";
+            rowWrap.style.height = `${rowHeightPct}%`;
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-3.5`;
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0 transition-transform" style="animation: pulseScale ${4 + (i%3)}s ease-in-out infinite; animation-delay: ${(i%4)*0.3}s;" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>LENS · ${r+1}-${(i%PHOTO_LIST.length)+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            mount.appendChild(rowWrap);
+          }
+          break;
+        }
+
+        // --- 14. V字人字折角大雁飞行 ---
+        case 'v-chevron-flight': {
+          mount.className = "w-full h-full flex items-center justify-center overflow-hidden";
+          const chevronWrap = document.createElement('div');
+          chevronWrap.className = "v-chevron-perspective flex flex-col gap-4 w-[130%] h-[130%]";
+
+          for (let r = 0; r < currentRows; r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const rowWrap = document.createElement('div');
+            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";
+            rowWrap.style.transform = `skewX(${(r - currentRows/2)*5}deg)`;
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-4`;
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `
+              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-lg" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag"><span>CHEVRON ${r+1}</span></div>
+              </div>
+            `).join('');
+
+            rowWrap.appendChild(track);
+            chevronWrap.appendChild(rowWrap);
+          }
+          mount.appendChild(chevronWrap);
+          break;
+        }
+
+        // --- 15. 35mm 胶片打孔无级快轨 ---
+        case 'film-contact-reel': {
+          mount.className = "w-full h-full flex flex-col justify-around py-3 overflow-hidden relative";
+          for (let r = 0; r < Math.min(3, currentRows); r++) {
+            const dirClass = (r % 2 === 0) ? 'anim-left' : 'anim-right';
+            const reelWrap = document.createElement('div');
+            reelWrap.className = "flex overflow-hidden relative w-full h-[30%] bg-slate-900 rounded-2xl film-sprockets py-3 px-1 border border-slate-700 shadow-2xl";
+
+            const track = document.createElement('div');
+            track.className = `${dirClass} flex items-center gap-4`;
+            track.style.width = 'max-content';
+            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `
+              <div class="flow-card h-full aspect-[16/9] shrink-0 border border-slate-700 rounded-md" onclick="handleCardClick(this)">
+                <img src="${src}">
+                <div class="card-tag bg-slate-900/90 text-amber-400 border-none font-mono"><span>35MM FILM · 2${i%30}A</span><span>KODAK</span></div>
+              </div>
+            `).join('');
+
+            reelWrap.appendChild(track);
+            mount.appendChild(reelWrap);
+          }
+          break;
+        }
+      }
+    }
+
+    function getShiftedPhotoList(shift) {
+      if (PHOTO_LIST.length === 0) return [];
+      const s = shift % PHOTO_LIST.length;
+      return PHOTO_LIST.slice(s).concat(PHOTO_LIST.slice(0, s));
+    }
+
+    // =========================================================================
+    // 3. 交互与控制
+    // =========================================================================
+    function changeZoom(val) {
+      currentZoom = parseInt(val) / 100;
+      document.getElementById('zoomText').innerText = val + '%';
+      document.getElementById('zoomWrapper').style.transform = `scale(${currentZoom})`;
+    }
+
+    function changeRowCount(val) {
+      currentRows = parseInt(val);
+      renderTemplate();
+    }
+
+    function changeThemeBg(color) {
+      currentThemeColor = color;
+      document.getElementById('mainBody').style.background = color;
+      document.getElementById('stageCanvasBox').style.background = color;
+    }
+
+    function togglePauseState() {
+      isPaused = !isPaused;
+      const body = document.getElementById('mainBody');
+      const btnText = document.getElementById('pauseBtnText');
+      const btnIcon = document.getElementById('pauseBtnIcon');
+      const statusText = document.getElementById('statusInfoText');
+
+      if (isPaused) {
+        body.classList.add('is-paused');
+        btnText.innerText = "▶ 继续流动";
+        btnIcon.setAttribute('data-lucide', 'play');
+        document.getElementById('pauseToggleBtn').className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition active:scale-95 animate-pulse";
+        statusText.innerText = "已暂停！点击画面任意照片即可替换为你的电脑本地图片";
+      } else {
+        body.classList.remove('is-paused');
+        btnText.innerText = "⏸ 暂停换图";
+        btnIcon.setAttribute('data-lucide', 'pause');
+        document.getElementById('pauseToggleBtn').className = "bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition active:scale-95";
+        statusText.innerText = "运动进行中！鼠标划过保持转动 · 可随时拖动顶部“流速”滑块加速或减速";
+      }
+      lucide.createIcons();
+    }
+
+    function handleCardClick(cardEl) {
+      if (!isPaused) togglePauseState();
+      activeCardImgElem = cardEl.querySelector('img');
+      document.getElementById('replaceSingleFileInput').click();
+    }
+
+    function setupImageReplacer() {
+      const input = document.getElementById('replaceSingleFileInput');
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && activeCardImgElem) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            activeCardImgElem.src = evt.target.result;
+            PHOTO_LIST.unshift(evt.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+        input.value = '';
+      });
+    }
+
+    function clearCurrentImages() {
+      if (confirm("确定清空目前的图片吗？清空后你可以批量导入属于你自己的照片！")) {
+        PHOTO_LIST = [];
+        renderTemplate();
+      }
+    }
+
+    function restorePresetImages() {
+      PHOTO_LIST = [...DEFAULT_PRESET_IMAGES];
+      renderTemplate();
+    }
+
+    function handleBatchUpload(input) {
+      const files = Array.from(input.files).filter(f => f.type.startsWith('image/'));
+      if (files.length === 0) return;
+
+      const newBase64List = [];
+      let loaded = 0;
+
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          newBase64List.push(e.target.result);
+          loaded++;
+          if (loaded === files.length) {
+            PHOTO_LIST = newBase64List;
+            renderTemplate();
+            alert(`🎉 成功导入 ${files.length} 张你的专属照片！已全部上屏流动展示！`);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+      input.value = '';
+    }
+
+    // =========================================================================
+    // 4. 核心导出：锁定模板与速度，确保导出的网页 100% 运行且动态流畅
+    // =========================================================================
+    function exportStandaloneHTML() {
+      if (PHOTO_LIST.length === 0) {
+        alert("请先添加照片后再进行导出！");
+        return;
+      }
+
+      const durH = (32 / currentSpeed).toFixed(2);
+      const durV = (36 / currentSpeed).toFixed(2);
+
+      const finalHTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <!-- 🌟 锁定 1400px 大屏基准视口，在手机打开自动等比微缩至全貌，开启双指自由拉大缩小 -->
+  <meta name="viewport" id="viewportMeta" content="width=1400, user-scalable=yes">
+  <script>
+    function adaptMobileViewport() {
+      var sw = window.screen.width;
+      var iw = window.innerWidth;
+      var w = (iw && iw < 1400) ? iw : ((sw && sw < 1400) ? sw : 1400);
+      if (w < 1400) {
+        var scale = w / 1400;
+        var meta = document.getElementById('viewportMeta');
+        if (meta) {
+          meta.content = 'width=1400, initial-scale=' + scale + ', minimum-scale=' + (scale * 0.4) + ', maximum-scale=3.5, user-scalable=yes';
+        }
+      }
+    }
+    adaptMobileViewport();
+    window.addEventListener('resize', adaptMobileViewport);
+    window.addEventListener('orientationchange', adaptMobileViewport);
+  <\/script>
+  <title>展演画廊 · 动态流转长卷</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <style>
+    @keyframes moveLeft { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
+    @keyframes moveRight { 0% { transform: translate3d(-50%, 0, 0); } 100% { transform: translate3d(0, 0, 0); } }
+    @keyframes moveUp { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(0, -50%, 0); } }
+    @keyframes moveDown { 0% { transform: translate3d(0, -50%, 0); } 100% { transform: translate3d(0, 0, 0); } }
+    @keyframes waveFloating { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-14px); } }
+    @keyframes pulseScale { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+    .anim-left { animation: moveLeft ${durH}s linear infinite !important; will-change: transform; }
+    .anim-right { animation: moveRight ${durH}s linear infinite !important; will-change: transform; }
+    .anim-up { animation: moveUp ${durV}s linear infinite !important; will-change: transform; }
+    .anim-down { animation: moveDown ${durV}s linear infinite !important; will-change: transform; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      background: ${currentThemeColor};
+      touch-action: auto !important;
+    }
+    .diagonal-perspective { transform: perspective(1400px) rotateX(16deg) rotateY(-8deg) rotateZ(-6deg) scale(1.15); transform-origin: center center; }
+    .accordion-perspective { transform: perspective(1400px) rotateX(12deg) scale(1.05); transform-origin: center center; }
+    .v-chevron-perspective { transform: perspective(1200px) rotateX(18deg) scale(1.1); transform-origin: center center; }
+
+    #stageCanvasBox { width: 1400px; height: 800px; position: relative; overflow: hidden; margin: 40px auto; background: ${currentThemeColor}; }
+    .flow-card { position: relative; overflow: hidden; border-radius: 8px; background: #ffffff; box-shadow: 0 4px 18px -2px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06); }
+    .flow-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.92); padding: 2px 6px; font-size: 9px; font-family: monospace; color: #475569; display: flex; justify-content: space-between; }
+    .film-sprockets::before, .film-sprockets::after { content: ''; position: absolute; left: 0; right: 0; height: 10px; background: radial-gradient(circle, #0f172a 40%, transparent 45%); background-size: 16px 10px; z-index: 20; }
+    .film-sprockets::before { top: 2px; }
+    .film-sprockets::after { bottom: 2px; }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen">
+  <div style="transform: scale(${currentZoom}); transform-origin: center center;">
+    <div id="stageCanvasBox" class="rounded-2xl shadow-2xl border border-slate-200">
+      <div id="dynamicStageMount" class="w-full h-full relative flex items-center justify-center overflow-hidden">
+        ${document.getElementById('dynamicStageMount').innerHTML}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([finalHTML], { type: "text/html;charset=utf-8" });
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `动态展映_${currentTemplate}_${Date.now()}.html`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+
+      alert("🎉 导出成功！\n\n1. 【动效锁定】：[" + currentTemplate + "] 模板与 " + currentSpeed.toFixed(1) + "x 流速已永久锁定！\n2. 【专属图片打包】：完全包含你当前屏幕上的所有照片！\n3. 【手机等比微缩】：发到手机打开自动等比缩小展示全貌，双指可自由放大！");
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  &lt;!&ndash; 🌟 核心：1400px 电脑级大屏基准视口，手机端自动等比微缩，开启双指自由缩放 &ndash;&gt;-->
+<!--  <meta name="viewport" id="viewportMeta" content="width=1400, user-scalable=yes">-->
+<!--  <script>-->
+<!--    function adaptMobileViewport() {-->
+<!--      var sw = window.screen.width;-->
+<!--      var iw = window.innerWidth;-->
+<!--      var w = (iw && iw < 1400) ? iw : ((sw && sw < 1400) ? sw : 1400);-->
+<!--      if (w < 1400) {-->
+<!--        var scale = w / 1400;-->
+<!--        var meta = document.getElementById('viewportMeta');-->
+<!--        if (meta) {-->
+<!--          meta.content = 'width=1400, initial-scale=' + scale + ', minimum-scale=' + (scale * 0.4) + ', maximum-scale=3.5, user-scalable=yes';-->
+<!--        }-->
+<!--      }-->
+<!--    }-->
+<!--    adaptMobileViewport();-->
+<!--    window.addEventListener('resize', adaptMobileViewport);-->
+<!--    window.addEventListener('orientationchange', adaptMobileViewport);-->
+<!--  </script>-->
+
+<!--  <title>InfiniteFlow Pro · 10套无缝多向流转展映系统</title>-->
+<!--  &lt;!&ndash; Tailwind CSS &ndash;&gt;-->
+<!--  <script src="https://cdn.tailwindcss.com"></script>-->
+<!--  &lt;!&ndash; Lucide Icons &ndash;&gt;-->
+<!--  <script src="https://unpkg.com/lucide@latest"></script>-->
+<!--  &lt;!&ndash; Google 字体 &ndash;&gt;-->
+<!--  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">-->
+
+<!--  <style>-->
+<!--    body {-->
+<!--      font-family: 'Plus Jakarta Sans', sans-serif;-->
+<!--      min-width: 1400px;-->
+<!--      width: 100%;-->
+<!--      margin: 0 auto;-->
+<!--      touch-action: auto !important;-->
+<!--    }-->
+<!--    .font-mono-num { font-family: 'Space Grotesk', monospace; }-->
+
+<!--    /* 无缝循环动画 (首尾双轨绝对连续不断开) */-->
+<!--    @keyframes scrollLeft {-->
+<!--      0% { transform: translate3d(0, 0, 0); }-->
+<!--      100% { transform: translate3d(-50%, 0, 0); }-->
+<!--    }-->
+<!--    @keyframes scrollRight {-->
+<!--      0% { transform: translate3d(-50%, 0, 0); }-->
+<!--      100% { transform: translate3d(0, 0, 0); }-->
+<!--    }-->
+<!--    @keyframes scrollUp {-->
+<!--      0% { transform: translate3d(0, 0, 0); }-->
+<!--      100% { transform: translate3d(0, -50%, 0); }-->
+<!--    }-->
+<!--    @keyframes scrollDown {-->
+<!--      0% { transform: translate3d(0, -50%, 0); }-->
+<!--      100% { transform: translate3d(0, 0, 0); }-->
+<!--    }-->
+<!--    @keyframes waveFloating {-->
+<!--      0%, 100% { transform: translateY(0px); }-->
+<!--      50% { transform: translateY(-14px); }-->
+<!--    }-->
+
+<!--    .track-left { animation: scrollLeft 32s linear infinite; }-->
+<!--    .track-right { animation: scrollRight 32s linear infinite; }-->
+<!--    .track-up { animation: scrollUp 32s linear infinite; }-->
+<!--    .track-down { animation: scrollDown 32s linear infinite; }-->
+
+<!--    /* 暂停状态：全部定格供用户点选换图 */-->
+<!--    body.is-paused .track-left,-->
+<!--    body.is-paused .track-right,-->
+<!--    body.is-paused .track-up,-->
+<!--    body.is-paused .track-down,-->
+<!--    body.is-paused .wave-anim {-->
+<!--      animation-play-state: paused !important;-->
+<!--    }-->
+
+<!--    /* 3D 空间斜角传送带 */-->
+<!--    .diagonal-perspective {-->
+<!--      transform: perspective(1400px) rotateX(16deg) rotateY(-8deg) rotateZ(-6deg) scale(1.15);-->
+<!--      transform-origin: center center;-->
+<!--    }-->
+<!--    /* 3D 手风琴折角对流 */-->
+<!--    .accordion-perspective {-->
+<!--      transform: perspective(1400px) rotateX(12deg) scale(1.05);-->
+<!--      transform-origin: center center;-->
+<!--    }-->
+
+<!--    /* 1400x800 固定黄金展台容器 */-->
+<!--    #stageCanvasBox {-->
+<!--      width: 1400px;-->
+<!--      height: 800px;-->
+<!--      position: relative;-->
+<!--      overflow: hidden;-->
+<!--    }-->
+
+<!--    /* 卡片高级精致阴影 */-->
+<!--    .flow-card {-->
+<!--      position: relative;-->
+<!--      overflow: hidden;-->
+<!--      border-radius: 8px;-->
+<!--      background: #ffffff;-->
+<!--      box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.08);-->
+<!--      border: 1px solid rgba(0, 0, 0, 0.06);-->
+<!--      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;-->
+<!--      cursor: pointer;-->
+<!--    }-->
+<!--    body.is-paused .flow-card:hover {-->
+<!--      border-color: #0284c7;-->
+<!--      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.25);-->
+<!--    }-->
+<!--    .flow-card img {-->
+<!--      width: 100%;-->
+<!--      height: 100%;-->
+<!--      object-fit: cover;-->
+<!--      display: block;-->
+<!--      pointer-events: none;-->
+<!--    }-->
+<!--    .card-tag {-->
+<!--      position: absolute;-->
+<!--      bottom: 0; left: 0; right: 0;-->
+<!--      background: rgba(255, 255, 255, 0.92);-->
+<!--      backdrop-filter: blur(4px);-->
+<!--      padding: 2px 6px;-->
+<!--      font-size: 9px;-->
+<!--      font-family: monospace;-->
+<!--      color: #475569;-->
+<!--      display: flex;-->
+<!--      justify-content: space-between;-->
+<!--      border-top: 1px solid rgba(0,0,0,0.05);-->
+<!--    }-->
+<!--  </style>-->
+<!--</head>-->
+<!--<body class="bg-[#fbf9f5] text-slate-800 min-h-screen flex flex-col select-none overflow-x-hidden transition-colors duration-300" id="mainBody">-->
+
+<!--  &lt;!&ndash; ================= 顶部专业控制台 (导出时自动清除) ================= &ndash;&gt;-->
+<!--  <header id="topControlBar" class="edit-only h-16 bg-white/95 border-b border-slate-200 flex items-center justify-between px-6 z-40 shrink-0 shadow-sm backdrop-blur-md sticky top-0">-->
+<!--    <div class="flex items-center space-x-3">-->
+<!--      <div class="p-2 bg-sky-600 rounded-xl shadow-md shadow-sky-600/20">-->
+<!--        <i data-lucide="infinity" class="w-5 h-5 text-white"></i>-->
+<!--      </div>-->
+<!--      <div>-->
+<!--        <h1 class="text-sm font-extrabold tracking-tight text-slate-900 flex items-center gap-2">-->
+<!--          InfiniteFlow Studio-->
+<!--          <span class="text-[10px] bg-sky-100 text-sky-700 border border-sky-300 px-2 py-0.5 rounded-full font-mono font-bold">10套动向版式</span>-->
+<!--        </h1>-->
+<!--        <p class="text-[11px] text-slate-500">参数固化导出 · 手机等比微缩 · 批量换图 · 自由行数</p>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 10 套动向模板下拉选择 &ndash;&gt;-->
+<!--    <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">-->
+<!--      <span class="text-slate-500 font-bold px-2 flex items-center gap-1"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>动效模板:</span>-->
+<!--      <select id="templateSelect" onchange="switchTemplate(this.value)" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1 font-bold text-sky-700 outline-none text-xs cursor-pointer shadow-sm">-->
+<!--        <option value="marquee-row">01. ⇄ 多行交错对流 (左右交替流动)</option>-->
+<!--        <option value="stream-col">02. ⇅ 多列纵向瀑布 (上下穿梭对流)</option>-->
+<!--        <option value="diagonal-stream">03. ⤢ 3D 斜向传送带 (空间倾斜视差)</option>-->
+<!--        <option value="speed-lanes">04. ⚡ 上下对向飞驰 (双半区高速对冲)</option>-->
+<!--        <option value="wave-drift">05. 🌊 波浪呼吸巡游 (带起伏浮动振幅)</option>-->
+<!--        <option value="converge-split">06. ⥤⥢ 向心对冲汇聚 (双侧往中轴对流)</option>-->
+<!--        <option value="cross-traffic">07. ✛ 十字纵横穿插 (横纵双层立交视差)</option>-->
+<!--        <option value="accordion-tilt">08. 🪗 手风琴折角对流 (带立体微倾角)</option>-->
+<!--        <option value="masonry-brick">09. 🧱 错缝砖砌快轨 (不等宽砖面滑行)</option>-->
+<!--        <option value="staircase-cascade">10. 🪜 阶梯斜向滑降 (多轨梯次递进)</option>-->
+<!--      </select>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 核心操作工具组 &ndash;&gt;-->
+<!--    <div class="flex items-center space-x-2.5">-->
+<!--      &lt;!&ndash; 暂停/继续按钮 &ndash;&gt;-->
+<!--      <button onclick="togglePauseState()" id="pauseToggleBtn" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition active:scale-95">-->
+<!--        <i data-lucide="pause" class="w-3.5 h-3.5" id="pauseBtnIcon"></i>-->
+<!--        <span id="pauseBtnText">暂停换图</span>-->
+<!--      </button>-->
+
+<!--      &lt;!&ndash; 行/列数调节 (2~8) &ndash;&gt;-->
+<!--      <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 px-2 py-1 text-xs gap-1">-->
+<!--        <span class="text-slate-500 text-[11px]">行数:</span>-->
+<!--        <select id="rowCountSelect" onchange="changeRowCount(this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 font-bold text-sky-700 outline-none text-xs">-->
+<!--          <option value="2">2 行</option>-->
+<!--          <option value="3">3 行</option>-->
+<!--          <option value="4" selected>4 行</option>-->
+<!--          <option value="5">5 行</option>-->
+<!--          <option value="6">6 行</option>-->
+<!--          <option value="8">8 行</option>-->
+<!--        </select>-->
+<!--      </div>-->
+
+<!--      &lt;!&ndash; 视口缩放 (Zoom 50% ~ 180%) &ndash;&gt;-->
+<!--      <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 px-2.5 py-1 text-xs gap-1.5">-->
+<!--        <i data-lucide="zoom-in" class="w-3.5 h-3.5 text-slate-500"></i>-->
+<!--        <input type="range" min="50" max="180" value="100" step="5" id="zoomSlider" oninput="changeZoom(this.value)" class="w-14 accent-sky-600 cursor-pointer">-->
+<!--        <span class="font-mono-num font-bold text-sky-700 text-[11px] w-7 text-right" id="zoomText">100%</span>-->
+<!--      </div>-->
+
+<!--      &lt;!&ndash; 图片批处理功能组 &ndash;&gt;-->
+<!--      <button onclick="clearCurrentImages()" class="px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition flex items-center gap-1" title="一键不显示预设图">-->
+<!--        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>-->
+<!--        <span>清空预设</span>-->
+<!--      </button>-->
+
+<!--      <label class="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 hover:bg-sky-100 text-sky-700 text-xs font-bold cursor-pointer transition flex items-center gap-1">-->
+<!--        <i data-lucide="folder-up" class="w-3.5 h-3.5"></i>-->
+<!--        <span>批量导入我的照片</span>-->
+<!--        <input type="file" accept="image/*" multiple onchange="handleBatchUpload(this)" class="hidden">-->
+<!--      </label>-->
+
+<!--      &lt;!&ndash; 浅色底色切换 &ndash;&gt;-->
+<!--      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">-->
+<!--        <button onclick="changeThemeBg('#fbf9f5')" class="w-4 h-4 rounded-full border-2 border-sky-500 shadow-sm bg-[#fbf9f5]" title="典雅暖杏白"></button>-->
+<!--        <button onclick="changeThemeBg('#f8fafc')" class="w-4 h-4 rounded-full border border-slate-300 shadow-sm bg-[#f8fafc]" title="现代冷雾白"></button>-->
+<!--        <button onclick="changeThemeBg('#f0f9ff')" class="w-4 h-4 rounded-full border border-slate-300 shadow-sm bg-[#f0f9ff]" title="晨曦淡雅蓝"></button>-->
+<!--        <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer flex items-center justify-center bg-white shadow-sm" title="自定义色盘">-->
+<!--          <input type="color" onchange="changeThemeBg(this.value)" class="w-0 h-0 opacity-0">-->
+<!--          <i data-lucide="pipette" class="w-2.5 h-2.5 text-slate-500"></i>-->
+<!--        </label>-->
+<!--      </div>-->
+
+<!--      &lt;!&ndash; 核心导出独立 HTML 按钮 &ndash;&gt;-->
+<!--      <button onclick="exportStandaloneHTML()" class="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-sky-600/20 flex items-center gap-1.5 transition active:scale-95">-->
+<!--        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>-->
+<!--        <span>导出当前页 HTML</span>-->
+<!--      </button>-->
+<!--    </div>-->
+<!--  </header>-->
+
+<!--  &lt;!&ndash; ================= 画面主视口舞台 (1400x800 黄金大屏基准) ================= &ndash;&gt;-->
+<!--  <main class="flex-1 flex flex-col items-center justify-center p-4 relative overflow-auto">-->
+<!--    &lt;!&ndash; 缩放变焦外壳 &ndash;&gt;-->
+<!--    <div id="zoomWrapper" class="transition-transform duration-150 origin-center flex items-center justify-center" style="transform: scale(1);">-->
+<!--      &lt;!&ndash; 1400x800 真实舞台 &ndash;&gt;-->
+<!--      <div id="stageCanvasBox" class="rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden flex items-center justify-center relative" style="background: inherit;">-->
+<!--        &lt;!&ndash; 动态模板挂载区 &ndash;&gt;-->
+<!--        <div id="dynamicStageMount" class="w-full h-full relative flex items-center justify-center overflow-hidden">-->
+<!--          &lt;!&ndash; JS 自动生成内容 &ndash;&gt;-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </main>-->
+
+<!--  &lt;!&ndash; 底部微提示 &ndash;&gt;-->
+<!--  <div id="bottomHudBar" class="edit-only fixed bottom-4 left-6 z-40 bg-white/85 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-200 shadow-md flex items-center gap-2.5 text-xs text-slate-600 pointer-events-none">-->
+<!--    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>-->
+<!--    <span id="statusInfoText">鼠标划过保持转动 · 点击右上角“暂停换图”可点选更换任意图片</span>-->
+<!--  </div>-->
+
+<!--  <input type="file" id="replaceSingleFileInput" accept="image/*" class="hidden">-->
+
+<!--  <script id="engineScript">-->
+<!--    // 0. 预置的 18 张高清大图-->
+<!--    const DEFAULT_PRESET_IMAGES = [-->
+<!--      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1600&auto=format&fit=crop&q=85",-->
+<!--      "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1600&auto=format&fit=crop&q=85"-->
+<!--    ];-->
+
+<!--    // 全局当前图片池-->
+<!--    let PHOTO_LIST = [...DEFAULT_PRESET_IMAGES];-->
+<!--    let currentTemplate = 'marquee-row';-->
+<!--    let currentRows = 4;-->
+<!--    let currentZoom = 1.0;-->
+<!--    let currentThemeColor = '#fbf9f5';-->
+<!--    let isPaused = false;-->
+<!--    let activeCardImgElem = null;-->
+
+<!--    // 初始化-->
+<!--    function init() {-->
+<!--      renderTemplate();-->
+<!--      setupImageReplacer();-->
+<!--      lucide.createIcons();-->
+<!--    }-->
+
+<!--    // =========================================================================-->
+<!--    // 1. 模板分发系统：整整 10 套截然不同的全流动无缝架构-->
+<!--    // =========================================================================-->
+<!--    function switchTemplate(tpl) {-->
+<!--      currentTemplate = tpl;-->
+<!--      document.getElementById('templateSelect').value = tpl;-->
+<!--      renderTemplate();-->
+<!--      lucide.createIcons();-->
+<!--    }-->
+
+<!--    function renderTemplate() {-->
+<!--      const mount = document.getElementById('dynamicStageMount');-->
+<!--      mount.innerHTML = '';-->
+
+<!--      if (PHOTO_LIST.length === 0) {-->
+<!--        mount.innerHTML = `-->
+<!--          <div class="flex flex-col items-center justify-center text-slate-400 space-y-3">-->
+<!--            <i data-lucide="image" class="w-12 h-12 text-slate-300"></i>-->
+<!--            <p class="text-sm font-bold">当前图片池为空</p>-->
+<!--            <p class="text-xs">请点击顶部“批量导入我的照片”或“恢复预设”</p>-->
+<!--            <button onclick="restorePresetImages()" class="px-4 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold shadow">恢复18张预设大图</button>-->
+<!--          </div>-->
+<!--        `;-->
+<!--        lucide.createIcons();-->
+<!--        return;-->
+<!--      }-->
+
+<!--      switch(currentTemplate) {-->
+<!--        // -&#45;&#45; 01. 多行交错对流 (左右交替流动) -&#45;&#45;-->
+<!--        case 'marquee-row': {-->
+<!--          mount.className = "w-full h-full flex flex-col justify-between py-3 overflow-hidden relative";-->
+<!--          const rowHeightPct = (100 / currentRows) - 1.5;-->
+
+<!--          for (let r = 0; r < currentRows; r++) {-->
+<!--            const dirClass = (r % 2 === 0) ? 'track-left' : 'track-right';-->
+<!--            const rowWrap = document.createElement('div');-->
+<!--            rowWrap.className = "flex overflow-hidden relative w-full";-->
+<!--            rowWrap.style.height = `${rowHeightPct}%`;-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track ${dirClass} flex items-center gap-3.5`;-->
+<!--            const rowSubset = getShiftedPhotoList(r * 3);-->
+<!--            const doubleList = rowSubset.concat(rowSubset);-->
+
+<!--            track.innerHTML = doubleList.map((src, i) => `-->
+<!--              <div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>R${r+1}-C${(i%rowSubset.length)+1}</span><span class="text-sky-600 font-bold">RAW</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            rowWrap.appendChild(track);-->
+<!--            mount.appendChild(rowWrap);-->
+<!--          }-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 02. 多列纵向瀑布 (上下交替对流) -&#45;&#45;-->
+<!--        case 'stream-col': {-->
+<!--          mount.className = "w-full h-full flex justify-between px-6 overflow-hidden relative";-->
+<!--          const cols = currentRows;-->
+<!--          const colWidthPct = (100 / cols) - 1.5;-->
+
+<!--          for (let c = 0; c < cols; c++) {-->
+<!--            const dirClass = (c % 2 === 0) ? 'track-up' : 'track-down';-->
+<!--            const colWrap = document.createElement('div');-->
+<!--            colWrap.className = "flex flex-col overflow-hidden relative h-full";-->
+<!--            colWrap.style.width = `${colWidthPct}%`;-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `${dirClass} flex flex-col gap-3.5`;-->
+<!--            const colSubset = getShiftedPhotoList(c * 2);-->
+<!--            const doubleList = colSubset.concat(colSubset);-->
+
+<!--            track.innerHTML = doubleList.map((src, i) => `-->
+<!--              <div class="flow-card w-full aspect-[4/3] shrink-0" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>COL 0${c+1}</span><span class="text-sky-600 font-bold">0${(i%colSubset.length)+1}</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            colWrap.appendChild(track);-->
+<!--            mount.appendChild(colWrap);-->
+<!--          }-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 03. 3D 斜向传送带 (斜向视差) -&#45;&#45;-->
+<!--        case 'diagonal-stream': {-->
+<!--          mount.className = "w-full h-full flex items-center justify-center overflow-hidden";-->
+<!--          const diagWrap = document.createElement('div');-->
+<!--          diagWrap.className = "diagonal-perspective flex flex-col gap-4 w-[140%] h-[140%]";-->
+
+<!--          for (let r = 0; r < currentRows + 1; r++) {-->
+<!--            const dirClass = (r % 2 === 0) ? 'track-left' : 'track-right';-->
+<!--            const rowWrap = document.createElement('div');-->
+<!--            rowWrap.className = "flex overflow-hidden relative w-full h-[18%]";-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track ${dirClass} flex items-center gap-4`;-->
+<!--            const doubleList = PHOTO_LIST.concat(PHOTO_LIST);-->
+
+<!--            track.innerHTML = doubleList.map((src, i) => `-->
+<!--              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-lg" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>DIAG · ${r+1}-${(i%PHOTO_LIST.length)+1}</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            rowWrap.appendChild(track);-->
+<!--            diagWrap.appendChild(rowWrap);-->
+<!--          }-->
+<!--          mount.appendChild(diagWrap);-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 04. 上下对向飞驰 (双半区高速对冲) -&#45;&#45;-->
+<!--        case 'speed-lanes': {-->
+<!--          mount.className = "w-full h-full flex flex-col justify-around py-4 overflow-hidden relative";-->
+<!--          ['track-left', 'track-right'].forEach((dirClass, idx) => {-->
+<!--            const laneWrap = document.createElement('div');-->
+<!--            laneWrap.className = "flex overflow-hidden relative w-full h-[46%]";-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track ${dirClass} flex items-center gap-5`;-->
+<!--            const doubleList = PHOTO_LIST.concat(PHOTO_LIST);-->
+
+<!--            track.innerHTML = doubleList.map((src, i) => `-->
+<!--              <div class="flow-card h-full aspect-[16/9] shrink-0 rounded-xl shadow-xl" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag text-xs font-bold">-->
+<!--                  <span>EXPRESS LANE ${idx===0?'[NORTH ←]':'[SOUTH →]'}</span>-->
+<!--                  <span class="text-sky-600 font-mono">#${i%PHOTO_LIST.length+1}</span>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            laneWrap.appendChild(track);-->
+<!--            mount.appendChild(laneWrap);-->
+<!--          });-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 05. 波浪呼吸巡游 (带起伏浮动振幅) -&#45;&#45;-->
+<!--        case 'wave-drift': {-->
+<!--          mount.className = "w-full h-full flex flex-col justify-between py-4 overflow-hidden relative";-->
+<!--          const rowHeightPct = (100 / currentRows) - 1.5;-->
+
+<!--          for (let r = 0; r < currentRows; r++) {-->
+<!--            const dirClass = (r % 2 === 0) ? 'track-left' : 'track-right';-->
+<!--            const rowWrap = document.createElement('div');-->
+<!--            rowWrap.className = "flex overflow-hidden relative w-full";-->
+<!--            rowWrap.style.height = `${rowHeightPct}%`;-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track ${dirClass} flex items-center gap-4`;-->
+<!--            const doubleList = PHOTO_LIST.concat(PHOTO_LIST);-->
+
+<!--            track.innerHTML = doubleList.map((src, i) => `-->
+<!--              <div class="flow-card h-full aspect-[16/10] shrink-0 wave-anim" style="animation: waveFloating ${3 + (i%3)*0.5}s ease-in-out infinite; animation-delay: ${(i%5)*0.2}s;" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>WAVE · ${r+1}-${(i%PHOTO_LIST.length)+1}</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            rowWrap.appendChild(track);-->
+<!--            mount.appendChild(rowWrap);-->
+<!--          }-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 06. 向心对冲汇聚 (双侧往中轴对流) -&#45;&#45;-->
+<!--        case 'converge-split': {-->
+<!--          mount.className = "w-full h-full flex items-center justify-between p-2 overflow-hidden relative";-->
+<!--          // 左半区向右流、右半区向左流，在中缝产生相撞汇聚感-->
+<!--          const leftHalf = document.createElement('div');-->
+<!--          leftHalf.className = "w-[49%] h-full flex flex-col justify-between overflow-hidden";-->
+<!--          const rightHalf = document.createElement('div');-->
+<!--          rightHalf.className = "w-[49%] h-full flex flex-col justify-between overflow-hidden";-->
+
+<!--          for (let r = 0; r < currentRows; r++) {-->
+<!--            const rL = document.createElement('div');-->
+<!--            rL.className = "w-full h-[22%] flex overflow-hidden";-->
+<!--            const tL = document.createElement('div');-->
+<!--            tL.className = "marquee-track track-right flex items-center gap-3";-->
+<!--            tL.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');-->
+<!--            rL.appendChild(tL);-->
+<!--            leftHalf.appendChild(rL);-->
+
+<!--            const rR = document.createElement('div');-->
+<!--            rR.className = "w-full h-[22%] flex overflow-hidden";-->
+<!--            const tR = document.createElement('div');-->
+<!--            tR.className = "marquee-track track-left flex items-center gap-3";-->
+<!--            tR.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');-->
+<!--            rR.appendChild(tR);-->
+<!--            rightHalf.appendChild(rR);-->
+<!--          }-->
+<!--          mount.appendChild(leftHalf);-->
+<!--          mount.appendChild(rightHalf);-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 07. 十字纵横穿插 (底层横流 + 顶层纵贯) -&#45;&#45;-->
+<!--        case 'cross-traffic': {-->
+<!--          mount.className = "w-full h-full relative overflow-hidden flex items-center justify-center";-->
+<!--          // 底层：3组横排向左-->
+<!--          const bgLayer = document.createElement('div');-->
+<!--          bgLayer.className = "absolute inset-0 flex flex-col justify-between py-4 opacity-75";-->
+<!--          for (let r = 0; r < 3; r++) {-->
+<!--            const row = document.createElement('div');-->
+<!--            row.className = "w-full h-[28%] flex overflow-hidden";-->
+<!--            const track = document.createElement('div');-->
+<!--            track.className = "marquee-track track-left flex items-center gap-4";-->
+<!--            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card h-full aspect-[16/10] shrink-0" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');-->
+<!--            row.appendChild(track);-->
+<!--            bgLayer.appendChild(row);-->
+<!--          }-->
+<!--          mount.appendChild(bgLayer);-->
+
+<!--          // 顶层：2列纵轴穿插-->
+<!--          const fgLayer = document.createElement('div');-->
+<!--          fgLayer.className = "absolute inset-0 flex justify-around px-28 pointer-events-none";-->
+<!--          ['track-up', 'track-down'].forEach(dir => {-->
+<!--            const col = document.createElement('div');-->
+<!--            col.className = "w-[24%] h-full flex flex-col overflow-hidden pointer-events-auto shadow-2xl";-->
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `${dir} flex flex-col gap-4`;-->
+<!--            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `<div class="flow-card w-full aspect-[4/3] shrink-0 border-2 border-white" onclick="handleCardClick(this)"><img src="${src}"></div>`).join('');-->
+<!--            col.appendChild(track);-->
+<!--            fgLayer.appendChild(col);-->
+<!--          });-->
+<!--          mount.appendChild(fgLayer);-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 08. 手风琴折角对流 (带立体微倾角) -&#45;&#45;-->
+<!--        case 'accordion-tilt': {-->
+<!--          mount.className = "w-full h-full accordion-perspective flex flex-col justify-between py-4 overflow-hidden relative";-->
+<!--          for (let r = 0; r < currentRows; r++) {-->
+<!--            const tiltAngle = (r % 2 === 0) ? 'rotateY(8deg)' : 'rotateY(-8deg)';-->
+<!--            const dirClass = (r % 2 === 0) ? 'track-left' : 'track-right';-->
+<!--            const rowWrap = document.createElement('div');-->
+<!--            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";-->
+<!--            rowWrap.style.transform = tiltAngle;-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track ${dirClass} flex items-center gap-4`;-->
+<!--            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map(src => `-->
+<!--              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-lg" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>ACCORDION ${r+1}</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            rowWrap.appendChild(track);-->
+<!--            mount.appendChild(rowWrap);-->
+<!--          }-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 09. 错缝砖砌快轨 (不等宽砖面滑行) -&#45;&#45;-->
+<!--        case 'masonry-brick': {-->
+<!--          mount.className = "w-full h-full flex flex-col justify-between py-3 overflow-hidden relative";-->
+<!--          for (let r = 0; r < currentRows; r++) {-->
+<!--            const dirClass = (r % 2 === 0) ? 'track-left' : 'track-right';-->
+<!--            const rowWrap = document.createElement('div');-->
+<!--            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track ${dirClass} flex items-center gap-3.5`;-->
+<!--            // 交替采用 16/9 与 4/3 不等宽宽高比-->
+<!--            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `-->
+<!--              <div class="flow-card h-full ${i%2===0?'aspect-[16/9]':'aspect-[4/3]'} shrink-0" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>BRICK #${i%PHOTO_LIST.length+1}</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            rowWrap.appendChild(track);-->
+<!--            mount.appendChild(rowWrap);-->
+<!--          }-->
+<!--          break;-->
+<!--        }-->
+
+<!--        // -&#45;&#45; 10. 阶梯斜向滑降 (多轨梯次滑落) -&#45;&#45;-->
+<!--        case 'staircase-cascade': {-->
+<!--          mount.className = "w-full h-full flex flex-col justify-between py-4 overflow-hidden relative";-->
+<!--          for (let r = 0; r < currentRows; r++) {-->
+<!--            const rowWrap = document.createElement('div');-->
+<!--            rowWrap.className = "flex overflow-hidden relative w-full h-[22%]";-->
+<!--            rowWrap.style.marginLeft = `${r * 40}px`; // 梯形阶梯位移-->
+
+<!--            const track = document.createElement('div');-->
+<!--            track.className = `marquee-track track-left flex items-center gap-4`;-->
+<!--            track.innerHTML = PHOTO_LIST.concat(PHOTO_LIST).map((src, i) => `-->
+<!--              <div class="flow-card h-full aspect-[16/10] shrink-0 shadow-md" onclick="handleCardClick(this)">-->
+<!--                <img src="${src}">-->
+<!--                <div class="card-tag"><span>CASCADE ${r+1}</span></div>-->
+<!--              </div>-->
+<!--            `).join('');-->
+
+<!--            rowWrap.appendChild(track);-->
+<!--            mount.appendChild(rowWrap);-->
+<!--          }-->
+<!--          break;-->
+<!--        }-->
+<!--      }-->
+<!--    }-->
+
+<!--    function getShiftedPhotoList(shift) {-->
+<!--      if (PHOTO_LIST.length === 0) return [];-->
+<!--      const s = shift % PHOTO_LIST.length;-->
+<!--      return PHOTO_LIST.slice(s).concat(PHOTO_LIST.slice(0, s));-->
+<!--    }-->
+
+<!--    // =========================================================================-->
+<!--    // 2. 交互控制：缩放、行数、底色、暂停换图-->
+<!--    // =========================================================================-->
+<!--    function changeZoom(val) {-->
+<!--      currentZoom = parseInt(val) / 100;-->
+<!--      document.getElementById('zoomText').innerText = val + '%';-->
+<!--      document.getElementById('zoomWrapper').style.transform = `scale(${currentZoom})`;-->
+<!--    }-->
+
+<!--    function changeRowCount(val) {-->
+<!--      currentRows = parseInt(val);-->
+<!--      renderTemplate();-->
+<!--    }-->
+
+<!--    function changeThemeBg(color) {-->
+<!--      currentThemeColor = color;-->
+<!--      document.getElementById('mainBody').style.background = color;-->
+<!--      document.getElementById('stageCanvasBox').style.background = color;-->
+<!--    }-->
+
+<!--    function togglePauseState() {-->
+<!--      isPaused = !isPaused;-->
+<!--      const body = document.getElementById('mainBody');-->
+<!--      const btnText = document.getElementById('pauseBtnText');-->
+<!--      const btnIcon = document.getElementById('pauseBtnIcon');-->
+<!--      const statusText = document.getElementById('statusInfoText');-->
+
+<!--      if (isPaused) {-->
+<!--        body.classList.add('is-paused');-->
+<!--        btnText.innerText = "▶ 继续流动";-->
+<!--        btnIcon.setAttribute('data-lucide', 'play');-->
+<!--        document.getElementById('pauseToggleBtn').className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition active:scale-95 animate-pulse";-->
+<!--        statusText.innerText = "已暂停！点击画面任意照片即可替换为你的电脑本地图片";-->
+<!--      } else {-->
+<!--        body.classList.remove('is-paused');-->
+<!--        btnText.innerText = "⏸ 暂停换图";-->
+<!--        btnIcon.setAttribute('data-lucide', 'pause');-->
+<!--        document.getElementById('pauseToggleBtn').className = "bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition active:scale-95";-->
+<!--        statusText.innerText = "鼠标划过保持转动 · 点击右上角“暂停换图”可点选更换任意图片";-->
+<!--      }-->
+<!--      lucide.createIcons();-->
+<!--    }-->
+
+<!--    // 点选换图-->
+<!--    function handleCardClick(cardEl) {-->
+<!--      if (!isPaused) togglePauseState();-->
+<!--      activeCardImgElem = cardEl.querySelector('img');-->
+<!--      document.getElementById('replaceSingleFileInput').click();-->
+<!--    }-->
+
+<!--    function setupImageReplacer() {-->
+<!--      const input = document.getElementById('replaceSingleFileInput');-->
+<!--      input.addEventListener('change', (e) => {-->
+<!--        const file = e.target.files[0];-->
+<!--        if (file && activeCardImgElem) {-->
+<!--          const reader = new FileReader();-->
+<!--          reader.onload = (evt) => {-->
+<!--            activeCardImgElem.src = evt.target.result;-->
+<!--            // 同步加入到当前图池-->
+<!--            PHOTO_LIST.unshift(evt.target.result);-->
+<!--          };-->
+<!--          reader.readAsDataURL(file);-->
+<!--        }-->
+<!--        input.value = '';-->
+<!--      });-->
+<!--    }-->
+
+<!--    // =========================================================================-->
+<!--    // 3. 核心功能：一键清空预设、批量导入我的照片-->
+<!--    // =========================================================================-->
+<!--    function clearCurrentImages() {-->
+<!--      if (confirm("确定清空目前的图片吗？清空后你可以批量导入属于你自己的照片！")) {-->
+<!--        PHOTO_LIST = [];-->
+<!--        renderTemplate();-->
+<!--      }-->
+<!--    }-->
+
+<!--    function restorePresetImages() {-->
+<!--      PHOTO_LIST = [...DEFAULT_PRESET_IMAGES];-->
+<!--      renderTemplate();-->
+<!--    }-->
+
+<!--    function handleBatchUpload(input) {-->
+<!--      const files = Array.from(input.files).filter(f => f.type.startsWith('image/'));-->
+<!--      if (files.length === 0) return;-->
+
+<!--      const newBase64List = [];-->
+<!--      let loaded = 0;-->
+
+<!--      files.forEach((file) => {-->
+<!--        const reader = new FileReader();-->
+<!--        reader.onload = (e) => {-->
+<!--          newBase64List.push(e.target.result);-->
+<!--          loaded++;-->
+<!--          if (loaded === files.length) {-->
+<!--            // 彻底替换为用户自己的真实照片池-->
+<!--            PHOTO_LIST = newBase64List;-->
+<!--            renderTemplate();-->
+<!--            alert(`🎉 成功导入 ${files.length} 张你的专属照片！已全部上屏流动展示！`);-->
+<!--          }-->
+<!--        };-->
+<!--        reader.readAsDataURL(file);-->
+<!--      });-->
+<!--      input.value = '';-->
+<!--    }-->
+
+<!--    // =========================================================================-->
+<!--    // 4. 核心重构：导出当前页面独立 HTML (彻底锁定当前动效、手机等比微缩、永不还原)-->
+<!--    // =========================================================================-->
+<!--    function exportStandaloneHTML() {-->
+<!--      if (PHOTO_LIST.length === 0) {-->
+<!--        alert("请先添加照片后再进行导出！");-->
+<!--        return;-->
+<!--      }-->
+
+<!--      // 将当前所有的状态深度序列化，构建纯粹独立的自包含 HTML 字符串-->
+<!--      const finalHTML = `<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  &lt;!&ndash; 🌟 锁定 1400px 大屏基准视口，在手机打开自动等比微缩至全貌，开启双指自由拉大缩小 &ndash;&gt;-->
+<!--  <meta name="viewport" id="viewportMeta" content="width=1400, user-scalable=yes">-->
+<!--  <script>-->
+<!--    function adaptMobileViewport() {-->
+<!--      var sw = window.screen.width;-->
+<!--      var iw = window.innerWidth;-->
+<!--      var w = (iw && iw < 1400) ? iw : ((sw && sw < 1400) ? sw : 1400);-->
+<!--      if (w < 1400) {-->
+<!--        var scale = w / 1400;-->
+<!--        var meta = document.getElementById('viewportMeta');-->
+<!--        if (meta) {-->
+<!--          meta.content = 'width=1400, initial-scale=' + scale + ', minimum-scale=' + (scale * 0.4) + ', maximum-scale=3.5, user-scalable=yes';-->
+<!--        }-->
+<!--      }-->
+<!--    }-->
+<!--    adaptMobileViewport();-->
+<!--    window.addEventListener('resize', adaptMobileViewport);-->
+<!--    window.addEventListener('orientationchange', adaptMobileViewport);-->
+<!--  <\/script>-->
+<!--  <title>展演画廊 · 动态流转长卷</title>-->
+<!--  <script src="https://cdn.tailwindcss.com"><\/script>-->
+<!--  <style>-->
+<!--    body {-->
+<!--      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;-->
+<!--      min-width: 1400px;-->
+<!--      width: 100%;-->
+<!--      margin: 0 auto;-->
+<!--      background: ${currentThemeColor};-->
+<!--      touch-action: auto !important;-->
+<!--    }-->
+<!--    @keyframes scrollLeft { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }-->
+<!--    @keyframes scrollRight { 0% { transform: translate3d(-50%, 0, 0); } 100% { transform: translate3d(0, 0, 0); } }-->
+<!--    @keyframes scrollUp { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(0, -50%, 0); } }-->
+<!--    @keyframes scrollDown { 0% { transform: translate3d(0, -50%, 0); } 100% { transform: translate3d(0, 0, 0); } }-->
+<!--    @keyframes waveFloating { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-14px); } }-->
+
+<!--    .track-left { animation: scrollLeft 32s linear infinite; }-->
+<!--    .track-right { animation: scrollRight 32s linear infinite; }-->
+<!--    .track-up { animation: scrollUp 32s linear infinite; }-->
+<!--    .track-down { animation: scrollDown 32s linear infinite; }-->
+
+<!--    .diagonal-perspective { transform: perspective(1400px) rotateX(16deg) rotateY(-8deg) rotateZ(-6deg) scale(1.15); transform-origin: center center; }-->
+<!--    .accordion-perspective { transform: perspective(1400px) rotateX(12deg) scale(1.05); transform-origin: center center; }-->
+
+<!--    #stageCanvasBox { width: 1400px; height: 800px; position: relative; overflow: hidden; margin: 40px auto; background: ${currentThemeColor}; }-->
+<!--    .flow-card { position: relative; overflow: hidden; border-radius: 8px; background: #ffffff; box-shadow: 0 4px 18px -2px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.06); }-->
+<!--    .flow-card img { width: 100%; height: 100%; object-fit: cover; display: block; }-->
+<!--    .card-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.92); padding: 2px 6px; font-size: 9px; font-family: monospace; color: #475569; display: flex; justify-content: space-between; }-->
+<!--  </style>-->
+<!--</head>-->
+<!--<body class="flex flex-col items-center justify-center min-h-screen">-->
+<!--  <div style="transform: scale(${currentZoom}); transform-origin: center center;">-->
+<!--    <div id="stageCanvasBox" class="rounded-2xl shadow-2xl border border-slate-200">-->
+<!--      <div id="dynamicStageMount" class="w-full h-full relative flex items-center justify-center overflow-hidden">-->
+<!--        ${document.getElementById('dynamicStageMount').innerHTML}-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+<!--</body>-->
+<!--</html>`;-->
+
+<!--      const blob = new Blob([finalHTML], { type: "text/html;charset=utf-8" });-->
+<!--      const downloadUrl = URL.createObjectURL(blob);-->
+<!--      const a = document.createElement("a");-->
+<!--      a.href = downloadUrl;-->
+<!--      a.download = `动态展映_${currentTemplate}_${Date.now()}.html`;-->
+
+<!--      document.body.appendChild(a);-->
+<!--      a.click();-->
+<!--      document.body.removeChild(a);-->
+<!--      URL.revokeObjectURL(downloadUrl);-->
+
+<!--      alert("🎉 导出成功！\n\n1. 【动效锁定】：当前选择的 [" + currentTemplate + "] 模板已深度固化，打开绝不跳回！\n2. 【专属图片打包】：导出的网页完全包含你当前屏幕上的所有照片！\n3. 【手机等比微缩】：发到手机或微信打开，自动等比缩小展现完整全貌，双指可自由放大！");-->
+<!--    }-->
+
+<!--    window.onload = init;-->
+<!--  </script>-->
+<!--</body>-->
+<!--</html>-->
+
