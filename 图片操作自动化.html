@@ -8236,6 +8236,13 @@ body{
   align-items:center;
   margin-bottom:6px;
 }
+.sheet-quick-bar{
+  display:flex;
+  gap:6px;
+  margin-bottom:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
 .sheet-input-row{
   display:flex;
   gap:8px;
@@ -8318,7 +8325,7 @@ body{
 .btn.hot.active{background:linear-gradient(135deg,#ff6b35,#e85520);box-shadow:0 0 0 3px rgba(255,107,53,.18);}
 .btn.danger{background:#fff;border-color:#fca5a5;color:#dc2626;}
 .btn.danger:hover{background:#fef2f2;border-color:#f87171;}
-.btn-sm{padding:5px 10px;font-size:11.5px;border-radius:8px;}
+.btn-sm{padding:4px 9px;font-size:11.5px;border-radius:7px;}
 
 .seg{display:flex;border:1px solid #dbe3ef;border-radius:10px;overflow:hidden;background:#fff;}
 .seg button{
@@ -8333,20 +8340,45 @@ body{
 }
 .search:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(79,124,255,.12);}
 
-/* ---------- 导出下拉 ---------- */
+/* ---------- 导出下拉高级面板 ---------- */
 .export-wrap{position:relative;display:inline-block;}
 .export-menu{
   position:absolute;right:0;top:calc(100% + 6px);
-  background:#fff;border:1px solid var(--line);border-radius:12px;
-  box-shadow:0 10px 30px rgba(16,24,40,.16);
-  padding:6px;z-index:120;min-width:230px;
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 12px 36px rgba(16,24,40,.18);
+  padding:10px;z-index:120;min-width:320px;
 }
-.export-menu button{
+.export-cfg-box{
+  background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.export-cfg-title{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;font-weight:700;color:#1e293b;margin-bottom:6px;
+}
+.switch-lbl{
+  display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:11.5px;color:#475569;user-select:none;
+}
+.export-opt-row{
+  display:flex;align-items:center;gap:10px;font-size:11.5px;color:#475569;margin-top:6px;
+}
+.export-opt-label{font-weight:600;color:#334155;white-space:nowrap;}
+.radio-lbl{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
+.export-select{
+  padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:11.5px;background:#fff;color:#1e293b;outline:none;
+}
+.export-stat-hint{
+  margin-top:6px;font-size:11px;color:#0e9f6e;background:#e9f9f2;padding:4px 8px;border-radius:6px;line-height:1.4;
+}
+.export-divider{height:1px;background:#eef2f8;margin:8px 0;}
+
+.export-menu button.em-btn{
   display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:none;background:transparent;
-  padding:9px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:#334155;font-weight:500;
+  padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:#334155;font-weight:500;
+  transition:.15s;
 }
-.export-menu button:hover{background:var(--primary-soft);color:#2f5bff;}
-.export-menu .em-sub{display:block;font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px;}
+.export-menu button.em-btn:hover{background:var(--primary-soft);color:#2f5bff;}
+.export-menu .em-sub{display:block;font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px;line-height:1.4;}
 
 /* ---------- Stats ---------- */
 .stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
@@ -8595,12 +8627,12 @@ body{
 
   &lt;div class=&quot;hero&quot;&gt;
     &lt;h1&gt;🔥 亚马逊产品爆品筛选工具&lt;/h1&gt;
-    &lt;p&gt;上传「当前商品数据」与「历史销量数据」两份 Excel，工具会自动匹配 ASIN，按可调阈值筛选爆品并展示明细。数据自动保存在本地，刷新不丢失。&lt;/p&gt;
+    &lt;p&gt;上传「当前商品数据」与「历史销量/销售额/价格数据」，自动匹配 ASIN，按可调阈值筛选爆品。数据自动保存在本地，刷新不丢失。&lt;/p&gt;
     &lt;div class=&quot;rule&quot;&gt;
       &lt;span&gt;新品：上架天数 &lt;b&gt;≤ 365 天&lt;/b&gt;&lt;/span&gt;
       &lt;span&gt;爆品（新品）：近 12 月销量 &lt;b&gt;≥ 10,000&lt;/b&gt;&lt;/span&gt;
       &lt;span&gt;爆品（老品）：近 12 月销量 &lt;b&gt;≥ 30,000&lt;/b&gt; 或 25 年全年 &lt;b&gt;≥ 30,000&lt;/b&gt;&lt;/span&gt;
-      &lt;span&gt;阈值可自由调整&lt;/span&gt;
+      &lt;span&gt;&lt;b&gt;已升级子表隔离防重&lt;/b&gt;：产品表与子体表完全互斥，数据绝不翻倍&lt;/span&gt;
     &lt;/div&gt;
   &lt;/div&gt;
 
@@ -8619,23 +8651,32 @@ body{
         &lt;div class=&quot;drop-sub&quot; id=&quot;curName&quot;&gt;例如：T-Shirts.xlsx&lt;/div&gt;
       &lt;/label&gt;
 
-      &lt;!-- ② 历史销量数据与子表关键字设置 --&gt;
+      &lt;!-- ② 历史数据与子表关键字设置 --&gt;
       &lt;div&gt;
         &lt;label class=&quot;drop&quot; id=&quot;dropHist&quot;&gt;
           &lt;input type=&quot;file&quot; id=&quot;fileHistory&quot; accept=&quot;.xlsx,.xls,.csv&quot; multiple hidden&gt;
           &lt;div class=&quot;drop-hint&quot;&gt;支持多选 / 拖拽多个文件&lt;/div&gt;
-          &lt;div class=&quot;drop-title&quot;&gt;② 历史销量数据（多子表自动合并）&lt;/div&gt;
-          &lt;div class=&quot;drop-sub&quot; id=&quot;histName&quot;&gt;点击或拖拽上传历史销量文件&lt;/div&gt;
+          &lt;div class=&quot;drop-title&quot;&gt;② 历史销量/销售额/价格数据（多子表自动合并）&lt;/div&gt;
+          &lt;div class=&quot;drop-sub&quot; id=&quot;histName&quot;&gt;点击或拖拽上传历史数据文件&lt;/div&gt;
         &lt;/label&gt;
 
-        &lt;!-- 历史销量子表设置卡片：可在页面随意修改 + 记忆 + 一键点击子表标签 --&gt;
+        &lt;!-- 历史子表设置卡片 --&gt;
         &lt;div class=&quot;sheet-cfg-box&quot;&gt;
           &lt;div class=&quot;sheet-cfg-title&quot;&gt;
-            &lt;span&gt;📑 提取子表关键字（可页面自改 · 自动保存记忆）：&lt;/span&gt;
+            &lt;span&gt;📑 提取子表指标（精准单选 · 彻底排除子体）：&lt;/span&gt;
             &lt;span id=&quot;detectedSheetsHint&quot; style=&quot;font-size:11px; color:#64748b;&quot;&gt;支持手动输入或点选下方子表&lt;/span&gt;
           &lt;/div&gt;
+
+          &lt;!-- 常用快捷切换按钮（默认锁定产品级，严格排除子体） --&gt;
+          &lt;div class=&quot;sheet-quick-bar&quot;&gt;
+            &lt;span style=&quot;font-size:11.5px;color:var(--muted);font-weight:600;&quot;&gt;快速切换指标：&lt;/span&gt;
+            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月销量')&quot; id=&quot;btnQuickSales&quot;&gt;🔥 历史销量&lt;/button&gt;
+            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月销售额')&quot; id=&quot;btnQuickRevenue&quot;&gt;💰 历史销售额&lt;/button&gt;
+            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月价格')&quot; id=&quot;btnQuickPrice&quot;&gt;🏷️ 历史月价格&lt;/button&gt;
+          &lt;/div&gt;
+
           &lt;div class=&quot;sheet-input-row&quot;&gt;
-            &lt;input type=&quot;text&quot; id=&quot;histSheetKeyword&quot; class=&quot;sheet-input&quot; value=&quot;产品历史月销量&quot; placeholder=&quot;输入要提取合并的子表名称关键字...&quot;&gt;
+            &lt;input type=&quot;text&quot; id=&quot;histSheetKeyword&quot; class=&quot;sheet-input&quot; value=&quot;历史月销售额&quot; placeholder=&quot;输入要提取合并的子表名称...&quot;&gt;
             &lt;button class=&quot;btn btn-sm primary&quot; id=&quot;btnReMergeHist&quot; type=&quot;button&quot; style=&quot;padding:6px 14px;&quot;&gt;应用合并&lt;/button&gt;
           &lt;/div&gt;
           &lt;!-- 智能扫描出的子表名标签区 --&gt;
@@ -8658,15 +8699,15 @@ body{
         &lt;input type=&quot;number&quot; id=&quot;cfgNewDays&quot; value=&quot;365&quot; min=&quot;1&quot;&gt;
       &lt;/div&gt;
       &lt;div class=&quot;cfg-item&quot;&gt;
-        &lt;label&gt;新品爆品线：近 12 月销量 ≥&lt;/label&gt;
+        &lt;label&gt;新品爆品线：近 12 月指标 ≥&lt;/label&gt;
         &lt;input type=&quot;number&quot; id=&quot;cfgNewSales&quot; value=&quot;10000&quot; min=&quot;0&quot;&gt;
       &lt;/div&gt;
       &lt;div class=&quot;cfg-item&quot;&gt;
-        &lt;label&gt;老品爆品线：近 12 月销量 ≥&lt;/label&gt;
+        &lt;label&gt;老品爆品线：近 12 月指标 ≥&lt;/label&gt;
         &lt;input type=&quot;number&quot; id=&quot;cfgOldSales12&quot; value=&quot;30000&quot; min=&quot;0&quot;&gt;
       &lt;/div&gt;
       &lt;div class=&quot;cfg-item&quot;&gt;
-        &lt;label&gt;老品爆品线：全年销量 ≥&lt;/label&gt;
+        &lt;label&gt;老品爆品线：全年指标 ≥&lt;/label&gt;
         &lt;input type=&quot;number&quot; id=&quot;cfgOldSalesYear&quot; value=&quot;30000&quot; min=&quot;0&quot;&gt;
       &lt;/div&gt;
       &lt;div class=&quot;cfg-item&quot;&gt;
@@ -8691,16 +8732,56 @@ body{
       &lt;input type=&quot;text&quot; class=&quot;search&quot; id=&quot;searchBox&quot; placeholder=&quot;搜索 ASIN / 标题 / 品牌…&quot;&gt;
       &lt;button class=&quot;btn&quot; id=&quot;btnReset&quot;&gt;重置参数&lt;/button&gt;
       &lt;button class=&quot;btn danger&quot; id=&quot;btnClearData&quot;&gt;🗑️ 清空数据&lt;/button&gt;
+
+      &lt;!-- 导出面板 --&gt;
       &lt;div class=&quot;export-wrap&quot;&gt;
         &lt;button class=&quot;btn primary&quot; id=&quot;btnExportMenu&quot;&gt;⬇ 导出 Excel ▾&lt;/button&gt;
-        &lt;div class=&quot;export-menu&quot; id=&quot;exportMenu&quot; hidden&gt;
-          &lt;button data-mode=&quot;noimg&quot;&gt;
+        &lt;div class=&quot;export-menu&quot; id=&quot;exportMenu&quot; hidden onclick=&quot;event.stopPropagation()&quot;&gt;
+          &lt;div class=&quot;export-cfg-box&quot;&gt;
+            &lt;div class=&quot;export-cfg-title&quot;&gt;
+              &lt;span&gt;📊 历史数据导出配置&lt;/span&gt;
+              &lt;label class=&quot;switch-lbl&quot; title=&quot;勾选后，导出结果中将包含完整的历史月份数据列&quot;&gt;
+                &lt;input type=&quot;checkbox&quot; id=&quot;cfgExportHist&quot; checked&gt;
+                &lt;span&gt;&lt;b&gt;附带历史数据&lt;/b&gt;&lt;/span&gt;
+              &lt;/label&gt;
+            &lt;/div&gt;
+
+            &lt;div id=&quot;exportHistOptions&quot;&gt;
+              &lt;div class=&quot;export-opt-row&quot;&gt;
+                &lt;span class=&quot;export-opt-label&quot;&gt;导出范围：&lt;/span&gt;
+                &lt;label class=&quot;radio-lbl&quot;&gt;
+                  &lt;input type=&quot;radio&quot; name=&quot;exportHistMode&quot; value=&quot;current&quot; checked&gt;
+                  &lt;span id=&quot;exportCurMetricLabel&quot;&gt;当前选定指标&lt;/span&gt;
+                &lt;/label&gt;
+                &lt;label class=&quot;radio-lbl&quot; title=&quot;一次性合并导出历史文件中检测到的所有产品级子表（销量+销售额+月价格）&quot;&gt;
+                  &lt;input type=&quot;radio&quot; name=&quot;exportHistMode&quot; value=&quot;all&quot;&gt;
+                  &lt;span&gt;合并全部历史指标&lt;/span&gt;
+                &lt;/label&gt;
+              &lt;/div&gt;
+
+              &lt;div class=&quot;export-opt-row&quot;&gt;
+                &lt;span class=&quot;export-opt-label&quot;&gt;月份排序：&lt;/span&gt;
+                &lt;select id=&quot;cfgExportOrder&quot; class=&quot;export-select&quot;&gt;
+                  &lt;option value=&quot;asc&quot;&gt;时间正序 (由远到近)&lt;/option&gt;
+                  &lt;option value=&quot;desc&quot;&gt;时间倒序 (最新月份在前)&lt;/option&gt;
+                &lt;/select&gt;
+              &lt;/div&gt;
+
+              &lt;div class=&quot;export-stat-hint&quot; id=&quot;exportStatHint&quot;&gt;
+                ✅ 选了哪个就导出哪个，历史月份列将自动追加到 Excel 右侧
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;export-divider&quot;&gt;&lt;/div&gt;
+
+          &lt;button class=&quot;em-btn&quot; data-mode=&quot;noimg&quot;&gt;
             &lt;span&gt;📄&lt;/span&gt;
-            &lt;span&gt;导出（不含图片）&lt;span class=&quot;em-sub&quot;&gt;速度最快，保留全部原始列 + 4 列标记&lt;/span&gt;&lt;/span&gt;
+            &lt;span&gt;&lt;b&gt;导出 Excel（不含图片）&lt;/b&gt;&lt;span class=&quot;em-sub&quot;&gt;速度极快，保留全部原始列 + 爆品标记 + 已选历史明细&lt;/span&gt;&lt;/span&gt;
           &lt;/button&gt;
-          &lt;button data-mode=&quot;withimg&quot;&gt;
+          &lt;button class=&quot;em-btn&quot; data-mode=&quot;withimg&quot;&gt;
             &lt;span&gt;🖼️&lt;/span&gt;
-            &lt;span&gt;导出（含图片）&lt;span class=&quot;em-sub&quot;&gt;图片嵌入第一列，竖版比例，清晰可辨&lt;/span&gt;&lt;/span&gt;
+            &lt;span&gt;&lt;b&gt;导出 Excel（含图片）&lt;/b&gt;&lt;span class=&quot;em-sub&quot;&gt;图片高清嵌入第一列 + 全部原始列 + 已选历史明细&lt;/span&gt;&lt;/span&gt;
           &lt;/button&gt;
         &lt;/div&gt;
       &lt;/div&gt;
@@ -8727,13 +8808,13 @@ body{
   &lt;/div&gt;
 &lt;/div&gt;
 
-&lt;!-- 弹窗 2：历史月销量放大大图表 --&gt;
+&lt;!-- 弹窗 2：历史月度数据放大大图表 --&gt;
 &lt;div class=&quot;modal-overlay&quot; id=&quot;chartModal&quot; onclick=&quot;closeModal('chartModal')&quot;&gt;
   &lt;div class=&quot;modal-card chart-modal-card&quot; onclick=&quot;event.stopPropagation()&quot;&gt;
     &lt;button class=&quot;modal-close&quot; onclick=&quot;closeModal('chartModal')&quot;&gt;✕&lt;/button&gt;
     &lt;div class=&quot;chart-modal-head&quot;&gt;
       &lt;div class=&quot;chart-modal-title&quot;&gt;
-        &lt;span&gt;📊 历史月销量走势全景&lt;/span&gt;
+        &lt;span id=&quot;cmModalHeadTitle&quot;&gt;📊 历史指标走势全景&lt;/span&gt;
         &lt;a id=&quot;cmAsinLink&quot; href=&quot;#&quot; target=&quot;_blank&quot; title=&quot;在新标签打开亚马逊详情页&quot;&gt;&lt;/a&gt;
       &lt;/div&gt;
       &lt;div class=&quot;chart-modal-sub&quot; id=&quot;cmTitle&quot;&gt;&lt;/div&gt;
@@ -8821,9 +8902,24 @@ const dbHelper = {
 };
 
 /* =========================================================
- *  全局状态
+ *  智能表头月份解析函数（支持 2026-11($)、2026-11 等）
  * ========================================================= */
-const MONTH_RE = /^\d{4}-\d{2}$/;
+function parseMonthHeader(header){
+  if (header === null || header === undefined) return null;
+  const s = String(header).trim();
+  const m = s.match(/^(\d{4})[-\/\.](\d{1,2})(?:\s*[\(（].*?[\)）]|\s*[$¥€])?$/);
+  if (m){
+    const year = m[1];
+    const month = String(m[2]).padStart(2, '0');
+    return {
+      rawHeader: s,
+      normalized: `${year}-${month}`,
+      hasCurrency: /[$¥€]|USD|RMB/i.test(s)
+    };
+  }
+  return null;
+}
+
 const PAGE_SIZE = 100;
 
 const state = {
@@ -8834,9 +8930,10 @@ const state = {
   histHeaders: [],
   histRows: [],
   histMonthCols: [],
+  histColRawNames: {},
   histMap: {},
-  histRawBooks: [],       // 内存缓存已解析的原始历史工作簿
-  detectedSheetNames: [], // 扫描到的所有子表名称列表
+  histRawBooks: [],
+  detectedSheetNames: [],
   merged: [],
   filtered: [],
   page: 1,
@@ -8924,8 +9021,21 @@ function trimLeadingZeros(series){
   return series.slice(firstPos);
 }
 
+function getMetricDisplayTitle(){
+  const kw = ($('histSheetKeyword').value || '').trim();
+  if (!kw) return '历史数据';
+  return kw;
+}
+function getMetricShortName(){
+  const title = getMetricDisplayTitle();
+  if (title.includes('销售额')) return '销售额';
+  if (title.includes('价格') || title.includes('售价')) return '月价格';
+  if (title.includes('销量')) return '销量';
+  return title;
+}
+
 /* =========================================================
- *  并发执行器（图片并发下载控制）
+ *  并发执行器
  * ========================================================= */
 async function mapLimit(items, limit, fn, onProgress){
   let idx = 0, done = 0;
@@ -8957,6 +9067,7 @@ async function saveAllToStorage(){
       histHeaders: state.histHeaders,
       histRows: state.histRows,
       histMonthCols: state.histMonthCols,
+      histColRawNames: state.histColRawNames,
       histMap: state.histMap,
       histSheetKeyword: ($('histSheetKeyword').value || '').trim(),
       config: cfg
@@ -8981,7 +9092,6 @@ async function restoreFromStorage(){
       if (cached.config.year) $('cfgYear').value = cached.config.year;
     }
 
-    // 自动恢复用户之前修改并保存的子表关键字
     if (cached.histSheetKeyword !== undefined &amp;&amp; cached.histSheetKeyword !== ''){
       $('histSheetKeyword').value = cached.histSheetKeyword;
     }
@@ -8995,14 +9105,17 @@ async function restoreFromStorage(){
     }
 
     if (cached.histRows &amp;&amp; cached.histRows.length){
-      state.histFileName = cached.histFileName || '历史销量数据.xlsx';
+      state.histFileName = cached.histFileName || '历史数据.xlsx';
       state.histHeaders = cached.histHeaders || [];
       state.histRows = cached.histRows || [];
       state.histMonthCols = cached.histMonthCols || [];
+      state.histColRawNames = cached.histColRawNames || {};
       state.histMap = cached.histMap || {};
       $('dropHist').classList.add('done');
       $('histName').innerHTML = '✅ ' + esc(state.histFileName) + '（已自动恢复 ' + state.histRows.length + ' 条 · ' + state.histMonthCols.length + ' 个月份）';
     }
+
+    updateExportLabelHint();
 
     if (state.curRows.length){
       computeAll();
@@ -9014,7 +9127,7 @@ async function restoreFromStorage(){
 }
 
 async function clearAllData(){
-  if (!confirm('确定要清空已记忆的商品和历史销量数据吗？\n清空后页面将被重置，需要重新上传。')) return;
+  if (!confirm('确定要清空已记忆的商品和历史数据吗？\n清空后页面将被重置，需要重新上传。')) return;
   try{
     await dbHelper.clear();
     state.curFileName = '';
@@ -9024,6 +9137,7 @@ async function clearAllData(){
     state.histHeaders = [];
     state.histRows = [];
     state.histMonthCols = [];
+    state.histColRawNames = {};
     state.histMap = {};
     state.histRawBooks = [];
     state.detectedSheetNames = [];
@@ -9036,11 +9150,12 @@ async function clearAllData(){
     $('dropCur').classList.remove('done');
     $('dropHist').classList.remove('done');
     $('curName').textContent = '例如：T-Shirts.xlsx';
-    $('histName').textContent = '点击或拖拽上传历史销量文件';
+    $('histName').textContent = '点击或拖拽上传历史数据文件';
     $('sheetChipsArea').style.display = 'none';
     $('sheetChipsArea').innerHTML = '';
     $('detectedSheetsHint').textContent = '支持手动输入或点选下方子表';
 
+    updateExportLabelHint();
     render();
     toast('已清空本地持久记忆数据');
   }catch(err){
@@ -9170,7 +9285,7 @@ async function handleCurrentFile(f){
 }
 
 /* =========================================================
- *  历史销量多子表 / 多文件合并逻辑（支持页面随时自由修改与点选）
+ *  历史数据子表匹配逻辑（核心防翻倍：单文件唯一单选 + 产品/子体彻底互斥）
  * ========================================================= */
 async function handleHistoryFiles(fileList){
   const files = Array.from(fileList || []).filter(f =&gt; /\.(xlsx|xls|csv)$/i.test(f.name));
@@ -9188,16 +9303,69 @@ async function handleHistoryFiles(fileList){
     state.histRawBooks = rawBooks;
     state.detectedSheetNames = Array.from(allSheetNamesSet);
 
-    // 智能更新页面上的子表候选标签
     renderDetectedSheetChips();
     processHistoryMerge();
   }catch(err){
     console.error(err);
-    alert('读取历史销量数据失败：' + err.message);
+    alert('读取历史数据失败：' + err.message);
   }
 }
 
-// 在页面上列出检测到的所有子表标签
+// 快速切换常用子表
+window.quickSelectKeyword = function(keyword){
+  $('histSheetKeyword').value = keyword;
+  renderDetectedSheetChips();
+  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
+    processHistoryMerge();
+  } else {
+    updateExportLabelHint();
+    saveAllToStorage();
+    toast(`已设定关键字「${keyword}」，上传历史文件后将精准匹配该子表`);
+  }
+};
+
+/**
+ * 核心匹配函数：严格限制每个文件只匹配最多 1 个最精准的 Sheet！
+ * 且「产品级」与「子体级」彻底排他互斥，防止翻倍！
+ */
+function findBestSheetForWorkbook(sheetNames, keyword){
+  if (!sheetNames || !sheetNames.length) return null;
+  const kw = (keyword || '').trim().toLowerCase();
+  if (!kw) return sheetNames[0];
+
+  const wantsSub = kw.includes('子体') || kw.includes('变体');
+
+  // 1. 最高优先级：完全精准匹配（大小写无关）
+  const exact = sheetNames.find(sn =&gt; sn.trim().toLowerCase() === kw);
+  if (exact) return exact;
+
+  // 2. 候选过滤：如果不想要子体，坚决剔除任何含“子体/变体”的 Sheet
+  let candidates = sheetNames;
+  if (!wantsSub){
+    candidates = sheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体'));
+  } else {
+    candidates = sheetNames.filter(sn =&gt; sn.includes('子体') || sn.includes('变体'));
+  }
+  if (!candidates.length) candidates = sheetNames;
+
+  // 3. 次高优先级：包含关键词
+  const included = candidates.find(sn =&gt; sn.toLowerCase().includes(kw));
+  if (included) return included;
+
+  // 4. 语义别名特征词精准保底（单选最符合的 1 个）
+  let fallback = null;
+  if (kw.includes('销售额') || kw.includes('金额')){
+    fallback = candidates.find(sn =&gt; sn.includes('销售额') || sn.includes('金额'));
+  } else if (kw.includes('价格') || kw.includes('售价')){
+    fallback = candidates.find(sn =&gt; sn.includes('价格') || sn.includes('售价'));
+  } else if (kw.includes('销量')){
+    fallback = candidates.find(sn =&gt; sn.includes('销量'));
+  }
+
+  return fallback || null;
+}
+
+// 渲染检测到的子表标签（精准单选高亮，绝不多亮）
 function renderDetectedSheetChips(){
   const area = $('sheetChipsArea');
   if (!state.detectedSheetNames || !state.detectedSheetNames.length){
@@ -9209,73 +9377,85 @@ function renderDetectedSheetChips(){
 
   let html = `&lt;span style=&quot;font-size:11px;color:#64748b;line-height:22px;&quot;&gt;检测到子表(点击填入)：&lt;/span&gt;`;
   state.detectedSheetNames.forEach(sn =&gt; {
-    const isAct = curKey &amp;&amp; sn.includes(curKey);
+    // 精准高亮判断：只高亮当前选中的唯一个子表，或者最佳命中的子表
+    const isAct = (curKey === sn) || (!sn.includes('子体') &amp;&amp; curKey &amp;&amp; sn.includes(curKey) &amp;&amp; !curKey.includes('子体'));
     html += `&lt;span class=&quot;sheet-chip ${isAct ? 'active' : ''}&quot; onclick=&quot;selectSheetChip('${esc(sn)}')&quot;&gt;${esc(sn)}&lt;/span&gt;`;
   });
   area.innerHTML = html;
   $('detectedSheetsHint').textContent = `共在文件中检测到 ${state.detectedSheetNames.length} 个子表`;
 }
 
-// 点击某个子表标签直接应用
 window.selectSheetChip = function(sheetName){
   $('histSheetKeyword').value = sheetName;
   renderDetectedSheetChips();
   processHistoryMerge();
 };
 
+function updateExportLabelHint(){
+  const title = getMetricDisplayTitle();
+  const el = $('exportCurMetricLabel');
+  if (el) el.textContent = `当前选定指标 (${title})`;
+  const stat = $('exportStatHint');
+  if (stat){
+    const mCount = state.histMonthCols ? state.histMonthCols.length : 0;
+    stat.innerHTML = `✅ 选了哪个就导出哪个：当前已加载 &lt;b&gt;${esc(title)}&lt;/b&gt;（共 ${mCount} 个月份列）`;
+  }
+}
+
 function processHistoryMerge(){
   if (!state.histRawBooks || !state.histRawBooks.length) return;
 
   const keyword = ($('histSheetKeyword').value || '').trim();
   let matchedSheetCount = 0;
-  let totalSheetsScanned = 0;
   const allRows = [];
   const monthColsSet = new Set();
   const allHeadersSet = new Set();
+  const rawColNameMap = {};
+  let targetSheetSampleName = '';
 
   state.histRawBooks.forEach(item =&gt; {
     const wb = item.wb;
     const names = wb.SheetNames || [];
-    totalSheetsScanned += names.length;
 
-    let targetNames = [];
-    if (keyword){
-      targetNames = names.filter(sn =&gt; sn.includes(keyword));
-    }
-    // 若未匹配到，则尝试退化使用首个子表保底
-    if (!targetNames.length){
-      if (keyword){
-        console.warn(`文件 ${item.name} 中未找到包含「${keyword}」的子表，已自动退化使用首个子表：${names[0]}`);
-      }
-      targetNames = names.length ? [names[0]] : [];
-    }
+    // 关键改变：每个工作簿只允许提取 1 个最精准的 Sheet！
+    const targetName = findBestSheetForWorkbook(names, keyword);
 
-    targetNames.forEach(sn =&gt; {
+    if (targetName &amp;&amp; wb.Sheets[targetName]){
       matchedSheetCount++;
-      const ws = wb.Sheets[sn];
-      if (!ws) return;
+      targetSheetSampleName = targetName;
+      const ws = wb.Sheets[targetName];
       const t = sheetToTable(ws);
+
       t.headers.forEach(h =&gt; {
         allHeadersSet.add(h);
-        if (MONTH_RE.test(h)) monthColsSet.add(h);
+        const parsed = parseMonthHeader(h);
+        if (parsed){
+          monthColsSet.add(parsed.normalized);
+          rawColNameMap[parsed.normalized] = parsed.rawHeader;
+        }
       });
       allRows.push(...t.rows);
-    });
+    }
   });
 
   state.histHeaders = Array.from(allHeadersSet);
   state.histRows = allRows;
   state.histMonthCols = Array.from(monthColsSet).sort((a, b) =&gt; (a &lt; b ? 1 : -1));
+  state.histColRawNames = rawColNameMap;
 
-  // ASIN 销量累加映射表
+  // ASIN 数据映射
   const map = {};
   allRows.forEach(o =&gt; {
     const asin = String(o['ASIN'] || '').trim().toUpperCase();
     if (!asin) return;
     if (!map[asin]) map[asin] = {};
-    state.histMonthCols.forEach(m =&gt; {
-      const v = toNum(o[m]);
-      if (v) map[asin][m] = (map[asin][m] || 0) + v;
+
+    state.histMonthCols.forEach(normMonth =&gt; {
+      const rawHeader = rawColNameMap[normMonth] || normMonth;
+      const v = toNum(o[rawHeader] !== undefined ? o[rawHeader] : o[normMonth]);
+      if (v){
+        map[asin][normMonth] = (map[asin][normMonth] || 0) + v;
+      }
     });
   });
   state.histMap = map;
@@ -9286,15 +9466,64 @@ function processHistoryMerge(){
 
   state.histFileName = filesLabel;
 
+  const displayTitle = targetSheetSampleName || getMetricDisplayTitle();
   $('dropHist').classList.add('done');
-  $('histName').innerHTML = `✅ ${esc(filesLabel)}（合并 ${matchedSheetCount} 个「${keyword || '全部'}」子表 · 共 ${allRows.length} 条记录 · ${state.histMonthCols.length} 个月份列）`;
+  $('histName').innerHTML = `✅ ${esc(filesLabel)}（合并 ${matchedSheetCount} 个「${displayTitle}」子表 · 共 ${allRows.length} 条记录 · ${state.histMonthCols.length} 个月份列）`;
 
-  toast(`✅ 成功合并 ${matchedSheetCount} 个子表，共提取 ${allRows.length} 条历史记录`);
+  updateExportLabelHint();
+  renderDetectedSheetChips();
+  toast(`✅ 成功合并 ${matchedSheetCount} 个子表（每个文件唯一单选，已剔除子体表）`);
   computeAll();
   saveAllToStorage();
 }
 
-// 按钮重新应用合并
+// 针对多子表一次性全量提取（用于合并全部历史指标导出，默认只取产品级表）
+function extractAllDetectedMetrics(){
+  const result = [];
+  if (!state.histRawBooks || !state.histRawBooks.length) return result;
+
+  // 只提取产品维度的常用子表，防止混入子体
+  const targetSheets = state.detectedSheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体') &amp;&amp; sn.toLowerCase() !== 'notes');
+
+  targetSheets.forEach(sn =&gt; {
+    let sheetRows = [];
+    let monthSet = new Set();
+    let localRawMap = {};
+
+    state.histRawBooks.forEach(item =&gt; {
+      if (item.wb.Sheets[sn]){
+        const t = sheetToTable(item.wb.Sheets[sn]);
+        t.headers.forEach(h =&gt; {
+          const p = parseMonthHeader(h);
+          if (p){
+            monthSet.add(p.normalized);
+            localRawMap[p.normalized] = p.rawHeader;
+          }
+        });
+        sheetRows.push(...t.rows);
+      }
+    });
+
+    if (monthSet.size &gt; 0){
+      const months = Array.from(monthSet).sort((a,b) =&gt; (a &lt; b ? 1 : -1));
+      const map = {};
+      sheetRows.forEach(o =&gt; {
+        const asin = String(o['ASIN'] || '').trim().toUpperCase();
+        if (!asin) return;
+        if (!map[asin]) map[asin] = {};
+        months.forEach(m =&gt; {
+          const rawCol = localRawMap[m] || m;
+          const v = toNum(o[rawCol] !== undefined ? o[rawCol] : o[m]);
+          if (v) map[asin][m] = (map[asin][m] || 0) + v;
+        });
+      });
+      result.push({ sheetName: sn, months, map, rawMap: localRawMap });
+    }
+  });
+
+  return result;
+}
+
 $('btnReMergeHist').addEventListener('click', () =&gt; {
   if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
     renderDetectedSheetChips();
@@ -9304,12 +9533,12 @@ $('btnReMergeHist').addEventListener('click', () =&gt; {
   }
 });
 
-// 输入框回车或修改时自动重合并不用重新选文件
 $('histSheetKeyword').addEventListener('change', () =&gt; {
   renderDetectedSheetChips();
   if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
     processHistoryMerge();
   } else {
+    updateExportLabelHint();
     saveAllToStorage();
   }
 });
@@ -9396,18 +9625,19 @@ function computeAll(){
     const isNew = (days !== null &amp;&amp; days &lt;= cfg.newDays);
 
     let isHot = false, hotReason = '';
+    const metricShort = getMetricShortName();
     if (isNew){
       if (last12 &gt;= cfg.newSales){
         isHot = true;
-        hotReason = '新品近' + cfg.recentMonths + '月销量 ≥ ' + cfg.newSales.toLocaleString();
+        hotReason = `新品近${cfg.recentMonths}月${metricShort} ≥ ${cfg.newSales.toLocaleString()}`;
       }
     } else {
       if (last12 &gt;= cfg.oldSales12){
         isHot = true;
-        hotReason = '老品近' + cfg.recentMonths + '月销量 ≥ ' + cfg.oldSales12.toLocaleString();
+        hotReason = `老品近${cfg.recentMonths}月${metricShort} ≥ ${cfg.oldSales12.toLocaleString()}`;
       } else if (yearSales &gt;= cfg.oldSalesYear){
         isHot = true;
-        hotReason = '老品' + cfg.year + '年销量 ≥ ' + cfg.oldSalesYear.toLocaleString();
+        hotReason = `老品${cfg.year}年${metricShort} ≥ ${cfg.oldSalesYear.toLocaleString()}`;
       }
     }
 
@@ -9458,9 +9688,10 @@ function computeAll(){
  * ========================================================= */
 function renderMiniChart(p){
   const series = p.series || [];
+  const metricShort = getMetricShortName();
   if (!series.length){
     return `
-      &lt;div class=&quot;trend-head&quot;&gt;&lt;span&gt;历史月销量走势&lt;/span&gt;&lt;span class=&quot;trend-zoom&quot;&gt;🔍 放大&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;trend-head&quot;&gt;&lt;span&gt;历史${metricShort}走势&lt;/span&gt;&lt;span class=&quot;trend-zoom&quot;&gt;🔍 放大&lt;/span&gt;&lt;/div&gt;
       &lt;div style=&quot;height:46px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:11px;&quot;&gt;无历史数据&lt;/div&gt;
     `;
   }
@@ -9527,7 +9758,7 @@ function renderMiniChart(p){
 
   return `
     &lt;div class=&quot;trend-head&quot;&gt;
-      &lt;span&gt;月销量走势 (${series.length}个月)&lt;/span&gt;
+      &lt;span&gt;${metricShort}走势 (${series.length}个月)&lt;/span&gt;
       &lt;span class=&quot;trend-zoom&quot;&gt;🔍 点击放大&lt;/span&gt;
     &lt;/div&gt;
     &lt;div class=&quot;trend-svg-box&quot; onmousemove=&quot;handleMiniMove(event, '${esc(p.asin)}')&quot; onmouseleave=&quot;hideTip()&quot;&gt;
@@ -9564,7 +9795,8 @@ window.handleMiniMove = function(e, asin){
  * ========================================================= */
 const tipEl = $('chartTooltip');
 window.showTip = function(e, month, val, extraHtml){
-  tipEl.innerHTML = `&lt;div&gt;月份：&lt;b&gt;${month}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;销量：&lt;b&gt;${fmtNum(val)}&lt;/b&gt;&lt;/div&gt;${extraHtml || ''}`;
+  const mName = getMetricShortName();
+  tipEl.innerHTML = `&lt;div&gt;月份：&lt;b&gt;${month}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;${mName}：&lt;b&gt;${fmtNum(val)}&lt;/b&gt;&lt;/div&gt;${extraHtml || ''}`;
   tipEl.style.display = 'block';
   moveTip(e);
 };
@@ -9583,6 +9815,10 @@ window.openChartModal = function(asin){
   const p = state.merged.find(item =&gt; item.asin === asin);
   if (!p) return;
 
+  const metricTitle = getMetricDisplayTitle();
+  const metricShort = getMetricShortName();
+
+  $('cmModalHeadTitle').textContent = `📊 ${metricTitle}走势全景`;
   $('cmAsinLink').textContent = p.asin;
   $('cmAsinLink').href = p.link;
   $('cmTitle').textContent = p.title || '（无商品标题）';
@@ -9595,15 +9831,15 @@ window.openChartModal = function(asin){
   const avgSales = series.length ? Math.round(totalSales / series.length) : 0;
 
   $('cmStatsBar').innerHTML = `
-    &lt;div class=&quot;c-stat-pill&quot;&gt;有效销售期：&lt;b&gt;${series.length} 个月&lt;/b&gt;（已省去未起步0值）&lt;/div&gt;
-    &lt;div class=&quot;c-stat-pill&quot;&gt;累计销量：&lt;b&gt;${fmtNum(totalSales)}&lt;/b&gt;&lt;/div&gt;
-    &lt;div class=&quot;c-stat-pill&quot;&gt;月均销量：&lt;b&gt;${fmtNum(avgSales)}&lt;/b&gt;&lt;/div&gt;
+    &lt;div class=&quot;c-stat-pill&quot;&gt;有效月份：&lt;b&gt;${series.length} 个月&lt;/b&gt;&lt;/div&gt;
+    &lt;div class=&quot;c-stat-pill&quot;&gt;累计${metricShort}：&lt;b&gt;${fmtNum(totalSales)}&lt;/b&gt;&lt;/div&gt;
+    &lt;div class=&quot;c-stat-pill&quot;&gt;月均${metricShort}：&lt;b&gt;${fmtNum(avgSales)}&lt;/b&gt;&lt;/div&gt;
     &lt;div class=&quot;c-stat-pill max&quot;&gt;最高月(MAX)：&lt;b&gt;${maxVal &gt; 0 ? fmtNum(maxVal) : '—'}&lt;/b&gt;&lt;/div&gt;
     &lt;div class=&quot;c-stat-pill min&quot;&gt;最低月(MIN&gt;0)：&lt;b&gt;${minVal &gt; 0 ? fmtNum(minVal) : '—'}&lt;/b&gt;&lt;/div&gt;
   `;
 
   if (!series.length){
-    $('cmChartBox').innerHTML = `&lt;div style=&quot;text-align:center;padding:120px 0;color:#94a3b8;&quot;&gt;未匹配到该产品的有效销量明细&lt;/div&gt;`;
+    $('cmChartBox').innerHTML = `&lt;div style=&quot;text-align:center;padding:120px 0;color:#94a3b8;&quot;&gt;未匹配到该产品的有效历史明细&lt;/div&gt;`;
     openModal('chartModal');
     return;
   }
@@ -9760,9 +9996,10 @@ window.hoverCol = function(e, idx){
 
   const isMax = currentChartData.maxVal &gt; 0 &amp;&amp; pt.val === currentChartData.maxVal;
   const isMin = currentChartData.minVal &gt; 0 &amp;&amp; pt.val === currentChartData.minVal;
+  const mName = getMetricShortName();
 
   let extra = pt.yoyText || '';
-  if (isMax) extra += `&lt;div style=&quot;color:#fb923c;font-weight:600;&quot;&gt;🔥 历史最高销量月份&lt;/div&gt;`;
+  if (isMax) extra += `&lt;div style=&quot;color:#fb923c;font-weight:600;&quot;&gt;🔥 历史最高${mName}月份&lt;/div&gt;`;
   if (isMin) extra += `&lt;div style=&quot;color:#34d399;font-weight:600;&quot;&gt;📍 历史起步/最低月份&lt;/div&gt;`;
 
   showTip(e, pt.month, pt.val, extra);
@@ -9828,7 +10065,7 @@ function render(){
   if (!state.curRows.length){
     $('listArea').innerHTML = `&lt;div class=&quot;empty&quot;&gt;
       📄 还没有数据&lt;br&gt;
-      &lt;span style=&quot;font-size:13px;&quot;&gt;请先上传「当前商品数据」和「历史销量数据」Excel 文件（支持多子表合并 · 支持拖拽 · 自动记忆）&lt;/span&gt;
+      &lt;span style=&quot;font-size:13px;&quot;&gt;请先上传「当前商品数据」和「历史数据」Excel 文件（支持多子表合并 · 支持拖拽 · 自动记忆）&lt;/span&gt;
     &lt;/div&gt;`;
     $('pagerArea').innerHTML = '';
     return;
@@ -9881,6 +10118,8 @@ function renderCard(p, cfg){
   const bsrTxt = (p.bsr === '' || p.bsr === null || p.bsr === undefined)
     ? '—' : ('#' + Math.round(toNum(p.bsr)).toLocaleString());
 
+  const metricShort = getMetricShortName();
+
   return `
   &lt;div class=&quot;card ${p.isHot ? 'is-hot' : ''}&quot;&gt;
     &lt;div class=&quot;thumb&quot; title=&quot;点击放大查看原图&quot;&gt;${imgHtml}&lt;/div&gt;
@@ -9894,8 +10133,8 @@ function renderCard(p, cfg){
       &lt;div class=&quot;ttl&quot; title=&quot;${esc(p.title)}&quot;&gt;${esc(p.title) || '（无标题）'}&lt;/div&gt;
 
       &lt;div class=&quot;metrics&quot;&gt;
-        &lt;div class=&quot;metric hl&quot;&gt;&lt;span&gt;近${cfg.recentMonths}月销量&lt;/span&gt;&lt;b&gt;${fmtNum(p.last12)}&lt;/b&gt;&lt;/div&gt;
-        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;${esc(cfg.year)}年销量&lt;/span&gt;&lt;b&gt;${fmtNum(p.yearSales)}&lt;/b&gt;&lt;/div&gt;
+        &lt;div class=&quot;metric hl&quot;&gt;&lt;span&gt;近${cfg.recentMonths}月${metricShort}&lt;/span&gt;&lt;b&gt;${fmtNum(p.last12)}&lt;/b&gt;&lt;/div&gt;
+        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;${esc(cfg.year)}年${metricShort}&lt;/span&gt;&lt;b&gt;${fmtNum(p.yearSales)}&lt;/b&gt;&lt;/div&gt;
         &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;近30天销量&lt;/span&gt;&lt;b&gt;${fmtNum(p.recentSales)}&lt;/b&gt;&lt;/div&gt;
         &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;大类BSR&lt;/span&gt;&lt;b&gt;${bsrTxt}&lt;/b&gt;&lt;/div&gt;
         &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;当前价格&lt;/span&gt;&lt;b&gt;${priceTxt}&lt;/b&gt;&lt;/div&gt;
@@ -10006,16 +10245,18 @@ $('btnReset').addEventListener('click', () =&gt; {
   }));
 
 /* =========================================================
- *  导出菜单与导出 Excel
+ *  导出 Excel
  * ========================================================= */
 const exportMenu = $('exportMenu');
 $('btnExportMenu').addEventListener('click', e =&gt; {
   e.stopPropagation();
+  updateExportLabelHint();
   exportMenu.hidden = !exportMenu.hidden;
 });
 document.addEventListener('click', () =&gt; { exportMenu.hidden = true; });
+
 exportMenu.addEventListener('click', e =&gt; {
-  const b = e.target.closest('button');
+  const b = e.target.closest('button.em-btn');
   if (!b) return;
   exportMenu.hidden = true;
   doExport(b.dataset.mode === 'withimg');
@@ -10051,12 +10292,62 @@ async function doExport(withImages){
 
   try{
     const cfg = getConfig();
+    const metricShort = getMetricShortName();
+    const curMetricTitle = getMetricDisplayTitle();
+
     const baseHeaders = state.curHeaders.filter(h =&gt; h &amp;&amp; h.trim() !== '');
-    const extraHeaders = ['爆品标识', '新老品', '近' + cfg.recentMonths + '月销量', cfg.year + '年销量'];
+    const extraHeaders = ['爆品标识', '新老品', `近${cfg.recentMonths}月${metricShort}`, `${cfg.year}年${metricShort}`];
     const rowsData = state.filtered;
 
+    const needHist = $('cfgExportHist') ? $('cfgExportHist').checked : true;
+    const histMode = document.querySelector('input[name=&quot;exportHistMode&quot;]:checked')?.value || 'current';
+    const histOrder = $('cfgExportOrder') ? $('cfgExportOrder').value : 'asc';
+
+    let histExportCols = [];
+
+    if (needHist){
+      if (histMode === 'all'){
+        const allMetrics = extractAllDetectedMetrics();
+        if (allMetrics.length &gt; 0){
+          allMetrics.forEach(item =&gt; {
+            let months = [...item.months];
+            if (histOrder === 'asc') months.sort((a,b) =&gt; a.localeCompare(b));
+            else months.sort((a,b) =&gt; b.localeCompare(a));
+
+            months.forEach(m =&gt; {
+              const rawName = item.rawMap[m] || m;
+              const hasCur = /[$¥€]|USD/i.test(rawName);
+              const suffix = hasCur ? '($)' : '';
+              histExportCols.push({
+                month: m,
+                header: `[${item.sheetName}] ${m}${suffix}`,
+                map: item.map
+              });
+            });
+          });
+        }
+      }
+
+      if (!histExportCols.length &amp;&amp; state.histMonthCols &amp;&amp; state.histMonthCols.length){
+        let months = [...state.histMonthCols];
+        if (histOrder === 'asc') months.sort((a,b) =&gt; a.localeCompare(b));
+        else months.sort((a,b) =&gt; b.localeCompare(a));
+
+        months.forEach(m =&gt; {
+          const rawName = state.histColRawNames[m] || m;
+          const hasCur = /[$¥€]|USD/i.test(rawName);
+          const suffix = hasCur ? '($)' : '';
+          histExportCols.push({
+            month: m,
+            header: `[${curMetricTitle}] ${m}${suffix}`,
+            map: state.histMap
+          });
+        });
+      }
+    }
+
     if (withImages){
-      showProgress('正在生成 Excel（含图片）', '共 ' + rowsData.length + ' 条商品，可继续浏览产品');
+      showProgress('正在生成 Excel（含图片）', `共 ${rowsData.length} 条商品，正在附带 ${histExportCols.length} 列历史明细`);
       updateProgress(0, rowsData.length, '准备中…');
     }
 
@@ -10066,27 +10357,44 @@ async function doExport(withImages){
       views: [{ state:'frozen', ySplit: 1 }]
     });
 
-    const headerRow = ws.addRow(['图片', ...baseHeaders, ...extraHeaders]);
-    headerRow.height = 26;
-    headerRow.font = { bold: true, size: 11, color: { argb:'FF1F2937' } };
+    const allHeaders = ['图片', ...baseHeaders, ...extraHeaders, ...histExportCols.map(c =&gt; c.header)];
+    const headerRow = ws.addRow(allHeaders);
+    headerRow.height = 28;
+    headerRow.font = { bold: true, size: 10.5, color: { argb:'FF1F2937' } };
     headerRow.alignment = { vertical:'middle', horizontal:'center' };
-    headerRow.eachCell(c =&gt; {
-      c.fill = { type:'pattern', pattern:'solid', fgColor: { argb:'FFEEF3FF' } };
-      c.border = { bottom: { style:'thin', color: { argb:'FFD6E0F0' } } };
-    });
 
-    if (withImages){
-      ws.getColumn(1).width = 17;
-    } else {
-      ws.getColumn(1).width = 12;
-    }
+    // 1. 图片列
+    ws.getColumn(1).width = withImages ? 17 : 12;
+    headerRow.getCell(1).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF1F5F9' } };
+
+    // 2. 原商品列
     baseHeaders.forEach((h, i) =&gt; {
-      ws.getColumn(i + 2).width = Math.min(Math.max(String(h).length + 4, 10), 40);
-    });
-    extraHeaders.forEach((h, i) =&gt; {
-      ws.getColumn(baseHeaders.length + 2 + i).width = 15;
+      const colIdx = i + 2;
+      headerRow.getCell(colIdx).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFEEF3FF' } };
+      ws.getColumn(colIdx).width = Math.min(Math.max(String(h).length + 4, 10), 38);
     });
 
+    // 3. 爆品标记列
+    const extraStart = baseHeaders.length + 2;
+    extraHeaders.forEach((h, i) =&gt; {
+      const colIdx = extraStart + i;
+      const cell = headerRow.getCell(colIdx);
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF2EC' } };
+      cell.font = { bold: true, size: 10.5, color:{ argb:'FFE85520' } };
+      ws.getColumn(colIdx).width = 15;
+    });
+
+    // 4. 历史月份明细列
+    const histStart = extraStart + extraHeaders.length;
+    histExportCols.forEach((col, i) =&gt; {
+      const colIdx = histStart + i;
+      const cell = headerRow.getCell(colIdx);
+      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE6F7EE' } };
+      cell.font = { bold: true, size: 10, color:{ argb:'FF0D9488' } };
+      ws.getColumn(colIdx).width = Math.max(col.header.length + 3, 14);
+    });
+
+    // 填充数据行
     const rowsMeta = [];
     rowsData.forEach(p =&gt; {
       const rowVals = baseHeaders.map(h =&gt; {
@@ -10095,6 +10403,7 @@ async function doExport(withImages){
         if (v === null || v === undefined) return '';
         return v;
       });
+
       rowVals.push(
         p.isHot ? '爆品' : '非爆品',
         p.isNew ? '新品' : '老品',
@@ -10102,10 +10411,26 @@ async function doExport(withImages){
         p.yearSales
       );
 
+      histExportCols.forEach(col =&gt; {
+        const itemMap = col.map || state.histMap;
+        const asinData = itemMap[p.key] || {};
+        const val = asinData[col.month];
+        if (val !== undefined &amp;&amp; val !== null &amp;&amp; val !== ''){
+          const num = Number(val);
+          rowVals.push(isNaN(num) ? val : num);
+        } else {
+          rowVals.push('');
+        }
+      });
+
       const r = ws.addRow(['', ...rowVals]);
-      r.height = withImages ? 100 : 20;
+      r.height = withImages ? 100 : 22;
       r.alignment = { vertical:'middle' };
       rowsMeta.push({ row: r.number, img: p.img });
+    });
+
+    histExportCols.forEach((col, i) =&gt; {
+      ws.getColumn(histStart + i).alignment = { vertical:'middle', horizontal:'right' };
     });
 
     let ok = 0, fail = 0;
@@ -10153,7 +10478,12 @@ async function doExport(withImages){
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `爆品筛选_${withImages ? '含图片_' : '不含图片_'}${state.onlyHot ? '只看爆品_' : ''}${rowsData.length}条_${tsName()}.xlsx`;
+
+    const histDesc = histExportCols.length
+      ? (histMode === 'all' ? '含全部历史指标_' : `含${curMetricTitle}_`)
+      : '';
+
+    a.download = `爆品筛选_${histDesc}${withImages ? '含图片_' : '不含图片_'}${state.onlyHot ? '只看爆品_' : ''}${rowsData.length}条_${tsName()}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -10161,10 +10491,11 @@ async function doExport(withImages){
 
     if (withImages) hideProgress();
 
+    const histTip = histExportCols.length ? `（已附带 ${histExportCols.length} 列历史明细）` : '';
     if (withImages){
-      toast(`导出完成：${rowsData.length} 条，图片成功 ${ok} 张` + (fail ? `，${fail} 张因跨域受限已改为链接` : ''));
+      toast(`导出完成：${rowsData.length} 条 ${histTip}，图片成功 ${ok} 张` + (fail ? `，${fail} 张跨域受限已改为链接` : ''));
     } else {
-      toast(`导出完成：${rowsData.length} 条（不含图片）`);
+      toast(`导出完成：${rowsData.length} 条 ${histTip}（不含图片）`);
     }
   }catch(err){
     console.error(err);
@@ -10176,7 +10507,7 @@ async function doExport(withImages){
 }
 
 /* =========================================================
- *  初始化：恢复持久记忆数据
+ *  初始化
  * ========================================================= */
 window.addEventListener('DOMContentLoaded', () =&gt; {
   render();
@@ -10185,6 +10516,9 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
+
+
+
 
 &lt;!--&lt;!DOCTYPE html&gt;--&gt;
 &lt;!--&lt;html lang=&quot;zh-CN&quot;&gt;--&gt;
@@ -10250,8 +10584,8 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--.panel-title::before{content:&quot;&quot;;width:3px;height:14px;border-radius:2px;background:var(&amp;#45;&amp;#45;primary);}--&gt;
 
 &lt;!--/* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; Upload &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
-&lt;!--.upload-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}--&gt;
-&lt;!--@media(max-width:860px){.upload-row{grid-template-columns:1fr;}}--&gt;
+&lt;!--.upload-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}--&gt;
+&lt;!--@media(max-width:920px){.upload-row{grid-template-columns:1fr;}}--&gt;
 &lt;!--.drop{--&gt;
 &lt;!--  display:block;border:1.6px dashed #cbd7ea;border-radius:14px;padding:18px 16px;--&gt;
 &lt;!--  cursor:pointer;transition:.18s;background:#fbfcff;text-align:left;position:relative;--&gt;
@@ -10262,6 +10596,78 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--.drop-title{font-weight:600;font-size:13.5px;color:#1e293b;margin-bottom:5px;}--&gt;
 &lt;!--.drop-sub{font-size:12px;color:var(&amp;#45;&amp;#45;muted);word-break:break-all;line-height:1.6;}--&gt;
 &lt;!--.drop-hint{position:absolute;right:14px;top:14px;font-size:11px;color:#9fb0c9;}--&gt;
+
+&lt;!--/* 子表合并专属设置卡片 */--&gt;
+&lt;!--.sheet-cfg-box{--&gt;
+&lt;!--  margin-top:8px;--&gt;
+&lt;!--  background:#f8fafd;--&gt;
+&lt;!--  border:1px solid #dbe3ef;--&gt;
+&lt;!--  border-radius:12px;--&gt;
+&lt;!--  padding:10px 12px;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-cfg-title{--&gt;
+&lt;!--  font-weight:600;--&gt;
+&lt;!--  font-size:12px;--&gt;
+&lt;!--  color:#334155;--&gt;
+&lt;!--  display:flex;--&gt;
+&lt;!--  justify-content:space-between;--&gt;
+&lt;!--  align-items:center;--&gt;
+&lt;!--  margin-bottom:6px;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-quick-bar{--&gt;
+&lt;!--  display:flex;--&gt;
+&lt;!--  gap:6px;--&gt;
+&lt;!--  margin-bottom:8px;--&gt;
+&lt;!--  align-items:center;--&gt;
+&lt;!--  flex-wrap:wrap;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-input-row{--&gt;
+&lt;!--  display:flex;--&gt;
+&lt;!--  gap:8px;--&gt;
+&lt;!--  align-items:center;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-input{--&gt;
+&lt;!--  flex:1;--&gt;
+&lt;!--  padding:6px 10px;--&gt;
+&lt;!--  border:1px solid #cbd5e1;--&gt;
+&lt;!--  border-radius:8px;--&gt;
+&lt;!--  font-size:12.5px;--&gt;
+&lt;!--  background:#fff;--&gt;
+&lt;!--  outline:none;--&gt;
+&lt;!--  color:#0f172a;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-input:focus{--&gt;
+&lt;!--  border-color:var(&amp;#45;&amp;#45;primary);--&gt;
+&lt;!--  box-shadow:0 0 0 3px rgba(79,124,255,.12);--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-chips-area{--&gt;
+&lt;!--  display:flex;--&gt;
+&lt;!--  flex-wrap:wrap;--&gt;
+&lt;!--  gap:6px;--&gt;
+&lt;!--  margin-top:8px;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-chip{--&gt;
+&lt;!--  font-size:11px;--&gt;
+&lt;!--  padding:3px 8px;--&gt;
+&lt;!--  border-radius:6px;--&gt;
+&lt;!--  background:#fff;--&gt;
+&lt;!--  border:1px solid #cbd5e1;--&gt;
+&lt;!--  color:#475569;--&gt;
+&lt;!--  cursor:pointer;--&gt;
+&lt;!--  transition:.15s;--&gt;
+&lt;!--  user-select:none;--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-chip:hover{--&gt;
+&lt;!--  border-color:var(&amp;#45;&amp;#45;primary);--&gt;
+&lt;!--  color:var(&amp;#45;&amp;#45;primary);--&gt;
+&lt;!--  background:var(&amp;#45;&amp;#45;primary-soft);--&gt;
+&lt;!--}--&gt;
+&lt;!--.sheet-chip.active{--&gt;
+&lt;!--  background:var(&amp;#45;&amp;#45;primary);--&gt;
+&lt;!--  color:#fff;--&gt;
+&lt;!--  border-color:var(&amp;#45;&amp;#45;primary);--&gt;
+&lt;!--  font-weight:600;--&gt;
+&lt;!--}--&gt;
 
 &lt;!--/* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; Config &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
 &lt;!--.cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}--&gt;
@@ -10297,7 +10703,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--.btn.hot.active{background:linear-gradient(135deg,#ff6b35,#e85520);box-shadow:0 0 0 3px rgba(255,107,53,.18);}--&gt;
 &lt;!--.btn.danger{background:#fff;border-color:#fca5a5;color:#dc2626;}--&gt;
 &lt;!--.btn.danger:hover{background:#fef2f2;border-color:#f87171;}--&gt;
-&lt;!--.btn-sm{padding:5px 10px;font-size:11.5px;border-radius:8px;}--&gt;
+&lt;!--.btn-sm{padding:4px 9px;font-size:11.5px;border-radius:7px;}--&gt;
 
 &lt;!--.seg{display:flex;border:1px solid #dbe3ef;border-radius:10px;overflow:hidden;background:#fff;}--&gt;
 &lt;!--.seg button{--&gt;
@@ -10312,20 +10718,45 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--}--&gt;
 &lt;!--.search:focus{border-color:var(&amp;#45;&amp;#45;primary);background:#fff;box-shadow:0 0 0 3px rgba(79,124,255,.12);}--&gt;
 
-&lt;!--/* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 导出下拉 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
+&lt;!--/* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; 导出下拉高级面板 &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
 &lt;!--.export-wrap{position:relative;display:inline-block;}--&gt;
 &lt;!--.export-menu{--&gt;
 &lt;!--  position:absolute;right:0;top:calc(100% + 6px);--&gt;
-&lt;!--  background:#fff;border:1px solid var(&amp;#45;&amp;#45;line);border-radius:12px;--&gt;
-&lt;!--  box-shadow:0 10px 30px rgba(16,24,40,.16);--&gt;
-&lt;!--  padding:6px;z-index:120;min-width:230px;--&gt;
+&lt;!--  background:#fff;border:1px solid var(&amp;#45;&amp;#45;line);border-radius:14px;--&gt;
+&lt;!--  box-shadow:0 12px 36px rgba(16,24,40,.18);--&gt;
+&lt;!--  padding:10px;z-index:120;min-width:320px;--&gt;
 &lt;!--}--&gt;
-&lt;!--.export-menu button{--&gt;
+&lt;!--.export-cfg-box{--&gt;
+&lt;!--  background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;--&gt;
+&lt;!--  padding:10px 12px;margin-bottom:8px;--&gt;
+&lt;!--}--&gt;
+&lt;!--.export-cfg-title{--&gt;
+&lt;!--  display:flex;justify-content:space-between;align-items:center;--&gt;
+&lt;!--  font-size:12px;font-weight:700;color:#1e293b;margin-bottom:6px;--&gt;
+&lt;!--}--&gt;
+&lt;!--.switch-lbl{--&gt;
+&lt;!--  display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:11.5px;color:#475569;user-select:none;--&gt;
+&lt;!--}--&gt;
+&lt;!--.export-opt-row{--&gt;
+&lt;!--  display:flex;align-items:center;gap:10px;font-size:11.5px;color:#475569;margin-top:6px;--&gt;
+&lt;!--}--&gt;
+&lt;!--.export-opt-label{font-weight:600;color:#334155;white-space:nowrap;}--&gt;
+&lt;!--.radio-lbl{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}--&gt;
+&lt;!--.export-select{--&gt;
+&lt;!--  padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:11.5px;background:#fff;color:#1e293b;outline:none;--&gt;
+&lt;!--}--&gt;
+&lt;!--.export-stat-hint{--&gt;
+&lt;!--  margin-top:6px;font-size:11px;color:#0e9f6e;background:#e9f9f2;padding:4px 8px;border-radius:6px;line-height:1.4;--&gt;
+&lt;!--}--&gt;
+&lt;!--.export-divider{height:1px;background:#eef2f8;margin:8px 0;}--&gt;
+
+&lt;!--.export-menu button.em-btn{--&gt;
 &lt;!--  display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:none;background:transparent;--&gt;
-&lt;!--  padding:9px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:#334155;font-weight:500;--&gt;
+&lt;!--  padding:8px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;color:#334155;font-weight:500;--&gt;
+&lt;!--  transition:.15s;--&gt;
 &lt;!--}--&gt;
-&lt;!--.export-menu button:hover{background:var(&amp;#45;&amp;#45;primary-soft);color:#2f5bff;}--&gt;
-&lt;!--.export-menu .em-sub{display:block;font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px;}--&gt;
+&lt;!--.export-menu button.em-btn:hover{background:var(&amp;#45;&amp;#45;primary-soft);color:#2f5bff;}--&gt;
+&lt;!--.export-menu .em-sub{display:block;font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px;line-height:1.4;}--&gt;
 
 &lt;!--/* &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; Stats &amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45;&amp;#45; */--&gt;
 &lt;!--.stats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}--&gt;
@@ -10418,7 +10849,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--.trend-head span{color:var(&amp;#45;&amp;#45;muted);font-weight:500;}--&gt;
 &lt;!--.trend-zoom{font-size:10px;color:var(&amp;#45;&amp;#45;primary);font-weight:600;}--&gt;
 
-&lt;!--/* 趋势图 SVG 区域及绝对定位的正常尺寸徽章 */--&gt;
+&lt;!--/* 趋势图 SVG 区域及绝对定位徽章 */--&gt;
 &lt;!--.trend-svg-box{height:46px;width:100%;position:relative;}--&gt;
 &lt;!--.trend-svg-box svg{width:100%;height:100%;display:block;overflow:visible;}--&gt;
 
@@ -10574,12 +11005,12 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--  &lt;div class=&quot;hero&quot;&gt;--&gt;
 &lt;!--    &lt;h1&gt;🔥 亚马逊产品爆品筛选工具&lt;/h1&gt;--&gt;
-&lt;!--    &lt;p&gt;上传「当前商品数据」与「历史销量数据」两份 Excel，工具会自动匹配 ASIN，按可调阈值筛选爆品并展示明细。数据自动保存在本地，刷新不丢失。&lt;/p&gt;--&gt;
+&lt;!--    &lt;p&gt;上传「当前商品数据」与「历史销量/销售额/价格数据」，自动匹配 ASIN，按可调阈值筛选爆品。数据自动保存在本地，刷新不丢失。&lt;/p&gt;--&gt;
 &lt;!--    &lt;div class=&quot;rule&quot;&gt;--&gt;
 &lt;!--      &lt;span&gt;新品：上架天数 &lt;b&gt;≤ 365 天&lt;/b&gt;&lt;/span&gt;--&gt;
 &lt;!--      &lt;span&gt;爆品（新品）：近 12 月销量 &lt;b&gt;≥ 10,000&lt;/b&gt;&lt;/span&gt;--&gt;
 &lt;!--      &lt;span&gt;爆品（老品）：近 12 月销量 &lt;b&gt;≥ 30,000&lt;/b&gt; 或 25 年全年 &lt;b&gt;≥ 30,000&lt;/b&gt;&lt;/span&gt;--&gt;
-&lt;!--      &lt;span&gt;阈值可自由调整&lt;/span&gt;--&gt;
+&lt;!--      &lt;span&gt;全面支持 &lt;b&gt;2026-11($)&lt;/b&gt; 等带货币符号格式 · 导出自动附带已选历史数据&lt;/span&gt;--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
 &lt;!--  &lt;/div&gt;--&gt;
 
@@ -10588,20 +11019,50 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      &lt;div class=&quot;panel-title&quot;&gt;第一步 · 上传数据文件（支持拖拽 · 自动持久化记忆）&lt;/div&gt;--&gt;
 &lt;!--      &lt;button class=&quot;btn danger btn-sm&quot; id=&quot;btnClearDataTop&quot; title=&quot;清除保存在浏览器中的数据&quot;&gt;🗑️ 清空已存数据&lt;/button&gt;--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
+
 &lt;!--    &lt;div class=&quot;upload-row&quot;&gt;--&gt;
+&lt;!--      &amp;lt;!&amp;ndash; ① 当前商品数据 &amp;ndash;&amp;gt;--&gt;
 &lt;!--      &lt;label class=&quot;drop&quot; id=&quot;dropCur&quot;&gt;--&gt;
 &lt;!--        &lt;input type=&quot;file&quot; id=&quot;fileCurrent&quot; accept=&quot;.xlsx,.xls,.csv&quot; hidden&gt;--&gt;
 &lt;!--        &lt;div class=&quot;drop-hint&quot;&gt;拖拽到此处 / 点击选择&lt;/div&gt;--&gt;
 &lt;!--        &lt;div class=&quot;drop-title&quot;&gt;① 当前商品数据（含月销量 / 价格 / BSR / 上架时间）&lt;/div&gt;--&gt;
 &lt;!--        &lt;div class=&quot;drop-sub&quot; id=&quot;curName&quot;&gt;例如：T-Shirts.xlsx&lt;/div&gt;--&gt;
 &lt;!--      &lt;/label&gt;--&gt;
-&lt;!--      &lt;label class=&quot;drop&quot; id=&quot;dropHist&quot;&gt;--&gt;
-&lt;!--        &lt;input type=&quot;file&quot; id=&quot;fileHistory&quot; accept=&quot;.xlsx,.xls,.csv&quot; hidden&gt;--&gt;
-&lt;!--        &lt;div class=&quot;drop-hint&quot;&gt;拖拽到此处 / 点击选择&lt;/div&gt;--&gt;
-&lt;!--        &lt;div class=&quot;drop-title&quot;&gt;② 历史销量数据（含各月份销量列）&lt;/div&gt;--&gt;
-&lt;!--        &lt;div class=&quot;drop-sub&quot; id=&quot;histName&quot;&gt;例如：历史销量.xlsx&lt;/div&gt;--&gt;
-&lt;!--      &lt;/label&gt;--&gt;
+
+&lt;!--      &amp;lt;!&amp;ndash; ② 历史数据与子表关键字设置 &amp;ndash;&amp;gt;--&gt;
+&lt;!--      &lt;div&gt;--&gt;
+&lt;!--        &lt;label class=&quot;drop&quot; id=&quot;dropHist&quot;&gt;--&gt;
+&lt;!--          &lt;input type=&quot;file&quot; id=&quot;fileHistory&quot; accept=&quot;.xlsx,.xls,.csv&quot; multiple hidden&gt;--&gt;
+&lt;!--          &lt;div class=&quot;drop-hint&quot;&gt;支持多选 / 拖拽多个文件&lt;/div&gt;--&gt;
+&lt;!--          &lt;div class=&quot;drop-title&quot;&gt;② 历史销量/销售额/价格数据（多子表自动合并）&lt;/div&gt;--&gt;
+&lt;!--          &lt;div class=&quot;drop-sub&quot; id=&quot;histName&quot;&gt;点击或拖拽上传历史数据文件&lt;/div&gt;--&gt;
+&lt;!--        &lt;/label&gt;--&gt;
+
+&lt;!--        &amp;lt;!&amp;ndash; 历史子表设置卡片：可在页面随意修改 + 快捷按钮 + 记忆 + 一键点击子表标签 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &lt;div class=&quot;sheet-cfg-box&quot;&gt;--&gt;
+&lt;!--          &lt;div class=&quot;sheet-cfg-title&quot;&gt;--&gt;
+&lt;!--            &lt;span&gt;📑 提取子表指标（可一键切换 · 导出自动跟随）：&lt;/span&gt;--&gt;
+&lt;!--            &lt;span id=&quot;detectedSheetsHint&quot; style=&quot;font-size:11px; color:#64748b;&quot;&gt;支持手动输入或点选下方子表&lt;/span&gt;--&gt;
+&lt;!--          &lt;/div&gt;--&gt;
+
+&lt;!--          &amp;lt;!&amp;ndash; 常用快捷切换按钮（智能宽容度匹配） &amp;ndash;&amp;gt;--&gt;
+&lt;!--          &lt;div class=&quot;sheet-quick-bar&quot;&gt;--&gt;
+&lt;!--            &lt;span style=&quot;font-size:11.5px;color:var(&amp;#45;&amp;#45;muted);font-weight:600;&quot;&gt;快速切换指标：&lt;/span&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('销量')&quot; id=&quot;btnQuickSales&quot;&gt;🔥 历史销量&lt;/button&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('销售额')&quot; id=&quot;btnQuickRevenue&quot;&gt;💰 历史销售额&lt;/button&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('价格')&quot; id=&quot;btnQuickPrice&quot;&gt;🏷️ 历史月价格&lt;/button&gt;--&gt;
+&lt;!--          &lt;/div&gt;--&gt;
+
+&lt;!--          &lt;div class=&quot;sheet-input-row&quot;&gt;--&gt;
+&lt;!--            &lt;input type=&quot;text&quot; id=&quot;histSheetKeyword&quot; class=&quot;sheet-input&quot; value=&quot;销量&quot; placeholder=&quot;输入要提取合并的子表名称关键字(如: 销量 / 销售额 / 价格)...&quot;&gt;--&gt;
+&lt;!--            &lt;button class=&quot;btn btn-sm primary&quot; id=&quot;btnReMergeHist&quot; type=&quot;button&quot; style=&quot;padding:6px 14px;&quot;&gt;应用合并&lt;/button&gt;--&gt;
+&lt;!--          &lt;/div&gt;--&gt;
+&lt;!--          &amp;lt;!&amp;ndash; 智能扫描出的子表名标签区 &amp;ndash;&amp;gt;--&gt;
+&lt;!--          &lt;div class=&quot;sheet-chips-area&quot; id=&quot;sheetChipsArea&quot; style=&quot;display:none;&quot;&gt;&lt;/div&gt;--&gt;
+&lt;!--        &lt;/div&gt;--&gt;
+&lt;!--      &lt;/div&gt;--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
+
 &lt;!--    &lt;div class=&quot;hint&quot;&gt;--&gt;
 &lt;!--      &lt;span&gt;&lt;b&gt;说明：&lt;/b&gt;两份文件通过 &lt;b&gt;ASIN&lt;/b&gt; 关联，分析结果及历史数据已启用 &lt;b&gt;IndexedDB 浏览器长期记忆&lt;/b&gt;，刷新页面依然保留。&lt;/span&gt;--&gt;
 &lt;!--      &lt;span style=&quot;color:#059669;font-weight:600;&quot;&gt;💾 数据本地安全存储&lt;/span&gt;--&gt;
@@ -10616,15 +11077,15 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--        &lt;input type=&quot;number&quot; id=&quot;cfgNewDays&quot; value=&quot;365&quot; min=&quot;1&quot;&gt;--&gt;
 &lt;!--      &lt;/div&gt;--&gt;
 &lt;!--      &lt;div class=&quot;cfg-item&quot;&gt;--&gt;
-&lt;!--        &lt;label&gt;新品爆品线：近 12 月销量 ≥&lt;/label&gt;--&gt;
+&lt;!--        &lt;label&gt;新品爆品线：近 12 月指标 ≥&lt;/label&gt;--&gt;
 &lt;!--        &lt;input type=&quot;number&quot; id=&quot;cfgNewSales&quot; value=&quot;10000&quot; min=&quot;0&quot;&gt;--&gt;
 &lt;!--      &lt;/div&gt;--&gt;
 &lt;!--      &lt;div class=&quot;cfg-item&quot;&gt;--&gt;
-&lt;!--        &lt;label&gt;老品爆品线：近 12 月销量 ≥&lt;/label&gt;--&gt;
+&lt;!--        &lt;label&gt;老品爆品线：近 12 月指标 ≥&lt;/label&gt;--&gt;
 &lt;!--        &lt;input type=&quot;number&quot; id=&quot;cfgOldSales12&quot; value=&quot;30000&quot; min=&quot;0&quot;&gt;--&gt;
 &lt;!--      &lt;/div&gt;--&gt;
 &lt;!--      &lt;div class=&quot;cfg-item&quot;&gt;--&gt;
-&lt;!--        &lt;label&gt;老品爆品线：全年销量 ≥&lt;/label&gt;--&gt;
+&lt;!--        &lt;label&gt;老品爆品线：全年指标 ≥&lt;/label&gt;--&gt;
 &lt;!--        &lt;input type=&quot;number&quot; id=&quot;cfgOldSalesYear&quot; value=&quot;30000&quot; min=&quot;0&quot;&gt;--&gt;
 &lt;!--      &lt;/div&gt;--&gt;
 &lt;!--      &lt;div class=&quot;cfg-item&quot;&gt;--&gt;
@@ -10649,16 +11110,56 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      &lt;input type=&quot;text&quot; class=&quot;search&quot; id=&quot;searchBox&quot; placeholder=&quot;搜索 ASIN / 标题 / 品牌…&quot;&gt;--&gt;
 &lt;!--      &lt;button class=&quot;btn&quot; id=&quot;btnReset&quot;&gt;重置参数&lt;/button&gt;--&gt;
 &lt;!--      &lt;button class=&quot;btn danger&quot; id=&quot;btnClearData&quot;&gt;🗑️ 清空数据&lt;/button&gt;--&gt;
+
+&lt;!--      &amp;lt;!&amp;ndash; 优化后的导出面板 &amp;ndash;&amp;gt;--&gt;
 &lt;!--      &lt;div class=&quot;export-wrap&quot;&gt;--&gt;
 &lt;!--        &lt;button class=&quot;btn primary&quot; id=&quot;btnExportMenu&quot;&gt;⬇ 导出 Excel ▾&lt;/button&gt;--&gt;
-&lt;!--        &lt;div class=&quot;export-menu&quot; id=&quot;exportMenu&quot; hidden&gt;--&gt;
-&lt;!--          &lt;button data-mode=&quot;noimg&quot;&gt;--&gt;
+&lt;!--        &lt;div class=&quot;export-menu&quot; id=&quot;exportMenu&quot; hidden onclick=&quot;event.stopPropagation()&quot;&gt;--&gt;
+&lt;!--          &lt;div class=&quot;export-cfg-box&quot;&gt;--&gt;
+&lt;!--            &lt;div class=&quot;export-cfg-title&quot;&gt;--&gt;
+&lt;!--              &lt;span&gt;📊 历史数据导出配置&lt;/span&gt;--&gt;
+&lt;!--              &lt;label class=&quot;switch-lbl&quot; title=&quot;勾选后，导出结果中将包含完整的历史月份数据列&quot;&gt;--&gt;
+&lt;!--                &lt;input type=&quot;checkbox&quot; id=&quot;cfgExportHist&quot; checked&gt;--&gt;
+&lt;!--                &lt;span&gt;&lt;b&gt;附带历史数据&lt;/b&gt;&lt;/span&gt;--&gt;
+&lt;!--              &lt;/label&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+
+&lt;!--            &lt;div id=&quot;exportHistOptions&quot;&gt;--&gt;
+&lt;!--              &lt;div class=&quot;export-opt-row&quot;&gt;--&gt;
+&lt;!--                &lt;span class=&quot;export-opt-label&quot;&gt;导出范围：&lt;/span&gt;--&gt;
+&lt;!--                &lt;label class=&quot;radio-lbl&quot;&gt;--&gt;
+&lt;!--                  &lt;input type=&quot;radio&quot; name=&quot;exportHistMode&quot; value=&quot;current&quot; checked&gt;--&gt;
+&lt;!--                  &lt;span id=&quot;exportCurMetricLabel&quot;&gt;当前选定指标&lt;/span&gt;--&gt;
+&lt;!--                &lt;/label&gt;--&gt;
+&lt;!--                &lt;label class=&quot;radio-lbl&quot; title=&quot;一次性合并导出历史文件中检测到的所有子表（如销量+销售额+月价格）&quot;&gt;--&gt;
+&lt;!--                  &lt;input type=&quot;radio&quot; name=&quot;exportHistMode&quot; value=&quot;all&quot;&gt;--&gt;
+&lt;!--                  &lt;span&gt;合并全部历史指标&lt;/span&gt;--&gt;
+&lt;!--                &lt;/label&gt;--&gt;
+&lt;!--              &lt;/div&gt;--&gt;
+
+&lt;!--              &lt;div class=&quot;export-opt-row&quot;&gt;--&gt;
+&lt;!--                &lt;span class=&quot;export-opt-label&quot;&gt;月份排序：&lt;/span&gt;--&gt;
+&lt;!--                &lt;select id=&quot;cfgExportOrder&quot; class=&quot;export-select&quot;&gt;--&gt;
+&lt;!--                  &lt;option value=&quot;asc&quot;&gt;时间正序 (由远到近)&lt;/option&gt;--&gt;
+&lt;!--                  &lt;option value=&quot;desc&quot;&gt;时间倒序 (最新月份在前)&lt;/option&gt;--&gt;
+&lt;!--                &lt;/select&gt;--&gt;
+&lt;!--              &lt;/div&gt;--&gt;
+
+&lt;!--              &lt;div class=&quot;export-stat-hint&quot; id=&quot;exportStatHint&quot;&gt;--&gt;
+&lt;!--                ✅ 选了哪个就导出哪个，历史月份列将自动追加到 Excel 右侧--&gt;
+&lt;!--              &lt;/div&gt;--&gt;
+&lt;!--            &lt;/div&gt;--&gt;
+&lt;!--          &lt;/div&gt;--&gt;
+
+&lt;!--          &lt;div class=&quot;export-divider&quot;&gt;&lt;/div&gt;--&gt;
+
+&lt;!--          &lt;button class=&quot;em-btn&quot; data-mode=&quot;noimg&quot;&gt;--&gt;
 &lt;!--            &lt;span&gt;📄&lt;/span&gt;--&gt;
-&lt;!--            &lt;span&gt;导出（不含图片）&lt;span class=&quot;em-sub&quot;&gt;速度最快，保留全部原始列 + 4 列标记&lt;/span&gt;&lt;/span&gt;--&gt;
+&lt;!--            &lt;span&gt;&lt;b&gt;导出 Excel（不含图片）&lt;/b&gt;&lt;span class=&quot;em-sub&quot;&gt;速度极快，保留全部原始列 + 爆品标记 + 已选历史明细&lt;/span&gt;&lt;/span&gt;--&gt;
 &lt;!--          &lt;/button&gt;--&gt;
-&lt;!--          &lt;button data-mode=&quot;withimg&quot;&gt;--&gt;
+&lt;!--          &lt;button class=&quot;em-btn&quot; data-mode=&quot;withimg&quot;&gt;--&gt;
 &lt;!--            &lt;span&gt;🖼️&lt;/span&gt;--&gt;
-&lt;!--            &lt;span&gt;导出（含图片）&lt;span class=&quot;em-sub&quot;&gt;图片嵌入第一列，竖版比例，清晰可辨&lt;/span&gt;&lt;/span&gt;--&gt;
+&lt;!--            &lt;span&gt;&lt;b&gt;导出 Excel（含图片）&lt;/b&gt;&lt;span class=&quot;em-sub&quot;&gt;图片高清嵌入第一列 + 全部原始列 + 已选历史明细&lt;/span&gt;&lt;/span&gt;--&gt;
 &lt;!--          &lt;/button&gt;--&gt;
 &lt;!--        &lt;/div&gt;--&gt;
 &lt;!--      &lt;/div&gt;--&gt;
@@ -10676,7 +11177,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--&amp;lt;!&amp;ndash; 全局图表 Hover Tooltip &amp;ndash;&amp;gt;--&gt;
 &lt;!--&lt;div class=&quot;chart-tooltip&quot; id=&quot;chartTooltip&quot;&gt;&lt;/div&gt;--&gt;
 
-&lt;!--&amp;lt;!&amp;ndash; ============ 弹窗 1：原图高清弹窗 ============ &amp;ndash;&amp;gt;--&gt;
+&lt;!--&amp;lt;!&amp;ndash; 弹窗 1：原图高清弹窗 &amp;ndash;&amp;gt;--&gt;
 &lt;!--&lt;div class=&quot;modal-overlay&quot; id=&quot;imgModal&quot; onclick=&quot;closeModal('imgModal')&quot;&gt;--&gt;
 &lt;!--  &lt;div class=&quot;modal-card img-modal-content&quot; onclick=&quot;event.stopPropagation()&quot;&gt;--&gt;
 &lt;!--    &lt;button class=&quot;modal-close&quot; onclick=&quot;closeModal('imgModal')&quot;&gt;✕&lt;/button&gt;--&gt;
@@ -10685,13 +11186,13 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  &lt;/div&gt;--&gt;
 &lt;!--&lt;/div&gt;--&gt;
 
-&lt;!--&amp;lt;!&amp;ndash; ============ 弹窗 2：历史月销量放大大图表 ============ &amp;ndash;&amp;gt;--&gt;
+&lt;!--&amp;lt;!&amp;ndash; 弹窗 2：历史月度数据放大大图表 &amp;ndash;&amp;gt;--&gt;
 &lt;!--&lt;div class=&quot;modal-overlay&quot; id=&quot;chartModal&quot; onclick=&quot;closeModal('chartModal')&quot;&gt;--&gt;
 &lt;!--  &lt;div class=&quot;modal-card chart-modal-card&quot; onclick=&quot;event.stopPropagation()&quot;&gt;--&gt;
 &lt;!--    &lt;button class=&quot;modal-close&quot; onclick=&quot;closeModal('chartModal')&quot;&gt;✕&lt;/button&gt;--&gt;
 &lt;!--    &lt;div class=&quot;chart-modal-head&quot;&gt;--&gt;
 &lt;!--      &lt;div class=&quot;chart-modal-title&quot;&gt;--&gt;
-&lt;!--        &lt;span&gt;📊 历史月销量走势全景&lt;/span&gt;--&gt;
+&lt;!--        &lt;span id=&quot;cmModalHeadTitle&quot;&gt;📊 历史指标走势全景&lt;/span&gt;--&gt;
 &lt;!--        &lt;a id=&quot;cmAsinLink&quot; href=&quot;#&quot; target=&quot;_blank&quot; title=&quot;在新标签打开亚马逊详情页&quot;&gt;&lt;/a&gt;--&gt;
 &lt;!--      &lt;/div&gt;--&gt;
 &lt;!--      &lt;div class=&quot;chart-modal-sub&quot; id=&quot;cmTitle&quot;&gt;&lt;/div&gt;--&gt;
@@ -10703,7 +11204,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  &lt;/div&gt;--&gt;
 &lt;!--&lt;/div&gt;--&gt;
 
-&lt;!--&amp;lt;!&amp;ndash; ============ 进度条浮动卡片 ============ &amp;ndash;&amp;gt;--&gt;
+&lt;!--&amp;lt;!&amp;ndash; 进度条浮动卡片 &amp;ndash;&amp;gt;--&gt;
 &lt;!--&lt;div class=&quot;progress-float&quot; id=&quot;progressFloat&quot; hidden&gt;--&gt;
 &lt;!--  &lt;div class=&quot;progress-head&quot;&gt;--&gt;
 &lt;!--    &lt;div class=&quot;progress-title&quot;&gt;&lt;span class=&quot;progress-dot&quot;&gt;&lt;/span&gt;&lt;span id=&quot;progressTitle&quot;&gt;正在生成 Excel…&lt;/span&gt;&lt;/div&gt;--&gt;
@@ -10779,9 +11280,27 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--};--&gt;
 
 &lt;!--/* =========================================================--&gt;
-&lt;!-- *  全局状态--&gt;
+&lt;!-- *  智能表头月份解析函数（核心修复：兼容 2026-11($)、2026-11 等）--&gt;
 &lt;!-- * ========================================================= */--&gt;
-&lt;!--const MONTH_RE = /^\d{4}-\d{2}$/;--&gt;
+&lt;!--function parseMonthHeader(header){--&gt;
+&lt;!--  if (header === null || header === undefined) return null;--&gt;
+&lt;!--  const s = String(header).trim();--&gt;
+&lt;!--  // 支持: 2026-11, 2026-11($), 2026-11 ($), 2026-11（$）, 2026/11($), 2026-11(￥), 2026-11(USD) 等--&gt;
+&lt;!--  const m = s.match(/^(\d{4})[-\/\.](\d{1,2})(?:\s*[\(（].*?[\)）]|\s*[$¥€])?$/);--&gt;
+&lt;!--  if (m){--&gt;
+&lt;!--    const year = m[1];--&gt;
+&lt;!--    const month = String(m[2]).padStart(2, '0');--&gt;
+&lt;!--    const normalized = `${year}-${month}`; // 统一内部规范化为 2026-11--&gt;
+&lt;!--    const hasCurrency = /[$¥€]|USD|RMB/i.test(s);--&gt;
+&lt;!--    return {--&gt;
+&lt;!--      rawHeader: s,--&gt;
+&lt;!--      normalized: normalized,--&gt;
+&lt;!--      hasCurrency: hasCurrency--&gt;
+&lt;!--    };--&gt;
+&lt;!--  }--&gt;
+&lt;!--  return null;--&gt;
+&lt;!--}--&gt;
+
 &lt;!--const PAGE_SIZE = 100;--&gt;
 
 &lt;!--const state = {--&gt;
@@ -10791,8 +11310,11 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  histFileName: '',--&gt;
 &lt;!--  histHeaders: [],--&gt;
 &lt;!--  histRows: [],--&gt;
-&lt;!--  histMonthCols: [],--&gt;
-&lt;!--  histMap: {},--&gt;
+&lt;!--  histMonthCols: [],      // 统一标准化的月份列列表 (如 [&quot;2026-11&quot;, &quot;2026-10&quot;, ...])--&gt;
+&lt;!--  histColRawNames: {},    // 标准化月份 -&gt; 原始列名映射 (如 &quot;2026-11&quot; -&gt; &quot;2026-11($)&quot;)--&gt;
+&lt;!--  histMap: {},            // [ASIN][normalizedMonth] -&gt; 数值--&gt;
+&lt;!--  histRawBooks: [],       // 内存缓存原始工作簿--&gt;
+&lt;!--  detectedSheetNames: [], // 扫描到的全部子表名称--&gt;
 &lt;!--  merged: [],--&gt;
 &lt;!--  filtered: [],--&gt;
 &lt;!--  page: 1,--&gt;
@@ -10880,8 +11402,25 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  return series.slice(firstPos);--&gt;
 &lt;!--}--&gt;
 
+&lt;!--// 智能识别当前展示名称--&gt;
+&lt;!--function getMetricDisplayTitle(){--&gt;
+&lt;!--  const kw = ($('histSheetKeyword').value || '').trim();--&gt;
+&lt;!--  if (!kw) return '历史数据';--&gt;
+&lt;!--  if (/销售额|金额|gmv|revenue/i.test(kw)) return '产品历史销售额';--&gt;
+&lt;!--  if (/售价|价格|price/i.test(kw)) return '产品历史月价格';--&gt;
+&lt;!--  if (/月销量|销量|sales/i.test(kw)) return '产品历史月销量';--&gt;
+&lt;!--  return kw;--&gt;
+&lt;!--}--&gt;
+&lt;!--function getMetricShortName(){--&gt;
+&lt;!--  const title = getMetricDisplayTitle();--&gt;
+&lt;!--  if (title.includes('销售额')) return '销售额';--&gt;
+&lt;!--  if (title.includes('价格') || title.includes('售价')) return '月价格';--&gt;
+&lt;!--  if (title.includes('销量')) return '销量';--&gt;
+&lt;!--  return title;--&gt;
+&lt;!--}--&gt;
+
 &lt;!--/* =========================================================--&gt;
-&lt;!-- *  并发执行器（图片并发下载控制）--&gt;
+&lt;!-- *  并发执行器--&gt;
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--async function mapLimit(items, limit, fn, onProgress){--&gt;
 &lt;!--  let idx = 0, done = 0;--&gt;
@@ -10913,7 +11452,9 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      histHeaders: state.histHeaders,--&gt;
 &lt;!--      histRows: state.histRows,--&gt;
 &lt;!--      histMonthCols: state.histMonthCols,--&gt;
+&lt;!--      histColRawNames: state.histColRawNames,--&gt;
 &lt;!--      histMap: state.histMap,--&gt;
+&lt;!--      histSheetKeyword: ($('histSheetKeyword').value || '').trim(),--&gt;
 &lt;!--      config: cfg--&gt;
 &lt;!--    };--&gt;
 &lt;!--    await dbHelper.set('main_session', payload);--&gt;
@@ -10936,6 +11477,10 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      if (cached.config.year) $('cfgYear').value = cached.config.year;--&gt;
 &lt;!--    }--&gt;
 
+&lt;!--    if (cached.histSheetKeyword !== undefined &amp;&amp; cached.histSheetKeyword !== ''){--&gt;
+&lt;!--      $('histSheetKeyword').value = cached.histSheetKeyword;--&gt;
+&lt;!--    }--&gt;
+
 &lt;!--    if (cached.curRows &amp;&amp; cached.curRows.length){--&gt;
 &lt;!--      state.curFileName = cached.curFileName || '历史保存数据.xlsx';--&gt;
 &lt;!--      state.curHeaders = cached.curHeaders || [];--&gt;
@@ -10945,14 +11490,17 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    }--&gt;
 
 &lt;!--    if (cached.histRows &amp;&amp; cached.histRows.length){--&gt;
-&lt;!--      state.histFileName = cached.histFileName || '历史销量数据.xlsx';--&gt;
+&lt;!--      state.histFileName = cached.histFileName || '历史数据.xlsx';--&gt;
 &lt;!--      state.histHeaders = cached.histHeaders || [];--&gt;
 &lt;!--      state.histRows = cached.histRows || [];--&gt;
 &lt;!--      state.histMonthCols = cached.histMonthCols || [];--&gt;
+&lt;!--      state.histColRawNames = cached.histColRawNames || {};--&gt;
 &lt;!--      state.histMap = cached.histMap || {};--&gt;
 &lt;!--      $('dropHist').classList.add('done');--&gt;
 &lt;!--      $('histName').innerHTML = '✅ ' + esc(state.histFileName) + '（已自动恢复 ' + state.histRows.length + ' 条 · ' + state.histMonthCols.length + ' 个月份）';--&gt;
 &lt;!--    }--&gt;
+
+&lt;!--    updateExportLabelHint();--&gt;
 
 &lt;!--    if (state.curRows.length){--&gt;
 &lt;!--      computeAll();--&gt;
@@ -10964,7 +11512,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--}--&gt;
 
 &lt;!--async function clearAllData(){--&gt;
-&lt;!--  if (!confirm('确定要清空已记忆的商品和历史销量数据吗？\n清空后页面将被重置，需要重新上传。')) return;--&gt;
+&lt;!--  if (!confirm('确定要清空已记忆的商品和历史数据吗？\n清空后页面将被重置，需要重新上传。')) return;--&gt;
 &lt;!--  try{--&gt;
 &lt;!--    await dbHelper.clear();--&gt;
 &lt;!--    state.curFileName = '';--&gt;
@@ -10974,7 +11522,10 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    state.histHeaders = [];--&gt;
 &lt;!--    state.histRows = [];--&gt;
 &lt;!--    state.histMonthCols = [];--&gt;
+&lt;!--    state.histColRawNames = {};--&gt;
 &lt;!--    state.histMap = {};--&gt;
+&lt;!--    state.histRawBooks = [];--&gt;
+&lt;!--    state.detectedSheetNames = [];--&gt;
 &lt;!--    state.merged = [];--&gt;
 &lt;!--    state.filtered = [];--&gt;
 &lt;!--    state.page = 1;--&gt;
@@ -10984,8 +11535,12 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    $('dropCur').classList.remove('done');--&gt;
 &lt;!--    $('dropHist').classList.remove('done');--&gt;
 &lt;!--    $('curName').textContent = '例如：T-Shirts.xlsx';--&gt;
-&lt;!--    $('histName').textContent = '例如：历史销量.xlsx';--&gt;
+&lt;!--    $('histName').textContent = '点击或拖拽上传历史数据文件';--&gt;
+&lt;!--    $('sheetChipsArea').style.display = 'none';--&gt;
+&lt;!--    $('sheetChipsArea').innerHTML = '';--&gt;
+&lt;!--    $('detectedSheetsHint').textContent = '支持手动输入或点选下方子表';--&gt;
 
+&lt;!--    updateExportLabelHint();--&gt;
 &lt;!--    render();--&gt;
 &lt;!--    toast('已清空本地持久记忆数据');--&gt;
 &lt;!--  }catch(err){--&gt;
@@ -11052,13 +11607,13 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--/* =========================================================--&gt;
 &lt;!-- *  Excel 解析与读取--&gt;
 &lt;!-- * ========================================================= */--&gt;
-&lt;!--function readSheet(file){--&gt;
+&lt;!--function readWorkbook(file){--&gt;
 &lt;!--  return new Promise((resolve, reject) =&gt; {--&gt;
 &lt;!--    const reader = new FileReader();--&gt;
 &lt;!--    reader.onload = e =&gt; {--&gt;
 &lt;!--      try{--&gt;
 &lt;!--        const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true });--&gt;
-&lt;!--        resolve(wb.Sheets[wb.SheetNames[0]]);--&gt;
+&lt;!--        resolve(wb);--&gt;
 &lt;!--      }catch(err){ reject(err); }--&gt;
 &lt;!--    };--&gt;
 &lt;!--    reader.onerror = reject;--&gt;
@@ -11097,7 +11652,8 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--async function handleCurrentFile(f){--&gt;
 &lt;!--  if (!f) return;--&gt;
 &lt;!--  try{--&gt;
-&lt;!--    const ws = await readSheet(f);--&gt;
+&lt;!--    const wb = await readWorkbook(f);--&gt;
+&lt;!--    const ws = wb.Sheets[wb.SheetNames[0]];--&gt;
 &lt;!--    const t = sheetToTable(ws);--&gt;
 &lt;!--    state.curFileName = f.name;--&gt;
 &lt;!--    state.curHeaders = t.headers;--&gt;
@@ -11113,48 +11669,253 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  }--&gt;
 &lt;!--}--&gt;
 
-&lt;!--async function handleHistoryFile(f){--&gt;
-&lt;!--  if (!f) return;--&gt;
+&lt;!--/* =========================================================--&gt;
+&lt;!-- *  历史数据多子表 / 多文件合并逻辑（深度修复：通杀带($)列名与子表匹配）--&gt;
+&lt;!-- * ========================================================= */--&gt;
+&lt;!--async function handleHistoryFiles(fileList){--&gt;
+&lt;!--  const files = Array.from(fileList || []).filter(f =&gt; /\.(xlsx|xls|csv)$/i.test(f.name));--&gt;
+&lt;!--  if (!files.length) return;--&gt;
+
+&lt;!--  toast(`正在解析 ${files.length} 个历史数据文件...`);--&gt;
 &lt;!--  try{--&gt;
-&lt;!--    const ws = await readSheet(f);--&gt;
-&lt;!--    const t = sheetToTable(ws);--&gt;
-&lt;!--    state.histFileName = f.name;--&gt;
-&lt;!--    state.histHeaders = t.headers;--&gt;
-&lt;!--    state.histRows = t.rows;--&gt;
+&lt;!--    const rawBooks = [];--&gt;
+&lt;!--    const allSheetNamesSet = new Set();--&gt;
+&lt;!--    for (const f of files){--&gt;
+&lt;!--      const wb = await readWorkbook(f);--&gt;
+&lt;!--      rawBooks.push({ name: f.name, wb });--&gt;
+&lt;!--      (wb.SheetNames || []).forEach(sn =&gt; allSheetNamesSet.add(sn));--&gt;
+&lt;!--    }--&gt;
+&lt;!--    state.histRawBooks = rawBooks;--&gt;
+&lt;!--    state.detectedSheetNames = Array.from(allSheetNamesSet);--&gt;
 
-&lt;!--    state.histMonthCols = t.headers--&gt;
-&lt;!--      .filter(h =&gt; MONTH_RE.test(h))--&gt;
-&lt;!--      .sort((a, b) =&gt; (a &lt; b ? 1 : -1));--&gt;
-
-&lt;!--    const map = {};--&gt;
-&lt;!--    t.rows.forEach(o =&gt; {--&gt;
-&lt;!--      const asin = String(o['ASIN'] || '').trim().toUpperCase();--&gt;
-&lt;!--      if (!asin) return;--&gt;
-&lt;!--      if (!map[asin]) map[asin] = {};--&gt;
-&lt;!--      state.histMonthCols.forEach(m =&gt; {--&gt;
-&lt;!--        const v = toNum(o[m]);--&gt;
-&lt;!--        if (v) map[asin][m] = (map[asin][m] || 0) + v;--&gt;
-&lt;!--      });--&gt;
-&lt;!--    });--&gt;
-&lt;!--    state.histMap = map;--&gt;
-
-&lt;!--    $('dropHist').classList.add('done');--&gt;
-&lt;!--    $('histName').innerHTML = '✅ ' + esc(f.name) + '（' + t.rows.length + ' 条 · ' +--&gt;
-&lt;!--      state.histMonthCols.length + ' 个月份列）';--&gt;
-
-&lt;!--    toast('历史数据已载入并自动保存');--&gt;
-&lt;!--    computeAll();--&gt;
-&lt;!--    saveAllToStorage();--&gt;
+&lt;!--    renderDetectedSheetChips();--&gt;
+&lt;!--    processHistoryMerge();--&gt;
 &lt;!--  }catch(err){--&gt;
 &lt;!--    console.error(err);--&gt;
-&lt;!--    alert('读取历史销量数据失败：' + err.message);--&gt;
+&lt;!--    alert('读取历史数据失败：' + err.message);--&gt;
 &lt;!--  }--&gt;
 &lt;!--}--&gt;
 
-&lt;!--$('fileCurrent').addEventListener('change', e =&gt; handleCurrentFile(e.target.files[0]));--&gt;
-&lt;!--$('fileHistory').addEventListener('change', e =&gt; handleHistoryFile(e.target.files[0]));--&gt;
+&lt;!--// 快速切换常用子表（宽容度极高）--&gt;
+&lt;!--window.quickSelectKeyword = function(keyword){--&gt;
+&lt;!--  $('histSheetKeyword').value = keyword;--&gt;
+&lt;!--  renderDetectedSheetChips();--&gt;
+&lt;!--  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){--&gt;
+&lt;!--    processHistoryMerge();--&gt;
+&lt;!--  } else {--&gt;
+&lt;!--    updateExportLabelHint();--&gt;
+&lt;!--    saveAllToStorage();--&gt;
+&lt;!--    toast(`已设定关键字「${keyword}」，上传历史文件后将自动关联`);--&gt;
+&lt;!--  }--&gt;
+&lt;!--};--&gt;
 
-&lt;!--function bindDrop(dropEl, inputEl, handler){--&gt;
+&lt;!--// 强宽容度子表匹配器（全面覆盖“产品历史月价格”、“历史销售额”等各种命名）--&gt;
+&lt;!--function findMatchingSheets(sheetNames, keyword){--&gt;
+&lt;!--  if (!sheetNames || !sheetNames.length) return [];--&gt;
+&lt;!--  if (!keyword) return [sheetNames[0]];--&gt;
+
+&lt;!--  const kw = keyword.trim().toLowerCase();--&gt;
+
+&lt;!--  // 1. 精确包含--&gt;
+&lt;!--  let matches = sheetNames.filter(sn =&gt; sn.toLowerCase().includes(kw));--&gt;
+&lt;!--  if (matches.length) return matches;--&gt;
+
+&lt;!--  // 2. 核心特征词智能泛匹配--&gt;
+&lt;!--  if (/销量|sales/i.test(kw)){--&gt;
+&lt;!--    matches = sheetNames.filter(sn =&gt; /销量|sales/i.test(sn));--&gt;
+&lt;!--  } else if (/销售额|金额|gmv|revenue/i.test(kw)){--&gt;
+&lt;!--    matches = sheetNames.filter(sn =&gt; /销售额|金额|gmv|revenue/i.test(sn));--&gt;
+&lt;!--  } else if (/价格|售价|price/i.test(kw)){--&gt;
+&lt;!--    matches = sheetNames.filter(sn =&gt; /价格|售价|price/i.test(sn));--&gt;
+&lt;!--  }--&gt;
+
+&lt;!--  return matches.length ? matches : [];--&gt;
+&lt;!--}--&gt;
+
+&lt;!--// 渲染检测到的子表标签--&gt;
+&lt;!--function renderDetectedSheetChips(){--&gt;
+&lt;!--  const area = $('sheetChipsArea');--&gt;
+&lt;!--  if (!state.detectedSheetNames || !state.detectedSheetNames.length){--&gt;
+&lt;!--    area.style.display = 'none';--&gt;
+&lt;!--    return;--&gt;
+&lt;!--  }--&gt;
+&lt;!--  area.style.display = 'flex';--&gt;
+&lt;!--  const curKey = ($('histSheetKeyword').value || '').trim().toLowerCase();--&gt;
+
+&lt;!--  let html = `&lt;span style=&quot;font-size:11px;color:#64748b;line-height:22px;&quot;&gt;检测到子表(点击填入)：&lt;/span&gt;`;--&gt;
+&lt;!--  state.detectedSheetNames.forEach(sn =&gt; {--&gt;
+&lt;!--    const isAct = curKey &amp;&amp; (sn.toLowerCase().includes(curKey) || curKey.includes(sn.toLowerCase()));--&gt;
+&lt;!--    html += `&lt;span class=&quot;sheet-chip ${isAct ? 'active' : ''}&quot; onclick=&quot;selectSheetChip('${esc(sn)}')&quot;&gt;${esc(sn)}&lt;/span&gt;`;--&gt;
+&lt;!--  });--&gt;
+&lt;!--  area.innerHTML = html;--&gt;
+&lt;!--  $('detectedSheetsHint').textContent = `共在文件中检测到 ${state.detectedSheetNames.length} 个子表`;--&gt;
+&lt;!--}--&gt;
+
+&lt;!--window.selectSheetChip = function(sheetName){--&gt;
+&lt;!--  $('histSheetKeyword').value = sheetName;--&gt;
+&lt;!--  renderDetectedSheetChips();--&gt;
+&lt;!--  processHistoryMerge();--&gt;
+&lt;!--};--&gt;
+
+&lt;!--function updateExportLabelHint(){--&gt;
+&lt;!--  const title = getMetricDisplayTitle();--&gt;
+&lt;!--  const el = $('exportCurMetricLabel');--&gt;
+&lt;!--  if (el) el.textContent = `当前选定指标 (${title})`;--&gt;
+&lt;!--  const stat = $('exportStatHint');--&gt;
+&lt;!--  if (stat){--&gt;
+&lt;!--    const mCount = state.histMonthCols ? state.histMonthCols.length : 0;--&gt;
+&lt;!--    stat.innerHTML = `✅ 选了哪个就导出哪个：当前已加载 &lt;b&gt;${esc(title)}&lt;/b&gt;（共 ${mCount} 个月份列）`;--&gt;
+&lt;!--  }--&gt;
+&lt;!--}--&gt;
+
+&lt;!--function processHistoryMerge(){--&gt;
+&lt;!--  if (!state.histRawBooks || !state.histRawBooks.length) return;--&gt;
+
+&lt;!--  const keyword = ($('histSheetKeyword').value || '').trim();--&gt;
+&lt;!--  let matchedSheetCount = 0;--&gt;
+&lt;!--  const allRows = [];--&gt;
+&lt;!--  const monthColsSet = new Set();--&gt;
+&lt;!--  const allHeadersSet = new Set();--&gt;
+&lt;!--  const rawColNameMap = {}; // &quot;2026-11&quot; -&gt; &quot;2026-11($)&quot; (保留原表头显示)--&gt;
+
+&lt;!--  state.histRawBooks.forEach(item =&gt; {--&gt;
+&lt;!--    const wb = item.wb;--&gt;
+&lt;!--    const names = wb.SheetNames || [];--&gt;
+&lt;!--    let targetNames = findMatchingSheets(names, keyword);--&gt;
+
+&lt;!--    if (!targetNames.length &amp;&amp; names.length){--&gt;
+&lt;!--      targetNames = [names[0]];--&gt;
+&lt;!--    }--&gt;
+
+&lt;!--    targetNames.forEach(sn =&gt; {--&gt;
+&lt;!--      matchedSheetCount++;--&gt;
+&lt;!--      const ws = wb.Sheets[sn];--&gt;
+&lt;!--      if (!ws) return;--&gt;
+&lt;!--      const t = sheetToTable(ws);--&gt;
+
+&lt;!--      // 提取月份列（支持 2026-11($)、2026-11 等）--&gt;
+&lt;!--      t.headers.forEach(h =&gt; {--&gt;
+&lt;!--        allHeadersSet.add(h);--&gt;
+&lt;!--        const parsed = parseMonthHeader(h);--&gt;
+&lt;!--        if (parsed){--&gt;
+&lt;!--          monthColsSet.add(parsed.normalized);--&gt;
+&lt;!--          rawColNameMap[parsed.normalized] = parsed.rawHeader;--&gt;
+&lt;!--        }--&gt;
+&lt;!--      });--&gt;
+&lt;!--      allRows.push(...t.rows);--&gt;
+&lt;!--    });--&gt;
+&lt;!--  });--&gt;
+
+&lt;!--  state.histHeaders = Array.from(allHeadersSet);--&gt;
+&lt;!--  state.histRows = allRows;--&gt;
+&lt;!--  state.histMonthCols = Array.from(monthColsSet).sort((a, b) =&gt; (a &lt; b ? 1 : -1));--&gt;
+&lt;!--  state.histColRawNames = rawColNameMap;--&gt;
+
+&lt;!--  // ASIN 数据累加映射表：统一映射到标准化月份 &quot;YYYY-MM&quot;--&gt;
+&lt;!--  const map = {};--&gt;
+&lt;!--  allRows.forEach(o =&gt; {--&gt;
+&lt;!--    const asin = String(o['ASIN'] || '').trim().toUpperCase();--&gt;
+&lt;!--    if (!asin) return;--&gt;
+&lt;!--    if (!map[asin]) map[asin] = {};--&gt;
+
+&lt;!--    state.histMonthCols.forEach(normMonth =&gt; {--&gt;
+&lt;!--      // 兼容原表头和标准化月份两种 key 取值--&gt;
+&lt;!--      const rawHeader = rawColNameMap[normMonth] || normMonth;--&gt;
+&lt;!--      const v = toNum(o[rawHeader] !== undefined ? o[rawHeader] : o[normMonth]);--&gt;
+&lt;!--      if (v){--&gt;
+&lt;!--        map[asin][normMonth] = (map[asin][normMonth] || 0) + v;--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+&lt;!--  });--&gt;
+&lt;!--  state.histMap = map;--&gt;
+
+&lt;!--  const filesLabel = state.histRawBooks.length &gt; 1--&gt;
+&lt;!--    ? `${state.histRawBooks.length} 个文件`--&gt;
+&lt;!--    : state.histRawBooks[0].name;--&gt;
+
+&lt;!--  state.histFileName = filesLabel;--&gt;
+
+&lt;!--  const displayTitle = getMetricDisplayTitle();--&gt;
+&lt;!--  $('dropHist').classList.add('done');--&gt;
+&lt;!--  $('histName').innerHTML = `✅ ${esc(filesLabel)}（合并 ${matchedSheetCount} 个「${displayTitle}」子表 · 共 ${allRows.length} 条记录 · ${state.histMonthCols.length} 个月份列）`;--&gt;
+
+&lt;!--  updateExportLabelHint();--&gt;
+&lt;!--  toast(`✅ 成功合并 ${matchedSheetCount} 个子表，已识别 ${state.histMonthCols.length} 个月份的【${displayTitle}】数据`);--&gt;
+&lt;!--  computeAll();--&gt;
+&lt;!--  saveAllToStorage();--&gt;
+&lt;!--}--&gt;
+
+&lt;!--// 针对多子表一次性全量提取（用于合并全部历史指标导出）--&gt;
+&lt;!--function extractAllDetectedMetrics(){--&gt;
+&lt;!--  const result = [];--&gt;
+&lt;!--  if (!state.histRawBooks || !state.histRawBooks.length) return result;--&gt;
+
+&lt;!--  const handledSheetNames = new Set();--&gt;
+&lt;!--  state.detectedSheetNames.forEach(sn =&gt; {--&gt;
+&lt;!--    if (handledSheetNames.has(sn)) return;--&gt;
+
+&lt;!--    let sheetRows = [];--&gt;
+&lt;!--    let monthSet = new Set();--&gt;
+&lt;!--    let localRawMap = {};--&gt;
+
+&lt;!--    state.histRawBooks.forEach(item =&gt; {--&gt;
+&lt;!--      if (item.wb.Sheets[sn]){--&gt;
+&lt;!--        const t = sheetToTable(item.wb.Sheets[sn]);--&gt;
+&lt;!--        t.headers.forEach(h =&gt; {--&gt;
+&lt;!--          const p = parseMonthHeader(h);--&gt;
+&lt;!--          if (p){--&gt;
+&lt;!--            monthSet.add(p.normalized);--&gt;
+&lt;!--            localRawMap[p.normalized] = p.rawHeader;--&gt;
+&lt;!--          }--&gt;
+&lt;!--        });--&gt;
+&lt;!--        sheetRows.push(...t.rows);--&gt;
+&lt;!--      }--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    if (monthSet.size &gt; 0){--&gt;
+&lt;!--      handledSheetNames.add(sn);--&gt;
+&lt;!--      const months = Array.from(monthSet).sort((a,b) =&gt; (a &lt; b ? 1 : -1));--&gt;
+&lt;!--      const map = {};--&gt;
+&lt;!--      sheetRows.forEach(o =&gt; {--&gt;
+&lt;!--        const asin = String(o['ASIN'] || '').trim().toUpperCase();--&gt;
+&lt;!--        if (!asin) return;--&gt;
+&lt;!--        if (!map[asin]) map[asin] = {};--&gt;
+&lt;!--        months.forEach(m =&gt; {--&gt;
+&lt;!--          const rawCol = localRawMap[m] || m;--&gt;
+&lt;!--          const v = toNum(o[rawCol] !== undefined ? o[rawCol] : o[m]);--&gt;
+&lt;!--          if (v) map[asin][m] = (map[asin][m] || 0) + v;--&gt;
+&lt;!--        });--&gt;
+&lt;!--      });--&gt;
+&lt;!--      result.push({ sheetName: sn, months, map, rawMap: localRawMap });--&gt;
+&lt;!--    }--&gt;
+&lt;!--  });--&gt;
+
+&lt;!--  return result;--&gt;
+&lt;!--}--&gt;
+
+&lt;!--$('btnReMergeHist').addEventListener('click', () =&gt; {--&gt;
+&lt;!--  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){--&gt;
+&lt;!--    renderDetectedSheetChips();--&gt;
+&lt;!--    processHistoryMerge();--&gt;
+&lt;!--  } else {--&gt;
+&lt;!--    toast('尚未上传历史数据文件，请先选择或拖拽文件上传');--&gt;
+&lt;!--  }--&gt;
+&lt;!--});--&gt;
+
+&lt;!--$('histSheetKeyword').addEventListener('change', () =&gt; {--&gt;
+&lt;!--  renderDetectedSheetChips();--&gt;
+&lt;!--  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){--&gt;
+&lt;!--    processHistoryMerge();--&gt;
+&lt;!--  } else {--&gt;
+&lt;!--    updateExportLabelHint();--&gt;
+&lt;!--    saveAllToStorage();--&gt;
+&lt;!--  }--&gt;
+&lt;!--});--&gt;
+
+&lt;!--$('fileCurrent').addEventListener('change', e =&gt; handleCurrentFile(e.target.files[0]));--&gt;
+&lt;!--$('fileHistory').addEventListener('change', e =&gt; handleHistoryFiles(e.target.files));--&gt;
+
+&lt;!--function bindDrop(dropEl, inputEl, handler, isMulti = false){--&gt;
 &lt;!--  ['dragenter','dragover'].forEach(ev =&gt; {--&gt;
 &lt;!--    dropEl.addEventListener(ev, e =&gt; {--&gt;
 &lt;!--      e.preventDefault(); e.stopPropagation();--&gt;
@@ -11172,12 +11933,13 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    const files = e.dataTransfer &amp;&amp; e.dataTransfer.files;--&gt;
 &lt;!--    if (files &amp;&amp; files.length){--&gt;
 &lt;!--      inputEl.files = files;--&gt;
-&lt;!--      handler(files[0]);--&gt;
+&lt;!--      if (isMulti) handler(files);--&gt;
+&lt;!--      else handler(files[0]);--&gt;
 &lt;!--    }--&gt;
 &lt;!--  });--&gt;
 &lt;!--}--&gt;
-&lt;!--bindDrop($('dropCur'), $('fileCurrent'), handleCurrentFile);--&gt;
-&lt;!--bindDrop($('dropHist'), $('fileHistory'), handleHistoryFile);--&gt;
+&lt;!--bindDrop($('dropCur'), $('fileCurrent'), handleCurrentFile, false);--&gt;
+&lt;!--bindDrop($('dropHist'), $('fileHistory'), handleHistoryFiles, true);--&gt;
 
 &lt;!--window.addEventListener('dragover', e =&gt; e.preventDefault());--&gt;
 &lt;!--window.addEventListener('drop', e =&gt; e.preventDefault());--&gt;
@@ -11232,18 +11994,19 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    const isNew = (days !== null &amp;&amp; days &lt;= cfg.newDays);--&gt;
 
 &lt;!--    let isHot = false, hotReason = '';--&gt;
+&lt;!--    const metricShort = getMetricShortName();--&gt;
 &lt;!--    if (isNew){--&gt;
 &lt;!--      if (last12 &gt;= cfg.newSales){--&gt;
 &lt;!--        isHot = true;--&gt;
-&lt;!--        hotReason = '新品近' + cfg.recentMonths + '月销量 ≥ ' + cfg.newSales.toLocaleString();--&gt;
+&lt;!--        hotReason = `新品近${cfg.recentMonths}月${metricShort} ≥ ${cfg.newSales.toLocaleString()}`;--&gt;
 &lt;!--      }--&gt;
 &lt;!--    } else {--&gt;
 &lt;!--      if (last12 &gt;= cfg.oldSales12){--&gt;
 &lt;!--        isHot = true;--&gt;
-&lt;!--        hotReason = '老品近' + cfg.recentMonths + '月销量 ≥ ' + cfg.oldSales12.toLocaleString();--&gt;
+&lt;!--        hotReason = `老品近${cfg.recentMonths}月${metricShort} ≥ ${cfg.oldSales12.toLocaleString()}`;--&gt;
 &lt;!--      } else if (yearSales &gt;= cfg.oldSalesYear){--&gt;
 &lt;!--        isHot = true;--&gt;
-&lt;!--        hotReason = '老品' + cfg.year + '年销量 ≥ ' + cfg.oldSalesYear.toLocaleString();--&gt;
+&lt;!--        hotReason = `老品${cfg.year}年${metricShort} ≥ ${cfg.oldSalesYear.toLocaleString()}`;--&gt;
 &lt;!--      }--&gt;
 &lt;!--    }--&gt;
 
@@ -11294,9 +12057,10 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--function renderMiniChart(p){--&gt;
 &lt;!--  const series = p.series || [];--&gt;
+&lt;!--  const metricShort = getMetricShortName();--&gt;
 &lt;!--  if (!series.length){--&gt;
 &lt;!--    return `--&gt;
-&lt;!--      &lt;div class=&quot;trend-head&quot;&gt;&lt;span&gt;历史月销量走势&lt;/span&gt;&lt;span class=&quot;trend-zoom&quot;&gt;🔍 放大&lt;/span&gt;&lt;/div&gt;--&gt;
+&lt;!--      &lt;div class=&quot;trend-head&quot;&gt;&lt;span&gt;历史${metricShort}走势&lt;/span&gt;&lt;span class=&quot;trend-zoom&quot;&gt;🔍 放大&lt;/span&gt;&lt;/div&gt;--&gt;
 &lt;!--      &lt;div style=&quot;height:46px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:11px;&quot;&gt;无历史数据&lt;/div&gt;--&gt;
 &lt;!--    `;--&gt;
 &lt;!--  }--&gt;
@@ -11363,7 +12127,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--  return `--&gt;
 &lt;!--    &lt;div class=&quot;trend-head&quot;&gt;--&gt;
-&lt;!--      &lt;span&gt;月销量走势 (${series.length}个月)&lt;/span&gt;--&gt;
+&lt;!--      &lt;span&gt;${metricShort}走势 (${series.length}个月)&lt;/span&gt;--&gt;
 &lt;!--      &lt;span class=&quot;trend-zoom&quot;&gt;🔍 点击放大&lt;/span&gt;--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
 &lt;!--    &lt;div class=&quot;trend-svg-box&quot; onmousemove=&quot;handleMiniMove(event, '${esc(p.asin)}')&quot; onmouseleave=&quot;hideTip()&quot;&gt;--&gt;
@@ -11400,7 +12164,8 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--const tipEl = $('chartTooltip');--&gt;
 &lt;!--window.showTip = function(e, month, val, extraHtml){--&gt;
-&lt;!--  tipEl.innerHTML = `&lt;div&gt;月份：&lt;b&gt;${month}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;销量：&lt;b&gt;${fmtNum(val)}&lt;/b&gt;&lt;/div&gt;${extraHtml || ''}`;--&gt;
+&lt;!--  const mName = getMetricShortName();--&gt;
+&lt;!--  tipEl.innerHTML = `&lt;div&gt;月份：&lt;b&gt;${month}&lt;/b&gt;&lt;/div&gt;&lt;div&gt;${mName}：&lt;b&gt;${fmtNum(val)}&lt;/b&gt;&lt;/div&gt;${extraHtml || ''}`;--&gt;
 &lt;!--  tipEl.style.display = 'block';--&gt;
 &lt;!--  moveTip(e);--&gt;
 &lt;!--};--&gt;
@@ -11419,6 +12184,10 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  const p = state.merged.find(item =&gt; item.asin === asin);--&gt;
 &lt;!--  if (!p) return;--&gt;
 
+&lt;!--  const metricTitle = getMetricDisplayTitle();--&gt;
+&lt;!--  const metricShort = getMetricShortName();--&gt;
+
+&lt;!--  $('cmModalHeadTitle').textContent = `📊 ${metricTitle}走势全景`;--&gt;
 &lt;!--  $('cmAsinLink').textContent = p.asin;--&gt;
 &lt;!--  $('cmAsinLink').href = p.link;--&gt;
 &lt;!--  $('cmTitle').textContent = p.title || '（无商品标题）';--&gt;
@@ -11431,15 +12200,15 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  const avgSales = series.length ? Math.round(totalSales / series.length) : 0;--&gt;
 
 &lt;!--  $('cmStatsBar').innerHTML = `--&gt;
-&lt;!--    &lt;div class=&quot;c-stat-pill&quot;&gt;有效销售期：&lt;b&gt;${series.length} 个月&lt;/b&gt;（已省去未起步0值）&lt;/div&gt;--&gt;
-&lt;!--    &lt;div class=&quot;c-stat-pill&quot;&gt;累计销量：&lt;b&gt;${fmtNum(totalSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
-&lt;!--    &lt;div class=&quot;c-stat-pill&quot;&gt;月均销量：&lt;b&gt;${fmtNum(avgSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;c-stat-pill&quot;&gt;有效月份：&lt;b&gt;${series.length} 个月&lt;/b&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;c-stat-pill&quot;&gt;累计${metricShort}：&lt;b&gt;${fmtNum(totalSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
+&lt;!--    &lt;div class=&quot;c-stat-pill&quot;&gt;月均${metricShort}：&lt;b&gt;${fmtNum(avgSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
 &lt;!--    &lt;div class=&quot;c-stat-pill max&quot;&gt;最高月(MAX)：&lt;b&gt;${maxVal &gt; 0 ? fmtNum(maxVal) : '—'}&lt;/b&gt;&lt;/div&gt;--&gt;
 &lt;!--    &lt;div class=&quot;c-stat-pill min&quot;&gt;最低月(MIN&gt;0)：&lt;b&gt;${minVal &gt; 0 ? fmtNum(minVal) : '—'}&lt;/b&gt;&lt;/div&gt;--&gt;
 &lt;!--  `;--&gt;
 
 &lt;!--  if (!series.length){--&gt;
-&lt;!--    $('cmChartBox').innerHTML = `&lt;div style=&quot;text-align:center;padding:120px 0;color:#94a3b8;&quot;&gt;未匹配到该产品的有效销量明细&lt;/div&gt;`;--&gt;
+&lt;!--    $('cmChartBox').innerHTML = `&lt;div style=&quot;text-align:center;padding:120px 0;color:#94a3b8;&quot;&gt;未匹配到该产品的有效历史明细&lt;/div&gt;`;--&gt;
 &lt;!--    openModal('chartModal');--&gt;
 &lt;!--    return;--&gt;
 &lt;!--  }--&gt;
@@ -11596,9 +12365,10 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--  const isMax = currentChartData.maxVal &gt; 0 &amp;&amp; pt.val === currentChartData.maxVal;--&gt;
 &lt;!--  const isMin = currentChartData.minVal &gt; 0 &amp;&amp; pt.val === currentChartData.minVal;--&gt;
+&lt;!--  const mName = getMetricShortName();--&gt;
 
 &lt;!--  let extra = pt.yoyText || '';--&gt;
-&lt;!--  if (isMax) extra += `&lt;div style=&quot;color:#fb923c;font-weight:600;&quot;&gt;🔥 历史最高销量月份&lt;/div&gt;`;--&gt;
+&lt;!--  if (isMax) extra += `&lt;div style=&quot;color:#fb923c;font-weight:600;&quot;&gt;🔥 历史最高${mName}月份&lt;/div&gt;`;--&gt;
 &lt;!--  if (isMin) extra += `&lt;div style=&quot;color:#34d399;font-weight:600;&quot;&gt;📍 历史起步/最低月份&lt;/div&gt;`;--&gt;
 
 &lt;!--  showTip(e, pt.month, pt.val, extra);--&gt;
@@ -11664,7 +12434,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  if (!state.curRows.length){--&gt;
 &lt;!--    $('listArea').innerHTML = `&lt;div class=&quot;empty&quot;&gt;--&gt;
 &lt;!--      📄 还没有数据&lt;br&gt;--&gt;
-&lt;!--      &lt;span style=&quot;font-size:13px;&quot;&gt;请先上传「当前商品数据」和「历史销量数据」两个 Excel 文件（支持拖拽 · 自动记忆）&lt;/span&gt;--&gt;
+&lt;!--      &lt;span style=&quot;font-size:13px;&quot;&gt;请先上传「当前商品数据」和「历史数据」Excel 文件（支持多子表合并 · 支持拖拽 · 自动记忆）&lt;/span&gt;--&gt;
 &lt;!--    &lt;/div&gt;`;--&gt;
 &lt;!--    $('pagerArea').innerHTML = '';--&gt;
 &lt;!--    return;--&gt;
@@ -11717,6 +12487,8 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  const bsrTxt = (p.bsr === '' || p.bsr === null || p.bsr === undefined)--&gt;
 &lt;!--    ? '—' : ('#' + Math.round(toNum(p.bsr)).toLocaleString());--&gt;
 
+&lt;!--  const metricShort = getMetricShortName();--&gt;
+
 &lt;!--  return `--&gt;
 &lt;!--  &lt;div class=&quot;card ${p.isHot ? 'is-hot' : ''}&quot;&gt;--&gt;
 &lt;!--    &lt;div class=&quot;thumb&quot; title=&quot;点击放大查看原图&quot;&gt;${imgHtml}&lt;/div&gt;--&gt;
@@ -11730,8 +12502,8 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      &lt;div class=&quot;ttl&quot; title=&quot;${esc(p.title)}&quot;&gt;${esc(p.title) || '（无标题）'}&lt;/div&gt;--&gt;
 
 &lt;!--      &lt;div class=&quot;metrics&quot;&gt;--&gt;
-&lt;!--        &lt;div class=&quot;metric hl&quot;&gt;&lt;span&gt;近${cfg.recentMonths}月销量&lt;/span&gt;&lt;b&gt;${fmtNum(p.last12)}&lt;/b&gt;&lt;/div&gt;--&gt;
-&lt;!--        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;${esc(cfg.year)}年销量&lt;/span&gt;&lt;b&gt;${fmtNum(p.yearSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;metric hl&quot;&gt;&lt;span&gt;近${cfg.recentMonths}月${metricShort}&lt;/span&gt;&lt;b&gt;${fmtNum(p.last12)}&lt;/b&gt;&lt;/div&gt;--&gt;
+&lt;!--        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;${esc(cfg.year)}年${metricShort}&lt;/span&gt;&lt;b&gt;${fmtNum(p.yearSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
 &lt;!--        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;近30天销量&lt;/span&gt;&lt;b&gt;${fmtNum(p.recentSales)}&lt;/b&gt;&lt;/div&gt;--&gt;
 &lt;!--        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;大类BSR&lt;/span&gt;&lt;b&gt;${bsrTxt}&lt;/b&gt;&lt;/div&gt;--&gt;
 &lt;!--        &lt;div class=&quot;metric&quot;&gt;&lt;span&gt;当前价格&lt;/span&gt;&lt;b&gt;${priceTxt}&lt;/b&gt;&lt;/div&gt;--&gt;
@@ -11842,16 +12614,18 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  }));--&gt;
 
 &lt;!--/* =========================================================--&gt;
-&lt;!-- *  导出菜单与导出 Excel--&gt;
+&lt;!-- *  导出 Excel--&gt;
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--const exportMenu = $('exportMenu');--&gt;
 &lt;!--$('btnExportMenu').addEventListener('click', e =&gt; {--&gt;
 &lt;!--  e.stopPropagation();--&gt;
+&lt;!--  updateExportLabelHint();--&gt;
 &lt;!--  exportMenu.hidden = !exportMenu.hidden;--&gt;
 &lt;!--});--&gt;
 &lt;!--document.addEventListener('click', () =&gt; { exportMenu.hidden = true; });--&gt;
+
 &lt;!--exportMenu.addEventListener('click', e =&gt; {--&gt;
-&lt;!--  const b = e.target.closest('button');--&gt;
+&lt;!--  const b = e.target.closest('button.em-btn');--&gt;
 &lt;!--  if (!b) return;--&gt;
 &lt;!--  exportMenu.hidden = true;--&gt;
 &lt;!--  doExport(b.dataset.mode === 'withimg');--&gt;
@@ -11887,12 +12661,64 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--  try{--&gt;
 &lt;!--    const cfg = getConfig();--&gt;
+&lt;!--    const metricShort = getMetricShortName();--&gt;
+&lt;!--    const curMetricTitle = getMetricDisplayTitle();--&gt;
+
 &lt;!--    const baseHeaders = state.curHeaders.filter(h =&gt; h &amp;&amp; h.trim() !== '');--&gt;
-&lt;!--    const extraHeaders = ['爆品标识', '新老品', '近' + cfg.recentMonths + '月销量', cfg.year + '年销量'];--&gt;
+&lt;!--    const extraHeaders = ['爆品标识', '新老品', `近${cfg.recentMonths}月${metricShort}`, `${cfg.year}年${metricShort}`];--&gt;
 &lt;!--    const rowsData = state.filtered;--&gt;
 
+&lt;!--    const needHist = $('cfgExportHist') ? $('cfgExportHist').checked : true;--&gt;
+&lt;!--    const histMode = document.querySelector('input[name=&quot;exportHistMode&quot;]:checked')?.value || 'current';--&gt;
+&lt;!--    const histOrder = $('cfgExportOrder') ? $('cfgExportOrder').value : 'asc';--&gt;
+
+&lt;!--    let histExportCols = [];--&gt;
+
+&lt;!--    if (needHist){--&gt;
+&lt;!--      if (histMode === 'all'){--&gt;
+&lt;!--        // 模式 1：合并全部历史指标（销量 + 销售额 + 价格全部导出）--&gt;
+&lt;!--        const allMetrics = extractAllDetectedMetrics();--&gt;
+&lt;!--        if (allMetrics.length &gt; 0){--&gt;
+&lt;!--          allMetrics.forEach(item =&gt; {--&gt;
+&lt;!--            let months = [...item.months];--&gt;
+&lt;!--            if (histOrder === 'asc') months.sort((a,b) =&gt; a.localeCompare(b));--&gt;
+&lt;!--            else months.sort((a,b) =&gt; b.localeCompare(a));--&gt;
+
+&lt;!--            months.forEach(m =&gt; {--&gt;
+&lt;!--              const rawName = item.rawMap[m] || m;--&gt;
+&lt;!--              const hasCur = /[$¥€]|USD/i.test(rawName);--&gt;
+&lt;!--              const suffix = hasCur ? '($)' : '';--&gt;
+&lt;!--              histExportCols.push({--&gt;
+&lt;!--                month: m,--&gt;
+&lt;!--                header: `[${item.sheetName}] ${m}${suffix}`,--&gt;
+&lt;!--                map: item.map--&gt;
+&lt;!--              });--&gt;
+&lt;!--            });--&gt;
+&lt;!--          });--&gt;
+&lt;!--        }--&gt;
+&lt;!--      }--&gt;
+
+&lt;!--      // 默认/单指标模式：导出当前所选的指标月份列--&gt;
+&lt;!--      if (!histExportCols.length &amp;&amp; state.histMonthCols &amp;&amp; state.histMonthCols.length){--&gt;
+&lt;!--        let months = [...state.histMonthCols];--&gt;
+&lt;!--        if (histOrder === 'asc') months.sort((a,b) =&gt; a.localeCompare(b));--&gt;
+&lt;!--        else months.sort((a,b) =&gt; b.localeCompare(a));--&gt;
+
+&lt;!--        months.forEach(m =&gt; {--&gt;
+&lt;!--          const rawName = state.histColRawNames[m] || m;--&gt;
+&lt;!--          const hasCur = /[$¥€]|USD/i.test(rawName);--&gt;
+&lt;!--          const suffix = hasCur ? '($)' : '';--&gt;
+&lt;!--          histExportCols.push({--&gt;
+&lt;!--            month: m,--&gt;
+&lt;!--            header: `[${curMetricTitle}] ${m}${suffix}`,--&gt;
+&lt;!--            map: state.histMap--&gt;
+&lt;!--          });--&gt;
+&lt;!--        });--&gt;
+&lt;!--      }--&gt;
+&lt;!--    }--&gt;
+
 &lt;!--    if (withImages){--&gt;
-&lt;!--      showProgress('正在生成 Excel（含图片）', '共 ' + rowsData.length + ' 条商品，可继续浏览产品');--&gt;
+&lt;!--      showProgress('正在生成 Excel（含图片）', `共 ${rowsData.length} 条商品，正在附带 ${histExportCols.length} 列历史明细`);--&gt;
 &lt;!--      updateProgress(0, rowsData.length, '准备中…');--&gt;
 &lt;!--    }--&gt;
 
@@ -11902,27 +12728,44 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      views: [{ state:'frozen', ySplit: 1 }]--&gt;
 &lt;!--    });--&gt;
 
-&lt;!--    const headerRow = ws.addRow(['图片', ...baseHeaders, ...extraHeaders]);--&gt;
-&lt;!--    headerRow.height = 26;--&gt;
-&lt;!--    headerRow.font = { bold: true, size: 11, color: { argb:'FF1F2937' } };--&gt;
+&lt;!--    const allHeaders = ['图片', ...baseHeaders, ...extraHeaders, ...histExportCols.map(c =&gt; c.header)];--&gt;
+&lt;!--    const headerRow = ws.addRow(allHeaders);--&gt;
+&lt;!--    headerRow.height = 28;--&gt;
+&lt;!--    headerRow.font = { bold: true, size: 10.5, color: { argb:'FF1F2937' } };--&gt;
 &lt;!--    headerRow.alignment = { vertical:'middle', horizontal:'center' };--&gt;
-&lt;!--    headerRow.eachCell(c =&gt; {--&gt;
-&lt;!--      c.fill = { type:'pattern', pattern:'solid', fgColor: { argb:'FFEEF3FF' } };--&gt;
-&lt;!--      c.border = { bottom: { style:'thin', color: { argb:'FFD6E0F0' } } };--&gt;
-&lt;!--    });--&gt;
 
-&lt;!--    if (withImages){--&gt;
-&lt;!--      ws.getColumn(1).width = 17;--&gt;
-&lt;!--    } else {--&gt;
-&lt;!--      ws.getColumn(1).width = 12;--&gt;
-&lt;!--    }--&gt;
+&lt;!--    // 1. 图片列--&gt;
+&lt;!--    ws.getColumn(1).width = withImages ? 17 : 12;--&gt;
+&lt;!--    headerRow.getCell(1).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF1F5F9' } };--&gt;
+
+&lt;!--    // 2. 原商品列--&gt;
 &lt;!--    baseHeaders.forEach((h, i) =&gt; {--&gt;
-&lt;!--      ws.getColumn(i + 2).width = Math.min(Math.max(String(h).length + 4, 10), 40);--&gt;
-&lt;!--    });--&gt;
-&lt;!--    extraHeaders.forEach((h, i) =&gt; {--&gt;
-&lt;!--      ws.getColumn(baseHeaders.length + 2 + i).width = 15;--&gt;
+&lt;!--      const colIdx = i + 2;--&gt;
+&lt;!--      headerRow.getCell(colIdx).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFEEF3FF' } };--&gt;
+&lt;!--      ws.getColumn(colIdx).width = Math.min(Math.max(String(h).length + 4, 10), 38);--&gt;
 &lt;!--    });--&gt;
 
+&lt;!--    // 3. 爆品标记列--&gt;
+&lt;!--    const extraStart = baseHeaders.length + 2;--&gt;
+&lt;!--    extraHeaders.forEach((h, i) =&gt; {--&gt;
+&lt;!--      const colIdx = extraStart + i;--&gt;
+&lt;!--      const cell = headerRow.getCell(colIdx);--&gt;
+&lt;!--      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFF2EC' } };--&gt;
+&lt;!--      cell.font = { bold: true, size: 10.5, color:{ argb:'FFE85520' } };--&gt;
+&lt;!--      ws.getColumn(colIdx).width = 15;--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    // 4. 历史月份明细列--&gt;
+&lt;!--    const histStart = extraStart + extraHeaders.length;--&gt;
+&lt;!--    histExportCols.forEach((col, i) =&gt; {--&gt;
+&lt;!--      const colIdx = histStart + i;--&gt;
+&lt;!--      const cell = headerRow.getCell(colIdx);--&gt;
+&lt;!--      cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE6F7EE' } };--&gt;
+&lt;!--      cell.font = { bold: true, size: 10, color:{ argb:'FF0D9488' } };--&gt;
+&lt;!--      ws.getColumn(colIdx).width = Math.max(col.header.length + 3, 14);--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    // 填充数据行--&gt;
 &lt;!--    const rowsMeta = [];--&gt;
 &lt;!--    rowsData.forEach(p =&gt; {--&gt;
 &lt;!--      const rowVals = baseHeaders.map(h =&gt; {--&gt;
@@ -11931,6 +12774,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--        if (v === null || v === undefined) return '';--&gt;
 &lt;!--        return v;--&gt;
 &lt;!--      });--&gt;
+
 &lt;!--      rowVals.push(--&gt;
 &lt;!--        p.isHot ? '爆品' : '非爆品',--&gt;
 &lt;!--        p.isNew ? '新品' : '老品',--&gt;
@@ -11938,10 +12782,26 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--        p.yearSales--&gt;
 &lt;!--      );--&gt;
 
+&lt;!--      histExportCols.forEach(col =&gt; {--&gt;
+&lt;!--        const itemMap = col.map || state.histMap;--&gt;
+&lt;!--        const asinData = itemMap[p.key] || {};--&gt;
+&lt;!--        const val = asinData[col.month];--&gt;
+&lt;!--        if (val !== undefined &amp;&amp; val !== null &amp;&amp; val !== ''){--&gt;
+&lt;!--          const num = Number(val);--&gt;
+&lt;!--          rowVals.push(isNaN(num) ? val : num);--&gt;
+&lt;!--        } else {--&gt;
+&lt;!--          rowVals.push('');--&gt;
+&lt;!--        }--&gt;
+&lt;!--      });--&gt;
+
 &lt;!--      const r = ws.addRow(['', ...rowVals]);--&gt;
-&lt;!--      r.height = withImages ? 100 : 20;--&gt;
+&lt;!--      r.height = withImages ? 100 : 22;--&gt;
 &lt;!--      r.alignment = { vertical:'middle' };--&gt;
 &lt;!--      rowsMeta.push({ row: r.number, img: p.img });--&gt;
+&lt;!--    });--&gt;
+
+&lt;!--    histExportCols.forEach((col, i) =&gt; {--&gt;
+&lt;!--      ws.getColumn(histStart + i).alignment = { vertical:'middle', horizontal:'right' };--&gt;
 &lt;!--    });--&gt;
 
 &lt;!--    let ok = 0, fail = 0;--&gt;
@@ -11989,7 +12849,12 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    const url = URL.createObjectURL(blob);--&gt;
 &lt;!--    const a = document.createElement('a');--&gt;
 &lt;!--    a.href = url;--&gt;
-&lt;!--    a.download = `爆品筛选_${withImages ? '含图片_' : '不含图片_'}${state.onlyHot ? '只看爆品_' : ''}${rowsData.length}条_${tsName()}.xlsx`;--&gt;
+
+&lt;!--    const histDesc = histExportCols.length--&gt;
+&lt;!--      ? (histMode === 'all' ? '含全部历史指标_' : `含${curMetricTitle}_`)--&gt;
+&lt;!--      : '';--&gt;
+
+&lt;!--    a.download = `爆品筛选_${histDesc}${withImages ? '含图片_' : '不含图片_'}${state.onlyHot ? '只看爆品_' : ''}${rowsData.length}条_${tsName()}.xlsx`;--&gt;
 &lt;!--    document.body.appendChild(a);--&gt;
 &lt;!--    a.click();--&gt;
 &lt;!--    document.body.removeChild(a);--&gt;
@@ -11997,10 +12862,11 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--    if (withImages) hideProgress();--&gt;
 
+&lt;!--    const histTip = histExportCols.length ? `（已附带 ${histExportCols.length} 列历史明细）` : '';--&gt;
 &lt;!--    if (withImages){--&gt;
-&lt;!--      toast(`导出完成：${rowsData.length} 条，图片成功 ${ok} 张` + (fail ? `，${fail} 张因跨域受限已改为链接` : ''));--&gt;
+&lt;!--      toast(`导出完成：${rowsData.length} 条 ${histTip}，图片成功 ${ok} 张` + (fail ? `，${fail} 张跨域受限已改为链接` : ''));--&gt;
 &lt;!--    } else {--&gt;
-&lt;!--      toast(`导出完成：${rowsData.length} 条（不含图片）`);--&gt;
+&lt;!--      toast(`导出完成：${rowsData.length} 条 ${histTip}（不含图片）`);--&gt;
 &lt;!--    }--&gt;
 &lt;!--  }catch(err){--&gt;
 &lt;!--    console.error(err);--&gt;
@@ -12012,7 +12878,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--}--&gt;
 
 &lt;!--/* =========================================================--&gt;
-&lt;!-- *  初始化：恢复持久记忆数据--&gt;
+&lt;!-- *  初始化--&gt;
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--window.addEventListener('DOMContentLoaded', () =&gt; {--&gt;
 &lt;!--  render();--&gt;
@@ -12021,6 +12887,9 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--&lt;/script&gt;--&gt;
 &lt;!--&lt;/body&gt;--&gt;
 &lt;!--&lt;/html&gt;--&gt;
+
+
+
 ">
       </iframe>
      </div>
