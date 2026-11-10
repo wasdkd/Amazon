@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <script src="https://wasdkd.github.io/Amazon/auth.js"></script>
     <title>SKU 颜色尺码表现可视化看板</title>
+    <!-- 引入 ExcelJS 用于生成嵌入图片的原生 Excel 文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <style>
         :root {
             --nav-height: 56px;
@@ -12,16 +14,51 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; font-size: 14px; }
 
-        .top-navbar { position: sticky; top: 0; z-index: 500; height: var(--nav-height); background: #ffffff; border-bottom: 1px solid #cbd5e1; padding: 0 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-        .search-container { display: flex; align-items: center; gap: 10px; }
+        .top-navbar { position: sticky; top: 0; z-index: 500; min-height: var(--nav-height); background: #ffffff; border-bottom: 1px solid #cbd5e1; padding: 8px 24px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .search-container { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .search-container label { font-size: 14px; font-weight: 700; color: #0f172a; white-space: nowrap; }
-        .search-input { width: 300px; padding: 6px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .search-input { width: 260px; padding: 6px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
         .search-input:focus { border-color: #2563eb; }
-        .btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+        .btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; user-select: none; }
         .btn-copy { background-color: #10b981; color: #ffffff; }
         .btn-copy:hover { background-color: #059669; }
-        .btn-jump { background-color: #2563eb; color: #ffffff; }
-        .btn-jump:hover { background-color: #1d4ed8; }
+        .btn-jump { background-color: #64748b; color: #ffffff; }
+        .btn-jump:hover { background-color: #475569; }
+
+        /* 导出下拉按钮 */
+        .export-dropdown { position: relative; display: inline-block; }
+        .btn-export { background-color: #0284c7; color: #ffffff; }
+        .btn-export:hover { background-color: #0369a1; }
+        .export-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            background: #ffffff;
+            min-width: 250px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border: 1px solid #cbd5e1;
+            z-index: 1000;
+            overflow: hidden;
+        }
+        .export-menu.show { display: block; animation: fadeIn 0.15s ease-out; }
+        .export-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .export-item:last-child { border-bottom: none; }
+        .export-item:hover { background-color: #f8fafc; }
+        .export-icon { font-size: 18px; }
+        .export-title { font-weight: 700; color: #0f172a; font-size: 13px; }
+        .export-desc { font-size: 11px; color: #64748b; margin-top: 2px; }
+
         .data-range-badge { padding: 5px 10px; background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
         .pagination-container { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; }
         .pagination-container button { padding: 5px 12px; border: 1px solid #cbd5e1; background: #ffffff; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -41,9 +78,9 @@
         tr.sku-group-end td { border-bottom: 3px solid #94a3b8 !important; }
         tr:nth-child(even) td:not(.sku-cell) { background-color: #f8fafc; }
 
-        /* ----------------- 搜索 ASIN/父ASIN 时的颜色行高亮 ----------------- */
+        /* 搜索高亮 */
         tr.row-matched td:not(.sku-cell) {
-            background-color: #fef08a !important; /* 明显的明黄色高亮 */
+            background-color: #fef08a !important;
             transition: background-color 0.3s ease;
         }
         tr.row-matched td.color-name-cell {
@@ -55,7 +92,6 @@
             font-weight: 700;
         }
 
-        /* ASIN 及超链接样式 */
         td.asin-text { font-family: inherit; font-size: 13px; font-weight: 600; color: #334155; }
         .asin-link {
             color: #2563eb;
@@ -69,7 +105,7 @@
             text-decoration: underline;
         }
 
-        /* 图片格子强约束 */
+        /* 图片单元格 */
         td.img-cell { padding: 4px; width: 75px; }
         .img-box {
             width: 52px;
@@ -101,6 +137,51 @@
         #preview-pop { position: fixed; display: none; z-index: 2000; background: #ffffff; border: 2px solid #475569; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-radius: 8px; pointer-events: none; }
         #preview-pop img { max-width: min(420px, 40vw); max-height: min(520px, 75vh); display: block; object-fit: contain; border-radius: 4px; }
         #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 3000; display: none; }
+
+        /* 导出进度遮罩层 */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .modal-box {
+            background: #ffffff;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            width: 380px;
+            text-align: center;
+        }
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #0284c7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+        .modal-subtitle { font-size: 13px; color: #64748b; margin-bottom: 14px; }
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #0284c7;
+            transition: width 0.15s ease;
+        }
     </style>
 </head>
 <body>
@@ -118,11 +199,34 @@
                 📋 复制当前SKU数据
             </button>
 
+            <!-- 导出 Excel 下拉菜单 -->
+            <div class="export-dropdown" id="exportDropdown">
+                <button class="btn btn-export" onclick="toggleExportMenu(event)">
+                    📥 导出 Excel ▾
+                </button>
+                <div class="export-menu" id="exportMenu">
+                    <div class="export-item" onclick="exportToExcel('filtered')">
+                        <span class="export-icon">🔍</span>
+                        <div>
+                            <div class="export-title">导出筛选结果</div>
+                            <div class="export-desc" id="exportFilteredDesc">导出当前搜索匹配的 SKU</div>
+                        </div>
+                    </div>
+                    <div class="export-item" onclick="exportToExcel('all')">
+                        <span class="export-icon">📦</span>
+                        <div>
+                            <div class="export-title">导出全部数据</div>
+                            <div class="export-desc" id="exportAllDesc">导出全部 SKU 数据</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <button class="btn btn-jump" onclick="window.location.href='https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'">
                 返回平台
             </button>
 
-            <span class="data-range-badge">📅 数据范围：20251109～20261109</span>
+            <span class="data-range-badge">📅 数据范围：20251110～20261110</span>
         </div>
 
         <div class="pagination-container">
@@ -159,6 +263,18 @@
 
     <div id="toast"></div>
 
+    <!-- 导出进度弹窗 -->
+    <div id="export-modal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="spinner"></div>
+            <div class="modal-title" id="exportModalTitle">正在导出 Excel 表格...</div>
+            <div class="modal-subtitle" id="exportModalStatus">正在准备数据与图片资源，请稍候</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="exportProgressFill"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let rawData = [];
         try {
@@ -185,6 +301,32 @@
                 t.style.display = 'none';
             }, 2500);
         }
+
+        function updateExportMenuCounts() {
+            const fDesc = document.getElementById('exportFilteredDesc');
+            const aDesc = document.getElementById('exportAllDesc');
+            if (fDesc) fDesc.textContent = `当前筛选: ${activeData.length} 个 SKU`;
+            if (aDesc) aDesc.textContent = `全部数据: ${rawData.length} 个 SKU`;
+        }
+
+        function toggleExportMenu(e) {
+            e.stopPropagation();
+            updateExportMenuCounts();
+            const menu = document.getElementById('exportMenu');
+            menu.classList.toggle('show');
+        }
+
+        function closeExportMenu() {
+            const menu = document.getElementById('exportMenu');
+            if (menu) menu.classList.remove('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('exportDropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                closeExportMenu();
+            }
+        });
 
         function createAsinCell(asinValue) {
             const td = document.createElement('td');
@@ -230,7 +372,6 @@
                     rows.forEach(function(r, i) {
                         const tr = document.createElement('tr');
 
-                        // 判断是否匹配到 ASIN / 父ASIN
                         const isAsinMatched = Boolean(
                             q && (
                                 (r.asin && r.asin.toLowerCase().includes(q)) ||
@@ -327,9 +468,10 @@
             document.getElementById('pageText').textContent = '第 ' + curPage + ' / ' + totalPages + ' 页 (共 ' + totalSKUs + ' 个 SKU)';
             document.getElementById('btnPrev').disabled = (curPage === 1);
             document.getElementById('btnNext').disabled = (curPage === totalPages || totalPages === 0);
+            updateExportMenuCounts();
         }
 
-        // 搜索处理：过滤数据并自动定位到视野正中央
+        // 搜索过滤
         function onSearch() {
             const q = document.getElementById('searchInput').value.trim().toLowerCase();
             if (!q) {
@@ -346,14 +488,11 @@
             curPage = 1;
             renderTable();
 
-            // 自动平滑滚动到视野中央（解决掉在底部的核心）
             requestAnimationFrame(function() {
                 const matchedRow = document.querySelector('tr.row-matched');
                 if (matchedRow) {
-                    // 有匹配高亮行：平滑将该行置于屏幕正中间
                     matchedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
-                    // 仅搜索SKU或清空搜索：平滑回到页面顶部
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             });
@@ -414,6 +553,303 @@
             document.body.removeChild(textarea);
         }
 
+        // ----------------- Excel 导出核心功能 -----------------
+        function showExportModal() {
+            document.getElementById('export-modal').style.display = 'flex';
+        }
+
+        function hideExportModal() {
+            document.getElementById('export-modal').style.display = 'none';
+        }
+
+        function setExportProgress(percent, statusText) {
+            document.getElementById('exportProgressFill').style.width = percent + '%';
+            if (statusText) {
+                document.getElementById('exportModalStatus').textContent = statusText;
+            }
+        }
+
+        // 异步获取图片并转为 Base64，双重机制保障加载成功
+        async function fetchImageBase64(url) {
+            if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
+
+            // 方法 1: Fetch API
+            try {
+                const response = await fetch(url, { cache: 'no-cache', mode: 'cors' });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    return await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const dataUrl = reader.result;
+                            const match = dataUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+                            if (match) {
+                                let ext = match[1].toLowerCase();
+                                if (ext === 'jpg') ext = 'jpeg';
+                                resolve({ base64: match[2], extension: ext });
+                            } else {
+                                resolve(null);
+                            }
+                        };
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                    });
+                }
+            } catch (e) {
+                // 忽略，尝试方法 2
+            }
+
+            // 方法 2: Image 标签 + Canvas 转换
+            try {
+                return await new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.naturalWidth || 60;
+                            canvas.height = img.naturalHeight || 80;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                            const base64 = dataUrl.split(',')[1];
+                            resolve({ base64: base64, extension: 'jpeg' });
+                        } catch (err) {
+                            resolve(null);
+                        }
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = url;
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 多并发预加载并缓存去重后的图片
+        async function preloadImagesWithConcurrency(urls, concurrency = 6, onProgress) {
+            const cache = new Map();
+            const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
+            const total = uniqueUrls.length;
+            let completed = 0;
+
+            if (total === 0) return cache;
+
+            let index = 0;
+            async function worker() {
+                while (index < uniqueUrls.length) {
+                    const currentIdx = index++;
+                    const url = uniqueUrls[currentIdx];
+                    try {
+                        const imgData = await fetchImageBase64(url);
+                        if (imgData) {
+                            cache.set(url, imgData);
+                        }
+                    } catch (e) {
+                        console.warn('图片加载失败:', url);
+                    }
+                    completed++;
+                    if (onProgress) {
+                        onProgress(completed, total);
+                    }
+                }
+            }
+
+            const workers = [];
+            const numWorkers = Math.min(concurrency, uniqueUrls.length);
+            for (let i = 0; i < numWorkers; i++) {
+                workers.push(worker());
+            }
+            await Promise.all(workers);
+            return cache;
+        }
+
+        // 导出 Excel 主逻辑
+        async function exportToExcel(type) {
+            closeExportMenu();
+
+            const targetData = (type === 'filtered') ? activeData : rawData;
+            if (!targetData || targetData.length === 0) {
+                showToast("当前无数据可导出！");
+                return;
+            }
+
+            if (typeof ExcelJS === 'undefined') {
+                showToast("Excel 组件加载中，请稍候重试...");
+                return;
+            }
+
+            showExportModal();
+            setExportProgress(0, "正在提取数据与图片链接...");
+
+            try {
+                // 1. 搜集所有图片链接
+                const allImageUrls = [];
+                targetData.forEach(function(item) {
+                    item.rows.forEach(function(r) {
+                        if (r.img) allImageUrls.push(r.img);
+                    });
+                });
+
+                // 2. 预下载图片
+                setExportProgress(5, `正在下载图片资源 (共 ${allImageUrls.length} 张)...`);
+                const imageCache = await preloadImagesWithConcurrency(allImageUrls, 6, function(done, total) {
+                    const pct = Math.round(5 + (done / total) * 75);
+                    setExportProgress(pct, `正在下载图片: ${done} / ${total}`);
+                });
+
+                setExportProgress(85, "正在构建 Excel 工作表与样式...");
+                await new Promise(function(r) { setTimeout(r, 60); });
+
+                // 3. 构建 ExcelJS 工作簿
+                const workbook = new ExcelJS.Workbook();
+                workbook.creator = "Amazon SKU Analytics";
+                workbook.lastModifiedBy = "Amazon SKU Analytics";
+                workbook.created = new Date();
+
+                const sheetName = type === 'filtered' ? "筛选数据" : "全部数据";
+                const worksheet = workbook.addWorksheet(sheetName, {
+                    views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }] // 冻结表头首行
+                });
+
+                // 定义列结构 (图片列设宽 14，确保 60px 宽度居中)
+                worksheet.columns = [
+                    { header: 'SKU', key: 'sku', width: 22 },
+                    { header: '父ASIN', key: 'parent_asin', width: 16 },
+                    { header: 'ASIN', key: 'asin', width: 16 },
+                    { header: '图片', key: 'img', width: 14 },
+                    { header: '材质', key: 'material', width: 26 },
+                    { header: '颜色', key: 'color_cn', width: 15 },
+                    { header: '颜色英文', key: 'color_en', width: 16 },
+                    { header: '颜色销量', key: 'color_sales', width: 14 },
+                    { header: '尺码', key: 'size', width: 12 },
+                    { header: '尺码销量', key: 'size_sales', width: 14 },
+                ];
+
+                // 表头样式设置
+                const headerRow = worksheet.getRow(1);
+                headerRow.height = 28;
+                headerRow.eachCell(function(cell) {
+                    cell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFE2E8F0' }
+                    };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                        bottom: { style: 'medium', color: { argb: 'FF94A3B8' } },
+                        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                    };
+                });
+
+                const dataBorder = {
+                    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                };
+
+                let currentRowIndex = 2; // 第 2 行开始写入数据
+
+                targetData.forEach(function(item) {
+                    item.rows.forEach(function(r) {
+                        const hasImg = Boolean(r.img && imageCache.has(r.img));
+
+                        // 不进行单元格合并：每一行均完整平铺填充 SKU 及其对应信息
+                        const newRow = worksheet.addRow({
+                            sku: item.sku,
+                            parent_asin: r.parent_asin || '',
+                            asin: r.asin || '',
+                            img: '',
+                            material: r.material || '',
+                            color_cn: r.color_cn || '',
+                            color_en: r.color_en || '',
+                            color_sales: r.color_sales !== "" ? Number(r.color_sales) : "",
+                            size: r.size || '',
+                            size_sales: r.size_sales !== "" ? Number(r.size_sales) : ""
+                        });
+
+                        // 设定行高：有图片设定 68pt (~90px)，无图片设定 26pt
+                        newRow.height = hasImg ? 68 : 26;
+
+                        newRow.eachCell({ includeEmpty: true }, function(cell, colNumber) {
+                            cell.font = { name: '微软雅黑', size: 9.5, color: { argb: 'FF1E293B' } };
+                            cell.border = dataBorder;
+
+                            if (colNumber === 8 || colNumber === 10) {
+                                // 销量列右对齐，千分位格式
+                                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                                if (typeof cell.value === 'number') {
+                                    cell.numFmt = '#,##0';
+                                }
+                            } else if (colNumber === 5) {
+                                // 材质列允许换行
+                                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                            } else {
+                                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                            }
+                        });
+
+                        // 插入图片：比例严格按照 高度:宽度 = 4:3 (高 80px, 宽 60px)
+                        if (hasImg) {
+                            const imgInfo = imageCache.get(r.img);
+                            try {
+                                const imgId = workbook.addImage({
+                                    base64: imgInfo.base64,
+                                    extension: imgInfo.extension
+                                });
+
+                                // tl.col: 3.12 (D列微调居中), tl.row: 行号偏移
+                                worksheet.addImage(imgId, {
+                                    tl: { col: 3.12, row: (currentRowIndex - 1) + 0.05 },
+                                    ext: { width: 60, height: 80 },
+                                    editAs: 'oneCell'
+                                });
+                            } catch (imgErr) {
+                                console.warn('插入图片失败:', currentRowIndex, imgErr);
+                            }
+                        }
+
+                        currentRowIndex++;
+                    });
+                });
+
+                setExportProgress(95, "正在生成文件并下载...");
+                await new Promise(function(r) { setTimeout(r, 60); });
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                const now = new Date();
+                const dateStr = now.getFullYear() +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0');
+
+                const fileName = `SKU颜色尺码表现_${type === 'filtered' ? '筛选结果' : '全部数据'}_${dateStr}.xlsx`;
+
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+
+                hideExportModal();
+                showToast(`🎉 成功导出 ${targetData.length} 个 SKU 的 Excel 数据！`);
+            } catch (err) {
+                console.error("导出 Excel 异常:", err);
+                hideExportModal();
+                alert("导出失败: " + err.message);
+            }
+        }
+
+        // 预览图片交互
         const pop = document.getElementById('preview-pop');
         const pImg = document.getElementById('previewImg');
 
