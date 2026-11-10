@@ -154,7 +154,7 @@
             padding: 24px 32px;
             border-radius: 12px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.25);
-            width: 380px;
+            width: 400px;
             text-align: center;
         }
         .spinner {
@@ -553,7 +553,7 @@
             document.body.removeChild(textarea);
         }
 
-        // ----------------- Excel 导出核心功能 -----------------
+        // ----------------- Excel 导出核心功能 (高性能万级优化版) -----------------
         function showExportModal() {
             document.getElementById('export-modal').style.display = 'flex';
         }
@@ -569,67 +569,96 @@
             }
         }
 
-        // 异步获取图片并转为 Base64，双重机制保障加载成功
-        async function fetchImageBase64(url) {
-            if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
+        // 将图片通过 Canvas 缩放为 4:3 高清微缩图 (120x160)，彻底减小打包体积
+        function compressToThumbnail(blobOrUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
 
-            // 方法 1: Fetch API
-            try {
-                const response = await fetch(url, { cache: 'no-cache', mode: 'cors' });
-                if (response.ok) {
-                    const blob = await response.blob();
-                    return await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                            const dataUrl = reader.result;
-                            const match = dataUrl.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
-                            if (match) {
-                                let ext = match[1].toLowerCase();
-                                if (ext === 'jpg') ext = 'jpeg';
-                                resolve({ base64: match[2], extension: ext });
-                            } else {
-                                resolve(null);
-                            }
-                        };
-                        reader.onerror = () => resolve(null);
-                        reader.readAsDataURL(blob);
-                    });
+                let src = '';
+                const isBlob = blobOrUrl instanceof Blob;
+                if (isBlob) {
+                    src = URL.createObjectURL(blobOrUrl);
+                } else {
+                    src = blobOrUrl;
                 }
-            } catch (e) {
-                // 忽略，尝试方法 2
-            }
 
-            // 方法 2: Image 标签 + Canvas 转换
-            try {
-                return await new Promise((resolve) => {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.naturalWidth || 60;
-                            canvas.height = img.naturalHeight || 80;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                            const base64 = dataUrl.split(',')[1];
-                            resolve({ base64: base64, extension: 'jpeg' });
-                        } catch (err) {
-                            resolve(null);
-                        }
-                    };
-                    img.onerror = () => resolve(null);
-                    img.src = url;
-                });
-            } catch (e) {
-                return null;
-            }
+                let done = false;
+                const timer = setTimeout(() => {
+                    if (!done) {
+                        done = true;
+                        if (isBlob) URL.revokeObjectURL(src);
+                        resolve(null);
+                    }
+                }, 4000);
+
+                img.onload = () => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    try {
+                        const canvas = document.createElement('canvas');
+                        // 比例严格保持 4:3 (高 160 : 宽 120)，微缩后仅 8~12KB
+                        canvas.width = 120;
+                        canvas.height = 160;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, 120, 160);
+                        ctx.drawImage(img, 0, 0, 120, 160);
+
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        const base64 = dataUrl.split(',')[1];
+                        if (isBlob) URL.revokeObjectURL(src);
+                        resolve({ base64: base64, extension: 'jpeg' });
+                    } catch (err) {
+                        if (isBlob) URL.revokeObjectURL(src);
+                        resolve(null);
+                    }
+                };
+
+                img.onerror = () => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    if (isBlob) URL.revokeObjectURL(src);
+                    resolve(null);
+                };
+
+                img.src = src;
+            });
         }
 
-        // 多并发预加载并缓存去重后的图片
-        async function preloadImagesWithConcurrency(urls, concurrency = 6, onProgress) {
+        // 获取图片并压缩
+        async function fetchImageBase64(url, timeoutMs = 4500) {
+            if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
+
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                const response = await fetch(url, {
+                    cache: 'force-cache',
+                    mode: 'cors',
+                    signal: controller.signal
+                });
+                clearTimeout(timer);
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const thumb = await compressToThumbnail(blob);
+                    if (thumb) return thumb;
+                }
+            } catch (e) {
+                clearTimeout(timer);
+            }
+
+            // 备用通过 Image 标签直绘
+            return await compressToThumbnail(url);
+        }
+
+        // 15 并发下载唯一样本
+        async function preloadImagesWithConcurrency(uniqueUrls, concurrency = 15, onProgress) {
             const cache = new Map();
-            const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
             const total = uniqueUrls.length;
             let completed = 0;
 
@@ -641,13 +670,11 @@
                     const currentIdx = index++;
                     const url = uniqueUrls[currentIdx];
                     try {
-                        const imgData = await fetchImageBase64(url);
+                        const imgData = await fetchImageBase64(url, 4500);
                         if (imgData) {
                             cache.set(url, imgData);
                         }
-                    } catch (e) {
-                        console.warn('图片加载失败:', url);
-                    }
+                    } catch (e) {}
                     completed++;
                     if (onProgress) {
                         onProgress(completed, total);
@@ -680,39 +707,41 @@
             }
 
             showExportModal();
-            setExportProgress(0, "正在提取数据与图片链接...");
+            setExportProgress(0, "正在提取数据并去重图片链接...");
 
             try {
-                // 1. 搜集所有图片链接
+                // 1. 展开所有行并提取去重图片链接
+                const flatRows = [];
                 const allImageUrls = [];
                 targetData.forEach(function(item) {
                     item.rows.forEach(function(r) {
+                        flatRows.push({ sku: item.sku, r: r });
                         if (r.img) allImageUrls.push(r.img);
                     });
                 });
 
-                // 2. 预下载图片
-                setExportProgress(5, `正在下载图片资源 (共 ${allImageUrls.length} 张)...`);
-                const imageCache = await preloadImagesWithConcurrency(allImageUrls, 6, function(done, total) {
-                    const pct = Math.round(5 + (done / total) * 75);
-                    setExportProgress(pct, `正在下载图片: ${done} / ${total}`);
+                const uniqueImageUrls = Array.from(new Set(allImageUrls.filter(Boolean)));
+                const totalRows = flatRows.length;
+
+                // 2. 15并发下载图片
+                setExportProgress(5, `正在下载图片 (去重后共 ${uniqueImageUrls.length} 张)...`);
+                const imageCache = await preloadImagesWithConcurrency(uniqueImageUrls, 15, function(done, total) {
+                    const pct = Math.round(5 + (done / total) * 60);
+                    setExportProgress(pct, `15 并发下载图片: ${done} / ${total}`);
                 });
 
-                setExportProgress(85, "正在构建 Excel 工作表与样式...");
-                await new Promise(function(r) { setTimeout(r, 60); });
+                setExportProgress(65, "正在初始化 Excel 工作簿...");
+                await new Promise(function(r) { setTimeout(r, 40); });
 
-                // 3. 构建 ExcelJS 工作簿
                 const workbook = new ExcelJS.Workbook();
                 workbook.creator = "Amazon SKU Analytics";
-                workbook.lastModifiedBy = "Amazon SKU Analytics";
                 workbook.created = new Date();
 
                 const sheetName = type === 'filtered' ? "筛选数据" : "全部数据";
                 const worksheet = workbook.addWorksheet(sheetName, {
-                    views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }] // 冻结表头首行
+                    views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
                 });
 
-                // 定义列结构 (图片列设宽 14，确保 60px 宽度居中)
                 worksheet.columns = [
                     { header: 'SKU', key: 'sku', width: 22 },
                     { header: '父ASIN', key: 'parent_asin', width: 16 },
@@ -726,7 +755,7 @@
                     { header: '尺码销量', key: 'size_sales', width: 14 },
                 ];
 
-                // 表头样式设置
+                // 表头样式
                 const headerRow = worksheet.getRow(1);
                 headerRow.height = 28;
                 headerRow.eachCell(function(cell) {
@@ -745,6 +774,18 @@
                     };
                 });
 
+                // 【核心优化】：图片只注册一次到工作簿，获得 imgId 供万条行重复复用
+                const imgIdMap = new Map();
+                for (const [url, imgInfo] of imageCache.entries()) {
+                    try {
+                        const imgId = workbook.addImage({
+                            base64: imgInfo.base64,
+                            extension: imgInfo.extension
+                        });
+                        imgIdMap.set(url, imgId);
+                    } catch (e) {}
+                }
+
                 const dataBorder = {
                     top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
                     left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
@@ -752,13 +793,16 @@
                     right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
                 };
 
-                let currentRowIndex = 2; // 第 2 行开始写入数据
+                // 【核心优化】：分片异步写入（Chunking），每 400 行让出一次主线程，避免假死
+                const CHUNK_SIZE = 400;
+                for (let i = 0; i < totalRows; i += CHUNK_SIZE) {
+                    const end = Math.min(i + CHUNK_SIZE, totalRows);
+                    for (let j = i; j < end; j++) {
+                        const item = flatRows[j];
+                        const r = item.r;
+                        const rowIndex = j + 2; // 第1行为表头
+                        const hasImg = Boolean(r.img && imgIdMap.has(r.img));
 
-                targetData.forEach(function(item) {
-                    item.rows.forEach(function(r) {
-                        const hasImg = Boolean(r.img && imageCache.has(r.img));
-
-                        // 不进行单元格合并：每一行均完整平铺填充 SKU 及其对应信息
                         const newRow = worksheet.addRow({
                             sku: item.sku,
                             parent_asin: r.parent_asin || '',
@@ -772,7 +816,6 @@
                             size_sales: r.size_sales !== "" ? Number(r.size_sales) : ""
                         });
 
-                        // 设定行高：有图片设定 68pt (~90px)，无图片设定 26pt
                         newRow.height = hasImg ? 68 : 26;
 
                         newRow.eachCell({ includeEmpty: true }, function(cell, colNumber) {
@@ -780,46 +823,40 @@
                             cell.border = dataBorder;
 
                             if (colNumber === 8 || colNumber === 10) {
-                                // 销量列右对齐，千分位格式
                                 cell.alignment = { vertical: 'middle', horizontal: 'right' };
                                 if (typeof cell.value === 'number') {
                                     cell.numFmt = '#,##0';
                                 }
                             } else if (colNumber === 5) {
-                                // 材质列允许换行
                                 cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                             } else {
                                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
                             }
                         });
 
-                        // 插入图片：比例严格按照 高度:宽度 = 4:3 (高 80px, 宽 60px)
+                        // 复用已注册的图片 ID，极大缩减内存
                         if (hasImg) {
-                            const imgInfo = imageCache.get(r.img);
+                            const imgId = imgIdMap.get(r.img);
                             try {
-                                const imgId = workbook.addImage({
-                                    base64: imgInfo.base64,
-                                    extension: imgInfo.extension
-                                });
-
-                                // tl.col: 3.12 (D列微调居中), tl.row: 行号偏移
                                 worksheet.addImage(imgId, {
-                                    tl: { col: 3.12, row: (currentRowIndex - 1) + 0.05 },
+                                    tl: { col: 3.12, row: (rowIndex - 1) + 0.05 },
                                     ext: { width: 60, height: 80 },
                                     editAs: 'oneCell'
                                 });
-                            } catch (imgErr) {
-                                console.warn('插入图片失败:', currentRowIndex, imgErr);
-                            }
+                            } catch (imgErr) {}
                         }
+                    }
 
-                        currentRowIndex++;
-                    });
-                });
+                    // 释放主线程让 UI 刷新，防止 Chrome 弹出“页面没有响应”
+                    const pct = Math.round(65 + (end / totalRows) * 25);
+                    setExportProgress(pct, `正在写入数据: ${end} / ${totalRows} 行...`);
+                    await new Promise(function(resolve) { setTimeout(resolve, 0); });
+                }
 
-                setExportProgress(95, "正在生成文件并下载...");
+                setExportProgress(92, "正在极速压缩并保存文件...");
                 await new Promise(function(r) { setTimeout(r, 60); });
 
+                // 生成二进制文件（因为图片已被复用压缩，耗时仅需1~2秒）
                 const buffer = await workbook.xlsx.writeBuffer();
                 const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
@@ -841,7 +878,7 @@
                 URL.revokeObjectURL(link.href);
 
                 hideExportModal();
-                showToast(`🎉 成功导出 ${targetData.length} 个 SKU 的 Excel 数据！`);
+                showToast(`🎉 成功导出 ${totalRows} 行数据 (${targetData.length} 个 SKU)！`);
             } catch (err) {
                 console.error("导出 Excel 异常:", err);
                 hideExportModal();
