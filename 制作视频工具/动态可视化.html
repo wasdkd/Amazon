@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Vibe动态赛跑视频生成器</title>
+  <style>
+    :root {
+      --bg: #0b0c16;
+      --card: rgba(255, 255, 255, 0.05);
+      --accent: #a855f7;
+      --gold: #f59e0b;
+      --silver: #94a3b8;
+      --bronze: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* 手机竖屏 9:16 沉浸容器 */
+    .app-screen {
+      width: 100vw;
+      height: 100vh;
+      max-width: 430px;
+      max-height: 932px;
+      background: radial-gradient(circle at 50% 10%, #1c1038 0%, #080912 70%);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px 16px 16px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* 顶部标题区 */
+    .header-area {
+      text-align: center;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+    .main-title {
+      font-size: 20px;
+      font-weight: 800;
+      background: linear-gradient(180deg, #fff 40%, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* 赛跑舞台 */
+    .stage {
+      flex: 1;
+      position: relative;
+      margin: 8px 0;
+      overflow: hidden;
+    }
+
+    /* ================== 1. 横向条形图布局 ================== */
+    .stage.mode-bar .item-row {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.25, 1);
+      will-change: transform;
+    }
+    .stage.mode-bar .rank-num {
+      width: 22px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #64748b;
+      text-align: center;
+      margin-right: 4px;
+    }
+    .stage.mode-bar .item-row[data-rank="1"] .rank-num { color: var(--gold); font-size: 15px; }
+    .stage.mode-bar .item-row[data-rank="2"] .rank-num { color: var(--silver); }
+    .stage.mode-bar .item-row[data-rank="3"] .rank-num { color: var(--bronze); }
+
+    .stage.mode-bar .info-box {
+      width: 62px;
+      margin-right: 6px;
+      display: flex;
+      flex-direction: column;
+    }
+    .stage.mode-bar .name-txt { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    .stage.mode-bar .tag-txt { font-size: 9px; color: #94a3b8; }
+
+    .stage.mode-bar .bar-bg {
+      flex: 1;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stage.mode-bar .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 6px;
+      position: relative;
+      transition: width 0.1s linear;
+    }
+    .stage.mode-bar .score-txt {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      font-weight: 800;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    /* ================== 2. 纵向柱形图布局 ================== */
+    .stage.mode-column .item-row {
+      position: absolute;
+      bottom: 0;
+      top: 0;
+      width: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.25, 1);
+      will-change: transform;
+    }
+    .stage.mode-column .rank-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .stage.mode-column .info-box {
+      margin-top: 2px;
+      text-align: center;
+      width: 100%;
+    }
+    .stage.mode-column .name-txt { font-size: 10px; font-weight: 700; writing-mode: vertical-rl; max-height: 55px; }
+    .stage.mode-column .tag-txt { display: none; }
+    .stage.mode-column .bar-bg {
+      width: 18px;
+      flex: 1;
+      max-height: calc(100% - 90px);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 5px 5px 0 0;
+      display: flex;
+      align-items: flex-end;
+      position: relative;
+    }
+    .stage.mode-column .bar-fill {
+      width: 100%;
+      height: 0%;
+      border-radius: 5px 5px 0 0;
+      position: relative;
+      transition: height 0.1s linear;
+    }
+    .stage.mode-column .score-txt {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    /* 底部操作区 */
+    .footer-panel {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: opacity 0.3s;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #a855f7, #ec4899);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      flex: 2;
+      background: linear-gradient(90deg, #9333ea, #db2777);
+      color: #fff;
+    }
+    .btn-secondary {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .btn:active { transform: scale(0.96); }
+
+    /* 录屏纯净模式：隐藏全部控制栏 */
+    .app-screen.clean-mode .footer-panel,
+    .app-screen.clean-mode .badge {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 数据与配置弹窗（全移动端抽屉） */
+    .modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .modal.active { display: flex; }
+    .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #c084fc; }
+    .form-group { margin-bottom: 12px; }
+    .form-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: block; }
+    .input-text, .input-area {
+      width: 100%;
+      background: #141624;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 8px;
+      color: #fff;
+      font-size: 12px;
+    }
+    .input-area { height: 110px; font-family: monospace; }
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row input { flex: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="app-screen" id="appScreen" onclick="handleScreenTap(event)">
+    <div class="header-area">
+      <div class="badge" id="typeBadge">横向条形赛跑</div>
+      <div class="main-title" id="chartTitle">12星座【绝情冷酷度】巅峰赛</div>
+    </div>
+
+    <!-- 赛跑图主体 -->
+    <div class="stage mode-bar" id="stage"></div>
+
+    <!-- 底部控制面板 -->
+    <div class="footer-panel" id="footerPanel">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="playBtn" onclick="toggleRace()">▶ 开始赛跑 (自动纯净录屏)</button>
+        <button class="btn btn-secondary" onclick="resetRace()">重置</button>
+        <button class="btn btn-secondary" onclick="openModal()">⚙️ 设置/数据</button>
+      </div>
+    </div>
+
+    <!-- 设置与数据弹窗 -->
+    <div class="modal" id="dataModal">
+      <div class="modal-title">⚙️ 赛跑图设置与数据导入</div>
+
+      <div class="form-group">
+        <label class="form-label">视频总时长（速度控制，越长反超越慢）：<span id="speedVal">24秒</span></label>
+        <div class="slider-row">
+          <input type="range" id="durationSlider" min="10" max="60" value="24" oninput="updateDuration(this.value)">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">图表展现形式：</label>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="modeBarBtn" onclick="setChartMode('bar')">横向条形图</button>
+          <button class="btn btn-secondary" id="modeColBtn" onclick="setChartMode('column')">纵向柱形图</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">视频主标题：</label>
+        <input type="text" id="titleInput" class="input-text" value="12星座【绝情冷酷度】巅峰赛">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">上传或粘贴数据（支持直接修改）：</label>
+        <textarea id="csvDataInput" class="input-area" placeholder="粘贴CSV格式内容..."></textarea>
+      </div>
+
+      <div class="btn-row" style="margin-top: 6px;">
+        <button class="btn btn-secondary" onclick="downloadTemplate()">📥 下载CSV模板</button>
+        <input type="file" id="fileUpload" accept=".csv,.txt" style="display:none" onchange="handleFileUpload(event)">
+        <button class="btn btn-secondary" onclick="document.getElementById('fileUpload').click()">📂 上传文件</button>
+      </div>
+
+      <div class="btn-row" style="margin-top: 14px;">
+        <button class="btn btn-primary" onclick="applySettingsAndData()">✅ 保存并应用数据</button>
+        <button class="btn btn-secondary" onclick="closeModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 默认高颜值渐变配色池（上传未指定颜色时自动轮询）
+    const PALETTE = [
+      'linear-gradient(90deg, #7c3aed, #db2777)',
+      'linear-gradient(90deg, #475569, #94a3b8)',
+      'linear-gradient(90deg, #0284c7, #38bdf8)',
+      'linear-gradient(90deg, #dc2626, #f87171)',
+      'linear-gradient(90deg, #d97706, #fbbf24)',
+      'linear-gradient(90deg, #059669, #34d399)',
+      'linear-gradient(90deg, #2563eb, #60a5fa)',
+      'linear-gradient(90deg, #ea580c, #fb923c)',
+      'linear-gradient(90deg, #65a30d, #a3e635)',
+      'linear-gradient(90deg, #db2777, #f472b6)',
+      'linear-gradient(90deg, #e11d48, #fb7185)',
+      'linear-gradient(90deg, #4f46e5, #818cf8)'
+    ];
+
+    // 默认赛跑数据集
+    let parsedItems = [
+      { id: '1', name: '天蝎座', tag: '水象', points: [0, 15, 38, 68, 98], color: PALETTE[0] },
+      { id: '2', name: '摩羯座', tag: '土象', points: [0, 20, 52, 78, 94], color: PALETTE[1] },
+      { id: '3', name: '水瓶座', tag: '风象', points: [0, 18, 48, 72, 89], color: PALETTE[2] },
+      { id: '4', name: '处女座', tag: '土象', points: [0, 16, 42, 65, 84], color: PALETTE[3] },
+      { id: '5', name: '金牛座', tag: '土象', points: [0, 12, 35, 60, 79], color: PALETTE[4] },
+      { id: '6', name: '双子座', tag: '风象', points: [0, 28, 55, 67, 74], color: PALETTE[5] },
+      { id: '7', name: '狮子座', tag: '火象', points: [0, 25, 46, 60, 68], color: PALETTE[6] },
+      { id: '8', name: '白羊座', tag: '火象', points: [0, 32, 50, 58, 62], color: PALETTE[7] },
+      { id: '9', name: '射手座', tag: '火象', points: [0, 22, 39, 49, 56], color: PALETTE[8] },
+      { id: '10', name: '天秤座', tag: '风象', points: [0, 14, 30, 42, 49], color: PALETTE[9] },
+      { id: '11', name: '巨蟹座', tag: '水象', points: [0, 10, 22, 32, 38], color: PALETTE[10] },
+      { id: '12', name: '双鱼座', tag: '水象', points: [0,  8, 16, 23, 28], color: PALETTE[11] }
+    ];
+
+    let chartMode = 'bar'; // 'bar' | 'column'
+    let raceDuration = 24000; // 默认 24 秒（慢速超车，悬念感好）
+    let isRacing = false;
+    let animId = null;
+    let startTime = null;
+    let currentScores = {};
+
+    function init() {
+      renderStage();
+      syncTextarea();
+    }
+
+    // 渲染舞台 DOM
+    function renderStage() {
+      const stage = document.getElementById('stage');
+      stage.className = `stage mode-${chartMode}`;
+      stage.innerHTML = '';
+
+      const count = parsedItems.length;
+      const stageH = stage.clientHeight || 550;
+      const stageW = stage.clientWidth || 380;
+      const rowH = Math.min(46, Math.floor(stageH / count));
+      const colW = Math.min(36, Math.floor(stageW / count));
+
+      parsedItems.forEach((item, index) => {
+        currentScores[item.id] = 0;
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.id = `row-${item.id}`;
+
+        if (chartMode === 'bar') {
+          row.style.transform = `translateY(${index * rowH}px)`;
+          row.style.height = `${rowH - 4}px`;
+        } else {
+          row.style.transform = `translateX(${index * colW}px)`;
+          row.style.width = `${colW - 4}px`;
+        }
+        row.setAttribute('data-rank', index + 1);
+
+        row.innerHTML = `
+          <div class="rank-num">${index + 1}</div>
+          <div class="info-box">
+            <span class="name-txt">${item.name}</span>
+            <span class="tag-txt">${item.tag || ''}</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="fill-${item.id}" style="background: ${item.color}">
+              <span class="score-txt" id="txt-${item.id}">0</span>
+            </div>
+          </div>
+        `;
+        stage.appendChild(row);
+      });
+    }
+
+    // 缓动样条插值计算
+    function getInterpolated(points, t) {
+      const n = points.length - 1;
+      const p = t * n;
+      const i = Math.min(Math.floor(p), n - 1);
+      const frac = p - i;
+      const ease = frac * frac * (3 - 2 * frac); // 平滑超车
+      return points[i] + (points[i + 1] - points[i]) * ease;
+    }
+
+    // 主动画循环
+    function tick(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / raceDuration, 1.0);
+
+      document.getElementById('progressBar').style.width = `${progress * 100}%`;
+
+      // 1. 更新分数与微小抖动
+      parsedItems.forEach(item => {
+        let val = getInterpolated(item.points, progress);
+        if (progress > 0.05 && progress < 0.98) {
+          val += (Math.random() - 0.5) * 0.4;
+        }
+        currentScores[item.id] = Math.max(0, val);
+      });
+
+      // 2. 实时排序
+      const sorted = [...parsedItems].sort((a, b) => currentScores[b.id] - currentScores[a.id]);
+
+      const stage = document.getElementById('stage');
+      const count = parsedItems.length;
+      const rowH = Math.min(46, Math.floor(stage.clientHeight / count));
+      const colW = Math.min(36, Math.floor(stage.clientWidth / count));
+
+      // 3. 超车位移与数据条伸缩
+      sorted.forEach((item, rank) => {
+        const row = document.getElementById(`row-${item.id}`);
+        const fill = document.getElementById(`fill-${item.id}`);
+        const txt = document.getElementById(`txt-${item.id}`);
+        const score = currentScores[item.id];
+
+        if (chartMode === 'bar') {
+          row.style.transform = `translateY(${rank * rowH}px)`;
+          fill.style.width = `${Math.min(score, 100)}%`;
+        } else {
+          row.style.transform = `translateX(${rank * colW}px)`;
+          fill.style.height = `${Math.min(score, 100)}%`;
+        }
+
+        row.setAttribute('data-rank', rank + 1);
+        row.querySelector('.rank-num').innerText = rank + 1;
+        txt.innerText = Math.round(score);
+      });
+
+      if (progress < 1.0) {
+        animId = requestAnimationFrame(tick);
+      } else {
+        isRacing = false;
+        document.getElementById('playBtn').innerText = '🎉 赛跑结束 (点击重置)';
+      }
+    }
+
+    // 开始/暂停
+    function toggleRace() {
+      if (isRacing) return;
+      resetRace();
+      isRacing = true;
+      document.getElementById('playBtn').innerText = '🔴 正在竞速录屏...';
+
+      // 开启录屏纯净模式：隐藏全部按钮
+      document.getElementById('appScreen').classList.add('clean-mode');
+
+      startTime = null;
+      animId = requestAnimationFrame(tick);
+    }
+
+    function resetRace() {
+      if (animId) cancelAnimationFrame(animId);
+      isRacing = false;
+      startTime = null;
+      document.getElementById('playBtn').innerText = '▶ 开始赛跑 (自动纯净录屏)';
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('appScreen').classList.remove('clean-mode');
+
+      renderStage();
+    }
+
+    // 手机屏幕点击：在录屏中点击屏幕随时唤回按钮
+    function handleScreenTap(e) {
+      if (document.getElementById('dataModal').classList.contains('active')) return;
+      if (document.getElementById('appScreen').classList.contains('clean-mode')) {
+        document.getElementById('appScreen').classList.remove('clean-mode');
+      }
+    }
+
+    // 切换图表模式
+    function setChartMode(mode) {
+      chartMode = mode;
+      document.getElementById('typeBadge').innerText = mode === 'bar' ? '横向条形赛跑' : '纵向柱形赛跑';
+      document.getElementById('modeBarBtn').style.borderColor = mode === 'bar' ? '#a855f7' : 'rgba(255,255,255,0.1)';
+      document.getElementById('modeColBtn').style.borderColor = mode === 'column' ? '#a855f7' : 'rgba(255,255,255,0.1)';
+      resetRace();
+    }
+
+    function updateDuration(val) {
+      raceDuration = parseInt(val) * 1000;
+      document.getElementById('speedVal').innerText = `${val}秒`;
+    }
+
+    // 弹窗控制
+    function openModal() {
+      document.getElementById('dataModal').classList.add('active');
+    }
+    function closeModal() {
+      document.getElementById('dataModal').classList.remove('active');
+    }
+
+    // 将内存数据同步为 CSV 文本框内容
+    function syncTextarea() {
+      let csv = "名称,类别,起点,阶段1,阶段2,阶段3,终点\n";
+      parsedItems.forEach(it => {
+        csv += `${it.name},${it.tag || '默认'},${it.points.join(',')}\n`;
+      });
+      document.getElementById('csvDataInput').value = csv.trim();
+    }
+
+    // 解析 CSV 文本数据
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const items = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cols = line.split(/[,，]/); // 兼容中英文逗号
+        if (cols.length >= 4) {
+          const name = cols[0].trim();
+          const tag = cols[1].trim();
+          const points = cols.slice(2).map(n => parseFloat(n) || 0);
+          items.push({
+            id: 'item_' + i,
+            name: name,
+            tag: tag,
+            points: points,
+            color: PALETTE[(i - 1) % PALETTE.length]
+          });
+        }
+      }
+      return items;
+    }
+
+    // 保存并应用用户的数据
+    function applySettingsAndData() {
+      const title = document.getElementById('titleInput').value.trim();
+      if (title) document.getElementById('chartTitle').innerText = title;
+
+      const csvText = document.getElementById('csvDataInput').value;
+      const items = parseCSV(csvText);
+      if (items.length > 0) {
+        parsedItems = items;
+      }
+      closeModal();
+      resetRace();
+    }
+
+    // 下载标准模板文件
+    function downloadTemplate() {
+      const content = "名称,分类标签,起点,阶段1(起跑),阶段2(中场),阶段3(冲刺),终点(最终得分)\n天蝎座,水象,0,15,38,68,98\n摩羯座,土象,0,20,52,78,94\n水瓶座,风象,0,18,48,72,89\n白羊座,火象,0,32,50,58,62\n双子座,风象,0,28,55,67,74\n金牛座,土象,0,12,35,60,79";
+      const blob = new Blob(["\ufeff" + content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "赛跑图AI提示词数据模板.csv";
+      a.click();
+    }
+
+    // 本地上传 CSV 文件
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.getElementById('csvDataInput').value = evt.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--  <meta charset="UTF-8">-->
+<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--  <title>十二星座巅峰赛跑 - Bar Chart Race</title>-->
+<!--  <style>-->
+<!--    :root {-->
+<!--      &#45;&#45;bg: #0b0c16;-->
+<!--      &#45;&#45;gold: #f59e0b;-->
+<!--      &#45;&#45;silver: #94a3b8;-->
+<!--      &#45;&#45;bronze: #d97706;-->
+<!--    }-->
+
+<!--    * {-->
+<!--      box-sizing: border-box;-->
+<!--      margin: 0;-->
+<!--      padding: 0;-->
+<!--      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;-->
+<!--    }-->
+
+<!--    body {-->
+<!--      background-color: #030408;-->
+<!--      display: flex;-->
+<!--      justify-content: center;-->
+<!--      align-items: center;-->
+<!--      min-height: 100vh;-->
+<!--      color: #fff;-->
+<!--    }-->
+
+<!--    /* 9:16 录屏画幅 */-->
+<!--    .screen {-->
+<!--      width: 420px;-->
+<!--      height: 840px;-->
+<!--      background: radial-gradient(circle at 50% 5%, #241442 0%, #080911 60%);-->
+<!--      border-radius: 28px;-->
+<!--      padding: 24px 20px;-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      position: relative;-->
+<!--      border: 1px solid rgba(255, 255, 255, 0.08);-->
+<!--      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(147, 51, 234, 0.2);-->
+<!--      overflow: hidden;-->
+<!--    }-->
+
+<!--    /* 顶部标题与悬念旁白 */-->
+<!--    .header {-->
+<!--      text-align: center;-->
+<!--      margin-bottom: 12px;-->
+<!--    }-->
+
+<!--    .topic-tag {-->
+<!--      font-size: 11px;-->
+<!--      letter-spacing: 2px;-->
+<!--      padding: 3px 12px;-->
+<!--      border-radius: 20px;-->
+<!--      background: rgba(168, 85, 247, 0.25);-->
+<!--      color: #d8b4fe;-->
+<!--      display: inline-block;-->
+<!--      margin-bottom: 6px;-->
+<!--      border: 1px solid rgba(168, 85, 247, 0.4);-->
+<!--    }-->
+
+<!--    .title {-->
+<!--      font-size: 22px;-->
+<!--      font-weight: 900;-->
+<!--      letter-spacing: 1px;-->
+<!--      background: linear-gradient(180deg, #ffffff 30%, #c084fc 100%);-->
+<!--      -webkit-background-clip: text;-->
+<!--      -webkit-text-fill-color: transparent;-->
+<!--      margin-bottom: 4px;-->
+<!--    }-->
+
+<!--    /* 剧情解说提示条（极其适合配音） */-->
+<!--    .commentary-box {-->
+<!--      background: rgba(255, 255, 255, 0.06);-->
+<!--      border-left: 3px solid #c084fc;-->
+<!--      padding: 6px 10px;-->
+<!--      border-radius: 4px 8px 8px 4px;-->
+<!--      font-size: 12px;-->
+<!--      color: #f1f5f9;-->
+<!--      min-height: 32px;-->
+<!--      display: flex;-->
+<!--      align-items: center;-->
+<!--      margin-bottom: 12px;-->
+<!--    }-->
+
+<!--    /* 榜单切换菜单 */-->
+<!--    .menu-bar {-->
+<!--      display: flex;-->
+<!--      gap: 6px;-->
+<!--      margin-bottom: 12px;-->
+<!--    }-->
+<!--    .menu-btn {-->
+<!--      flex: 1;-->
+<!--      padding: 6px 0;-->
+<!--      border-radius: 8px;-->
+<!--      border: 1px solid rgba(255, 255, 255, 0.1);-->
+<!--      background: rgba(255, 255, 255, 0.03);-->
+<!--      color: #94a3b8;-->
+<!--      font-size: 11px;-->
+<!--      cursor: pointer;-->
+<!--      transition: all 0.2s;-->
+<!--    }-->
+<!--    .menu-btn.active {-->
+<!--      background: #7e22ce;-->
+<!--      color: #fff;-->
+<!--      font-weight: bold;-->
+<!--      border-color: #a855f7;-->
+<!--    }-->
+
+<!--    /* 赛跑核心区域 */-->
+<!--    .race-track {-->
+<!--      position: relative;-->
+<!--      flex: 1;-->
+<!--      margin-top: 4px;-->
+<!--    }-->
+
+<!--    /* 每个条形图（采用位移动画实现上下互超） */-->
+<!--    .race-row {-->
+<!--      position: absolute;-->
+<!--      left: 0;-->
+<!--      right: 0;-->
+<!--      height: 44px;-->
+<!--      display: flex;-->
+<!--      align-items: center;-->
+<!--      /* 关键：纵向位移使用 CSS 丝滑过渡，形成追赶互超动效 */-->
+<!--      transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);-->
+<!--      will-change: transform;-->
+<!--    }-->
+
+<!--    .rank-tag {-->
+<!--      width: 24px;-->
+<!--      font-size: 13px;-->
+<!--      font-weight: 800;-->
+<!--      color: #64748b;-->
+<!--      text-align: center;-->
+<!--      margin-right: 6px;-->
+<!--      transition: color 0.3s;-->
+<!--    }-->
+
+<!--    /* 前三名王冠高亮 */-->
+<!--    .race-row[data-rank="1"] .rank-tag { color: var(&#45;&#45;gold); font-size: 16px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }-->
+<!--    .race-row[data-rank="2"] .rank-tag { color: var(&#45;&#45;silver); font-size: 14px; }-->
+<!--    .race-row[data-rank="3"] .rank-tag { color: var(&#45;&#45;bronze); font-size: 14px; }-->
+
+<!--    .zodiac-info {-->
+<!--      width: 58px;-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      justify-content: center;-->
+<!--      margin-right: 6px;-->
+<!--    }-->
+<!--    .zodiac-name { font-size: 13px; font-weight: 700; }-->
+<!--    .zodiac-sign { font-size: 10px; color: #64748b; }-->
+
+<!--    .track-bg {-->
+<!--      flex: 1;-->
+<!--      height: 22px;-->
+<!--      background: rgba(255, 255, 255, 0.04);-->
+<!--      border-radius: 6px;-->
+<!--      position: relative;-->
+<!--      overflow: hidden;-->
+<!--    }-->
+
+<!--    .bar {-->
+<!--      height: 100%;-->
+<!--      width: 0%;-->
+<!--      border-radius: 6px;-->
+<!--      position: relative;-->
+<!--      /* 柱子向前冲的微调过渡 */-->
+<!--      transition: width 0.1s linear;-->
+<!--      box-shadow: 0 0 10px rgba(0,0,0,0.3);-->
+<!--    }-->
+
+<!--    .value-label {-->
+<!--      position: absolute;-->
+<!--      right: 8px;-->
+<!--      top: 50%;-->
+<!--      transform: translateY(-50%);-->
+<!--      font-size: 11px;-->
+<!--      font-weight: 800;-->
+<!--      color: #fff;-->
+<!--      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);-->
+<!--      pointer-events: none;-->
+<!--    }-->
+
+<!--    /* 底部操作 */-->
+<!--    .footer-bar {-->
+<!--      margin-top: 10px;-->
+<!--      display: flex;-->
+<!--      flex-direction: column;-->
+<!--      gap: 8px;-->
+<!--    }-->
+
+<!--    .progress-line {-->
+<!--      width: 100%;-->
+<!--      height: 4px;-->
+<!--      background: rgba(255, 255, 255, 0.08);-->
+<!--      border-radius: 2px;-->
+<!--      overflow: hidden;-->
+<!--    }-->
+<!--    .progress-inner {-->
+<!--      height: 100%;-->
+<!--      width: 0%;-->
+<!--      background: linear-gradient(90deg, #a855f7, #ec4899);-->
+<!--      transition: width 0.1s linear;-->
+<!--    }-->
+
+<!--    .btn-group {-->
+<!--      display: flex;-->
+<!--      gap: 10px;-->
+<!--    }-->
+<!--    .play-btn {-->
+<!--      flex: 2;-->
+<!--      padding: 11px;-->
+<!--      background: linear-gradient(90deg, #9333ea, #db2777);-->
+<!--      border: none;-->
+<!--      border-radius: 12px;-->
+<!--      color: white;-->
+<!--      font-size: 14px;-->
+<!--      font-weight: 800;-->
+<!--      cursor: pointer;-->
+<!--      box-shadow: 0 4px 15px rgba(219, 39, 119, 0.3);-->
+<!--    }-->
+<!--    .play-btn:active { transform: scale(0.97); }-->
+
+<!--    .reset-btn {-->
+<!--      flex: 1;-->
+<!--      padding: 11px;-->
+<!--      background: rgba(255, 255, 255, 0.08);-->
+<!--      border: 1px solid rgba(255, 255, 255, 0.15);-->
+<!--      border-radius: 12px;-->
+<!--      color: #cbd5e1;-->
+<!--      font-size: 13px;-->
+<!--      cursor: pointer;-->
+<!--    }-->
+<!--  </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--  <div class="screen">-->
+<!--    <div class="header">-->
+<!--      <div class="topic-tag">LIVE RACE · 动态角逐</div>-->
+<!--      <div class="title" id="pageTitle">12星座【绝情冷酷度】巅峰赛</div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 赛程实时解说栏 &ndash;&gt;-->
+<!--    <div class="commentary-box" id="commentary">-->
+<!--      🏁 准备起跑！谁才是真正的绝情之王？-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 预置不同主题 &ndash;&gt;-->
+<!--    <div class="menu-bar">-->
+<!--      <button class="menu-btn active" onclick="switchTheme(0)">绝情冷血榜</button>-->
+<!--      <button class="menu-btn" onclick="switchTheme(1)">暴富搞钱榜</button>-->
+<!--      <button class="menu-btn" onclick="switchTheme(2)">深情专一榜</button>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 赛跑条形图 &ndash;&gt;-->
+<!--    <div class="race-track" id="raceTrack"></div>-->
+
+<!--    <div class="footer-bar">-->
+<!--      &lt;!&ndash; 进度条 &ndash;&gt;-->
+<!--      <div class="progress-line">-->
+<!--        <div class="progress-inner" id="raceProgress"></div>-->
+<!--      </div>-->
+<!--      <div class="btn-group">-->
+<!--        <button class="play-btn" id="startBtn" onclick="startRace()">🔥 开始赛跑并录屏</button>-->
+<!--        <button class="reset-btn" onclick="resetRace()">重置</button>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+
+<!--  <script>-->
+<!--    // 12星座配置与配色-->
+<!--    const ZODIACS = [-->
+<!--      { id: 'aries', name: '白羊座', symbol: '♈ 火象', color: 'linear-gradient(90deg, #ef4444, #f87171)' },-->
+<!--      { id: 'taurus', name: '金牛座', symbol: '♉ 土象', color: 'linear-gradient(90deg, #d97706, #fbbf24)' },-->
+<!--      { id: 'gemini', name: '双子座', symbol: '♊ 风象', color: 'linear-gradient(90deg, #10b981, #34d399)' },-->
+<!--      { id: 'cancer', name: '巨蟹座', symbol: '♋ 水象', color: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },-->
+<!--      { id: 'leo', name: '狮子座', symbol: '♌ 火象', color: 'linear-gradient(90deg, #f97316, #fb923c)' },-->
+<!--      { id: 'virgo', name: '处女座', symbol: '♍ 土象', color: 'linear-gradient(90deg, #84cc16, #a3e635)' },-->
+<!--      { id: 'libra', name: '天秤座', symbol: '♎ 风象', color: 'linear-gradient(90deg, #ec4899, #f472b6)' },-->
+<!--      { id: 'scorpio', name: '天蝎座', symbol: '♏ 水象', color: 'linear-gradient(90deg, #8b5cf6, #d946ef)' },-->
+<!--      { id: 'sagittarius', name: '射手座', symbol: '♐ 火象', color: 'linear-gradient(90deg, #f43f5e, #fb7185)' },-->
+<!--      { id: 'capricorn', name: '摩羯座', symbol: '♑ 土象', color: 'linear-gradient(90deg, #64748b, #94a3b8)' },-->
+<!--      { id: 'aquarius', name: '水瓶座', symbol: '♒ 风象', color: 'linear-gradient(90deg, #06b6d4, #38bdf8)' },-->
+<!--      { id: 'pisces', name: '双鱼座', symbol: '♓ 水象', color: 'linear-gradient(90deg, #6366f1, #818cf8)' }-->
+<!--    ];-->
+
+<!--    // 三个主题的赛跑轨迹（包含起点、中期爆发点、终点数值，制造超车剧情）-->
+<!--    const THEMES = [-->
+<!--      {-->
+<!--        title: "12星座【绝情冷酷度】巅峰赛",-->
+<!--        // 关键帧设计：白羊双子开局领跑，中期摩羯追赶，后期天蝎暴力反超登顶-->
+<!--        trajectories: {-->
+<!--          scorpio:     [0, 15, 38, 68, 98], // 后期大黑马狂飙-->
+<!--          capricorn:   [0, 20, 52, 78, 94], // 稳扎稳打第二-->
+<!--          aquarius:    [0, 18, 48, 72, 89],-->
+<!--          virgo:       [0, 16, 42, 65, 84],-->
+<!--          taurus:      [0, 12, 35, 60, 79],-->
+<!--          gemini:      [0, 28, 55, 67, 74], // 前期猛如虎，后期回落-->
+<!--          leo:         [0, 25, 46, 60, 68],-->
+<!--          aries:       [0, 32, 50, 58, 62], // 开局第一，逐步被超-->
+<!--          sagittarius: [0, 22, 39, 49, 56],-->
+<!--          libra:       [0, 14, 30, 42, 49],-->
+<!--          cancer:      [0, 10, 22, 32, 38],-->
+<!--          pisces:      [0,  8, 16, 23, 28]-->
+<!--        },-->
+<!--        commentaries: [-->
+<!--          { at: 0.05, text: "🚦 比赛打响！白羊、双子冲在最前面！" },-->
+<!--          { at: 0.35, text: "⚡ 中期交锋！摩羯后劲爆发，排名大洗牌！" },-->
+<!--          { at: 0.65, text: "🔥 天蝎开始发力！疯狂超车连斩数人！" },-->
+<!--          { at: 0.88, text: "😱 最后一秒反超！天蝎拿下全场第一！" },-->
+<!--          { at: 1.00, text: "🏆 终局定格！这就是真正的绝情天花板！" }-->
+<!--        ]-->
+<!--      },-->
+<!--      {-->
+<!--        title: "12星座【搞钱暴富欲】巅峰赛",-->
+<!--        trajectories: {-->
+<!--          capricorn:   [0, 22, 55, 80, 99], // 摩羯全程霸榜-->
+<!--          taurus:      [0, 15, 48, 76, 95],-->
+<!--          scorpio:     [0, 18, 45, 72, 91],-->
+<!--          virgo:       [0, 14, 38, 64, 85],-->
+<!--          leo:         [0, 28, 50, 68, 82],-->
+<!--          aries:       [0, 26, 46, 60, 76],-->
+<!--          aquarius:    [0, 16, 36, 55, 71],-->
+<!--          gemini:      [0, 20, 40, 52, 65],-->
+<!--          sagittarius: [0, 19, 34, 48, 58],-->
+<!--          libra:       [0, 12, 28, 40, 51],-->
+<!--          pisces:      [0, 10, 22, 35, 44],-->
+<!--          cancer:      [0,  8, 18, 28, 36]-->
+<!--        },-->
+<!--        commentaries: [-->
+<!--          { at: 0.05, text: "💰 搞钱发财赛开局！狮子白羊野心初显！" },-->
+<!--          { at: 0.40, text: "📈 金牛摩羯默默爬升，金钱帝国启动！" },-->
+<!--          { at: 0.70, text: "💼 摩羯完全甩开大部队，无人能挡！" },-->
+<!--          { at: 1.00, text: "👑 摩羯与金牛锁死前二，实至名归的财阀！" }-->
+<!--        ]-->
+<!--      },-->
+<!--      {-->
+<!--        title: "12星座【深情恋爱脑】巅峰赛",-->
+<!--        trajectories: {-->
+<!--          pisces:      [0, 30, 62, 85, 99], // 双子开局弱，双鱼一路狂飙-->
+<!--          cancer:      [0, 26, 58, 80, 96],-->
+<!--          scorpio:     [0, 15, 45, 72, 92],-->
+<!--          taurus:      [0, 12, 38, 65, 87],-->
+<!--          virgo:       [0, 14, 35, 58, 80],-->
+<!--          capricorn:   [0, 10, 28, 50, 72],-->
+<!--          leo:         [0, 22, 42, 55, 65],-->
+<!--          libra:       [0, 18, 36, 48, 58],-->
+<!--          aries:       [0, 25, 38, 45, 51],-->
+<!--          gemini:      [0, 16, 28, 36, 42],-->
+<!--          sagittarius: [0, 12, 22, 29, 35],-->
+<!--          aquarius:    [0,  8, 15, 20, 24]-->
+<!--        },-->
+<!--        commentaries: [-->
+<!--          { at: 0.05, text: "❤️ 纯爱战士集结！白羊再次先声夺人！" },-->
+<!--          { at: 0.35, text: "🥺 水象三子集体发力，双鱼巨蟹冲向顶峰！" },-->
+<!--          { at: 0.75, text: "💔 风象星座全员掉队，双鱼深情破表！" },-->
+<!--          { at: 1.00, text: "🥇 双鱼座封神！愿为你付出一切！" }-->
+<!--        ]-->
+<!--      }-->
+<!--    ];-->
+
+<!--    let currentThemeIdx = 0;-->
+<!--    let isRacing = false;-->
+<!--    let animationFrameId = null;-->
+<!--    let raceStartTime = null;-->
+<!--    const RACE_DURATION = 16000; // 整个赛跑时间 16 秒（抖音黄金完播长度）-->
+<!--    const ROW_HEIGHT = 46;-->
+
+<!--    // 当前各个星座的实时分数-->
+<!--    let currentScores = {};-->
+
+<!--    function init() {-->
+<!--      const track = document.getElementById('raceTrack');-->
+<!--      track.innerHTML = '';-->
+
+<!--      ZODIACS.forEach((item, index) => {-->
+<!--        currentScores[item.id] = 0;-->
+<!--        const row = document.createElement('div');-->
+<!--        row.className = 'race-row';-->
+<!--        row.id = `row-${item.id}`;-->
+<!--        row.style.transform = `translateY(${index * ROW_HEIGHT}px)`;-->
+<!--        row.setAttribute('data-rank', index + 1);-->
+
+<!--        row.innerHTML = `-->
+<!--          <div class="rank-tag">${index + 1}</div>-->
+<!--          <div class="zodiac-info">-->
+<!--            <div class="zodiac-name">${item.name}</div>-->
+<!--            <div class="zodiac-sign">${item.symbol}</div>-->
+<!--          </div>-->
+<!--          <div class="track-bg">-->
+<!--            <div class="bar" id="bar-${item.id}" style="background: ${item.color}">-->
+<!--              <span class="value-label" id="val-${item.id}">0</span>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--        `;-->
+<!--        track.appendChild(row);-->
+<!--      });-->
+<!--    }-->
+
+<!--    // 样条插值计算实时分数值（实现前冲、平缓、反超等曲线）-->
+<!--    function getInterpolatedScore(points, progress) {-->
+<!--      // progress 从 0 到 1-->
+<!--      const n = points.length - 1;-->
+<!--      const p = progress * n;-->
+<!--      const idx = Math.min(Math.floor(p), n - 1);-->
+<!--      const frac = p - idx;-->
+
+<!--      // 平滑缓动-->
+<!--      const ease = frac * frac * (3 - 2 * frac);-->
+<!--      return points[idx] + (points[idx + 1] - points[idx]) * ease;-->
+<!--    }-->
+
+<!--    // 主赛跑动画循环-->
+<!--    function tick(timestamp) {-->
+<!--      if (!raceStartTime) raceStartTime = timestamp;-->
+<!--      const elapsed = timestamp - raceStartTime;-->
+<!--      const progress = Math.min(elapsed / RACE_DURATION, 1.0);-->
+
+<!--      // 更新进度条-->
+<!--      document.getElementById('raceProgress').style.width = `${progress * 100}%`;-->
+
+<!--      const theme = THEMES[currentThemeIdx];-->
+
+<!--      // 1. 计算每个星座当前的分数（加入极其微小的随机抖动模拟追逐心跳感）-->
+<!--      ZODIACS.forEach(item => {-->
+<!--        const points = theme.trajectories[item.id];-->
+<!--        let val = getInterpolatedScore(points, progress);-->
+<!--        if (progress > 0.05 && progress < 0.98) {-->
+<!--          val += (Math.random() - 0.5) * 0.8; // 追赶时的浮动-->
+<!--        }-->
+<!--        currentScores[item.id] = Math.max(0, val);-->
+<!--      });-->
+
+<!--      // 2. 根据实时分数排名-->
+<!--      const sorted = [...ZODIACS].sort((a, b) => currentScores[b.id] - currentScores[a.id]);-->
+
+<!--      // 3. 更新每一行的位置（超车位移动画）与条形图长度-->
+<!--      sorted.forEach((item, rank) => {-->
+<!--        const row = document.getElementById(`row-${item.id}`);-->
+<!--        const bar = document.getElementById(`bar-${item.id}`);-->
+<!--        const label = document.getElementById(`val-${item.id}`);-->
+<!--        const score = currentScores[item.id];-->
+
+<!--        // 垂直超车动画 (利用 translateY 错位)-->
+<!--        row.style.transform = `translateY(${rank * ROW_HEIGHT}px)`;-->
+<!--        row.setAttribute('data-rank', rank + 1);-->
+<!--        row.querySelector('.rank-tag').innerText = rank + 1;-->
+
+<!--        // 柱子长度与数值-->
+<!--        bar.style.width = `${Math.min(score, 100)}%`;-->
+<!--        label.innerText = Math.round(score);-->
+<!--      });-->
+
+<!--      // 4. 更新解说词文案-->
+<!--      const activeComment = [...theme.commentaries].reverse().find(c => progress >= c.at);-->
+<!--      if (activeComment) {-->
+<!--        document.getElementById('commentary').innerText = activeComment.text;-->
+<!--      }-->
+
+<!--      // 5. 循环或结束-->
+<!--      if (progress < 1.0) {-->
+<!--        animationFrameId = requestAnimationFrame(tick);-->
+<!--      } else {-->
+<!--        isRacing = false;-->
+<!--        document.getElementById('startBtn').innerText = '🎉 赛跑结束 (点击再来一局)';-->
+<!--      }-->
+<!--    }-->
+
+<!--    function startRace() {-->
+<!--      if (isRacing) return;-->
+<!--      resetRace();-->
+<!--      isRacing = true;-->
+<!--      document.getElementById('startBtn').innerText = '🔴 正在竞速超车中...';-->
+<!--      raceStartTime = null;-->
+<!--      animationFrameId = requestAnimationFrame(tick);-->
+<!--    }-->
+
+<!--    function resetRace() {-->
+<!--      if (animationFrameId) cancelAnimationFrame(animationFrameId);-->
+<!--      isRacing = false;-->
+<!--      raceStartTime = null;-->
+<!--      document.getElementById('startBtn').innerText = '🔥 开始赛跑并录屏';-->
+<!--      document.getElementById('raceProgress').style.width = '0%';-->
+<!--      document.getElementById('commentary').innerText = '🏁 准备就绪，点击开始角逐！';-->
+
+<!--      // 归零重置-->
+<!--      ZODIACS.forEach((item, idx) => {-->
+<!--        currentScores[item.id] = 0;-->
+<!--        const row = document.getElementById(`row-${item.id}`);-->
+<!--        row.style.transform = `translateY(${idx * ROW_HEIGHT}px)`;-->
+<!--        row.setAttribute('data-rank', idx + 1);-->
+<!--        row.querySelector('.rank-tag').innerText = idx + 1;-->
+<!--        document.getElementById(`bar-${item.id}`).style.width = '0%';-->
+<!--        document.getElementById(`val-${item.id}`).innerText = '0';-->
+<!--      });-->
+<!--    }-->
+
+<!--    function switchTheme(idx) {-->
+<!--      if (isRacing) resetRace();-->
+<!--      currentThemeIdx = idx;-->
+<!--      document.querySelectorAll('.menu-btn').forEach((btn, i) => {-->
+<!--        btn.classList.toggle('active', i === idx);-->
+<!--      });-->
+<!--      document.getElementById('pageTitle').innerText = THEMES[idx].title;-->
+<!--      resetRace();-->
+<!--    }-->
+
+<!--    init();-->
+<!--  </script>-->
+<!--</body>-->
+<!--</html>-->
