@@ -1,0 +1,4089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华语辩论联赛·转播级演播厅（动态立论与全流程控场版）</title>
+    <style>
+        :root {
+            --aff: #0284c7;
+            --aff-glow: rgba(2, 132, 199, 0.55);
+            --neg: #e11d48;
+            --neg-glow: rgba(225, 29, 72, 0.55);
+            --host: #f59e0b;
+            --host-glow: rgba(245, 158, 11, 0.55);
+            --bg: #070914;
+            --panel: rgba(13, 18, 34, 0.94);
+            --border: rgba(255, 255, 255, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.28) 0%, transparent 55%),
+                radial-gradient(circle at 10% 85%, rgba(2, 132, 199, 0.18) 0%, transparent 45%),
+                radial-gradient(circle at 90% 85%, rgba(225, 29, 72, 0.18) 0%, transparent 45%),
+                linear-gradient(180deg, #070a16 0%, #030409 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部导航 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(11, 15, 29, 0.96);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(14px);
+            z-index: 50;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header-title-box h1 {
+            font-size: 1.18rem;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #38bdf8, #f59e0b, #fb7185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.06);
+            color: #f1f5f9;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+        .btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+        .btn.primary { background: linear-gradient(135deg, #2563eb, #7c3aed); border: none; }
+        .btn.primary:hover { opacity: 0.92; }
+        .btn.danger { background: #e11d48; border: none; }
+        .btn.highlight { border-color: rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+
+        .btn.record { border-color: rgba(225, 29, 72, 0.45); background: rgba(225, 29, 72, 0.12); color: #fda4af; }
+        .btn.recording { background: #e11d48 !important; border-color: #e11d48 !important; color: #fff !important; animation: recordPulse 1s infinite alternate; }
+        @keyframes recordPulse {
+            0% { box-shadow: 0 0 4px rgba(225, 29, 72, 0.4); }
+            100% { box-shadow: 0 0 16px rgba(225, 29, 72, 0.9); }
+        }
+
+        /* 主舞台网格 */
+        .stage-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 370px;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1650px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .hall-viewport {
+            position: relative;
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px 22px;
+            min-height: 670px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.75);
+        }
+
+        .record-indicator {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: rgba(225, 29, 72, 0.95);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            z-index: 40;
+            box-shadow: 0 4px 14px rgba(225, 29, 72, 0.6);
+            pointer-events: none;
+        }
+        .record-indicator.show { display: flex; }
+        .record-indicator .dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0.2; } }
+
+        /* 顶部赛程比分牌与主席台 */
+        .hall-top-deck {
+            display: grid;
+            grid-template-columns: 220px 1fr 220px 180px;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 自由辩论红蓝交替战灯与计时 */
+        .team-hud {
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .team-hud.aff {
+            background: linear-gradient(180deg, rgba(2, 132, 199, 0.2) 0%, rgba(2, 132, 199, 0.05) 100%);
+            border: 1.5px solid rgba(2, 132, 199, 0.4);
+        }
+        .team-hud.neg {
+            background: linear-gradient(180deg, rgba(225, 29, 72, 0.2) 0%, rgba(225, 29, 72, 0.05) 100%);
+            border: 1.5px solid rgba(225, 29, 72, 0.4);
+        }
+
+        .team-hud.active-turn { transform: scale(1.03); }
+        .team-hud.aff.active-turn {
+            border-color: #38bdf8;
+            box-shadow: 0 0 25px var(--aff-glow);
+            animation: affPulse 1s infinite alternate;
+        }
+        .team-hud.neg.active-turn {
+            border-color: #fb7185;
+            box-shadow: 0 0 25px var(--neg-glow);
+            animation: negPulse 1s infinite alternate;
+        }
+
+        @keyframes affPulse {
+            0% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+            100% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.85); }
+        }
+        @keyframes negPulse {
+            0% { box-shadow: 0 0 10px rgba(251, 113, 133, 0.4); }
+            100% { box-shadow: 0 0 25px rgba(251, 113, 133, 0.85); }
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            font-weight: 800;
+            margin-bottom: 3px;
+        }
+        .hud-timer {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .team-hud.aff .hud-timer { color: #38bdf8; }
+        .team-hud.neg .hud-timer { color: #fb7185; }
+
+        .team-stance-sub {
+            font-size: 0.72rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        /* 辩题大牌 */
+        .motion-board {
+            background: rgba(2, 6, 23, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 8px 14px;
+            text-align: center;
+            backdrop-filter: blur(8px);
+        }
+        .motion-stage-tag {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 1px 10px;
+            border-radius: 10px;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+        .motion-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: #f8fafc;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+        .motion-title:hover { color: #38bdf8; text-decoration: underline; }
+
+        /* 主席台 */
+        .host-podium {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1.5px solid var(--host);
+            border-radius: 12px;
+            padding: 6px 12px;
+            box-shadow: 0 0 14px var(--host-glow);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .host-podium.speaking {
+            transform: scale(1.05);
+            box-shadow: 0 0 28px rgba(245, 158, 11, 0.9);
+            background: rgba(245, 158, 11, 0.24);
+        }
+        .host-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #1e1b2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            border: 2px solid var(--host);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .host-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .host-info { text-align: left; }
+        .host-role { font-size: 0.62rem; color: #fbbf24; font-weight: 800; }
+        .host-name { font-size: 0.85rem; font-weight: bold; color: #fff; }
+
+        /* 中央主视觉区 */
+        .arena-center { position: relative; margin: 14px 0; }
+
+        /* 电子倒计时浮牌 */
+        .speech-countdown-badge {
+            position: absolute;
+            top: -12px;
+            right: 18px;
+            background: #090e1e;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            color: #38bdf8;
+            z-index: 25;
+            font-family: monospace;
+            font-weight: 700;
+        }
+        .speech-countdown-badge.urgent { color: #ff4757; border-color: #ff4757; animation: blink 0.5s infinite; }
+
+        .cam-screen-wrapper {
+            position: relative;
+            background: rgba(8, 11, 24, 0.94);
+            border: 2px solid var(--border);
+            border-radius: 18px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.85);
+            backdrop-filter: blur(16px);
+            min-height: 250px;
+            transition: all 0.35s ease;
+        }
+
+        .cam-badge {
+            position: absolute;
+            top: -11px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e11d48;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .cam-badge span { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: blink 0.8s infinite; }
+
+        /* 单人特写 */
+        .single-focus-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.25s ease;
+        }
+        .focus-header-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .focus-avatar-wrap {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: all 0.25s;
+        }
+        .focus-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .focus-title-group { text-align: left; }
+        .focus-name { font-size: 1.15rem; font-weight: 800; color: #fff; }
+        .focus-role-tag {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-top: 3px;
+        }
+
+        /* 双镜头分屏 */
+        .split-vs-layout {
+            display: none;
+            grid-template-columns: 1fr 60px 1fr;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .split-side {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1.5px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .split-side.aff-side { justify-content: flex-start; }
+        .split-side.neg-side { justify-content: flex-end; flex-direction: row-reverse; text-align: right; }
+
+        .split-side.active-speaking {
+            background: rgba(255,255,255,0.08);
+            transform: scale(1.03);
+        }
+        .split-side.aff-side.active-speaking { border-color: #38bdf8; box-shadow: 0 0 20px var(--aff-glow); }
+        .split-side.neg-side.active-speaking { border-color: #fb7185; box-shadow: 0 0 20px var(--neg-glow); }
+
+        .split-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            border: 2px solid;
+            background: rgba(0,0,0,0.3);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .split-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .split-meta .name { font-size: 0.95rem; font-weight: 800; color: #fff; }
+        .split-meta .role { font-size: 0.68rem; font-weight: 700; margin-top: 2px; }
+
+        .vs-badge-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .vs-icon {
+            font-family: 'Arial Black', Impact, sans-serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            font-style: italic;
+            background: linear-gradient(180deg, #ff4757, #ffa502);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+            animation: vsPulse 1.2s infinite alternate;
+        }
+        @keyframes vsPulse {
+            0% { transform: scale(0.95); }
+            100% { transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8)); }
+        }
+
+        /* 台词与音频波纹 */
+        .sound-wave {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            height: 12px;
+            align-items: flex-end;
+            margin: 4px 0 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .sound-wave.active { opacity: 1; }
+        .wave-bar {
+            width: 3px;
+            background: #38bdf8;
+            border-radius: 2px;
+            animation: waveAnim 0.4s ease-in-out infinite alternate;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 10px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 14px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 8px; }
+        @keyframes waveAnim { 0% { height: 3px; } 100% { height: 13px; } }
+
+        .dialog-bubble {
+            width: 100%;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: #f8fafc;
+            background: rgba(255,255,255,0.04);
+            padding: 10px 15px;
+            border-radius: 12px;
+            min-height: 54px;
+            text-align: left;
+            border-left: 4px solid #fff;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        /* 辩席长桌 */
+        .benches-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .bench-side {
+            background: rgba(255,255,255,0.02);
+            border-radius: 14px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+        }
+        .bench-side.aff { border-top: 3px solid var(--aff); background: linear-gradient(180deg, rgba(2, 132, 199, 0.08) 0%, transparent 100%); }
+        .bench-side.neg { border-top: 3px solid var(--neg); background: linear-gradient(180deg, rgba(225, 29, 72, 0.08) 0%, transparent 100%); }
+
+        .bench-header {
+            font-size: 0.78rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bench-side.aff .bench-header { color: #38bdf8; }
+        .bench-side.neg .bench-header { color: #fb7185; }
+
+        .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+
+        .seat-card {
+            background: #101528;
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 7px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        .seat-card:hover { transform: translateY(-3px); border-color: #fff; }
+        .seat-card.aff-seat { border-color: rgba(2, 132, 199, 0.35); }
+        .seat-card.neg-seat { border-color: rgba(225, 29, 72, 0.35); }
+
+        .seat-card.speaking { transform: scale(1.08) translateY(-4px); z-index: 15; }
+        .seat-card.aff-seat.speaking {
+            border-color: var(--aff) !important;
+            box-shadow: 0 0 20px var(--aff-glow);
+            background: #0d2446;
+        }
+        .seat-card.neg-seat.speaking {
+            border-color: var(--neg) !important;
+            box-shadow: 0 0 20px var(--neg-glow);
+            background: #39111e;
+        }
+
+        .seat-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1e2640;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            margin-bottom: 4px;
+            border: 2px solid rgba(255,255,255,0.15);
+            overflow: hidden;
+        }
+        .seat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .seat-debater-role { font-size: 0.62rem; color: #94a3b8; font-weight: 700; }
+        .seat-debater-name {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90%;
+        }
+
+        .mic-active-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: none;
+        }
+        .seat-card.speaking .mic-active-dot,
+        .host-podium.speaking .mic-active-dot {
+            display: block;
+            box-shadow: 0 0 8px #22c55e;
+            animation: blink 0.6s infinite;
+        }
+
+        /* 侧栏控制 */
+        .sidebar { display: flex; flex-direction: column; gap: 12px; }
+        .panel-box {
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 12px;
+        }
+        .panel-title {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+
+        .delay-control-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.76rem;
+            color: #cbd5e1;
+        }
+        .delay-control-bar input[type="range"] { flex: 1; accent-color: #38bdf8; cursor: pointer; }
+
+        .btn-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+        .script-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 4px;
+        }
+        .script-list::-webkit-scrollbar { width: 4px; }
+        .script-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+
+        .script-item {
+            padding: 7px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.78rem;
+        }
+        .script-item:hover { background: rgba(255,255,255,0.07); }
+        .script-item.active { background: rgba(255,255,255,0.09); transform: translateX(4px); }
+        .script-item.is-aff { border-left-color: var(--aff); }
+        .script-item.is-neg { border-left-color: var(--neg); }
+        .script-item.is-host { border-left-color: var(--host); }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            width: 90%; max-width: 860px; max-height: 85vh; background: #0f1424;
+            border: 1px solid var(--border); border-radius: 18px; padding: 20px;
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+        .modal-body { flex: 1; overflow-y: auto; margin: 12px 0; padding-right: 6px; }
+
+        .debater-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .debater-table th, .debater-table td { padding: 7px 5px; border-bottom: 1px solid rgba(255,255,255,0.07); text-align: left; }
+        .debater-input, .debater-select {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 0.78rem; width: 100%;
+        }
+        .debater-select option { background: #131a33; color: #fff; }
+
+        .avatar-preview-box { display: flex; align-items: center; gap: 6px; }
+        .avatar-preview {
+            width: 28px; height: 28px; border-radius: 50%; background: #202742;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+        .voice-cell { display: flex; align-items: center; gap: 6px; }
+        .voice-cell .debater-select { flex: 1; min-width: 0; }
+        .preview-btn { flex-shrink: 0; padding: 4px 8px; font-size: 0.7rem; }
+
+        .script-edit-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+        #previewVideo { width: 100%; max-height: 52vh; border-radius: 10px; background: #000; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-box">
+            <h1>⚖️ 华语辩论联赛·转播级演播厅</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn record" id="recordBtn" onclick="toggleRecording()" title="录制辩论赛完整视频（含声音）">
+                🎥 录制比赛
+            </button>
+            <button class="btn highlight" onclick="exportConfigFile()" title="将阵容配置、辩手姓名与音色导出保存">
+                💾 导出赛况配置
+            </button>
+            <label class="btn highlight" title="导入赛事配置文件">
+                📂 载入配置
+                <input type="file" id="configFileUploader" accept=".json" style="display:none;" onchange="importConfigFile(event)">
+            </label>
+            <button class="btn" onclick="openRosterModal()">👥 辩手与音色</button>
+            <button class="btn" onclick="openScriptModal()">📝 辩词编辑</button>
+            <button class="btn" onclick="downloadTemplate()">⬇️ 下载辩词模板</button>
+            <label class="btn">
+                📂 导入辩词TXT
+                <input type="file" id="txtFileInput" accept=".txt" style="display: none;" onchange="importScriptTxt(event)">
+            </label>
+        </div>
+    </header>
+
+    <div class="stage-container" id="stageContainer">
+        <!-- 辩论大厅实景舞台 -->
+        <div class="hall-viewport" id="hallViewport">
+            <div class="record-indicator" id="recordIndicator">
+                <span class="dot"></span> 正在转播录制
+            </div>
+
+            <!-- 赛场顶部：自由辩论战灯牌 + 辩题 + 主席 -->
+            <div class="hall-top-deck">
+                <!-- 正方战灯与队内总计时器 -->
+                <div class="team-hud aff" id="affTeamHud">
+                    <div class="hud-header">
+                        <span style="color:#38bdf8;">🔷 正方发言余量</span>
+                        <span class="hud-timer" id="affChessTimer">00:00</span>
+                    </div>
+                    <div class="team-stance-sub" id="affStanceLabel">正方立论：待加载...</div>
+                </div>
+
+                <!-- 辩题看板 -->
+                <div class="motion-board">
+                    <div class="motion-stage-tag" id="currentStageTag">赛事开篇准备</div>
+                    <div class="motion-title" id="motionTitle" onclick="editMotionTitle()" title="点击修改辩题">
+                        辩题加载中...
+                    </div>
+                </div>
+
+                <!-- 反方战灯与队内总计时器 -->
+                <div class="team-hud neg" id="negTeamHud">
+                    <div class="hud-header">
+                        <span style="color:#fb7185;">🔴 反方发言余量</span>
+                        <span class="hud-timer" id="negChessTimer">00:00</span>
+                    </div>
+                    <div class="team-stance-sub" id="negStanceLabel">反方立论：待加载...</div>
+                </div>
+
+                <!-- 主席台 -->
+                <div class="host-podium" id="hostPodium" onclick="focusSpeaker('主席')">
+                    <div class="mic-active-dot"></div>
+                    <div class="host-avatar" id="hostAvatarSlot">♎</div>
+                    <div class="host-info">
+                        <div class="host-role">CHAIR · 辩论主席</div>
+                        <div class="host-name" id="hostNameLabel">天秤座</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中央发言镜头区 -->
+            <div class="arena-center">
+                <div class="speech-countdown-badge" id="speechTimerBadge">
+                    ⏱️ <span id="speechTimerText">00:30</span>
+                </div>
+
+                <div class="cam-screen-wrapper" id="camScreenWrapper">
+                    <div class="cam-badge" id="camBadge"><span></span> LIVE 发言镜头</div>
+
+                    <!-- 模式 1：单人镜头 -->
+                    <div class="single-focus-layout" id="singleFocusLayout">
+                        <div class="focus-header-meta">
+                            <div class="focus-avatar-wrap" id="focusAvatar">♎</div>
+                            <div class="focus-title-group">
+                                <div class="focus-name" id="focusName">天秤座</div>
+                                <div class="focus-role-tag" id="focusRoleTag" style="background: rgba(245, 158, 11, 0.2); color: var(--host);">
+                                    辩论主席
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模式 2：双镜头VS对辩分屏 -->
+                    <div class="split-vs-layout" id="splitVsLayout">
+                        <div class="split-side aff-side" id="splitAffSide">
+                            <div class="split-avatar" id="splitAffAvatar" style="border-color: var(--aff); color: #38bdf8;">♈</div>
+                            <div class="split-meta">
+                                <div class="name" id="splitAffName">白羊座</div>
+                                <div class="role" style="color: #38bdf8;" id="splitAffRole">正方一辩</div>
+                            </div>
+                        </div>
+
+                        <div class="vs-badge-box">
+                            <div class="vs-icon">VS</div>
+                            <div style="font-size:0.6rem; color:#94a3b8; font-weight:bold;">CROSS</div>
+                        </div>
+
+                        <div class="split-side neg-side" id="splitNegSide">
+                            <div class="split-avatar" id="splitNegAvatar" style="border-color: var(--neg); color: #fb7185;">♉</div>
+                            <div class="split-meta">
+                                <div class="name" id="splitNegName">金牛座</div>
+                                <div class="role" style="color: #fb7185;" id="splitNegRole">反方一辩</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sound-wave" id="soundWave">
+                        <div class="wave-bar"></div><div class="wave-bar"></div>
+                        <div class="wave-bar"></div><div class="wave-bar"></div>
+                    </div>
+
+                    <div class="dialog-bubble" id="focusText">等待辩论赛台本加载就绪...</div>
+                </div>
+            </div>
+
+            <!-- 两翼对称辩位长桌 -->
+            <div class="benches-row">
+                <div class="bench-side aff">
+                    <div class="bench-header">
+                        <span>🔷 正方战队 (AFFIRMATIVE)</span>
+                        <span style="font-size: 0.68rem; color: #64748b;">4位辩手</span>
+                    </div>
+                    <div class="seats-grid" id="affSeatsGrid"></div>
+                </div>
+
+                <div class="bench-side neg">
+                    <div class="bench-header">
+                        <span>🔴 反方战队 (NEGATIVE)</span>
+                        <span style="font-size: 0.68rem; color: #64748b;">4位辩手</span>
+                    </div>
+                    <div class="seats-grid" id="negSeatsGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 侧栏控制 -->
+        <div class="sidebar">
+            <div class="panel-box">
+                <div class="panel-title">
+                    <span>赛事演播控制器</span>
+                    <label style="font-size: 0.74rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="checkbox" id="ttsToggle" checked> 拟音朗读
+                    </label>
+                </div>
+
+                <div class="delay-control-bar">
+                    <span>辩词交接停顿:</span>
+                    <input type="range" id="speechDelayRange" min="0.1" max="1.5" step="0.05" value="0.25" oninput="updateSpeechDelay(this.value)">
+                    <span id="delayValLabel" style="font-weight: bold; color: #38bdf8; width: 38px; text-align: right;">0.25s</span>
+                </div>
+
+                <div class="btn-controls">
+                    <button class="btn primary" id="togglePlayBtn" onclick="togglePlay()">▶ 开始辩论</button>
+                    <button class="btn" onclick="prevDialogue()">⏮ 上一句</button>
+                    <button class="btn" onclick="nextDialogue()">下一句 ⏭</button>
+                </div>
+            </div>
+
+            <div class="panel-box" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="panel-title">
+                    <span>现场辩词交锋流</span>
+                    <span id="scriptCount" style="font-size: 0.72rem;">0 / 0</span>
+                </div>
+                <div class="script-list" id="scriptList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 1：辩手与音色 -->
+    <div class="modal-overlay" id="rosterModal">
+        <div class="modal-card">
+            <h2>辩手阵容、头像与国语专属音色绑定</h2>
+            <div class="modal-body">
+                <table class="debater-table">
+                    <thead>
+                        <tr>
+                            <th width="75">头像</th>
+                            <th width="90">席位</th>
+                            <th width="110">辩手/星座</th>
+                            <th width="85">所属阵营</th>
+                            <th>分配专属音色</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rosterTableBody"></tbody>
+                </table>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn" style="color: #94a3b8; font-size: 0.72rem;" onclick="resetDefaultRoster()">恢复默认星座阵容</button>
+                <div>
+                    <button class="btn" onclick="closeModal('rosterModal')">取消</button>
+                    <button class="btn primary" onclick="saveRoster()">保存并应用</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 2：辩词编辑器 -->
+    <div class="modal-overlay" id="scriptModal">
+        <div class="modal-card">
+            <h2>辩词对话编辑器</h2>
+            <div class="modal-body" id="scriptEditList"></div>
+            <div style="display: flex; justify-content: space-between;">
+                <button class="btn" onclick="addNewScriptLine()">+ 增添一句发言</button>
+                <div>
+                    <button class="btn" onclick="closeModal('scriptModal')">取消</button>
+                    <button class="btn primary" onclick="saveScriptEdits()">保存辩词</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 3：录制视频预览确认 -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-card" style="max-width: 760px;">
+            <h2>🎬 辩论赛转播录制完成</h2>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 6px;">
+                文件名：<span id="previewFilename" style="color: #38bdf8; font-weight: 600;"></span>
+                <span id="previewAudioStatus"></span>
+            </p>
+            <div class="modal-body" style="display: flex; justify-content: center; padding: 10px 0;">
+                <video id="previewVideo" controls playsinline></video>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" onclick="closePreviewModal()">关闭</button>
+                <button class="btn primary" id="previewDownloadBtn">💾 下载录像文件</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ZODIAC_AVATARS = {
+            "白羊座": "♈", "金牛座": "♉", "双子座": "♊", "巨蟹座": "♋",
+            "狮子座": "♌", "处女座": "♍", "天秤座": "♎", "天蝎座": "♏",
+            "射手座": "♐", "摩羯座": "♑", "水瓶座": "♒", "双鱼座": "♓"
+        };
+
+        const DEFAULT_ROSTER = [
+            { id: "deb_host", role: "主席", name: "天秤座", faction: "host", avatar: "♎", avatarType: "text", voiceURI: "" },
+            { id: "deb_aff_1", role: "正方一辩", name: "白羊座", faction: "aff", avatar: "♈", avatarType: "text", voiceURI: "" },
+            { id: "deb_aff_2", role: "正方二辩", name: "双子座", faction: "aff", avatar: "♊", avatarType: "text", voiceURI: "" },
+            { id: "deb_aff_3", role: "正方三辩", name: "狮子座", faction: "aff", avatar: "♌", avatarType: "text", voiceURI: "" },
+            { id: "deb_aff_4", role: "正方四辩", name: "水瓶座", faction: "aff", avatar: "♒", avatarType: "text", voiceURI: "" },
+            { id: "deb_neg_1", role: "反方一辩", name: "金牛座", faction: "neg", avatar: "♉", avatarType: "text", voiceURI: "" },
+            { id: "deb_neg_2", role: "反方二辩", name: "处女座", faction: "neg", avatar: "♍", avatarType: "text", voiceURI: "" },
+            { id: "deb_neg_3", role: "反方三辩", name: "天蝎座", faction: "neg", avatar: "♏", avatarType: "text", voiceURI: "" },
+            { id: "deb_neg_4", role: "反方四辩", name: "摩羯座", faction: "neg", avatar: "♑", avatarType: "text", voiceURI: "" }
+        ];
+
+        let roster = [];
+        let script = [];
+        let motionTitle = "明知没有结果的恋爱，还要不要开始？";
+        let affStance = "过程即圆满，勇敢去爱不负青春";
+        let negStance = "及时止损，克制方为成熟深情";
+        let speechDelay = 0.25;
+        let currentIndex = 0;
+        let isPlaying = false;
+        let playTimer = null;
+        let countdownTimer = null;
+        let speechSecondsLeft = 30;
+
+        /* 正反方动态计算的总时长（秒） */
+        let affTotalTime = 300;
+        let negTotalTime = 300;
+        let affTimeRemain = 300;
+        let negTimeRemain = 300;
+        let chessInterval = null;
+
+        let availableVoices = [];
+        let tempRosterEditing = [];
+        let currentUtter = null;
+        let speakToken = 0;
+        let previewToken = 0;
+
+        let mediaRecorder = null;
+        let displayStream = null;
+        let micStream = null;
+        let audioContext = null;
+        let mixedAudioDestination = null;
+        let recordAudioSourceNodes = [];
+        let recordAudioInputNodes = [];
+        let recordInputMediaStreams = [];
+        let recordOutputTracks = [];
+        let recordedChunks = [];
+        let recordMimeType = '';
+        let isRecording = false;
+        let drawingCanvas = false;
+        let recordCanvas = null;
+        let previewBlobUrl = null;
+        let recordingHasAudio = false;
+
+        const STORAGE_KEY_ROSTER = "debate_roster_v3";
+        const STORAGE_KEY_MOTION = "debate_motion_v3";
+        const STORAGE_KEY_AFF_STANCE = "debate_aff_stance_v3";
+        const STORAGE_KEY_NEG_STANCE = "debate_neg_stance_v3";
+        const STORAGE_KEY_DELAY = "debate_delay_v3";
+
+        function isChineseVoice(v) {
+            if (!v) return false;
+            const lang = (v.lang || "").toLowerCase();
+            const name = (v.name || "").toLowerCase();
+            return lang.includes("zh") || lang.includes("cmn") || name.includes("chinese") || name.includes("mandarin") || name.includes("普通话") || name.includes("中文");
+        }
+
+        function getChineseVoices() {
+            return availableVoices.filter(isChineseVoice);
+        }
+
+        function loadStoredData() {
+            const storedRoster = localStorage.getItem(STORAGE_KEY_ROSTER);
+            if (storedRoster) {
+                try { roster = JSON.parse(storedRoster); } catch (e) { roster = JSON.parse(JSON.stringify(DEFAULT_ROSTER)); }
+            } else {
+                roster = JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+            }
+
+            const storedMotion = localStorage.getItem(STORAGE_KEY_MOTION);
+            if (storedMotion) motionTitle = storedMotion;
+            document.getElementById("motionTitle").textContent = motionTitle;
+
+            const storedAff = localStorage.getItem(STORAGE_KEY_AFF_STANCE);
+            if (storedAff) affStance = storedAff;
+            document.getElementById("affStanceLabel").textContent = "正方立论：" + affStance;
+
+            const storedNeg = localStorage.getItem(STORAGE_KEY_NEG_STANCE);
+            if (storedNeg) negStance = storedNeg;
+            document.getElementById("negStanceLabel").textContent = "反方立论：" + negStance;
+
+            const storedDelay = localStorage.getItem(STORAGE_KEY_DELAY);
+            if (storedDelay) {
+                speechDelay = parseFloat(storedDelay);
+                document.getElementById("speechDelayRange").value = speechDelay;
+                document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";
+            }
+        }
+
+        function persistRoster() { localStorage.setItem(STORAGE_KEY_ROSTER, JSON.stringify(roster)); }
+        function persistMotionAndStances() {
+            localStorage.setItem(STORAGE_KEY_MOTION, motionTitle);
+            localStorage.setItem(STORAGE_KEY_AFF_STANCE, affStance);
+            localStorage.setItem(STORAGE_KEY_NEG_STANCE, negStance);
+        }
+
+        function editMotionTitle() {
+            const val = prompt("请输入新辩题：", motionTitle);
+            if (val && val.trim()) {
+                motionTitle = val.trim();
+                document.getElementById("motionTitle").textContent = motionTitle;
+                persistMotionAndStances();
+            }
+        }
+
+        /* 智能重算正反双方真实总时长 */
+        function recalculateTeamTimes() {
+            let affSeconds = 0;
+            let negSeconds = 0;
+
+            script.forEach(item => {
+                const deb = roster.find(d => d.role === item.roleOrName || d.name === item.roleOrName);
+                if (deb) {
+                    const lineDuration = Math.max(3, Math.round(item.text.length / 3.8));
+                    if (deb.faction === 'aff') affSeconds += lineDuration;
+                    if (deb.faction === 'neg') negSeconds += lineDuration;
+                }
+            });
+
+            affTotalTime = affSeconds > 0 ? affSeconds : 240;
+            negTotalTime = negSeconds > 0 ? negSeconds : 240;
+            affTimeRemain = affTotalTime;
+            negTimeRemain = negTotalTime;
+            updateChessDisplay();
+        }
+
+        /* 渲染辩席与主席 */
+        function renderDebateHall() {
+            const hostObj = roster.find(d => d.role === "主席") || roster[0];
+            const hostNameLabel = document.getElementById("hostNameLabel");
+            const hostAvatarSlot = document.getElementById("hostAvatarSlot");
+
+            if (hostNameLabel) hostNameLabel.textContent = hostObj.name;
+            if (hostAvatarSlot) {
+                hostAvatarSlot.innerHTML = hostObj.avatarType === 'img' ? `<img src="${hostObj.avatar}">` : hostObj.avatar;
+            }
+
+            const affGrid = document.getElementById("affSeatsGrid");
+            const negGrid = document.getElementById("negSeatsGrid");
+            affGrid.innerHTML = "";
+            negGrid.innerHTML = "";
+
+            roster.forEach(deb => {
+                if (deb.role === "主席") return;
+
+                const card = document.createElement("div");
+                card.className = `seat-card ${deb.faction === 'aff' ? 'aff-seat' : 'neg-seat'}`;
+                card.id = `seat-${deb.role}`;
+                card.onclick = () => focusSpeaker(deb.role);
+
+                const avatarContent = deb.avatarType === 'img' ? `<img src="${deb.avatar}">` : deb.avatar;
+
+                card.innerHTML = `
+                    <div class="mic-active-dot"></div>
+                    <div class="seat-avatar">${avatarContent}</div>
+                    <div class="seat-debater-role">${deb.role}</div>
+                    <div class="seat-debater-name" title="${deb.name}">${deb.name}</div>
+                `;
+
+                if (deb.faction === 'aff') affGrid.appendChild(card);
+                else negGrid.appendChild(card);
+            });
+        }
+
+        function renderScriptList() {
+            const listEl = document.getElementById("scriptList");
+            listEl.innerHTML = "";
+
+            script.forEach((item, index) => {
+                const deb = roster.find(d => d.role === item.roleOrName || d.name === item.roleOrName) || {
+                    role: item.roleOrName,
+                    name: item.roleOrName,
+                    faction: "host"
+                };
+
+                const div = document.createElement("div");
+                div.className = `script-item is-${deb.faction}`;
+                div.id = `script-item-${index}`;
+
+                let factionBadge = `<span style="color:var(--host)">👑 主席</span>`;
+                if (deb.faction === 'aff') factionBadge = `<span style="color:#38bdf8">🔷 ${deb.role}</span>`;
+                if (deb.faction === 'neg') factionBadge = `<span style="color:#fb7185">🔴 ${deb.role}</span>`;
+
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:2px; font-weight:bold;">
+                        ${factionBadge}
+                        <span style="color:#94a3b8; font-size:0.72rem;">${deb.name}</span>
+                    </div>
+                    <div>${item.text}</div>
+                `;
+                div.onclick = () => jumpTo(index);
+                listEl.appendChild(div);
+            });
+
+            document.getElementById("scriptCount").textContent = `${script.length ? currentIndex + 1 : 0} / ${script.length}`;
+        }
+
+        function renderFocus(index) {
+            if (!script.length) return;
+            const currentItem = script[index];
+            const deb = roster.find(d => d.role === currentItem.roleOrName || d.name === currentItem.roleOrName) || {
+                role: currentItem.roleOrName,
+                name: currentItem.roleOrName,
+                faction: "host",
+                avatar: "⚖️",
+                avatarType: "text"
+            };
+
+            document.querySelectorAll(".seat-card").forEach(s => s.classList.remove("speaking"));
+            const hostPodium = document.getElementById("hostPodium");
+            if (hostPodium) hostPodium.classList.remove("speaking");
+
+            const affHud = document.getElementById("affTeamHud");
+            const negHud = document.getElementById("negTeamHud");
+            affHud.classList.remove("active-turn");
+            negHud.classList.remove("active-turn");
+
+            if (deb.faction === 'aff') affHud.classList.add("active-turn");
+            if (deb.faction === 'neg') negHud.classList.add("active-turn");
+
+            const stageTag = document.getElementById("currentStageTag");
+            stageTag.textContent = currentItem.stage || (deb.role === "主席" ? "主席主持" : "辩论交锋");
+
+            if (deb.role === "主席") {
+                if (hostPodium) hostPodium.classList.add("speaking");
+            } else {
+                const seatCard = document.getElementById(`seat-${deb.role}`);
+                if (seatCard) seatCard.classList.add("speaking");
+            }
+
+            const singleLayout = document.getElementById("singleFocusLayout");
+            const splitLayout = document.getElementById("splitVsLayout");
+            const camBadge = document.getElementById("camBadge");
+
+            // 主席说话永远使用单人高光特写；辩手在攻辩/自由辩论时开启双镜头VS
+            if (deb.role !== "主席" && (currentItem.mode === "split" || currentItem.stage.includes("质询") || currentItem.stage.includes("自由辩论"))) {
+                singleLayout.style.display = "none";
+                splitLayout.style.display = "grid";
+                camBadge.innerHTML = `<span></span> VS 实时交锋对决镜头`;
+
+                let affDeb = deb.faction === 'aff' ? deb : null;
+                let negDeb = deb.faction === 'neg' ? deb : null;
+
+                if (!affDeb) affDeb = roster.find(d => d.faction === 'aff');
+                if (!negDeb) negDeb = roster.find(d => d.faction === 'neg');
+
+                document.getElementById("splitAffName").textContent = affDeb.name;
+                document.getElementById("splitAffRole").textContent = affDeb.role;
+                document.getElementById("splitAffAvatar").innerHTML = affDeb.avatarType === 'img' ? `<img src="${affDeb.avatar}">` : affDeb.avatar;
+
+                document.getElementById("splitNegName").textContent = negDeb.name;
+                document.getElementById("splitNegRole").textContent = negDeb.role;
+                document.getElementById("splitNegAvatar").innerHTML = negDeb.avatarType === 'img' ? `<img src="${negDeb.avatar}">` : negDeb.avatar;
+
+                const splitAffSide = document.getElementById("splitAffSide");
+                const splitNegSide = document.getElementById("splitNegSide");
+                splitAffSide.classList.remove("active-speaking");
+                splitNegSide.classList.remove("active-speaking");
+
+                if (deb.faction === 'aff') splitAffSide.classList.add("active-speaking");
+                else splitNegSide.classList.add("active-speaking");
+
+            } else {
+                singleLayout.style.display = "flex";
+                splitLayout.style.display = "none";
+                camBadge.innerHTML = deb.role === "主席" ? `<span></span> 👑 主席控场主持` : `<span></span> LIVE 席位特写`;
+
+                const avatarWrap = document.getElementById("focusAvatar");
+                avatarWrap.innerHTML = deb.avatarType === 'img' ? `<img src="${deb.avatar}">` : deb.avatar;
+                document.getElementById("focusName").textContent = deb.name;
+
+                const tagEl = document.getElementById("focusRoleTag");
+                if (deb.role === "主席") {
+                    tagEl.textContent = "⚖️ 辩论主席";
+                    tagEl.style.background = "rgba(245, 158, 11, 0.2)";
+                    tagEl.style.color = "var(--host)";
+                    avatarWrap.style.borderColor = "var(--host)";
+                } else if (deb.faction === "aff") {
+                    tagEl.textContent = `🔷 ${deb.role}`;
+                    tagEl.style.background = "rgba(2, 132, 199, 0.2)";
+                    tagEl.style.color = "#38bdf8";
+                    avatarWrap.style.borderColor = "var(--aff)";
+                } else {
+                    tagEl.textContent = `🔴 ${deb.role}`;
+                    tagEl.style.background = "rgba(225, 29, 72, 0.2)";
+                    tagEl.style.color = "#fb7185";
+                    avatarWrap.style.borderColor = "var(--neg)";
+                }
+            }
+
+            document.getElementById("focusText").textContent = currentItem.text;
+
+            document.querySelectorAll(".script-item").forEach(el => el.classList.remove("active"));
+            const activeScriptEl = document.getElementById(`script-item-${index}`);
+            if (activeScriptEl) {
+                activeScriptEl.classList.add("active");
+                activeScriptEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+
+            document.getElementById("scriptCount").textContent = `${index + 1} / ${script.length}`;
+            startSpeechCountdown(currentItem.text);
+            speakLine(deb, currentItem.text);
+        }
+
+        function startSpeechCountdown(text) {
+            clearInterval(countdownTimer);
+            const badge = document.getElementById("speechTimerBadge");
+            const label = document.getElementById("speechTimerText");
+            badge.classList.remove("urgent");
+
+            speechSecondsLeft = Math.max(5, Math.round(text.length / 3.8));
+            label.textContent = `00:${String(speechSecondsLeft).padStart(2, '0')}`;
+
+            countdownTimer = setInterval(() => {
+                if (!isPlaying) { clearInterval(countdownTimer); return; }
+                speechSecondsLeft--;
+                if (speechSecondsLeft <= 3) badge.classList.add("urgent");
+                if (speechSecondsLeft <= 0) {
+                    label.textContent = "00:00";
+                    clearInterval(countdownTimer);
+                } else {
+                    label.textContent = `00:${String(speechSecondsLeft).padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function speakLine(deb, text) {
+            clearTimeout(playTimer);
+
+            if (currentUtter) {
+                try {
+                    currentUtter.onend = null;
+                    currentUtter.onerror = null;
+                    currentUtter.onstart = null;
+                } catch (e) {}
+                currentUtter = null;
+            }
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+
+            const soundWave = document.getElementById("soundWave");
+            const enableTTS = document.getElementById("ttsToggle").checked;
+            const isLastLine = (currentIndex >= script.length - 1);
+
+            speakToken++;
+            const myToken = speakToken;
+
+            const handleFinish = () => {
+                if (myToken !== speakToken) return;
+                soundWave.classList.remove("active");
+                clearInterval(countdownTimer);
+                if (!isPlaying) return;
+
+                if (isLastLine) {
+                    stopPlay();
+                    if (isRecording) {
+                        setTimeout(() => { if (isRecording) stopRecording(); }, 1500);
+                    }
+                    return;
+                }
+
+                playTimer = setTimeout(() => {
+                    if (isPlaying) nextDialogue();
+                }, speechDelay * 1000);
+            };
+
+            if (!enableTTS) {
+                soundWave.classList.remove("active");
+                if (isPlaying) {
+                    const fallbackTime = Math.max(1200, text.length * 150);
+                    playTimer = setTimeout(handleFinish, fallbackTime);
+                }
+                return;
+            }
+
+            const utter = new SpeechSynthesisUtterance(text);
+            if (deb.voiceURI) {
+                const voice = availableVoices.find(v => v.voiceURI === deb.voiceURI);
+                if (voice) utter.voice = voice;
+            }
+
+            utter.onstart = () => {
+                if (myToken !== speakToken) return;
+                soundWave.classList.add("active");
+            };
+            utter.onend = handleFinish;
+            utter.onerror = handleFinish;
+
+            currentUtter = utter;
+            try { window.speechSynthesis.speak(utter); } catch (e) { handleFinish(); }
+        }
+
+        function focusSpeaker(role) {
+            const idx = script.findIndex(s => s.roleOrName === role);
+            if (idx !== -1) jumpTo(idx);
+        }
+
+        function jumpTo(index) {
+            currentIndex = index;
+            renderFocus(currentIndex);
+        }
+
+        function nextDialogue() {
+            if (!script.length) return;
+            if (currentIndex >= script.length - 1) { stopPlay(); return; }
+            currentIndex++;
+            renderFocus(currentIndex);
+        }
+
+        function prevDialogue() {
+            if (!script.length) return;
+            currentIndex = (currentIndex - 1 + script.length) % script.length;
+            renderFocus(currentIndex);
+        }
+
+        function togglePlay() {
+            if (isPlaying) stopPlay();
+            else startPlay();
+        }
+
+        function startPlay() {
+            if (!script.length) return;
+            if (currentIndex >= script.length - 1) currentIndex = 0;
+            isPlaying = true;
+            const btn = document.getElementById("togglePlayBtn");
+            btn.textContent = "⏸ 暂停比赛";
+            btn.classList.add("danger");
+            btn.classList.remove("primary");
+            renderFocus(currentIndex);
+
+            clearInterval(chessInterval);
+            chessInterval = setInterval(() => {
+                if (!isPlaying) return;
+                const cur = script[currentIndex];
+                if (!cur) return;
+                const deb = roster.find(d => d.role === cur.roleOrName || d.name === cur.roleOrName);
+                if (deb && deb.faction === 'aff' && affTimeRemain > 0) {
+                    affTimeRemain--;
+                    updateChessDisplay();
+                } else if (deb && deb.faction === 'neg' && negTimeRemain > 0) {
+                    negTimeRemain--;
+                    updateChessDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateChessDisplay() {
+            const pad = n => String(n).padStart(2, '0');
+            document.getElementById("affChessTimer").textContent = `${pad(Math.floor(affTimeRemain/60))}:${pad(affTimeRemain%60)}`;
+            document.getElementById("negChessTimer").textContent = `${pad(Math.floor(negTimeRemain/60))}:${pad(negTimeRemain%60)}`;
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            clearTimeout(playTimer);
+            clearInterval(countdownTimer);
+            clearInterval(chessInterval);
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+            const sw = document.getElementById("soundWave");
+            if (sw) sw.classList.remove("active");
+            const btn = document.getElementById("togglePlayBtn");
+            if (btn) {
+                btn.textContent = "▶ 开始辩论";
+                btn.classList.remove("danger");
+                btn.classList.add("primary");
+            }
+        }
+
+        function updateSpeechDelay(val) {
+            speechDelay = parseFloat(val);
+            document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";
+            localStorage.setItem(STORAGE_KEY_DELAY, speechDelay);
+        }
+
+        /* ========== 辩手阵容与音色配置模态框 ========== */
+        function openRosterModal() {
+            tempRosterEditing = JSON.parse(JSON.stringify(roster));
+            renderRosterEditTable();
+            document.getElementById("rosterModal").classList.add("show");
+        }
+
+        function renderRosterEditTable() {
+            const tbody = document.getElementById("rosterTableBody");
+            tbody.innerHTML = "";
+            const chineseVoices = getChineseVoices();
+
+            tempRosterEditing.forEach((deb, index) => {
+                const tr = document.createElement("tr");
+                let voiceOptions = `<option value="">-- 系统默认普通话 --</option>`;
+                chineseVoices.forEach(v => {
+                    const sel = v.voiceURI === deb.voiceURI ? "selected" : "";
+                    voiceOptions += `<option value="${v.voiceURI}" ${sel}>${v.name} (${v.lang})</option>`;
+                });
+
+                const avatarPreview = deb.avatarType === 'img' ? `<img src="${deb.avatar}">` : deb.avatar;
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="avatar-preview-box">
+                            <div class="avatar-preview" id="roster-prev-${index}">${avatarPreview}</div>
+                            <label class="btn" style="padding: 2px 5px; font-size:0.65rem;">
+                                传图
+                                <input type="file" accept="image/*" style="display:none;" onchange="handleDebaterAvatarUpload(event, ${index})">
+                            </label>
+                        </div>
+                    </td>
+                    <td style="font-weight:bold; font-size:0.75rem;">${deb.role}</td>
+                    <td><input class="debater-input" type="text" value="${deb.name}" onchange="handleNameChange(${index}, this.value)"></td>
+                    <td>
+                        <select class="debater-select" onchange="tempRosterEditing[${index}].faction = this.value" ${deb.role==='主席'?'disabled':''}>
+                            <option value="aff" ${deb.faction==='aff'?'selected':''}>正方</option>
+                            <option value="neg" ${deb.faction==='neg'?'selected':''}>反方</option>
+                            <option value="host" ${deb.faction==='host'?'selected':''}>主席</option>
+                        </select>
+                    </td>
+                    <td>
+                        <div class="voice-cell">
+                            <select class="debater-select" id="roster-voice-${index}" onchange="tempRosterEditing[${index}].voiceURI = this.value">
+                                ${voiceOptions}
+                            </select>
+                            <button class="btn preview-btn" onclick="previewRosterVoice(${index})">🔊 试听</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleNameChange(index, newName) {
+            tempRosterEditing[index].name = newName;
+            if (tempRosterEditing[index].avatarType === 'text') {
+                for (const [zName, emoji] of Object.entries(ZODIAC_AVATARS)) {
+                    if (newName.includes(zName.replace("座", ""))) {
+                        tempRosterEditing[index].avatar = emoji;
+                        const p = document.getElementById(`roster-prev-${index}`);
+                        if (p) p.textContent = emoji;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function previewRosterVoice(index) {
+            const deb = tempRosterEditing[index];
+            if (!deb) return;
+            if (!('speechSynthesis' in window)) return alert("当前浏览器不支持TTS语音！");
+            if (isPlaying) stopPlay();
+
+            previewToken++;
+            const token = previewToken;
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+
+            const selectEl = document.getElementById(`roster-voice-${index}`);
+            const voiceURI = selectEl ? selectEl.value : deb.voiceURI;
+            const utter = new SpeechSynthesisUtterance(`我是${deb.role}${deb.name}，请指教！这是我的专属声音。`);
+
+            const voice = availableVoices.find(v => v.voiceURI === voiceURI);
+            if (voice) utter.voice = voice;
+            utter.lang = "zh-CN";
+
+            window.speechSynthesis.speak(utter);
+        }
+
+        function handleDebaterAvatarUpload(e, index) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                tempRosterEditing[index].avatar = evt.target.result;
+                tempRosterEditing[index].avatarType = 'img';
+                const p = document.getElementById(`roster-prev-${index}`);
+                if (p) p.innerHTML = `<img src="${evt.target.result}">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetDefaultRoster() {
+            if (confirm("是否恢复系统初始的12星座标准辩手设定？")) {
+                tempRosterEditing = JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+                renderRosterEditTable();
+            }
+        }
+
+        function saveRoster() {
+            roster = JSON.parse(JSON.stringify(tempRosterEditing));
+            persistRoster();
+            closeModal('rosterModal');
+            renderDebateHall();
+            renderScriptList();
+            renderFocus(currentIndex);
+        }
+
+        /* ========== 剧本编辑与 TXT 智能导入 ========== */
+        function openScriptModal() {
+            renderScriptEditor();
+            document.getElementById("scriptModal").classList.add("show");
+        }
+
+        function renderScriptEditor() {
+            const container = document.getElementById("scriptEditList");
+            container.innerHTML = "";
+
+            script.forEach((item, index) => {
+                const row = document.createElement("div");
+                row.className = "script-edit-item";
+
+                let options = "";
+                roster.forEach(d => {
+                    const sel = (d.role === item.roleOrName || d.name === item.roleOrName) ? 'selected' : '';
+                    options += `<option value="${d.role}" ${sel}>${d.role} (${d.name})</option>`;
+                });
+
+                row.innerHTML = `
+                    <select class="debater-select" style="width: 140px;" onchange="script[${index}].roleOrName = this.value">
+                        ${options}
+                    </select>
+                    <textarea class="debater-input" style="flex:1; height:38px; resize:none;" onchange="script[${index}].text = this.value">${item.text}</textarea>
+                    <button class="btn" style="color:#ff4757;" onclick="deleteScriptLine(${index})">×</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addNewScriptLine() {
+            script.push({ roleOrName: "正方一辩", text: "对方辩友请正视我方的核心事实...", stage: "攻辩交锋" });
+            renderScriptEditor();
+        }
+
+        function deleteScriptLine(index) {
+            script.splice(index, 1);
+            renderScriptEditor();
+        }
+
+        function saveScriptEdits() {
+            closeModal('scriptModal');
+            currentIndex = 0;
+            recalculateTeamTimes();
+            renderScriptList();
+            renderFocus(0);
+        }
+
+        function downloadTemplate() {
+            const templateText =
+`# 辩题: 明知没有结果的恋爱，还要不要开始？
+# 正方观点: 过程即圆满，勇敢去爱不负青春
+# 反方观点: 及时止损，克制方为成熟深情
+
+[赛事开篇] 主席(天秤座): 欢迎来到华语辩论专场！
+[开篇立论] 正方一辩(白羊座): 谢谢主席，我方坚信爱情重在沿途的滋养与成长！
+[开篇立论] 反方一辩(金牛座): 对方辩友太天真，现实不可逾越的痛苦谁来承担？
+`;
+            const blob = new Blob([templateText], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "辩论赛剧本模板.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /* 核心升级：智能解析导入（自动同步辩题、正反方观点、动态总时间） */
+        function importScriptTxt(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const lines = evt.target.result.split(/\r?\n/);
+                const newScript = [];
+                const roleKeys = ["正方一辩", "正方二辩", "正方三辩", "正方四辩", "反方一辩", "反方二辩", "反方三辩", "反方四辩", "主席"];
+                const detectedRoles = {};
+
+                lines.forEach(line => {
+                    let trimmed = line.trim();
+                    if (!trimmed) return;
+
+                    // 1. 自动提取辩题与正反观点
+                    const motionMatch = trimmed.match(/^#?\s*(辩题|辩论主题|MOTION)[:：]\s*(.*)/i);
+                    if (motionMatch) {
+                        motionTitle = motionMatch[2].trim();
+                        return;
+                    }
+
+                    const affMatch = trimmed.match(/^#?\s*(正方观点|正方立场|正方主旨)[:：]\s*(.*)/i);
+                    if (affMatch) {
+                        affStance = affMatch[2].trim();
+                        return;
+                    }
+
+                    const negMatch = trimmed.match(/^#?\s*(反方观点|反方立场|反方主旨)[:：]\s*(.*)/i);
+                    if (negMatch) {
+                        negStance = negMatch[2].trim();
+                        return;
+                    }
+
+                    if (trimmed.startsWith("#")) return;
+
+                    // 2. 提取阶段
+                    let stage = "激烈交锋";
+                    let mode = "single";
+                    const stageMatch = trimmed.match(/^\[(.*?)\]/);
+                    if (stageMatch) {
+                        stage = stageMatch[1];
+                        trimmed = trimmed.replace(/^\[(.*?)\]/, '').trim();
+                        if (stage.includes("质询") || stage.includes("自由辩论") || stage.includes("攻辩")) {
+                            mode = "split";
+                        }
+                    }
+
+                    // 3. 提取发言人与台词
+                    const splitIdx = trimmed.indexOf(":") !== -1 ? trimmed.indexOf(":") : trimmed.indexOf("：");
+                    if (splitIdx !== -1) {
+                        let header = trimmed.substring(0, splitIdx).trim();
+                        const text = trimmed.substring(splitIdx + 1).trim();
+
+                        let role = "";
+                        let name = "";
+                        const bracketMatch = header.match(/(.*?)[(（](.*?)[)）]/);
+
+                        if (bracketMatch) {
+                            const part1 = bracketMatch[1].trim();
+                            const part2 = bracketMatch[2].trim();
+                            if (roleKeys.includes(part1)) { role = part1; name = part2; }
+                            else if (roleKeys.includes(part2)) { role = part2; name = part1; }
+                            else { role = part1; name = part2; }
+                        } else {
+                            if (roleKeys.includes(header)) role = header;
+                            else name = header;
+                        }
+
+                        if (role && name && roleKeys.includes(role)) {
+                            detectedRoles[role] = name;
+                        }
+
+                        newScript.push({
+                            roleOrName: role || name,
+                            text: text,
+                            stage: stage,
+                            mode: mode
+                        });
+                    }
+                });
+
+                if (newScript.length === 0) {
+                    alert("未能解析出有效台词，请检查格式！");
+                    return;
+                }
+
+                // 更新辩题与立论界面
+                document.getElementById("motionTitle").textContent = motionTitle;
+                document.getElementById("affStanceLabel").textContent = "正方立论：" + affStance;
+                document.getElementById("negStanceLabel").textContent = "反方立论：" + negStance;
+                persistMotionAndStances();
+
+                // 自动更新辩手名单
+                let rosterUpdatedCount = 0;
+                for (const [rRole, rName] of Object.entries(detectedRoles)) {
+                    const target = roster.find(d => d.role === rRole);
+                    if (target) {
+                        target.name = rName;
+                        for (const [zName, emoji] of Object.entries(ZODIAC_AVATARS)) {
+                            if (rName.includes(zName.replace("座", ""))) {
+                                target.avatar = emoji;
+                                target.avatarType = 'text';
+                                break;
+                            }
+                        }
+                        rosterUpdatedCount++;
+                    }
+                }
+                if (rosterUpdatedCount > 0) persistRoster();
+
+                script = newScript;
+                stopPlay();
+                currentIndex = 0;
+
+                // 重新核算双方总用时
+                recalculateTeamTimes();
+
+                renderDebateHall();
+                renderScriptList();
+                renderFocus(0);
+                alert(`✅ 成功载入【${motionTitle}】！\n已自动更新辩题、正反双方立论，并根据台词智能核算出双方总发言时长！`);
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = "";
+        }
+
+        /* 配置文件管理 */
+        function exportConfigFile() {
+            const config = {
+                type: "DebateStudioConfigProV2",
+                motion: motionTitle,
+                affStance: affStance,
+                negStance: negStance,
+                speechDelay: speechDelay,
+                roster: roster
+            };
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "debate_studio_config.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importConfigFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const cfg = JSON.parse(evt.target.result);
+                    if (cfg.roster) {
+                        roster = cfg.roster;
+                        if (cfg.motion) motionTitle = cfg.motion;
+                        if (cfg.affStance) affStance = cfg.affStance;
+                        if (cfg.negStance) negStance = cfg.negStance;
+                        if (cfg.speechDelay) speechDelay = cfg.speechDelay;
+
+                        document.getElementById("motionTitle").textContent = motionTitle;
+                        document.getElementById("affStanceLabel").textContent = "正方立论：" + affStance;
+                        document.getElementById("negStanceLabel").textContent = "反方立论：" + negStance;
+                        persistMotionAndStances();
+                        persistRoster();
+
+                        renderDebateHall();
+                        renderScriptList();
+                        renderFocus(currentIndex);
+                        alert("✅ 成功载入配置文件！");
+                    }
+                } catch(err) {
+                    alert("配置文件解析失败，请检查格式！");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = "";
+        }
+
+        /* ================= 🎥 视频录制核心 ================= */
+        async function toggleRecording() {
+            if (isRecording) stopRecording();
+            else await startRecording();
+        }
+
+        async function startRecording() {
+            if (!navigator.mediaDevices?.getDisplayMedia) return alert("当前浏览器不支持屏幕捕获录制！");
+            const ok = confirm("🎥 录制提示：\n1. 共享窗口请选择「整个屏幕」\n2. 务必勾选左下角「分享系统音频」！\n3. 点击分享后自动录制。");
+            if (!ok) return;
+
+            try {
+                displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+                try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { micStream = null; }
+
+                const displayAudioTracks = displayStream.getAudioTracks();
+                const hasSystemAudio = displayAudioTracks.length > 0;
+                const hasMicAudio = micStream && micStream.getAudioTracks().length > 0;
+
+                if (!isPlaying) startPlay();
+                await new Promise(r => setTimeout(r, 400));
+
+                const srcVideo = document.createElement("video");
+                srcVideo.srcObject = displayStream;
+                srcVideo.muted = true;
+                srcVideo.playsInline = true;
+                await srcVideo.play();
+
+                const videoW = srcVideo.videoWidth || window.innerWidth;
+                const videoH = srcVideo.videoHeight || window.innerHeight;
+                const hallEl = document.getElementById("hallViewport");
+                const rect = hallEl.getBoundingClientRect();
+
+                const sx = videoW / window.innerWidth;
+                const sy = videoH / window.innerHeight;
+                const srcX = Math.max(0, rect.left * sx);
+                const srcY = Math.max(0, rect.top * sy);
+                const srcW = Math.min(videoW - srcX, rect.width * sx);
+                const srcH = Math.min(videoH - srcY, rect.height * sy);
+
+                let outW = 1280;
+                let outH = Math.round(outW / (srcW / srcH));
+                outW -= (outW % 2);
+                outH -= (outH % 2);
+
+                recordCanvas = document.createElement("canvas");
+                recordCanvas.width = outW;
+                recordCanvas.height = outH;
+                const ctx = recordCanvas.getContext("2d", { alpha: false });
+
+                drawingCanvas = true;
+                const drawLoop = () => {
+                    if (!drawingCanvas) return;
+                    ctx.drawImage(srcVideo, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+                    requestAnimationFrame(drawLoop);
+                };
+                drawLoop();
+
+                const canvasStream = recordCanvas.captureStream(30);
+                const canvasVideoTrack = canvasStream.getVideoTracks()[0];
+
+                let audioTracks = [];
+                recordAudioSourceNodes = [];
+                recordAudioInputNodes = [];
+                recordInputMediaStreams = [];
+
+                if (hasSystemAudio || hasMicAudio) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        mixedAudioDestination = audioContext.createMediaStreamDestination();
+                        if (hasSystemAudio) {
+                            const sysStream = new MediaStream(displayAudioTracks);
+                            recordInputMediaStreams.push(sysStream);
+                            const sysNode = audioContext.createMediaStreamSource(sysStream);
+                            sysNode.connect(mixedAudioDestination);
+                            recordAudioSourceNodes.push(sysNode);
+                        }
+                        if (hasMicAudio) {
+                            const micIn = new MediaStream(micStream.getAudioTracks());
+                            recordInputMediaStreams.push(micIn);
+                            const micNode = audioContext.createMediaStreamSource(micIn);
+                            micNode.connect(mixedAudioDestination);
+                            recordAudioSourceNodes.push(micNode);
+                        }
+                        audioTracks = mixedAudioDestination.stream.getAudioTracks();
+                    } catch (e) {
+                        audioTracks = hasSystemAudio ? [...displayAudioTracks] : [...micStream.getAudioTracks()];
+                    }
+                }
+
+                const finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
+                recordOutputTracks = [canvasVideoTrack, ...audioTracks];
+                recordingHasAudio = audioTracks.length > 0;
+
+                const candidates = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=h264,opus', 'video/webm'];
+                recordMimeType = candidates.find(c => MediaRecorder.isTypeSupported(c)) || 'video/webm';
+
+                mediaRecorder = new MediaRecorder(finalStream, { mimeType: recordMimeType, videoBitsPerSecond: 6000000 });
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: recordMimeType });
+                    drawingCanvas = false;
+                    if (audioContext) { try { audioContext.close(); } catch (e) {} audioContext = null; }
+                    if (displayStream) { displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }
+                    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+                    showRecordingPreview(blob);
+                };
+
+                mediaRecorder.start(1000);
+                isRecording = true;
+                const btn = document.getElementById("recordBtn");
+                btn.textContent = "⏹ 停止录制";
+                btn.classList.add("recording");
+                btn.classList.remove("record");
+                document.getElementById("recordIndicator").classList.add("show");
+            } catch (err) {
+                console.error(err);
+                alert("录制启动失败或用户取消！");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                try { mediaRecorder.stop(); } catch (e) {}
+            }
+            isRecording = false;
+            stopPlay();
+            const btn = document.getElementById("recordBtn");
+            if (btn) {
+                btn.textContent = "🎥 录制比赛";
+                btn.classList.remove("recording");
+                btn.classList.add("record");
+            }
+            const ri = document.getElementById("recordIndicator");
+            if (ri) ri.classList.remove("show");
+        }
+
+        function showRecordingPreview(blob) {
+            const ext = recordMimeType.includes("mp4") ? "mp4" : "webm";
+            const filename = `辩论赛转播_${Date.now()}.${ext}`;
+            if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+            previewBlobUrl = URL.createObjectURL(blob);
+
+            const videoEl = document.getElementById("previewVideo");
+            videoEl.src = previewBlobUrl;
+            videoEl.volume = 1.0;
+
+            document.getElementById("previewFilename").textContent = filename;
+            document.getElementById("previewAudioStatus").innerHTML = recordingHasAudio
+                ? `<span style="color:#2ed573; font-size:0.75rem; margin-left:6px;">🔊 已包含音频</span>`
+                : `<span style="color:#fbbf24; font-size:0.75rem; margin-left:6px;">⚠️ 无音频</span>`;
+
+            const downloadBtn = document.getElementById("previewDownloadBtn");
+            downloadBtn.onclick = () => {
+                const a = document.createElement("a");
+                a.href = previewBlobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            document.getElementById("previewModal").classList.add("show");
+        }
+
+        function closePreviewModal() {
+            const videoEl = document.getElementById("previewVideo");
+            try { videoEl.pause(); } catch (e) {}
+            videoEl.removeAttribute("src");
+            if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); previewBlobUrl = null; }
+            document.getElementById("previewModal").classList.remove("show");
+        }
+
+        function closeModal(id) {
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+            document.getElementById(id).classList.remove("show");
+        }
+
+        function initTTSVoices() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    availableVoices = window.speechSynthesis.getVoices();
+                    const zhVoices = getChineseVoices();
+                    const pool = zhVoices.length > 0 ? zhVoices : availableVoices;
+
+                    let changed = false;
+                    roster.forEach((deb, idx) => {
+                        if (!deb.voiceURI && pool.length > 0) {
+                            deb.voiceURI = pool[idx % pool.length].voiceURI;
+                            changed = true;
+                        }
+                    });
+                    if (changed) persistRoster();
+                };
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            loadStoredData();
+            initTTSVoices();
+            renderDebateHall();
+        });
+    </script>
+</body>
+</html>
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>华语辩论巅峰赛·转播级演播厅（双镜头VS与交替战灯版）</title>-->
+<!--    <style>-->
+<!--        :root {-->
+<!--            &#45;&#45;aff: #0284c7;-->
+<!--            &#45;&#45;aff-glow: rgba(2, 132, 199, 0.5);-->
+<!--            &#45;&#45;neg: #e11d48;-->
+<!--            &#45;&#45;neg-glow: rgba(225, 29, 72, 0.5);-->
+<!--            &#45;&#45;host: #f59e0b;-->
+<!--            &#45;&#45;host-glow: rgba(245, 158, 11, 0.5);-->
+<!--            &#45;&#45;bg: #070914;-->
+<!--            &#45;&#45;panel: rgba(13, 18, 34, 0.94);-->
+<!--            &#45;&#45;border: rgba(255, 255, 255, 0.12);-->
+<!--        }-->
+
+<!--        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }-->
+
+<!--        body {-->
+<!--            background-color: var(&#45;&#45;bg);-->
+<!--            background-image:-->
+<!--                radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.28) 0%, transparent 55%),-->
+<!--                radial-gradient(circle at 10% 85%, rgba(2, 132, 199, 0.16) 0%, transparent 45%),-->
+<!--                radial-gradient(circle at 90% 85%, rgba(225, 29, 72, 0.16) 0%, transparent 45%),-->
+<!--                linear-gradient(180deg, #070a16 0%, #030409 100%);-->
+<!--            color: #fff;-->
+<!--            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;-->
+<!--            min-height: 100vh;-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--        }-->
+
+<!--        /* 顶部导航控制台 */-->
+<!--        header {-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--            padding: 10px 20px;-->
+<!--            background: rgba(11, 15, 29, 0.96);-->
+<!--            border-bottom: 1px solid var(&#45;&#45;border);-->
+<!--            backdrop-filter: blur(14px);-->
+<!--            z-index: 50;-->
+<!--            flex-wrap: wrap;-->
+<!--            gap: 10px;-->
+<!--        }-->
+
+<!--        .header-title-box h1 {-->
+<!--            font-size: 1.18rem;-->
+<!--            letter-spacing: 1px;-->
+<!--            background: linear-gradient(90deg, #38bdf8, #f59e0b, #fb7185);-->
+<!--            -webkit-background-clip: text;-->
+<!--            -webkit-text-fill-color: transparent;-->
+<!--            font-weight: 800;-->
+<!--        }-->
+
+<!--        .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }-->
+
+<!--        .btn {-->
+<!--            padding: 6px 12px;-->
+<!--            border-radius: 8px;-->
+<!--            border: 1px solid var(&#45;&#45;border);-->
+<!--            background: rgba(255,255,255,0.06);-->
+<!--            color: #f1f5f9;-->
+<!--            font-size: 0.78rem;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.2s;-->
+<!--            display: inline-flex;-->
+<!--            align-items: center;-->
+<!--            gap: 5px;-->
+<!--            font-weight: 600;-->
+<!--        }-->
+<!--        .btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }-->
+<!--        .btn.primary { background: linear-gradient(135deg, #2563eb, #7c3aed); border: none; }-->
+<!--        .btn.primary:hover { opacity: 0.92; }-->
+<!--        .btn.danger { background: #e11d48; border: none; }-->
+<!--        .btn.highlight { border-color: rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.12); color: #38bdf8; }-->
+
+<!--        .btn.record { border-color: rgba(225, 29, 72, 0.45); background: rgba(225, 29, 72, 0.12); color: #fda4af; }-->
+<!--        .btn.recording { background: #e11d48 !important; border-color: #e11d48 !important; color: #fff !important; animation: recordPulse 1s infinite alternate; }-->
+<!--        @keyframes recordPulse {-->
+<!--            0% { box-shadow: 0 0 4px rgba(225, 29, 72, 0.4); }-->
+<!--            100% { box-shadow: 0 0 16px rgba(225, 29, 72, 0.9); }-->
+<!--        }-->
+
+<!--        /* 主舞台网格 */-->
+<!--        .stage-container {-->
+<!--            flex: 1;-->
+<!--            display: grid;-->
+<!--            grid-template-columns: 1fr 370px;-->
+<!--            gap: 16px;-->
+<!--            padding: 16px;-->
+<!--            max-width: 1650px;-->
+<!--            margin: 0 auto;-->
+<!--            width: 100%;-->
+<!--        }-->
+
+<!--        .hall-viewport {-->
+<!--            position: relative;-->
+<!--            background: var(&#45;&#45;panel);-->
+<!--            backdrop-filter: blur(18px);-->
+<!--            border-radius: 20px;-->
+<!--            border: 1px solid var(&#45;&#45;border);-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            justify-content: space-between;-->
+<!--            padding: 16px 22px;-->
+<!--            min-height: 660px;-->
+<!--            overflow: hidden;-->
+<!--            box-shadow: 0 25px 60px rgba(0,0,0,0.75);-->
+<!--        }-->
+
+<!--        .record-indicator {-->
+<!--            position: absolute;-->
+<!--            top: 14px;-->
+<!--            left: 16px;-->
+<!--            display: none;-->
+<!--            align-items: center;-->
+<!--            gap: 6px;-->
+<!--            background: rgba(225, 29, 72, 0.95);-->
+<!--            color: #fff;-->
+<!--            padding: 4px 10px;-->
+<!--            border-radius: 20px;-->
+<!--            font-size: 0.74rem;-->
+<!--            font-weight: 700;-->
+<!--            z-index: 40;-->
+<!--            box-shadow: 0 4px 14px rgba(225, 29, 72, 0.6);-->
+<!--            pointer-events: none;-->
+<!--        }-->
+<!--        .record-indicator.show { display: flex; }-->
+<!--        .record-indicator .dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }-->
+<!--        @keyframes blink { 50% { opacity: 0.2; } }-->
+
+<!--        /* 顶部赛程比分牌与主席台 */-->
+<!--        .hall-top-deck {-->
+<!--            display: grid;-->
+<!--            grid-template-columns: 210px 1fr 210px 180px;-->
+<!--            align-items: center;-->
+<!--            gap: 12px;-->
+<!--            position: relative;-->
+<!--            z-index: 10;-->
+<!--        }-->
+
+<!--        /* 自由辩论红蓝交替战灯与计时 */-->
+<!--        .team-hud {-->
+<!--            padding: 8px 12px;-->
+<!--            border-radius: 12px;-->
+<!--            position: relative;-->
+<!--            overflow: hidden;-->
+<!--            transition: all 0.3s ease;-->
+<!--        }-->
+<!--        .team-hud.aff {-->
+<!--            background: linear-gradient(180deg, rgba(2, 132, 199, 0.2) 0%, rgba(2, 132, 199, 0.05) 100%);-->
+<!--            border: 1.5px solid rgba(2, 132, 199, 0.4);-->
+<!--        }-->
+<!--        .team-hud.neg {-->
+<!--            background: linear-gradient(180deg, rgba(225, 29, 72, 0.2) 0%, rgba(225, 29, 72, 0.05) 100%);-->
+<!--            border: 1.5px solid rgba(225, 29, 72, 0.4);-->
+<!--        }-->
+
+<!--        /* 自由辩论交替灯特效 */-->
+<!--        .team-hud.active-turn {-->
+<!--            transform: scale(1.03);-->
+<!--        }-->
+<!--        .team-hud.aff.active-turn {-->
+<!--            border-color: #38bdf8;-->
+<!--            box-shadow: 0 0 25px var(&#45;&#45;aff-glow);-->
+<!--            animation: affPulse 1s infinite alternate;-->
+<!--        }-->
+<!--        .team-hud.neg.active-turn {-->
+<!--            border-color: #fb7185;-->
+<!--            box-shadow: 0 0 25px var(&#45;&#45;neg-glow);-->
+<!--            animation: negPulse 1s infinite alternate;-->
+<!--        }-->
+
+<!--        @keyframes affPulse {-->
+<!--            0% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }-->
+<!--            100% { box-shadow: 0 0 25px rgba(56, 189, 248, 0.85); }-->
+<!--        }-->
+<!--        @keyframes negPulse {-->
+<!--            0% { box-shadow: 0 0 10px rgba(251, 113, 133, 0.4); }-->
+<!--            100% { box-shadow: 0 0 25px rgba(251, 113, 133, 0.85); }-->
+<!--        }-->
+
+<!--        .hud-header {-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--            font-size: 0.72rem;-->
+<!--            font-weight: 800;-->
+<!--            margin-bottom: 2px;-->
+<!--        }-->
+<!--        .hud-timer {-->
+<!--            font-family: 'Courier New', Courier, monospace;-->
+<!--            font-size: 1.15rem;-->
+<!--            font-weight: 800;-->
+<!--            letter-spacing: 1px;-->
+<!--        }-->
+<!--        .team-hud.aff .hud-timer { color: #38bdf8; }-->
+<!--        .team-hud.neg .hud-timer { color: #fb7185; }-->
+
+<!--        .team-stance-sub {-->
+<!--            font-size: 0.72rem;-->
+<!--            color: #94a3b8;-->
+<!--            white-space: nowrap;-->
+<!--            overflow: hidden;-->
+<!--            text-overflow: ellipsis;-->
+<!--        }-->
+
+<!--        /* 辩题大牌 */-->
+<!--        .motion-board {-->
+<!--            background: rgba(2, 6, 23, 0.75);-->
+<!--            border: 1px solid rgba(255, 255, 255, 0.15);-->
+<!--            border-radius: 12px;-->
+<!--            padding: 8px 14px;-->
+<!--            text-align: center;-->
+<!--            backdrop-filter: blur(8px);-->
+<!--        }-->
+<!--        .motion-stage-tag {-->
+<!--            display: inline-block;-->
+<!--            background: rgba(245, 158, 11, 0.18);-->
+<!--            color: #fbbf24;-->
+<!--            font-size: 0.68rem;-->
+<!--            font-weight: 800;-->
+<!--            padding: 1px 8px;-->
+<!--            border-radius: 10px;-->
+<!--            margin-bottom: 2px;-->
+<!--            letter-spacing: 1px;-->
+<!--        }-->
+<!--        .motion-title {-->
+<!--            font-size: 0.98rem;-->
+<!--            font-weight: 800;-->
+<!--            color: #f8fafc;-->
+<!--            letter-spacing: 0.5px;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+<!--        .motion-title:hover { color: #38bdf8; text-decoration: underline; }-->
+
+<!--        /* 主席台 */-->
+<!--        .host-podium {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 10px;-->
+<!--            background: rgba(245, 158, 11, 0.1);-->
+<!--            border: 1.5px solid var(&#45;&#45;host);-->
+<!--            border-radius: 12px;-->
+<!--            padding: 6px 12px;-->
+<!--            box-shadow: 0 0 14px var(&#45;&#45;host-glow);-->
+<!--            transition: all 0.3s;-->
+<!--            cursor: pointer;-->
+<!--        }-->
+<!--        .host-podium.speaking {-->
+<!--            transform: scale(1.05);-->
+<!--            box-shadow: 0 0 28px rgba(245, 158, 11, 0.9);-->
+<!--            background: rgba(245, 158, 11, 0.24);-->
+<!--        }-->
+<!--        .host-avatar {-->
+<!--            width: 38px;-->
+<!--            height: 38px;-->
+<!--            border-radius: 50%;-->
+<!--            background: #1e1b2e;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 1.4rem;-->
+<!--            border: 2px solid var(&#45;&#45;host);-->
+<!--            overflow: hidden;-->
+<!--            flex-shrink: 0;-->
+<!--        }-->
+<!--        .host-avatar img { width: 100%; height: 100%; object-fit: cover; }-->
+<!--        .host-info { text-align: left; }-->
+<!--        .host-role { font-size: 0.62rem; color: #fbbf24; font-weight: 800; }-->
+<!--        .host-name { font-size: 0.85rem; font-weight: bold; color: #fff; }-->
+
+<!--        /* ============================================================-->
+<!--           中央主视觉区（单人特写 vs 双镜头对辩分屏）-->
+<!--           ============================================================ */-->
+<!--        .arena-center {-->
+<!--            position: relative;-->
+<!--            margin: 14px 0;-->
+<!--        }-->
+
+<!--        /* 电子倒计时跑圈浮动牌 */-->
+<!--        .speech-countdown-badge {-->
+<!--            position: absolute;-->
+<!--            top: -12px;-->
+<!--            right: 18px;-->
+<!--            background: #090e1e;-->
+<!--            border: 1px solid rgba(255, 255, 255, 0.2);-->
+<!--            border-radius: 20px;-->
+<!--            padding: 2px 10px;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 6px;-->
+<!--            font-size: 0.72rem;-->
+<!--            color: #38bdf8;-->
+<!--            z-index: 25;-->
+<!--            font-family: monospace;-->
+<!--            font-weight: 700;-->
+<!--        }-->
+<!--        .speech-countdown-badge.urgent { color: #ff4757; border-color: #ff4757; animation: blink 0.5s infinite; }-->
+
+<!--        .cam-screen-wrapper {-->
+<!--            position: relative;-->
+<!--            background: rgba(8, 11, 24, 0.94);-->
+<!--            border: 2px solid var(&#45;&#45;border);-->
+<!--            border-radius: 18px;-->
+<!--            padding: 16px 20px;-->
+<!--            box-shadow: 0 10px 40px rgba(0,0,0,0.85);-->
+<!--            backdrop-filter: blur(16px);-->
+<!--            min-height: 250px;-->
+<!--            transition: all 0.35s ease;-->
+<!--        }-->
+
+<!--        .cam-badge {-->
+<!--            position: absolute;-->
+<!--            top: -11px;-->
+<!--            left: 50%;-->
+<!--            transform: translateX(-50%);-->
+<!--            background: #e11d48;-->
+<!--            color: #fff;-->
+<!--            font-size: 0.65rem;-->
+<!--            padding: 2px 12px;-->
+<!--            border-radius: 20px;-->
+<!--            font-weight: 700;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 5px;-->
+<!--            white-space: nowrap;-->
+<!--            z-index: 10;-->
+<!--        }-->
+<!--        .cam-badge span { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: blink 0.8s infinite; }-->
+
+<!--        /* 1) 模式一：单人特写视角 */-->
+<!--        .single-focus-layout {-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            transition: opacity 0.25s ease;-->
+<!--        }-->
+<!--        .focus-header-meta {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 12px;-->
+<!--            margin-bottom: 8px;-->
+<!--        }-->
+<!--        .focus-avatar-wrap {-->
+<!--            width: 58px;-->
+<!--            height: 58px;-->
+<!--            border-radius: 50%;-->
+<!--            border: 3px solid #fff;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 2rem;-->
+<!--            background: rgba(255,255,255,0.06);-->
+<!--            overflow: hidden;-->
+<!--            flex-shrink: 0;-->
+<!--            transition: all 0.25s;-->
+<!--        }-->
+<!--        .focus-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }-->
+<!--        .focus-title-group { text-align: left; }-->
+<!--        .focus-name { font-size: 1.15rem; font-weight: 800; color: #fff; }-->
+<!--        .focus-role-tag {-->
+<!--            display: inline-block;-->
+<!--            font-size: 0.72rem;-->
+<!--            font-weight: 700;-->
+<!--            padding: 2px 8px;-->
+<!--            border-radius: 6px;-->
+<!--            margin-top: 3px;-->
+<!--        }-->
+
+<!--        /* 2) 模式二：质询/自由辩论 双镜头VS分屏视角 */-->
+<!--        .split-vs-layout {-->
+<!--            display: none;-->
+<!--            grid-template-columns: 1fr 60px 1fr;-->
+<!--            align-items: center;-->
+<!--            gap: 12px;-->
+<!--            margin-bottom: 8px;-->
+<!--            width: 100%;-->
+<!--        }-->
+<!--        .split-side {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            gap: 10px;-->
+<!--            padding: 8px 12px;-->
+<!--            border-radius: 12px;-->
+<!--            background: rgba(255,255,255,0.03);-->
+<!--            border: 1.5px solid transparent;-->
+<!--            transition: all 0.3s ease;-->
+<!--        }-->
+<!--        .split-side.aff-side { justify-content: flex-start; }-->
+<!--        .split-side.neg-side { justify-content: flex-end; flex-direction: row-reverse; text-align: right; }-->
+
+<!--        .split-side.active-speaking {-->
+<!--            background: rgba(255,255,255,0.08);-->
+<!--            transform: scale(1.03);-->
+<!--        }-->
+<!--        .split-side.aff-side.active-speaking { border-color: #38bdf8; box-shadow: 0 0 20px var(&#45;&#45;aff-glow); }-->
+<!--        .split-side.neg-side.active-speaking { border-color: #fb7185; box-shadow: 0 0 20px var(&#45;&#45;neg-glow); }-->
+
+<!--        .split-avatar {-->
+<!--            width: 48px;-->
+<!--            height: 48px;-->
+<!--            border-radius: 50%;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 1.7rem;-->
+<!--            border: 2px solid;-->
+<!--            background: rgba(0,0,0,0.3);-->
+<!--            overflow: hidden;-->
+<!--            flex-shrink: 0;-->
+<!--        }-->
+<!--        .split-avatar img { width: 100%; height: 100%; object-fit: cover; }-->
+<!--        .split-meta .name { font-size: 0.95rem; font-weight: 800; color: #fff; }-->
+<!--        .split-meta .role { font-size: 0.68rem; font-weight: 700; margin-top: 2px; }-->
+
+<!--        .vs-badge-box {-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--        }-->
+<!--        .vs-icon {-->
+<!--            font-family: 'Arial Black', Impact, sans-serif;-->
+<!--            font-size: 1.4rem;-->
+<!--            font-weight: 900;-->
+<!--            font-style: italic;-->
+<!--            background: linear-gradient(180deg, #ff4757, #ffa502);-->
+<!--            -webkit-background-clip: text;-->
+<!--            -webkit-text-fill-color: transparent;-->
+<!--            text-shadow: 0 0 10px rgba(255, 71, 87, 0.4);-->
+<!--            animation: vsPulse 1.2s infinite alternate;-->
+<!--        }-->
+<!--        @keyframes vsPulse {-->
+<!--            0% { transform: scale(0.95); }-->
+<!--            100% { transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8)); }-->
+<!--        }-->
+
+<!--        /* 台词与音频波纹 */-->
+<!--        .sound-wave {-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            gap: 4px;-->
+<!--            height: 12px;-->
+<!--            align-items: flex-end;-->
+<!--            margin: 4px 0 6px;-->
+<!--            opacity: 0;-->
+<!--            transition: opacity 0.2s;-->
+<!--        }-->
+<!--        .sound-wave.active { opacity: 1; }-->
+<!--        .wave-bar {-->
+<!--            width: 3px;-->
+<!--            background: #38bdf8;-->
+<!--            border-radius: 2px;-->
+<!--            animation: waveAnim 0.4s ease-in-out infinite alternate;-->
+<!--        }-->
+<!--        .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 10px; }-->
+<!--        .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 14px; }-->
+<!--        .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 8px; }-->
+<!--        @keyframes waveAnim { 0% { height: 3px; } 100% { height: 13px; } }-->
+
+<!--        .dialog-bubble {-->
+<!--            width: 100%;-->
+<!--            font-size: 0.92rem;-->
+<!--            line-height: 1.5;-->
+<!--            color: #f8fafc;-->
+<!--            background: rgba(255,255,255,0.04);-->
+<!--            padding: 10px 15px;-->
+<!--            border-radius: 12px;-->
+<!--            min-height: 54px;-->
+<!--            text-align: left;-->
+<!--            border-left: 4px solid #fff;-->
+<!--            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);-->
+<!--        }-->
+
+<!--        /* 双方长桌辩席（两翼对垒） */-->
+<!--        .benches-row {-->
+<!--            display: grid;-->
+<!--            grid-template-columns: 1fr 1fr;-->
+<!--            gap: 24px;-->
+<!--        }-->
+<!--        .bench-side {-->
+<!--            background: rgba(255,255,255,0.02);-->
+<!--            border-radius: 14px;-->
+<!--            padding: 10px 12px;-->
+<!--            border: 1px solid var(&#45;&#45;border);-->
+<!--        }-->
+<!--        .bench-side.aff { border-top: 3px solid var(&#45;&#45;aff); background: linear-gradient(180deg, rgba(2, 132, 199, 0.08) 0%, transparent 100%); }-->
+<!--        .bench-side.neg { border-top: 3px solid var(&#45;&#45;neg); background: linear-gradient(180deg, rgba(225, 29, 72, 0.08) 0%, transparent 100%); }-->
+
+<!--        .bench-header {-->
+<!--            font-size: 0.78rem;-->
+<!--            font-weight: 800;-->
+<!--            margin-bottom: 8px;-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--        }-->
+<!--        .bench-side.aff .bench-header { color: #38bdf8; }-->
+<!--        .bench-side.neg .bench-header { color: #fb7185; }-->
+
+<!--        .seats-grid {-->
+<!--            display: grid;-->
+<!--            grid-template-columns: repeat(4, 1fr);-->
+<!--            gap: 7px;-->
+<!--        }-->
+
+<!--        .seat-card {-->
+<!--            background: #101528;-->
+<!--            border: 1.5px solid rgba(255,255,255,0.1);-->
+<!--            border-radius: 10px;-->
+<!--            padding: 7px 4px;-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            align-items: center;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);-->
+<!--            position: relative;-->
+<!--        }-->
+<!--        .seat-card:hover { transform: translateY(-3px); border-color: #fff; }-->
+<!--        .seat-card.aff-seat { border-color: rgba(2, 132, 199, 0.35); }-->
+<!--        .seat-card.neg-seat { border-color: rgba(225, 29, 72, 0.35); }-->
+
+<!--        .seat-card.speaking {-->
+<!--            transform: scale(1.08) translateY(-4px);-->
+<!--            z-index: 15;-->
+<!--        }-->
+<!--        .seat-card.aff-seat.speaking {-->
+<!--            border-color: var(&#45;&#45;aff) !important;-->
+<!--            box-shadow: 0 0 20px var(&#45;&#45;aff-glow);-->
+<!--            background: #0d2446;-->
+<!--        }-->
+<!--        .seat-card.neg-seat.speaking {-->
+<!--            border-color: var(&#45;&#45;neg) !important;-->
+<!--            box-shadow: 0 0 20px var(&#45;&#45;neg-glow);-->
+<!--            background: #39111e;-->
+<!--        }-->
+
+<!--        .seat-avatar {-->
+<!--            width: 36px;-->
+<!--            height: 36px;-->
+<!--            border-radius: 50%;-->
+<!--            background: #1e2640;-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: center;-->
+<!--            font-size: 1.35rem;-->
+<!--            margin-bottom: 4px;-->
+<!--            border: 2px solid rgba(255,255,255,0.15);-->
+<!--            overflow: hidden;-->
+<!--        }-->
+<!--        .seat-avatar img { width: 100%; height: 100%; object-fit: cover; }-->
+<!--        .seat-debater-role { font-size: 0.62rem; color: #94a3b8; font-weight: 700; }-->
+<!--        .seat-debater-name {-->
+<!--            font-size: 0.74rem;-->
+<!--            font-weight: 700;-->
+<!--            color: #f1f5f9;-->
+<!--            margin-top: 1px;-->
+<!--            white-space: nowrap;-->
+<!--            overflow: hidden;-->
+<!--            text-overflow: ellipsis;-->
+<!--            max-width: 90%;-->
+<!--        }-->
+
+<!--        .mic-active-dot {-->
+<!--            width: 6px;-->
+<!--            height: 6px;-->
+<!--            border-radius: 50%;-->
+<!--            background: #22c55e;-->
+<!--            position: absolute;-->
+<!--            top: 5px;-->
+<!--            right: 5px;-->
+<!--            display: none;-->
+<!--        }-->
+<!--        .seat-card.speaking .mic-active-dot,-->
+<!--        .host-podium.speaking .mic-active-dot {-->
+<!--            display: block;-->
+<!--            box-shadow: 0 0 8px #22c55e;-->
+<!--            animation: blink 0.6s infinite;-->
+<!--        }-->
+
+<!--        /* 控制侧栏 */-->
+<!--        .sidebar { display: flex; flex-direction: column; gap: 12px; }-->
+<!--        .panel-box {-->
+<!--            background: var(&#45;&#45;panel);-->
+<!--            backdrop-filter: blur(16px);-->
+<!--            border-radius: 16px;-->
+<!--            border: 1px solid var(&#45;&#45;border);-->
+<!--            padding: 12px;-->
+<!--        }-->
+<!--        .panel-title {-->
+<!--            font-size: 0.85rem;-->
+<!--            color: #94a3b8;-->
+<!--            margin-bottom: 8px;-->
+<!--            display: flex;-->
+<!--            justify-content: space-between;-->
+<!--            align-items: center;-->
+<!--            font-weight: 700;-->
+<!--        }-->
+
+<!--        .delay-control-bar {-->
+<!--            display: flex;-->
+<!--            align-items: center;-->
+<!--            justify-content: space-between;-->
+<!--            gap: 10px;-->
+<!--            background: rgba(255,255,255,0.04);-->
+<!--            padding: 6px 10px;-->
+<!--            border-radius: 8px;-->
+<!--            margin-bottom: 8px;-->
+<!--            font-size: 0.76rem;-->
+<!--            color: #cbd5e1;-->
+<!--        }-->
+<!--        .delay-control-bar input[type="range"] { flex: 1; accent-color: #38bdf8; cursor: pointer; }-->
+
+<!--        .btn-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }-->
+
+<!--        .script-list {-->
+<!--            flex: 1;-->
+<!--            overflow-y: auto;-->
+<!--            max-height: 440px;-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            gap: 6px;-->
+<!--            padding-right: 4px;-->
+<!--        }-->
+<!--        .script-list::-webkit-scrollbar { width: 4px; }-->
+<!--        .script-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }-->
+
+<!--        .script-item {-->
+<!--            padding: 7px 10px;-->
+<!--            border-radius: 8px;-->
+<!--            background: rgba(255,255,255,0.03);-->
+<!--            border-left: 3px solid transparent;-->
+<!--            cursor: pointer;-->
+<!--            transition: all 0.2s;-->
+<!--            font-size: 0.78rem;-->
+<!--        }-->
+<!--        .script-item:hover { background: rgba(255,255,255,0.07); }-->
+<!--        .script-item.active { background: rgba(255,255,255,0.09); transform: translateX(4px); }-->
+<!--        .script-item.is-aff { border-left-color: var(&#45;&#45;aff); }-->
+<!--        .script-item.is-neg { border-left-color: var(&#45;&#45;neg); }-->
+<!--        .script-item.is-host { border-left-color: var(&#45;&#45;host); }-->
+
+<!--        /* 模态框 */-->
+<!--        .modal-overlay {-->
+<!--            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);-->
+<!--            backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;-->
+<!--            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;-->
+<!--        }-->
+<!--        .modal-overlay.show { opacity: 1; pointer-events: auto; }-->
+<!--        .modal-card {-->
+<!--            width: 90%; max-width: 860px; max-height: 85vh; background: #0f1424;-->
+<!--            border: 1px solid var(&#45;&#45;border); border-radius: 18px; padding: 20px;-->
+<!--            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.6);-->
+<!--        }-->
+<!--        .modal-body { flex: 1; overflow-y: auto; margin: 12px 0; padding-right: 6px; }-->
+
+<!--        .debater-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }-->
+<!--        .debater-table th, .debater-table td { padding: 7px 5px; border-bottom: 1px solid rgba(255,255,255,0.07); text-align: left; }-->
+<!--        .debater-input, .debater-select {-->
+<!--            background: rgba(255,255,255,0.06); border: 1px solid var(&#45;&#45;border);-->
+<!--            color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 0.78rem; width: 100%;-->
+<!--        }-->
+<!--        .debater-select option { background: #131a33; color: #fff; }-->
+
+<!--        .avatar-preview-box { display: flex; align-items: center; gap: 6px; }-->
+<!--        .avatar-preview {-->
+<!--            width: 28px; height: 28px; border-radius: 50%; background: #202742;-->
+<!--            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;-->
+<!--            overflow: hidden; flex-shrink: 0;-->
+<!--        }-->
+<!--        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }-->
+
+<!--        .voice-cell { display: flex; align-items: center; gap: 6px; }-->
+<!--        .voice-cell .debater-select { flex: 1; min-width: 0; }-->
+<!--        .preview-btn { flex-shrink: 0; padding: 4px 8px; font-size: 0.7rem; }-->
+
+<!--        .script-edit-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }-->
+<!--        #previewVideo { width: 100%; max-height: 52vh; border-radius: 10px; background: #000; }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--    <header>-->
+<!--        <div class="header-title-box">-->
+<!--            <h1>⚖️ 华语辩论联赛·转播级演播厅</h1>-->
+<!--        </div>-->
+<!--        <div class="header-actions">-->
+<!--            &lt;!&ndash; 录制视频 &ndash;&gt;-->
+<!--            <button class="btn record" id="recordBtn" onclick="toggleRecording()" title="录制辩论赛完整视频（含声音）">-->
+<!--                🎥 录制比赛-->
+<!--            </button>-->
+
+<!--            &lt;!&ndash; 配置文件导入导出 &ndash;&gt;-->
+<!--            <button class="btn highlight" onclick="exportConfigFile()" title="将阵容配置、辩手姓名与音色导出保存">-->
+<!--                💾 导出赛况配置-->
+<!--            </button>-->
+<!--            <label class="btn highlight" title="导入赛事配置文件">-->
+<!--                📂 载入配置-->
+<!--                <input type="file" id="configFileUploader" accept=".json" style="display:none;" onchange="importConfigFile(event)">-->
+<!--            </label>-->
+
+<!--            <button class="btn" onclick="openRosterModal()">👥 辩手与音色</button>-->
+<!--            <button class="btn" onclick="openScriptModal()">📝 辩词编辑</button>-->
+<!--            <button class="btn" onclick="downloadTemplate()">⬇️ 下载辩词模板</button>-->
+<!--            <label class="btn">-->
+<!--                📂 导入辩词TXT-->
+<!--                <input type="file" id="txtFileInput" accept=".txt" style="display: none;" onchange="importScriptTxt(event)">-->
+<!--            </label>-->
+<!--        </div>-->
+<!--    </header>-->
+
+<!--    <div class="stage-container" id="stageContainer">-->
+<!--        &lt;!&ndash; 辩论大厅实景舞台 &ndash;&gt;-->
+<!--        <div class="hall-viewport" id="hallViewport">-->
+<!--            <div class="record-indicator" id="recordIndicator">-->
+<!--                <span class="dot"></span> 正在转播录制-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 赛场顶部：自由辩论战灯牌 + 辩题 + 主席 &ndash;&gt;-->
+<!--            <div class="hall-top-deck">-->
+<!--                &lt;!&ndash; 正方战灯与队内总计时器 &ndash;&gt;-->
+<!--                <div class="team-hud aff" id="affTeamHud">-->
+<!--                    <div class="hud-header">-->
+<!--                        <span style="color:#38bdf8;">🔷 正方剩余</span>-->
+<!--                        <span class="hud-timer" id="affChessTimer">04:00</span>-->
+<!--                    </div>-->
+<!--                    <div class="team-stance-sub" id="affStanceLabel">立论：诗与远方更重要</div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; 辩题看板 &ndash;&gt;-->
+<!--                <div class="motion-board">-->
+<!--                    <div class="motion-stage-tag" id="currentStageTag">开篇立论阶段</div>-->
+<!--                    <div class="motion-title" id="motionTitle" onclick="editMotionTitle()" title="点击修改辩题">-->
+<!--                        “当代年轻人搞钱更重要，还是追求诗与远方更重要？”-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; 反方战灯与队内总计时器 &ndash;&gt;-->
+<!--                <div class="team-hud neg" id="negTeamHud">-->
+<!--                    <div class="hud-header">-->
+<!--                        <span style="color:#fb7185;">🔴 反方剩余</span>-->
+<!--                        <span class="hud-timer" id="negChessTimer">04:00</span>-->
+<!--                    </div>-->
+<!--                    <div class="team-stance-sub" id="negStanceLabel">立论：搞钱立足更重要</div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; 主席台 &ndash;&gt;-->
+<!--                <div class="host-podium" id="hostPodium" onclick="focusSpeaker('主席')">-->
+<!--                    <div class="mic-active-dot"></div>-->
+<!--                    <div class="host-avatar" id="hostAvatarSlot">♎</div>-->
+<!--                    <div class="host-info">-->
+<!--                        <div class="host-role">CHAIR · 辩论主席</div>-->
+<!--                        <div class="host-name" id="hostNameLabel">天秤座</div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 中央发言镜头区（单人特写 vs 双镜头VS分屏） &ndash;&gt;-->
+<!--            <div class="arena-center">-->
+<!--                &lt;!&ndash; 单句发言电子倒计时牌 &ndash;&gt;-->
+<!--                <div class="speech-countdown-badge" id="speechTimerBadge">-->
+<!--                    ⏱️ <span id="speechTimerText">00:30</span>-->
+<!--                </div>-->
+
+<!--                <div class="cam-screen-wrapper" id="camScreenWrapper">-->
+<!--                    <div class="cam-badge" id="camBadge"><span></span> LIVE 发言镜头</div>-->
+
+<!--                    &lt;!&ndash; 模式 1：单人镜头 &ndash;&gt;-->
+<!--                    <div class="single-focus-layout" id="singleFocusLayout">-->
+<!--                        <div class="focus-header-meta">-->
+<!--                            <div class="focus-avatar-wrap" id="focusAvatar">♎</div>-->
+<!--                            <div class="focus-title-group">-->
+<!--                                <div class="focus-name" id="focusName">天秤座</div>-->
+<!--                                <div class="focus-role-tag" id="focusRoleTag" style="background: rgba(245, 158, 11, 0.2); color: var(&#45;&#45;host);">-->
+<!--                                    辩论主席-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+
+<!--                    &lt;!&ndash; 模式 2：双镜头VS对辩分屏（质询/自由辩论时自动触发） &ndash;&gt;-->
+<!--                    <div class="split-vs-layout" id="splitVsLayout">-->
+<!--                        <div class="split-side aff-side" id="splitAffSide">-->
+<!--                            <div class="split-avatar" id="splitAffAvatar" style="border-color: var(&#45;&#45;aff); color: #38bdf8;">♈</div>-->
+<!--                            <div class="split-meta">-->
+<!--                                <div class="name" id="splitAffName">白羊座</div>-->
+<!--                                <div class="role" style="color: #38bdf8;" id="splitAffRole">正方一辩</div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+
+<!--                        <div class="vs-badge-box">-->
+<!--                            <div class="vs-icon">VS</div>-->
+<!--                            <div style="font-size:0.6rem; color:#94a3b8; font-weight:bold;">CROSS</div>-->
+<!--                        </div>-->
+
+<!--                        <div class="split-side neg-side" id="splitNegSide">-->
+<!--                            <div class="split-avatar" id="splitNegAvatar" style="border-color: var(&#45;&#45;neg); color: #fb7185;">♉</div>-->
+<!--                            <div class="split-meta">-->
+<!--                                <div class="name" id="splitNegName">金牛座</div>-->
+<!--                                <div class="role" style="color: #fb7185;" id="splitNegRole">反方一辩</div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+
+<!--                    <div class="sound-wave" id="soundWave">-->
+<!--                        <div class="wave-bar"></div><div class="wave-bar"></div>-->
+<!--                        <div class="wave-bar"></div><div class="wave-bar"></div>-->
+<!--                    </div>-->
+
+<!--                    <div class="dialog-bubble" id="focusText">精彩辩论即将拉开帷幕，双方辩手已就位...</div>-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; 两翼对称辩位长桌 &ndash;&gt;-->
+<!--            <div class="benches-row">-->
+<!--                &lt;!&ndash; 正方战队（4位辩手） &ndash;&gt;-->
+<!--                <div class="bench-side aff">-->
+<!--                    <div class="bench-header">-->
+<!--                        <span>🔷 正方战队 (AFFIRMATIVE)</span>-->
+<!--                        <span style="font-size: 0.68rem; color: #64748b;">4位辩手</span>-->
+<!--                    </div>-->
+<!--                    <div class="seats-grid" id="affSeatsGrid"></div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; 反方战队（4位辩手） &ndash;&gt;-->
+<!--                <div class="bench-side neg">-->
+<!--                    <div class="bench-header">-->
+<!--                        <span>🔴 反方战队 (NEGATIVE)</span>-->
+<!--                        <span style="font-size: 0.68rem; color: #64748b;">4位辩手</span>-->
+<!--                    </div>-->
+<!--                    <div class="seats-grid" id="negSeatsGrid"></div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; 侧栏控制 &ndash;&gt;-->
+<!--        <div class="sidebar">-->
+<!--            <div class="panel-box">-->
+<!--                <div class="panel-title">-->
+<!--                    <span>赛事演播控制器</span>-->
+<!--                    <label style="font-size: 0.74rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">-->
+<!--                        <input type="checkbox" id="ttsToggle" checked> 拟音朗读-->
+<!--                    </label>-->
+<!--                </div>-->
+
+<!--                <div class="delay-control-bar">-->
+<!--                    <span>辩词交接停顿:</span>-->
+<!--                    <input type="range" id="speechDelayRange" min="0.1" max="1.5" step="0.05" value="0.25" oninput="updateSpeechDelay(this.value)">-->
+<!--                    <span id="delayValLabel" style="font-weight: bold; color: #38bdf8; width: 38px; text-align: right;">0.25s</span>-->
+<!--                </div>-->
+
+<!--                <div class="btn-controls">-->
+<!--                    <button class="btn primary" id="togglePlayBtn" onclick="togglePlay()">▶ 开始辩论</button>-->
+<!--                    <button class="btn" onclick="prevDialogue()">⏮ 上一句</button>-->
+<!--                    <button class="btn" onclick="nextDialogue()">下一句 ⏭</button>-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            <div class="panel-box" style="flex: 1; display: flex; flex-direction: column;">-->
+<!--                <div class="panel-title">-->
+<!--                    <span>现场辩词交锋流</span>-->
+<!--                    <span id="scriptCount" style="font-size: 0.72rem;">0 / 0</span>-->
+<!--                </div>-->
+<!--                <div class="script-list" id="scriptList"></div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 模态框 1：辩手与音色 &ndash;&gt;-->
+<!--    <div class="modal-overlay" id="rosterModal">-->
+<!--        <div class="modal-card">-->
+<!--            <h2>辩手阵容、头像与国语专属音色绑定</h2>-->
+<!--            <p style="font-size: 0.74rem; color: #94a3b8; margin-top: 4px;">-->
+<!--                涵盖主席、正方一至四辩、反方一至四辩共9个席位。导入外部剧本时会自动识别并更新此处信息。-->
+<!--            </p>-->
+<!--            <div class="modal-body">-->
+<!--                <table class="debater-table">-->
+<!--                    <thead>-->
+<!--                        <tr>-->
+<!--                            <th width="75">头像</th>-->
+<!--                            <th width="90">席位</th>-->
+<!--                            <th width="110">辩手/星座</th>-->
+<!--                            <th width="85">所属阵营</th>-->
+<!--                            <th>分配专属音色</th>-->
+<!--                        </tr>-->
+<!--                    </thead>-->
+<!--                    <tbody id="rosterTableBody"></tbody>-->
+<!--                </table>-->
+<!--            </div>-->
+<!--            <div style="display: flex; justify-content: space-between; align-items: center;">-->
+<!--                <button class="btn" style="color: #94a3b8; font-size: 0.72rem;" onclick="resetDefaultRoster()">恢复默认星座阵容</button>-->
+<!--                <div>-->
+<!--                    <button class="btn" onclick="closeModal('rosterModal')">取消</button>-->
+<!--                    <button class="btn primary" onclick="saveRoster()">保存并应用</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 模态框 2：辩词编辑器 &ndash;&gt;-->
+<!--    <div class="modal-overlay" id="scriptModal">-->
+<!--        <div class="modal-card">-->
+<!--            <h2>辩词对话编辑器</h2>-->
+<!--            <div class="modal-body" id="scriptEditList"></div>-->
+<!--            <div style="display: flex; justify-content: space-between;">-->
+<!--                <button class="btn" onclick="addNewScriptLine()">+ 增添一句发言</button>-->
+<!--                <div>-->
+<!--                    <button class="btn" onclick="closeModal('scriptModal')">取消</button>-->
+<!--                    <button class="btn primary" onclick="saveScriptEdits()">保存辩词</button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; 模态框 3：录制视频预览确认 &ndash;&gt;-->
+<!--    <div class="modal-overlay" id="previewModal">-->
+<!--        <div class="modal-card" style="max-width: 760px;">-->
+<!--            <h2>🎬 辩论赛转播录制完成</h2>-->
+<!--            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 6px;">-->
+<!--                文件名：<span id="previewFilename" style="color: #38bdf8; font-weight: 600;"></span>-->
+<!--                <span id="previewAudioStatus"></span>-->
+<!--            </p>-->
+<!--            <div class="modal-body" style="display: flex; justify-content: center; padding: 10px 0;">-->
+<!--                <video id="previewVideo" controls playsinline></video>-->
+<!--            </div>-->
+<!--            <div style="display: flex; justify-content: flex-end; gap: 8px;">-->
+<!--                <button class="btn" onclick="closePreviewModal()">关闭</button>-->
+<!--                <button class="btn primary" id="previewDownloadBtn">💾 下载录像文件</button>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        /* 星座 Emoji 速查表 */-->
+<!--        const ZODIAC_AVATARS = {-->
+<!--            "白羊座": "♈", "金牛座": "♉", "双子座": "♊", "巨蟹座": "♋",-->
+<!--            "狮子座": "♌", "处女座": "♍", "天秤座": "♎", "天蝎座": "♏",-->
+<!--            "射手座": "♐", "摩羯座": "♑", "水瓶座": "♒", "双鱼座": "♓"-->
+<!--        };-->
+
+<!--        /* 初始9人阵容：主席天秤座 + 正方火风组 + 反方土水组 */-->
+<!--        const DEFAULT_ROSTER = [-->
+<!--            { id: "deb_host", role: "主席", name: "天秤座", faction: "host", avatar: "♎", avatarType: "text", voiceURI: "" },-->
+<!--            // 正方：火风战队-->
+<!--            { id: "deb_aff_1", role: "正方一辩", name: "白羊座", faction: "aff", avatar: "♈", avatarType: "text", voiceURI: "" },-->
+<!--            { id: "deb_aff_2", role: "正方二辩", name: "双子座", faction: "aff", avatar: "♊", avatarType: "text", voiceURI: "" },-->
+<!--            { id: "deb_aff_3", role: "正方三辩", name: "狮子座", faction: "aff", avatar: "♌", avatarType: "text", voiceURI: "" },-->
+<!--            { id: "deb_aff_4", role: "正方四辩", name: "水瓶座", faction: "aff", avatar: "♒", avatarType: "text", voiceURI: "" },-->
+<!--            // 反方：土水战队-->
+<!--            { id: "deb_neg_1", role: "反方一辩", name: "金牛座", faction: "neg", avatar: "♉", avatarType: "text", voiceURI: "" },-->
+<!--            { id: "deb_neg_2", role: "反方二辩", name: "处女座", faction: "neg", avatar: "♍", avatarType: "text", voiceURI: "" },-->
+<!--            { id: "deb_neg_3", role: "反方三辩", name: "天蝎座", faction: "neg", avatar: "♏", avatarType: "text", voiceURI: "" },-->
+<!--            { id: "deb_neg_4", role: "反方四辩", name: "摩羯座", faction: "neg", avatar: "♑", avatarType: "text", voiceURI: "" }-->
+<!--        ];-->
+
+<!--        /* 精心编排的2分钟标准辩论赛台本（含开篇、攻辩质询分屏、自由辩论交替灯、总结陈词） */-->
+<!--        const DEFAULT_SCRIPT = [-->
+<!--            {-->
+<!--                roleOrName: "主席",-->
+<!--                stage: "开场陈词",-->
+<!--                mode: "single",-->
+<!--                text: "各位评委、观众朋友们大家好！欢迎来到华语辩论巅峰赛。今天的辩题是：当代年轻人搞钱更重要，还是追求诗与远方更重要？首先有请正方一辩开篇立论，时间45秒。"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "正方一辩",-->
+<!--                stage: "开篇立论",-->
+<!--                mode: "single",-->
+<!--                text: "谢谢主席！我方坚信：追求诗与远方更重要！青春只有一次，如果年轻时不勇敢去探索自我、拥抱山川湖海，等我们满身算计与疲惫，卡里的余额再多，也买不回热气腾腾的灵魂！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "反方一辩",-->
+<!--                stage: "开篇立论",-->
+<!--                mode: "single",-->
+<!--                text: "对方一辩太天真了！你说的诗和远方哪一样不需要门票？高铁要钱、无人区向导要钱、连去西藏洗涤心灵都要路费！经济独立才是尊严的护城河，没有物质基石的诗意，只是空中楼阁的自欺欺人！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "正方三辩",-->
+<!--                opponent: "反方三辩",-->
+<!--                stage: "攻辩质询",-->
+<!--                mode: "split",-->
+<!--                text: "（起身质询）请问反方三辩：曹原二十多岁潜心石墨烯超导研究，梵高一生贫困却留下绝美星空！如果他们只盯着眼前的碎银几两，人类如何仰望星空？！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "反方三辩",-->
+<!--                opponent: "正方三辩",-->
+<!--                stage: "攻辩质询",-->
+<!--                mode: "split",-->
+<!--                text: "（冷笑回击）对方三辩拿天才个例绑架普通人！现实中成千上万的年轻人连生病买药、房租水电都要精打细算。填饱肚子是第一定律，你让月薪三千的社畜不顾家人去流浪，这不是浪漫，这是自私！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "正方二辩",-->
+<!--                opponent: "反方二辩",-->
+<!--                stage: "自由辩论",-->
+<!--                mode: "split",-->
+<!--                text: "对方辩友！我们谈的是搞钱和理想哪个更具指引性！人之所以为人，正是因为我们除了求生，心中还有不死的火种！难道人生只是来这世上打工领工资的吗？！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "反方二辩",-->
+<!--                opponent: "正方二辩",-->
+<!--                stage: "自由辩论",-->
+<!--                mode: "split",-->
+<!--                text: "正方二辩注意逻辑！搞钱并不等于行尸走肉，搞钱是在积累抵御风险的能力！当你母亲生病需要特效药时，你靠诗词能换来救命针吗？！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "正方三辩",-->
+<!--                opponent: "反方三辩",-->
+<!--                stage: "自由辩论",-->
+<!--                mode: "split",-->
+<!--                text: "但若人人把搞钱当最高信仰，社会就会滑向利己主义的深渊！正是一代代先锋追求非功利的理想，才拓展了人类文明的旷野！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "反方三辩",-->
+<!--                opponent: "正方三辩",-->
+<!--                stage: "自由辩论",-->
+<!--                mode: "split",-->
+<!--                text: "脚踏实地不等于利己！现代年轻人努力工作纳税、创造财富，本身就是在推动社会运转，这就是最真实的诗与远方！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "反方四辩",-->
+<!--                stage: "总结陈词",-->
+<!--                mode: "single",-->
+<!--                text: "总结我方观点：成人的世界不是童话。我们不否定浪漫，但唯有先把手中的饭碗端稳，我们才有资格在风雨中从容微笑。搞钱，是对自己和家人最深沉的负责！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "正方四辩",-->
+<!--                stage: "总结陈词",-->
+<!--                mode: "single",-->
+<!--                text: "总结我方观点：金钱只是手段，活出生命的辽阔才是目的。不要在日复一日的内卷中磨灭了对世界的好奇。愿我们历经千帆，归来依然热血，奔赴属于我们的星辰大海！"-->
+<!--            },-->
+<!--            {-->
+<!--                roleOrName: "主席",-->
+<!--                stage: "结语鸣金",-->
+<!--                mode: "single",-->
+<!--                text: "感谢双方辩手激烈的思想交锋！生存是底线，理想是灯塔。无论你选择在现实中筑基，还是在旷野中奔跑，思考本身就是最大的收获。本场辩论会到此圆满结束！"-->
+<!--            }-->
+<!--        ];-->
+
+<!--        let roster = [];-->
+<!--        let script = [];-->
+<!--        let motionTitle = "“当代年轻人搞钱更重要，还是追求诗与远方更重要？”";-->
+<!--        let speechDelay = 0.25;-->
+<!--        let currentIndex = 0;-->
+<!--        let isPlaying = false;-->
+<!--        let playTimer = null;-->
+<!--        let countdownTimer = null;-->
+<!--        let speechSecondsLeft = 30;-->
+
+<!--        /* 正反方自由辩论棋盘时钟（秒） */-->
+<!--        let affTimeRemain = 240;-->
+<!--        let negTimeRemain = 240;-->
+<!--        let chessInterval = null;-->
+
+<!--        let availableVoices = [];-->
+<!--        let tempRosterEditing = [];-->
+
+<!--        let currentUtter = null;-->
+<!--        let speakToken = 0;-->
+<!--        let previewToken = 0;-->
+
+<!--        /* 录制参数 */-->
+<!--        let mediaRecorder = null;-->
+<!--        let displayStream = null;-->
+<!--        let micStream = null;-->
+<!--        let audioContext = null;-->
+<!--        let mixedAudioDestination = null;-->
+<!--        let recordAudioSourceNodes = [];-->
+<!--        let recordAudioInputNodes = [];-->
+<!--        let recordInputMediaStreams = [];-->
+<!--        let recordOutputTracks = [];-->
+<!--        let recordedChunks = [];-->
+<!--        let recordMimeType = '';-->
+<!--        let isRecording = false;-->
+<!--        let drawingCanvas = false;-->
+<!--        let recordCanvas = null;-->
+<!--        let previewBlobUrl = null;-->
+<!--        let recordingHasAudio = false;-->
+
+<!--        const STORAGE_KEY_ROSTER = "debate_roster_zodiac_v2";-->
+<!--        const STORAGE_KEY_MOTION = "debate_motion_zodiac_v2";-->
+<!--        const STORAGE_KEY_DELAY = "debate_delay_zodiac_v2";-->
+
+<!--        function isChineseVoice(v) {-->
+<!--            if (!v) return false;-->
+<!--            const lang = (v.lang || "").toLowerCase();-->
+<!--            const name = (v.name || "").toLowerCase();-->
+<!--            return lang.includes("zh") || lang.includes("cmn") || name.includes("chinese") || name.includes("mandarin") || name.includes("普通话") || name.includes("中文");-->
+<!--        }-->
+
+<!--        function getChineseVoices() {-->
+<!--            return availableVoices.filter(isChineseVoice);-->
+<!--        }-->
+
+<!--        function loadStoredData() {-->
+<!--            const storedRoster = localStorage.getItem(STORAGE_KEY_ROSTER);-->
+<!--            if (storedRoster) {-->
+<!--                try { roster = JSON.parse(storedRoster); } catch (e) { roster = JSON.parse(JSON.stringify(DEFAULT_ROSTER)); }-->
+<!--            } else {-->
+<!--                roster = JSON.parse(JSON.stringify(DEFAULT_ROSTER));-->
+<!--            }-->
+
+<!--            const storedMotion = localStorage.getItem(STORAGE_KEY_MOTION);-->
+<!--            if (storedMotion) {-->
+<!--                motionTitle = storedMotion;-->
+<!--                document.getElementById("motionTitle").textContent = motionTitle;-->
+<!--            }-->
+
+<!--            const storedDelay = localStorage.getItem(STORAGE_KEY_DELAY);-->
+<!--            if (storedDelay) {-->
+<!--                speechDelay = parseFloat(storedDelay);-->
+<!--                document.getElementById("speechDelayRange").value = speechDelay;-->
+<!--                document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";-->
+<!--            }-->
+
+<!--            script = JSON.parse(JSON.stringify(DEFAULT_SCRIPT));-->
+<!--        }-->
+
+<!--        function persistRoster() {-->
+<!--            localStorage.setItem(STORAGE_KEY_ROSTER, JSON.stringify(roster));-->
+<!--        }-->
+
+<!--        function editMotionTitle() {-->
+<!--            const val = prompt("请输入新辩题：", motionTitle);-->
+<!--            if (val && val.trim()) {-->
+<!--                motionTitle = val.trim();-->
+<!--                document.getElementById("motionTitle").textContent = motionTitle;-->
+<!--                localStorage.setItem(STORAGE_KEY_MOTION, motionTitle);-->
+<!--            }-->
+<!--        }-->
+
+<!--        /* 渲染辩席 */-->
+<!--        function renderDebateHall() {-->
+<!--            const hostObj = roster.find(d => d.role === "主席") || roster[0];-->
+<!--            const hostNameLabel = document.getElementById("hostNameLabel");-->
+<!--            const hostAvatarSlot = document.getElementById("hostAvatarSlot");-->
+
+<!--            if (hostNameLabel) hostNameLabel.textContent = hostObj.name;-->
+<!--            if (hostAvatarSlot) {-->
+<!--                hostAvatarSlot.innerHTML = hostObj.avatarType === 'img' ? `<img src="${hostObj.avatar}">` : hostObj.avatar;-->
+<!--            }-->
+
+<!--            const affGrid = document.getElementById("affSeatsGrid");-->
+<!--            const negGrid = document.getElementById("negSeatsGrid");-->
+<!--            affGrid.innerHTML = "";-->
+<!--            negGrid.innerHTML = "";-->
+
+<!--            roster.forEach(deb => {-->
+<!--                if (deb.role === "主席") return;-->
+
+<!--                const card = document.createElement("div");-->
+<!--                card.className = `seat-card ${deb.faction === 'aff' ? 'aff-seat' : 'neg-seat'}`;-->
+<!--                card.id = `seat-${deb.role}`;-->
+<!--                card.onclick = () => focusSpeaker(deb.role);-->
+
+<!--                const avatarContent = deb.avatarType === 'img' ? `<img src="${deb.avatar}">` : deb.avatar;-->
+
+<!--                card.innerHTML = `-->
+<!--                    <div class="mic-active-dot"></div>-->
+<!--                    <div class="seat-avatar">${avatarContent}</div>-->
+<!--                    <div class="seat-debater-role">${deb.role}</div>-->
+<!--                    <div class="seat-debater-name" title="${deb.name}">${deb.name}</div>-->
+<!--                `;-->
+
+<!--                if (deb.faction === 'aff') affGrid.appendChild(card);-->
+<!--                else negGrid.appendChild(card);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function renderScriptList() {-->
+<!--            const listEl = document.getElementById("scriptList");-->
+<!--            listEl.innerHTML = "";-->
+
+<!--            script.forEach((item, index) => {-->
+<!--                const deb = roster.find(d => d.role === item.roleOrName || d.name === item.roleOrName) || {-->
+<!--                    role: item.roleOrName,-->
+<!--                    name: item.roleOrName,-->
+<!--                    faction: "host"-->
+<!--                };-->
+
+<!--                const div = document.createElement("div");-->
+<!--                div.className = `script-item is-${deb.faction}`;-->
+<!--                div.id = `script-item-${index}`;-->
+
+<!--                let factionBadge = `<span style="color:var(&#45;&#45;host)">👑 主席</span>`;-->
+<!--                if (deb.faction === 'aff') factionBadge = `<span style="color:#38bdf8">🔷 ${deb.role}</span>`;-->
+<!--                if (deb.faction === 'neg') factionBadge = `<span style="color:#fb7185">🔴 ${deb.role}</span>`;-->
+
+<!--                div.innerHTML = `-->
+<!--                    <div style="display:flex; justify-content:space-between; margin-bottom:2px; font-weight:bold;">-->
+<!--                        ${factionBadge}-->
+<!--                        <span style="color:#94a3b8; font-size:0.72rem;">${deb.name}</span>-->
+<!--                    </div>-->
+<!--                    <div>${item.text}</div>-->
+<!--                `;-->
+<!--                div.onclick = () => jumpTo(index);-->
+<!--                listEl.appendChild(div);-->
+<!--            });-->
+
+<!--            document.getElementById("scriptCount").textContent = `${script.length ? currentIndex + 1 : 0} / ${script.length}`;-->
+<!--        }-->
+
+<!--        /* 渲染主特写：支持单人特写 & 双镜头对辩分屏 */-->
+<!--        function renderFocus(index) {-->
+<!--            if (!script.length) return;-->
+<!--            const currentItem = script[index];-->
+<!--            const deb = roster.find(d => d.role === currentItem.roleOrName || d.name === currentItem.roleOrName) || {-->
+<!--                role: currentItem.roleOrName,-->
+<!--                name: currentItem.roleOrName,-->
+<!--                faction: "host",-->
+<!--                avatar: "⚖️",-->
+<!--                avatarType: "text"-->
+<!--            };-->
+
+<!--            // 清理上一轮激活状态-->
+<!--            document.querySelectorAll(".seat-card").forEach(s => s.classList.remove("speaking"));-->
+<!--            const hostPodium = document.getElementById("hostPodium");-->
+<!--            if (hostPodium) hostPodium.classList.remove("speaking");-->
+
+<!--            // 自由辩论红蓝交替灯重设-->
+<!--            const affHud = document.getElementById("affTeamHud");-->
+<!--            const negHud = document.getElementById("negTeamHud");-->
+<!--            affHud.classList.remove("active-turn");-->
+<!--            negHud.classList.remove("active-turn");-->
+
+<!--            if (deb.faction === 'aff') affHud.classList.add("active-turn");-->
+<!--            if (deb.faction === 'neg') negHud.classList.add("active-turn");-->
+
+<!--            // 阶段标签-->
+<!--            const stageTag = document.getElementById("currentStageTag");-->
+<!--            stageTag.textContent = currentItem.stage || (deb.role === "主席" ? "主持发言" : "阶段交锋");-->
+
+<!--            // 点亮席位-->
+<!--            if (deb.role === "主席") {-->
+<!--                if (hostPodium) hostPodium.classList.add("speaking");-->
+<!--            } else {-->
+<!--                const seatCard = document.getElementById(`seat-${deb.role}`);-->
+<!--                if (seatCard) seatCard.classList.add("speaking");-->
+<!--            }-->
+
+<!--            // 双镜头分屏 vs 单镜头判断-->
+<!--            const singleLayout = document.getElementById("singleFocusLayout");-->
+<!--            const splitLayout = document.getElementById("splitVsLayout");-->
+<!--            const camBadge = document.getElementById("camBadge");-->
+
+<!--            if (currentItem.mode === "split" || currentItem.opponent) {-->
+<!--                // 启用双镜头分屏-->
+<!--                singleLayout.style.display = "none";-->
+<!--                splitLayout.style.display = "grid";-->
+<!--                camBadge.innerHTML = `<span></span> VS 实时攻辩对决镜头`;-->
+
+<!--                // 找到正方与反方辩手-->
+<!--                let affDeb = deb.faction === 'aff' ? deb : null;-->
+<!--                let negDeb = deb.faction === 'neg' ? deb : null;-->
+
+<!--                if (currentItem.opponent) {-->
+<!--                    const opp = roster.find(d => d.role === currentItem.opponent || d.name === currentItem.opponent);-->
+<!--                    if (opp) {-->
+<!--                        if (opp.faction === 'aff') affDeb = opp;-->
+<!--                        if (opp.faction === 'neg') negDeb = opp;-->
+<!--                    }-->
+<!--                }-->
+
+<!--                // 兜底找一个对家-->
+<!--                if (!affDeb) affDeb = roster.find(d => d.faction === 'aff');-->
+<!--                if (!negDeb) negDeb = roster.find(d => d.faction === 'neg');-->
+
+<!--                // 赋值左侧正方-->
+<!--                document.getElementById("splitAffName").textContent = affDeb.name;-->
+<!--                document.getElementById("splitAffRole").textContent = affDeb.role;-->
+<!--                document.getElementById("splitAffAvatar").innerHTML = affDeb.avatarType === 'img' ? `<img src="${affDeb.avatar}">` : affDeb.avatar;-->
+
+<!--                // 赋值右侧反方-->
+<!--                document.getElementById("splitNegName").textContent = negDeb.name;-->
+<!--                document.getElementById("splitNegRole").textContent = negDeb.role;-->
+<!--                document.getElementById("splitNegAvatar").innerHTML = negDeb.avatarType === 'img' ? `<img src="${negDeb.avatar}">` : negDeb.avatar;-->
+
+<!--                // 高亮正在说话的一方-->
+<!--                const splitAffSide = document.getElementById("splitAffSide");-->
+<!--                const splitNegSide = document.getElementById("splitNegSide");-->
+<!--                splitAffSide.classList.remove("active-speaking");-->
+<!--                splitNegSide.classList.remove("active-speaking");-->
+
+<!--                if (deb.faction === 'aff') splitAffSide.classList.add("active-speaking");-->
+<!--                else splitNegSide.classList.add("active-speaking");-->
+
+<!--            } else {-->
+<!--                // 还原单人镜头-->
+<!--                singleLayout.style.display = "flex";-->
+<!--                splitLayout.style.display = "none";-->
+<!--                camBadge.innerHTML = `<span></span> LIVE 席位特写`;-->
+
+<!--                const avatarWrap = document.getElementById("focusAvatar");-->
+<!--                avatarWrap.innerHTML = deb.avatarType === 'img' ? `<img src="${deb.avatar}">` : deb.avatar;-->
+<!--                document.getElementById("focusName").textContent = deb.name;-->
+
+<!--                const tagEl = document.getElementById("focusRoleTag");-->
+<!--                if (deb.role === "主席") {-->
+<!--                    tagEl.textContent = "⚖️ 辩论主席";-->
+<!--                    tagEl.style.background = "rgba(245, 158, 11, 0.2)";-->
+<!--                    tagEl.style.color = "var(&#45;&#45;host)";-->
+<!--                    avatarWrap.style.borderColor = "var(&#45;&#45;host)";-->
+<!--                } else if (deb.faction === "aff") {-->
+<!--                    tagEl.textContent = `🔷 ${deb.role}`;-->
+<!--                    tagEl.style.background = "rgba(2, 132, 199, 0.2)";-->
+<!--                    tagEl.style.color = "#38bdf8";-->
+<!--                    avatarWrap.style.borderColor = "var(&#45;&#45;aff)";-->
+<!--                } else {-->
+<!--                    tagEl.textContent = `🔴 ${deb.role}`;-->
+<!--                    tagEl.style.background = "rgba(225, 29, 72, 0.2)";-->
+<!--                    tagEl.style.color = "#fb7185";-->
+<!--                    avatarWrap.style.borderColor = "var(&#45;&#45;neg)";-->
+<!--                }-->
+<!--            }-->
+
+<!--            document.getElementById("focusText").textContent = currentItem.text;-->
+
+<!--            // 滚动列表高亮-->
+<!--            document.querySelectorAll(".script-item").forEach(el => el.classList.remove("active"));-->
+<!--            const activeScriptEl = document.getElementById(`script-item-${index}`);-->
+<!--            if (activeScriptEl) {-->
+<!--                activeScriptEl.classList.add("active");-->
+<!--                activeScriptEl.scrollIntoView({ behavior: "smooth", block: "nearest" });-->
+<!--            }-->
+
+<!--            document.getElementById("scriptCount").textContent = `${index + 1} / ${script.length}`;-->
+
+<!--            // 重设倒计时牌-->
+<!--            startSpeechCountdown(currentItem.text);-->
+
+<!--            speakLine(deb, currentItem.text);-->
+<!--        }-->
+
+<!--        /* 单句倒计时表 */-->
+<!--        function startSpeechCountdown(text) {-->
+<!--            clearInterval(countdownTimer);-->
+<!--            const badge = document.getElementById("speechTimerBadge");-->
+<!--            const label = document.getElementById("speechTimerText");-->
+<!--            badge.classList.remove("urgent");-->
+
+<!--            // 根据字数推算发言预设时长（每秒约4个字）-->
+<!--            speechSecondsLeft = Math.max(8, Math.round(text.length / 3.8));-->
+<!--            label.textContent = `00:${String(speechSecondsLeft).padStart(2, '0')}`;-->
+
+<!--            countdownTimer = setInterval(() => {-->
+<!--                if (!isPlaying) {-->
+<!--                    clearInterval(countdownTimer);-->
+<!--                    return;-->
+<!--                }-->
+<!--                speechSecondsLeft&#45;&#45;;-->
+<!--                if (speechSecondsLeft <= 3) badge.classList.add("urgent");-->
+<!--                if (speechSecondsLeft <= 0) {-->
+<!--                    label.textContent = "00:00";-->
+<!--                    clearInterval(countdownTimer);-->
+<!--                } else {-->
+<!--                    label.textContent = `00:${String(speechSecondsLeft).padStart(2, '0')}`;-->
+<!--                }-->
+<!--            }, 1000);-->
+<!--        }-->
+
+<!--        function speakLine(deb, text) {-->
+<!--            clearTimeout(playTimer);-->
+
+<!--            if (currentUtter) {-->
+<!--                try {-->
+<!--                    currentUtter.onend = null;-->
+<!--                    currentUtter.onerror = null;-->
+<!--                    currentUtter.onstart = null;-->
+<!--                } catch (e) {}-->
+<!--                currentUtter = null;-->
+<!--            }-->
+<!--            try { window.speechSynthesis.cancel(); } catch (e) {}-->
+
+<!--            const soundWave = document.getElementById("soundWave");-->
+<!--            const enableTTS = document.getElementById("ttsToggle").checked;-->
+<!--            const isLastLine = (currentIndex >= script.length - 1);-->
+
+<!--            speakToken++;-->
+<!--            const myToken = speakToken;-->
+
+<!--            const handleFinish = () => {-->
+<!--                if (myToken !== speakToken) return;-->
+<!--                soundWave.classList.remove("active");-->
+<!--                clearInterval(countdownTimer);-->
+<!--                if (!isPlaying) return;-->
+
+<!--                if (isLastLine) {-->
+<!--                    stopPlay();-->
+<!--                    if (isRecording) {-->
+<!--                        setTimeout(() => { if (isRecording) stopRecording(); }, 1500);-->
+<!--                    }-->
+<!--                    return;-->
+<!--                }-->
+
+<!--                playTimer = setTimeout(() => {-->
+<!--                    if (isPlaying) nextDialogue();-->
+<!--                }, speechDelay * 1000);-->
+<!--            };-->
+
+<!--            if (!enableTTS) {-->
+<!--                soundWave.classList.remove("active");-->
+<!--                if (isPlaying) {-->
+<!--                    const fallbackTime = Math.max(1200, text.length * 150);-->
+<!--                    playTimer = setTimeout(handleFinish, fallbackTime);-->
+<!--                }-->
+<!--                return;-->
+<!--            }-->
+
+<!--            const utter = new SpeechSynthesisUtterance(text);-->
+<!--            if (deb.voiceURI) {-->
+<!--                const voice = availableVoices.find(v => v.voiceURI === deb.voiceURI);-->
+<!--                if (voice) utter.voice = voice;-->
+<!--            }-->
+
+<!--            utter.onstart = () => {-->
+<!--                if (myToken !== speakToken) return;-->
+<!--                soundWave.classList.add("active");-->
+<!--            };-->
+<!--            utter.onend = handleFinish;-->
+<!--            utter.onerror = handleFinish;-->
+
+<!--            currentUtter = utter;-->
+
+<!--            try {-->
+<!--                window.speechSynthesis.speak(utter);-->
+<!--            } catch (e) {-->
+<!--                handleFinish();-->
+<!--            }-->
+<!--        }-->
+
+<!--        function focusSpeaker(role) {-->
+<!--            const idx = script.findIndex(s => s.roleOrName === role);-->
+<!--            if (idx !== -1) jumpTo(idx);-->
+<!--        }-->
+
+<!--        function jumpTo(index) {-->
+<!--            currentIndex = index;-->
+<!--            renderFocus(currentIndex);-->
+<!--        }-->
+
+<!--        function nextDialogue() {-->
+<!--            if (!script.length) return;-->
+<!--            if (currentIndex >= script.length - 1) {-->
+<!--                stopPlay();-->
+<!--                return;-->
+<!--            }-->
+<!--            currentIndex++;-->
+<!--            renderFocus(currentIndex);-->
+<!--        }-->
+
+<!--        function prevDialogue() {-->
+<!--            if (!script.length) return;-->
+<!--            currentIndex = (currentIndex - 1 + script.length) % script.length;-->
+<!--            renderFocus(currentIndex);-->
+<!--        }-->
+
+<!--        function togglePlay() {-->
+<!--            if (isPlaying) stopPlay();-->
+<!--            else startPlay();-->
+<!--        }-->
+
+<!--        function startPlay() {-->
+<!--            if (!script.length) return;-->
+<!--            if (currentIndex >= script.length - 1) currentIndex = 0;-->
+<!--            isPlaying = true;-->
+<!--            const btn = document.getElementById("togglePlayBtn");-->
+<!--            btn.textContent = "⏸ 暂停比赛";-->
+<!--            btn.classList.add("danger");-->
+<!--            btn.classList.remove("primary");-->
+<!--            renderFocus(currentIndex);-->
+
+<!--            // 自由辩论红蓝交替倒计时-->
+<!--            clearInterval(chessInterval);-->
+<!--            chessInterval = setInterval(() => {-->
+<!--                if (!isPlaying) return;-->
+<!--                const cur = script[currentIndex];-->
+<!--                if (!cur) return;-->
+<!--                const deb = roster.find(d => d.role === cur.roleOrName || d.name === cur.roleOrName);-->
+<!--                if (deb && deb.faction === 'aff' && affTimeRemain > 0) {-->
+<!--                    affTimeRemain&#45;&#45;;-->
+<!--                    updateChessDisplay();-->
+<!--                } else if (deb && deb.faction === 'neg' && negTimeRemain > 0) {-->
+<!--                    negTimeRemain&#45;&#45;;-->
+<!--                    updateChessDisplay();-->
+<!--                }-->
+<!--            }, 1000);-->
+<!--        }-->
+
+<!--        function updateChessDisplay() {-->
+<!--            const pad = n => String(n).padStart(2, '0');-->
+<!--            document.getElementById("affChessTimer").textContent = `${pad(Math.floor(affTimeRemain/60))}:${pad(affTimeRemain%60)}`;-->
+<!--            document.getElementById("negChessTimer").textContent = `${pad(Math.floor(negTimeRemain/60))}:${pad(negTimeRemain%60)}`;-->
+<!--        }-->
+
+<!--        function stopPlay() {-->
+<!--            isPlaying = false;-->
+<!--            clearTimeout(playTimer);-->
+<!--            clearInterval(countdownTimer);-->
+<!--            clearInterval(chessInterval);-->
+<!--            try { window.speechSynthesis.cancel(); } catch (e) {}-->
+<!--            const sw = document.getElementById("soundWave");-->
+<!--            if (sw) sw.classList.remove("active");-->
+<!--            const btn = document.getElementById("togglePlayBtn");-->
+<!--            if (btn) {-->
+<!--                btn.textContent = "▶ 开始辩论";-->
+<!--                btn.classList.remove("danger");-->
+<!--                btn.classList.add("primary");-->
+<!--            }-->
+<!--        }-->
+
+<!--        function updateSpeechDelay(val) {-->
+<!--            speechDelay = parseFloat(val);-->
+<!--            document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";-->
+<!--            localStorage.setItem(STORAGE_KEY_DELAY, speechDelay);-->
+<!--        }-->
+
+<!--        /* ========== 辩手阵容与音色配置模态框 ========== */-->
+<!--        function openRosterModal() {-->
+<!--            tempRosterEditing = JSON.parse(JSON.stringify(roster));-->
+<!--            renderRosterEditTable();-->
+<!--            document.getElementById("rosterModal").classList.add("show");-->
+<!--        }-->
+
+<!--        function renderRosterEditTable() {-->
+<!--            const tbody = document.getElementById("rosterTableBody");-->
+<!--            tbody.innerHTML = "";-->
+<!--            const chineseVoices = getChineseVoices();-->
+
+<!--            tempRosterEditing.forEach((deb, index) => {-->
+<!--                const tr = document.createElement("tr");-->
+
+<!--                let voiceOptions = `<option value="">&#45;&#45; 系统默认普通话 &#45;&#45;</option>`;-->
+<!--                chineseVoices.forEach(v => {-->
+<!--                    const sel = v.voiceURI === deb.voiceURI ? "selected" : "";-->
+<!--                    voiceOptions += `<option value="${v.voiceURI}" ${sel}>${v.name} (${v.lang})</option>`;-->
+<!--                });-->
+
+<!--                const avatarPreview = deb.avatarType === 'img' ? `<img src="${deb.avatar}">` : deb.avatar;-->
+
+<!--                tr.innerHTML = `-->
+<!--                    <td>-->
+<!--                        <div class="avatar-preview-box">-->
+<!--                            <div class="avatar-preview" id="roster-prev-${index}">${avatarPreview}</div>-->
+<!--                            <label class="btn" style="padding: 2px 5px; font-size:0.65rem;">-->
+<!--                                传图-->
+<!--                                <input type="file" accept="image/*" style="display:none;" onchange="handleDebaterAvatarUpload(event, ${index})">-->
+<!--                            </label>-->
+<!--                        </div>-->
+<!--                    </td>-->
+<!--                    <td style="font-weight:bold; font-size:0.75rem;">${deb.role}</td>-->
+<!--                    <td><input class="debater-input" type="text" value="${deb.name}" onchange="handleNameChange(${index}, this.value)"></td>-->
+<!--                    <td>-->
+<!--                        <select class="debater-select" onchange="tempRosterEditing[${index}].faction = this.value" ${deb.role==='主席'?'disabled':''}>-->
+<!--                            <option value="aff" ${deb.faction==='aff'?'selected':''}>正方</option>-->
+<!--                            <option value="neg" ${deb.faction==='neg'?'selected':''}>反方</option>-->
+<!--                            <option value="host" ${deb.faction==='host'?'selected':''}>主席</option>-->
+<!--                        </select>-->
+<!--                    </td>-->
+<!--                    <td>-->
+<!--                        <div class="voice-cell">-->
+<!--                            <select class="debater-select" id="roster-voice-${index}" onchange="tempRosterEditing[${index}].voiceURI = this.value">-->
+<!--                                ${voiceOptions}-->
+<!--                            </select>-->
+<!--                            <button class="btn preview-btn" onclick="previewRosterVoice(${index})">🔊 试听</button>-->
+<!--                        </div>-->
+<!--                    </td>-->
+<!--                `;-->
+<!--                tbody.appendChild(tr);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function handleNameChange(index, newName) {-->
+<!--            tempRosterEditing[index].name = newName;-->
+<!--            // 若名字是常见星座名且没上传图片，则自动匹配星座 Emoji-->
+<!--            if (tempRosterEditing[index].avatarType === 'text') {-->
+<!--                for (const [zName, emoji] of Object.entries(ZODIAC_AVATARS)) {-->
+<!--                    if (newName.includes(zName.replace("座", ""))) {-->
+<!--                        tempRosterEditing[index].avatar = emoji;-->
+<!--                        const p = document.getElementById(`roster-prev-${index}`);-->
+<!--                        if (p) p.textContent = emoji;-->
+<!--                        break;-->
+<!--                    }-->
+<!--                }-->
+<!--            }-->
+<!--        }-->
+
+<!--        function previewRosterVoice(index) {-->
+<!--            const deb = tempRosterEditing[index];-->
+<!--            if (!deb) return;-->
+
+<!--            if (!('speechSynthesis' in window)) {-->
+<!--                alert("当前浏览器不支持TTS语音！");-->
+<!--                return;-->
+<!--            }-->
+<!--            if (isPlaying) stopPlay();-->
+
+<!--            previewToken++;-->
+<!--            const token = previewToken;-->
+<!--            try { window.speechSynthesis.cancel(); } catch (e) {}-->
+
+<!--            const selectEl = document.getElementById(`roster-voice-${index}`);-->
+<!--            const voiceURI = selectEl ? selectEl.value : deb.voiceURI;-->
+<!--            const utter = new SpeechSynthesisUtterance(`大家好，我是${deb.role}${deb.name}。这就是我在思辨赛场上的专属声音！`);-->
+
+<!--            const voice = availableVoices.find(v => v.voiceURI === voiceURI);-->
+<!--            if (voice) utter.voice = voice;-->
+<!--            utter.lang = "zh-CN";-->
+
+<!--            window.speechSynthesis.speak(utter);-->
+<!--        }-->
+
+<!--        function handleDebaterAvatarUpload(e, index) {-->
+<!--            const file = e.target.files[0];-->
+<!--            if (!file) return;-->
+<!--            const reader = new FileReader();-->
+<!--            reader.onload = (evt) => {-->
+<!--                tempRosterEditing[index].avatar = evt.target.result;-->
+<!--                tempRosterEditing[index].avatarType = 'img';-->
+<!--                const p = document.getElementById(`roster-prev-${index}`);-->
+<!--                if (p) p.innerHTML = `<img src="${evt.target.result}">`;-->
+<!--            };-->
+<!--            reader.readAsDataURL(file);-->
+<!--        }-->
+
+<!--        function resetDefaultRoster() {-->
+<!--            if (confirm("是否恢复系统初始的12星座标准辩手设定？")) {-->
+<!--                tempRosterEditing = JSON.parse(JSON.stringify(DEFAULT_ROSTER));-->
+<!--                renderRosterEditTable();-->
+<!--            }-->
+<!--        }-->
+
+<!--        function saveRoster() {-->
+<!--            roster = JSON.parse(JSON.stringify(tempRosterEditing));-->
+<!--            persistRoster();-->
+<!--            closeModal('rosterModal');-->
+<!--            renderDebateHall();-->
+<!--            renderScriptList();-->
+<!--            renderFocus(currentIndex);-->
+<!--        }-->
+
+<!--        /* ========== 剧本编辑与 TXT 智能导入 ========== */-->
+<!--        function openScriptModal() {-->
+<!--            renderScriptEditor();-->
+<!--            document.getElementById("scriptModal").classList.add("show");-->
+<!--        }-->
+
+<!--        function renderScriptEditor() {-->
+<!--            const container = document.getElementById("scriptEditList");-->
+<!--            container.innerHTML = "";-->
+
+<!--            script.forEach((item, index) => {-->
+<!--                const row = document.createElement("div");-->
+<!--                row.className = "script-edit-item";-->
+
+<!--                let options = "";-->
+<!--                roster.forEach(d => {-->
+<!--                    const sel = (d.role === item.roleOrName || d.name === item.roleOrName) ? 'selected' : '';-->
+<!--                    options += `<option value="${d.role}" ${sel}>${d.role} (${d.name})</option>`;-->
+<!--                });-->
+
+<!--                row.innerHTML = `-->
+<!--                    <select class="debater-select" style="width: 140px;" onchange="script[${index}].roleOrName = this.value">-->
+<!--                        ${options}-->
+<!--                    </select>-->
+<!--                    <textarea class="debater-input" style="flex:1; height:38px; resize:none;" onchange="script[${index}].text = this.value">${item.text}</textarea>-->
+<!--                    <button class="btn" style="color:#ff4757;" onclick="deleteScriptLine(${index})">×</button>-->
+<!--                `;-->
+<!--                container.appendChild(row);-->
+<!--            });-->
+<!--        }-->
+
+<!--        function addNewScriptLine() {-->
+<!--            script.push({ roleOrName: "正方一辩", text: "对方辩友请正视我方的核心事实...", stage: "攻辩交锋" });-->
+<!--            renderScriptEditor();-->
+<!--        }-->
+
+<!--        function deleteScriptLine(index) {-->
+<!--            script.splice(index, 1);-->
+<!--            renderScriptEditor();-->
+<!--        }-->
+
+<!--        function saveScriptEdits() {-->
+<!--            closeModal('scriptModal');-->
+<!--            currentIndex = 0;-->
+<!--            renderScriptList();-->
+<!--            renderFocus(0);-->
+<!--        }-->
+
+<!--        function downloadTemplate() {-->
+<!--            const templateText =-->
+<!--`# ⚖️ 华语辩论联赛·智能台本导入规范-->
+<!--# 支持格式：【角色(辩手名): 台词】 或 【辩手名: 台词】 或 【席位: 台词】-->
+<!--# 系统会自动根据前缀识别主席、正方一至四辩、反方一至四辩，并自动提取括号里的星座或名字！-->
+<!--# 包含“质询/自由辩论”环节时会自动开启双镜头分屏。-->
+
+<!--主席(天秤座): 欢迎来到辩论赛现场！-->
+<!--正方一辩(白羊座): 谢谢主席，我方坚信应当勇敢追求诗与远方！-->
+<!--反方一辩(金牛座): 对方辩友不要空谈情怀，搞钱才是立足之本！-->
+<!--[攻辩质询] 正方三辩(狮子座): 请问反方，如果人人都只看利益，世界何来探索？-->
+<!--[攻辩质询] 反方三辩(天蝎座): 我正面回答你：生存不保，谈何探索！-->
+<!--[总结陈词] 反方四辩(摩羯座): 综上所述，先有物质基础才有底气谈浪漫。-->
+<!--[总结陈词] 正方四辩(水瓶座): 综上所述，人生的辽阔不应被存折定义！-->
+<!--主席(天秤座): 感谢双方辩手，辩论圆满结束！-->
+<!--`;-->
+<!--            const blob = new Blob([templateText], { type: "text/plain;charset=utf-8" });-->
+<!--            const url = URL.createObjectURL(blob);-->
+<!--            const a = document.createElement("a");-->
+<!--            a.href = url;-->
+<!--            a.download = "辩论赛剧本模板.txt";-->
+<!--            a.click();-->
+<!--            URL.revokeObjectURL(url);-->
+<!--        }-->
+
+<!--        /* 智能解析导入并自动更新8位辩手与主席 */-->
+<!--        function importScriptTxt(e) {-->
+<!--            const file = e.target.files[0];-->
+<!--            if (!file) return;-->
+<!--            const reader = new FileReader();-->
+<!--            reader.onload = function(evt) {-->
+<!--                const lines = evt.target.result.split(/\r?\n/);-->
+<!--                const newScript = [];-->
+
+<!--                // 辩位对应表-->
+<!--                const roleKeys = ["正方一辩", "正方二辩", "正方三辩", "正方四辩", "反方一辩", "反方二辩", "反方三辩", "反方四辩", "主席"];-->
+<!--                const detectedRoles = {};-->
+
+<!--                lines.forEach(line => {-->
+<!--                    let trimmed = line.trim();-->
+<!--                    if (!trimmed || trimmed.startsWith("#")) return;-->
+
+<!--                    let stage = "激烈交锋";-->
+<!--                    let mode = "single";-->
+
+<!--                    // 识别 [阶段]-->
+<!--                    const stageMatch = trimmed.match(/^\[(.*?)\]/);-->
+<!--                    if (stageMatch) {-->
+<!--                        stage = stageMatch[1];-->
+<!--                        trimmed = trimmed.replace(/^\[(.*?)\]/, '').trim();-->
+<!--                        if (stage.includes("质询") || stage.includes("自由辩论") || stage.includes("攻辩")) {-->
+<!--                            mode = "split";-->
+<!--                        }-->
+<!--                    }-->
+
+<!--                    const splitIdx = trimmed.indexOf(":") !== -1 ? trimmed.indexOf(":") : trimmed.indexOf("：");-->
+<!--                    if (splitIdx !== -1) {-->
+<!--                        let header = trimmed.substring(0, splitIdx).trim();-->
+<!--                        const text = trimmed.substring(splitIdx + 1).trim();-->
+
+<!--                        // 尝试提取 "席位(辩手名)" 例如 "正方一辩(白羊座)" 或 "白羊座"-->
+<!--                        let role = "";-->
+<!--                        let name = "";-->
+<!--                        const bracketMatch = header.match(/(.*?)[(（](.*?)[)）]/);-->
+
+<!--                        if (bracketMatch) {-->
+<!--                            const part1 = bracketMatch[1].trim();-->
+<!--                            const part2 = bracketMatch[2].trim();-->
+<!--                            if (roleKeys.includes(part1)) { role = part1; name = part2; }-->
+<!--                            else if (roleKeys.includes(part2)) { role = part2; name = part1; }-->
+<!--                            else { role = part1; name = part2; }-->
+<!--                        } else {-->
+<!--                            if (roleKeys.includes(header)) role = header;-->
+<!--                            else name = header;-->
+<!--                        }-->
+
+<!--                        // 记录更新到席位-->
+<!--                        if (role && name && roleKeys.includes(role)) {-->
+<!--                            detectedRoles[role] = name;-->
+<!--                        }-->
+
+<!--                        newScript.push({-->
+<!--                            roleOrName: role || name,-->
+<!--                            text: text,-->
+<!--                            stage: stage,-->
+<!--                            mode: mode-->
+<!--                        });-->
+<!--                    }-->
+<!--                });-->
+
+<!--                if (newScript.length === 0) {-->
+<!--                    alert("未能解析出辩词，请检查格式是否为【席位(辩手名): 台词】！");-->
+<!--                    return;-->
+<!--                }-->
+
+<!--                // 自动更新已识别到的8位辩手和主席的名字/星座Emoji-->
+<!--                let rosterUpdatedCount = 0;-->
+<!--                for (const [rRole, rName] of Object.entries(detectedRoles)) {-->
+<!--                    const target = roster.find(d => d.role === rRole);-->
+<!--                    if (target) {-->
+<!--                        target.name = rName;-->
+<!--                        // 尝试星座头像-->
+<!--                        for (const [zName, emoji] of Object.entries(ZODIAC_AVATARS)) {-->
+<!--                            if (rName.includes(zName.replace("座", ""))) {-->
+<!--                                target.avatar = emoji;-->
+<!--                                target.avatarType = 'text';-->
+<!--                                break;-->
+<!--                            }-->
+<!--                        }-->
+<!--                        rosterUpdatedCount++;-->
+<!--                    }-->
+<!--                }-->
+
+<!--                if (rosterUpdatedCount > 0) persistRoster();-->
+
+<!--                script = newScript;-->
+<!--                stopPlay();-->
+<!--                currentIndex = 0;-->
+<!--                renderDebateHall();-->
+<!--                renderScriptList();-->
+<!--                renderFocus(0);-->
+<!--                alert(`✅ 成功载入 ${script.length} 句辩论台词！已自动识别并同步更新辩手席位！`);-->
+<!--            };-->
+<!--            reader.readAsText(file, "UTF-8");-->
+<!--            e.target.value = "";-->
+<!--        }-->
+
+<!--        /* 配置文件管理 */-->
+<!--        function exportConfigFile() {-->
+<!--            const config = {-->
+<!--                type: "DebateStudioConfigPro",-->
+<!--                motion: motionTitle,-->
+<!--                speechDelay: speechDelay,-->
+<!--                roster: roster-->
+<!--            };-->
+<!--            const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });-->
+<!--            const url = URL.createObjectURL(blob);-->
+<!--            const a = document.createElement("a");-->
+<!--            a.href = url;-->
+<!--            a.download = "debate_studio_config.json";-->
+<!--            a.click();-->
+<!--            URL.revokeObjectURL(url);-->
+<!--        }-->
+
+<!--        function importConfigFile(e) {-->
+<!--            const file = e.target.files[0];-->
+<!--            if (!file) return;-->
+<!--            const reader = new FileReader();-->
+<!--            reader.onload = function(evt) {-->
+<!--                try {-->
+<!--                    const cfg = JSON.parse(evt.target.result);-->
+<!--                    if (cfg.roster) {-->
+<!--                        roster = cfg.roster;-->
+<!--                        if (cfg.motion) {-->
+<!--                            motionTitle = cfg.motion;-->
+<!--                            document.getElementById("motionTitle").textContent = motionTitle;-->
+<!--                            localStorage.setItem(STORAGE_KEY_MOTION, motionTitle);-->
+<!--                        }-->
+<!--                        if (cfg.speechDelay) {-->
+<!--                            speechDelay = cfg.speechDelay;-->
+<!--                            document.getElementById("speechDelayRange").value = speechDelay;-->
+<!--                            document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";-->
+<!--                        }-->
+<!--                        persistRoster();-->
+<!--                        renderDebateHall();-->
+<!--                        renderScriptList();-->
+<!--                        renderFocus(currentIndex);-->
+<!--                        alert("✅ 成功载入辩论赛配置！");-->
+<!--                    }-->
+<!--                } catch(err) {-->
+<!--                    alert("配置文件解析失败，请检查格式！");-->
+<!--                }-->
+<!--            };-->
+<!--            reader.readAsText(file, "UTF-8");-->
+<!--            e.target.value = "";-->
+<!--        }-->
+
+<!--        /* ================= 🎥 视频录制核心（防静音与区域缩放） ================= */-->
+<!--        async function toggleRecording() {-->
+<!--            if (isRecording) stopRecording();-->
+<!--            else await startRecording();-->
+<!--        }-->
+
+<!--        async function startRecording() {-->
+<!--            if (!navigator.mediaDevices?.getDisplayMedia) {-->
+<!--                alert("当前浏览器不支持屏幕捕获录制！");-->
+<!--                return;-->
+<!--            }-->
+
+<!--            const ok = confirm(-->
+<!--                "🎥 辩论赛转播录制操作提醒：\n\n" +-->
+<!--                "1. 在弹出的系统分享窗口中，点击选择「整个屏幕」\n" +-->
+<!--                "2. 务必勾选左下角「分享系统音频」！\n" +-->
+<!--                "3. 点击分享后，系统会自动开始演播并录制成视频。"-->
+<!--            );-->
+<!--            if (!ok) return;-->
+
+<!--            try {-->
+<!--                displayStream = await navigator.mediaDevices.getDisplayMedia({-->
+<!--                    video: { frameRate: 30 },-->
+<!--                    audio: true-->
+<!--                });-->
+
+<!--                try {-->
+<!--                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });-->
+<!--                } catch (e) {-->
+<!--                    micStream = null;-->
+<!--                }-->
+
+<!--                const displayAudioTracks = displayStream.getAudioTracks();-->
+<!--                const hasSystemAudio = displayAudioTracks.length > 0;-->
+<!--                const hasMicAudio = micStream && micStream.getAudioTracks().length > 0;-->
+
+<!--                if (!isPlaying) startPlay();-->
+<!--                await new Promise(r => setTimeout(r, 400));-->
+
+<!--                const srcVideo = document.createElement("video");-->
+<!--                srcVideo.srcObject = displayStream;-->
+<!--                srcVideo.muted = true;-->
+<!--                srcVideo.playsInline = true;-->
+<!--                await srcVideo.play();-->
+
+<!--                const videoW = srcVideo.videoWidth || window.innerWidth;-->
+<!--                const videoH = srcVideo.videoHeight || window.innerHeight;-->
+
+<!--                const hallEl = document.getElementById("hallViewport");-->
+<!--                const rect = hallEl.getBoundingClientRect();-->
+
+<!--                const sx = videoW / window.innerWidth;-->
+<!--                const sy = videoH / window.innerHeight;-->
+<!--                const srcX = Math.max(0, rect.left * sx);-->
+<!--                const srcY = Math.max(0, rect.top * sy);-->
+<!--                const srcW = Math.min(videoW - srcX, rect.width * sx);-->
+<!--                const srcH = Math.min(videoH - srcY, rect.height * sy);-->
+
+<!--                let outW = 1280;-->
+<!--                let outH = Math.round(outW / (srcW / srcH));-->
+<!--                outW -= (outW % 2);-->
+<!--                outH -= (outH % 2);-->
+
+<!--                recordCanvas = document.createElement("canvas");-->
+<!--                recordCanvas.width = outW;-->
+<!--                recordCanvas.height = outH;-->
+<!--                const ctx = recordCanvas.getContext("2d", { alpha: false });-->
+
+<!--                drawingCanvas = true;-->
+<!--                const drawLoop = () => {-->
+<!--                    if (!drawingCanvas) return;-->
+<!--                    ctx.drawImage(srcVideo, srcX, srcY, srcW, srcH, 0, 0, outW, outH);-->
+<!--                    requestAnimationFrame(drawLoop);-->
+<!--                };-->
+<!--                drawLoop();-->
+
+<!--                const canvasStream = recordCanvas.captureStream(30);-->
+<!--                const canvasVideoTrack = canvasStream.getVideoTracks()[0];-->
+
+<!--                let audioTracks = [];-->
+<!--                recordAudioSourceNodes = [];-->
+<!--                recordAudioInputNodes = [];-->
+<!--                recordInputMediaStreams = [];-->
+
+<!--                if (hasSystemAudio || hasMicAudio) {-->
+<!--                    try {-->
+<!--                        audioContext = new (window.AudioContext || window.webkitAudioContext)();-->
+<!--                        mixedAudioDestination = audioContext.createMediaStreamDestination();-->
+
+<!--                        if (hasSystemAudio) {-->
+<!--                            const sysStream = new MediaStream(displayAudioTracks);-->
+<!--                            recordInputMediaStreams.push(sysStream);-->
+<!--                            const sysNode = audioContext.createMediaStreamSource(sysStream);-->
+<!--                            sysNode.connect(mixedAudioDestination);-->
+<!--                            recordAudioSourceNodes.push(sysNode);-->
+<!--                        }-->
+<!--                        if (hasMicAudio) {-->
+<!--                            const micIn = new MediaStream(micStream.getAudioTracks());-->
+<!--                            recordInputMediaStreams.push(micIn);-->
+<!--                            const micNode = audioContext.createMediaStreamSource(micIn);-->
+<!--                            micNode.connect(mixedAudioDestination);-->
+<!--                            recordAudioSourceNodes.push(micNode);-->
+<!--                        }-->
+<!--                        audioTracks = mixedAudioDestination.stream.getAudioTracks();-->
+<!--                    } catch (e) {-->
+<!--                        audioTracks = hasSystemAudio ? [...displayAudioTracks] : [...micStream.getAudioTracks()];-->
+<!--                    }-->
+<!--                }-->
+
+<!--                const finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);-->
+<!--                recordOutputTracks = [canvasVideoTrack, ...audioTracks];-->
+<!--                recordingHasAudio = audioTracks.length > 0;-->
+
+<!--                const candidates = [-->
+<!--                    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',-->
+<!--                    'video/mp4',-->
+<!--                    'video/webm;codecs=h264,opus',-->
+<!--                    'video/webm'-->
+<!--                ];-->
+<!--                recordMimeType = candidates.find(c => MediaRecorder.isTypeSupported(c)) || 'video/webm';-->
+
+<!--                mediaRecorder = new MediaRecorder(finalStream, {-->
+<!--                    mimeType: recordMimeType,-->
+<!--                    videoBitsPerSecond: 6000000-->
+<!--                });-->
+
+<!--                recordedChunks = [];-->
+<!--                mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };-->
+<!--                mediaRecorder.onstop = () => {-->
+<!--                    const blob = new Blob(recordedChunks, { type: recordMimeType });-->
+<!--                    drawingCanvas = false;-->
+<!--                    if (audioContext) { try { audioContext.close(); } catch (e) {} audioContext = null; }-->
+<!--                    if (displayStream) { displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }-->
+<!--                    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }-->
+<!--                    showRecordingPreview(blob);-->
+<!--                };-->
+
+<!--                mediaRecorder.start(1000);-->
+<!--                isRecording = true;-->
+
+<!--                const btn = document.getElementById("recordBtn");-->
+<!--                btn.textContent = "⏹ 停止录制";-->
+<!--                btn.classList.add("recording");-->
+<!--                btn.classList.remove("record");-->
+<!--                document.getElementById("recordIndicator").classList.add("show");-->
+
+<!--            } catch (err) {-->
+<!--                console.error(err);-->
+<!--                alert("录制启动取消或发生错误！");-->
+<!--            }-->
+<!--        }-->
+
+<!--        function stopRecording() {-->
+<!--            if (mediaRecorder && mediaRecorder.state !== "inactive") {-->
+<!--                try { mediaRecorder.stop(); } catch (e) {}-->
+<!--            }-->
+<!--            isRecording = false;-->
+<!--            stopPlay();-->
+
+<!--            const btn = document.getElementById("recordBtn");-->
+<!--            if (btn) {-->
+<!--                btn.textContent = "🎥 录制比赛";-->
+<!--                btn.classList.remove("recording");-->
+<!--                btn.classList.add("record");-->
+<!--            }-->
+<!--            const ri = document.getElementById("recordIndicator");-->
+<!--            if (ri) ri.classList.remove("show");-->
+<!--        }-->
+
+<!--        function showRecordingPreview(blob) {-->
+<!--            const ext = recordMimeType.includes("mp4") ? "mp4" : "webm";-->
+<!--            const filename = `辩论赛转播_${Date.now()}.${ext}`;-->
+
+<!--            if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);-->
+<!--            previewBlobUrl = URL.createObjectURL(blob);-->
+
+<!--            const videoEl = document.getElementById("previewVideo");-->
+<!--            videoEl.src = previewBlobUrl;-->
+<!--            videoEl.volume = 1.0;-->
+
+<!--            document.getElementById("previewFilename").textContent = filename;-->
+<!--            document.getElementById("previewAudioStatus").innerHTML = recordingHasAudio-->
+<!--                ? `<span style="color:#2ed573; font-size:0.75rem; margin-left:6px;">🔊 已包含音频</span>`-->
+<!--                : `<span style="color:#fbbf24; font-size:0.75rem; margin-left:6px;">⚠️ 无音频</span>`;-->
+
+<!--            const downloadBtn = document.getElementById("previewDownloadBtn");-->
+<!--            downloadBtn.onclick = () => {-->
+<!--                const a = document.createElement("a");-->
+<!--                a.href = previewBlobUrl;-->
+<!--                a.download = filename;-->
+<!--                document.body.appendChild(a);-->
+<!--                a.click();-->
+<!--                document.body.removeChild(a);-->
+<!--            };-->
+
+<!--            document.getElementById("previewModal").classList.add("show");-->
+<!--        }-->
+
+<!--        function closePreviewModal() {-->
+<!--            const videoEl = document.getElementById("previewVideo");-->
+<!--            try { videoEl.pause(); } catch (e) {}-->
+<!--            videoEl.removeAttribute("src");-->
+<!--            if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); previewBlobUrl = null; }-->
+<!--            document.getElementById("previewModal").classList.remove("show");-->
+<!--        }-->
+
+<!--        function closeModal(id) {-->
+<!--            try { window.speechSynthesis.cancel(); } catch (e) {}-->
+<!--            document.getElementById(id).classList.remove("show");-->
+<!--        }-->
+
+<!--        function initTTSVoices() {-->
+<!--            if ('speechSynthesis' in window) {-->
+<!--                const loadVoices = () => {-->
+<!--                    availableVoices = window.speechSynthesis.getVoices();-->
+<!--                    const zhVoices = getChineseVoices();-->
+<!--                    const pool = zhVoices.length > 0 ? zhVoices : availableVoices;-->
+
+<!--                    let changed = false;-->
+<!--                    roster.forEach((deb, idx) => {-->
+<!--                        if (!deb.voiceURI && pool.length > 0) {-->
+<!--                            deb.voiceURI = pool[idx % pool.length].voiceURI;-->
+<!--                            changed = true;-->
+<!--                        }-->
+<!--                    });-->
+<!--                    if (changed) persistRoster();-->
+<!--                };-->
+<!--                loadVoices();-->
+<!--                window.speechSynthesis.onvoiceschanged = loadVoices;-->
+<!--            }-->
+<!--        }-->
+
+<!--        window.addEventListener("DOMContentLoaded", () => {-->
+<!--            loadStoredData();-->
+<!--            initTTSVoices();-->
+<!--            renderDebateHall();-->
+<!--            renderScriptList();-->
+<!--            setTimeout(() => renderFocus(0), 300);-->
+<!--        });-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->

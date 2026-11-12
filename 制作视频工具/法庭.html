@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星际最高法庭·跨次元模拟公审演播厅</title>
+    <style>
+        :root {
+            --judge-gold: #f59e0b;
+            --prosecution-blue: #0284c7;
+            --defense-purple: #a855f7;
+            --objection-red: #ef4444;
+            --bg: #060813;
+            --panel: rgba(14, 18, 36, 0.95);
+            --border: rgba(255, 255, 255, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 50% 5%, rgba(245, 158, 11, 0.22) 0%, transparent 55%),
+                radial-gradient(circle at 10% 45%, rgba(2, 132, 199, 0.18) 0%, transparent 50%),
+                radial-gradient(circle at 90% 45%, rgba(168, 85, 247, 0.18) 0%, transparent 50%),
+                linear-gradient(180deg, #090c1c 0%, #030408 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* 顶部导航控制台 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 22px;
+            background: rgba(10, 14, 28, 0.96);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(14px);
+            z-index: 50;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header-title-box h1 {
+            font-size: 1.18rem;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #38bdf8, #f59e0b, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.06);
+            color: #f1f5f9;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+        .btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+        .btn.primary { background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #000; font-weight: 800; }
+        .btn.danger { background: #e11d48; border: none; }
+        .btn.highlight { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+
+        .btn.record { border-color: rgba(225, 29, 72, 0.5); background: rgba(225, 29, 72, 0.12); color: #fda4af; }
+        .btn.recording { background: #e11d48 !important; border-color: #e11d48 !important; color: #fff !important; animation: recordPulse 1s infinite alternate; }
+        @keyframes recordPulse {
+            0% { box-shadow: 0 0 4px rgba(225, 29, 72, 0.4); }
+            100% { box-shadow: 0 0 16px rgba(225, 29, 72, 0.9); }
+        }
+
+        /* 模拟法庭主舞台网格 */
+        .stage-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 370px;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1650px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .court-viewport {
+            position: relative;
+            background: var(--panel);
+            backdrop-filter: blur(20px);
+            border-radius: 22px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 18px 22px;
+            min-height: 680px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.85);
+        }
+
+        .record-indicator {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: rgba(225, 29, 72, 0.95);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            z-index: 40;
+            box-shadow: 0 4px 14px rgba(225, 29, 72, 0.6);
+            pointer-events: none;
+        }
+        .record-indicator.show { display: flex; }
+        .record-indicator .dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0.2; } }
+
+        /* 全屏异议/反对（OBJECTION!）震动特效浮层 */
+        .objection-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(239, 68, 68, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .objection-overlay.active {
+            display: flex;
+            animation: screenShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .objection-banner {
+            background: linear-gradient(90deg, #b91c1c, #ef4444, #b91c1c);
+            color: #fff;
+            font-size: 3.5rem;
+            font-weight: 900;
+            font-style: italic;
+            padding: 12px 60px;
+            border: 4px solid #fff;
+            box-shadow: 0 0 50px rgba(239, 68, 68, 0.9);
+            transform: rotate(-6deg);
+            letter-spacing: 6px;
+            text-shadow: 0 4px 12px #000;
+            animation: zoomImpact 0.4s ease-out;
+        }
+        @keyframes zoomImpact {
+            0% { transform: rotate(-6deg) scale(2.2); opacity: 0; }
+            100% { transform: rotate(-6deg) scale(1); opacity: 1; }
+        }
+        @keyframes screenShake {
+            10%, 90% { transform: translate3d(-3px, 0, 0); }
+            20%, 80% { transform: translate3d(5px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* 顶部审判长神圣法台 */
+        .bench-top-judge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.2) 0%, rgba(20, 14, 5, 0.7) 100%);
+            border: 1.5px solid rgba(245, 158, 11, 0.5);
+            border-radius: 16px;
+            padding: 10px 20px;
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+        .judge-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .judge-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid var(--judge-gold);
+            background: #1e1b2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .judge-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .judge-meta .title { font-size: 0.65rem; color: #fbbf24; font-weight: 800; letter-spacing: 1px; }
+        .judge-meta .name { font-size: 1.05rem; font-weight: 900; color: #fff; }
+
+        /* 法槌定音动效部件 */
+        .gavel-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 12px;
+            padding: 6px 14px;
+        }
+        .gavel-icon {
+            font-size: 1.6rem;
+            transform-origin: bottom right;
+            transition: transform 0.15s ease;
+        }
+        .gavel-box.striking .gavel-icon {
+            animation: strikeGavel 0.3s cubic-bezier(.175, .885, .32, 1.275);
+        }
+        @keyframes strikeGavel {
+            0% { transform: rotate(-35deg); }
+            50% { transform: rotate(15deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .case-title {
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #f8fafc;
+            letter-spacing: 0.5px;
+        }
+
+        /* 中央三大法庭阵营区：控方席 + 证人/物证核心台 + 辩方席 */
+        .court-arena {
+            display: grid;
+            grid-template-columns: 210px 1fr 210px;
+            gap: 16px;
+            align-items: stretch;
+            margin: 14px 0;
+            position: relative;
+        }
+
+        /* 控方长桌 (公诉人) */
+        .bench-side.prosecution {
+            background: linear-gradient(180deg, rgba(2, 132, 199, 0.22) 0%, rgba(5, 18, 38, 0.95) 100%);
+            border: 2px solid rgba(2, 132, 199, 0.4);
+            border-radius: 18px;
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .bench-side.prosecution.active-speaking {
+            border-color: #38bdf8;
+            box-shadow: 0 0 30px rgba(2, 132, 199, 0.65);
+            transform: scale(1.02);
+        }
+
+        /* 辩方长桌 (辩护人与被告) */
+        .bench-side.defense {
+            background: linear-gradient(180deg, rgba(168, 85, 247, 0.22) 0%, rgba(28, 10, 42, 0.95) 100%);
+            border: 2px solid rgba(168, 85, 247, 0.4);
+            border-radius: 18px;
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .bench-side.defense.active-speaking {
+            border-color: #c084fc;
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.65);
+            transform: scale(1.02);
+        }
+
+        .side-badge {
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 3px 10px;
+            border-radius: 8px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .prosecution .side-badge { background: #0284c7; color: #fff; }
+        .defense .side-badge { background: #a855f7; color: #fff; }
+
+        .side-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2.5px solid;
+            background: #10162e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin-bottom: 6px;
+            overflow: hidden;
+        }
+        .side-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .prosecution .side-avatar { border-color: #38bdf8; box-shadow: 0 0 15px rgba(2, 132, 199, 0.5); }
+        .defense .side-avatar { border-color: #c084fc; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
+
+        /* 中央证人席与全息物证台 */
+        .witness-stand {
+            background: rgba(8, 12, 26, 0.95);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.85);
+            position: relative;
+            transition: all 0.3s;
+        }
+        .witness-stand.active-witness {
+            border-color: #f59e0b;
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.4);
+        }
+
+        .witness-header-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .speaker-intro {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .speaker-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: #181d38;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .speaker-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .speaker-info .name { font-size: 1.15rem; font-weight: 900; color: #fff; }
+        .speaker-info .role-tag {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-top: 3px;
+        }
+
+        /* 呈堂证物徽标 */
+        .evidence-card {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 10px;
+            padding: 4px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .sound-wave {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            height: 12px;
+            align-items: flex-end;
+            margin: 6px 0;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .sound-wave.active { opacity: 1; }
+        .wave-bar {
+            width: 3px;
+            background: #38bdf8;
+            border-radius: 2px;
+            animation: waveAnim 0.35s ease-in-out infinite alternate;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.08s; height: 10px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.16s; height: 14px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.24s; height: 7px; }
+        @keyframes waveAnim { 0% { height: 3px; } 100% { height: 13px; } }
+
+        .dialog-bubble {
+            width: 100%;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #f8fafc;
+            background: rgba(255,255,255,0.035);
+            padding: 12px 16px;
+            border-radius: 12px;
+            min-height: 60px;
+            text-align: left;
+            border-left: 4px solid var(--judge-gold);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* 陪审团与庭审席位列席 */
+        .court-roster-row {
+            background: rgba(10, 14, 28, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 8px 12px;
+        }
+        .roster-header {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        .court-seat-card {
+            background: #11162d;
+            border: 1.5px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 6px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .court-seat-card:hover { transform: translateY(-2px); border-color: #fff; }
+        .court-seat-card.speaking {
+            transform: scale(1.08) translateY(-3px);
+            border-color: var(--judge-gold) !important;
+            background: #251e10;
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+        }
+
+        .seat-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1c2342;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 3px;
+            border: 1.5px solid rgba(255,255,255,0.15);
+            overflow: hidden;
+        }
+        .seat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .seat-name {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90%;
+        }
+
+        /* 侧栏控制 */
+        .sidebar { display: flex; flex-direction: column; gap: 12px; }
+        .panel-box {
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 12px;
+        }
+        .panel-title {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+
+        .delay-control-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.76rem;
+            color: #cbd5e1;
+        }
+        .delay-control-bar input[type="range"] { flex: 1; accent-color: var(--judge-gold); cursor: pointer; }
+
+        .btn-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+        .script-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 460px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 4px;
+        }
+        .script-list::-webkit-scrollbar { width: 4px; }
+        .script-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+
+        .script-item {
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.78rem;
+        }
+        .script-item:hover { background: rgba(255,255,255,0.07); }
+        .script-item.active {
+            background: rgba(245, 158, 11, 0.12);
+            border-left-color: var(--judge-gold);
+            transform: translateX(4px);
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            width: 90%; max-width: 860px; max-height: 85vh; background: #0c1022;
+            border: 1px solid var(--border); border-radius: 18px; padding: 20px;
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+        .modal-body { flex: 1; overflow-y: auto; margin: 12px 0; padding-right: 6px; }
+
+        .char-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .char-table th, .char-table td { padding: 7px 5px; border-bottom: 1px solid rgba(255,255,255,0.07); text-align: left; }
+        .char-input, .char-select {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 0.78rem; width: 100%;
+        }
+        .char-select option { background: #131a38; color: #fff; }
+
+        .voice-cell { display: flex; align-items: center; gap: 6px; }
+        .preview-btn { flex-shrink: 0; padding: 4px 8px; font-size: 0.7rem; }
+        #previewVideo { width: 100%; max-height: 52vh; border-radius: 10px; background: #000; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-box">
+            <h1>⚖️ 星际最高法庭·跨次元模拟公审</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn record" id="recordBtn" onclick="toggleRecording()" title="录制审判完整视频（含声音）">
+                🎥 录制庭审
+            </button>
+            <button class="btn highlight" onclick="exportConfigFile()">
+                💾 导出配置
+            </button>
+            <label class="btn highlight">
+                📂 载入配置
+                <input type="file" id="configFileUploader" accept=".json" style="display:none;" onchange="importConfigFile(event)">
+            </label>
+            <button class="btn" onclick="openCharModal()">👥 审判员与音色</button>
+            <button class="btn" onclick="openScriptModal()">📝 庭审案卷编辑</button>
+            <button class="btn" onclick="downloadTemplate()">⬇️ 下载案卷模板</button>
+            <label class="btn">
+                📂 导入庭审TXT
+                <input type="file" id="txtFileInput" accept=".txt" style="display: none;" onchange="importScriptTxt(event)">
+            </label>
+        </div>
+    </header>
+
+    <div class="stage-container" id="stageContainer">
+        <!-- 法庭全景 -->
+        <div class="court-viewport" id="courtViewport">
+            <div class="record-indicator" id="recordIndicator">
+                <span class="dot"></span> 正在转播录制
+            </div>
+
+            <!-- 全屏异议震屏动效浮层 -->
+            <div class="objection-overlay" id="objectionOverlay">
+                <div class="objection-banner">OBJECTION! 异议！</div>
+            </div>
+
+            <!-- 顶部审判长神圣法台 -->
+            <div class="bench-top-judge" id="benchTopJudge">
+                <div class="judge-profile">
+                    <div class="judge-avatar" id="judgeAvatar">👁️</div>
+                    <div class="judge-meta">
+                        <div class="title">PRESIDING JUDGE · 审判长</div>
+                        <div class="name" id="judgeName">生命法庭</div>
+                    </div>
+                </div>
+
+                <div class="gavel-box" id="gavelBox">
+                    <div class="gavel-icon">🔨</div>
+                    <div>
+                        <div style="font-size:0.62rem; color:#fbbf24; font-weight:800;">ORDER IN COURT · 肃静</div>
+                        <div class="case-title" id="caseTitle">《宇宙公诉案件：灭霸种族灭绝与反生命罪》</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中央核心审判对阵区 -->
+            <div class="court-arena">
+                <!-- 左侧公诉方长桌 -->
+                <div class="bench-side prosecution" id="prosecutionSide">
+                    <div>
+                        <div class="side-badge">PROSECUTION · 公诉方</div>
+                        <div class="side-avatar" id="prosAvatar">🦾</div>
+                        <div style="font-size:0.95rem; font-weight:900; color:#fff;" id="prosName">钢铁侠</div>
+                        <div style="font-size:0.68rem; color:#38bdf8;">首席公诉人</div>
+                    </div>
+                    <div style="font-size:0.68rem; color:#94a3b8; line-height:1.4;">
+                        指控：种族灭绝<br>摧毁宇宙文明秩序
+                    </div>
+                </div>
+
+                <!-- 中央证人席与全息物证展示台 -->
+                <div class="witness-stand" id="witnessStand">
+                    <div>
+                        <div class="witness-header-meta">
+                            <div class="speaker-intro">
+                                <div class="speaker-avatar" id="speakerAvatar">👁️</div>
+                                <div class="speaker-info">
+                                    <div class="name" id="speakerName">生命法庭</div>
+                                    <div class="role-tag" id="speakerRoleTag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                                        开庭主持
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="evidence-card" id="evidenceCard" style="display:none;">
+                                <span>📁 呈堂物证:</span>
+                                <span id="evidenceName">无限手套</span>
+                            </div>
+                        </div>
+
+                        <div class="sound-wave" id="soundWave">
+                            <div class="wave-bar"></div><div class="wave-bar"></div>
+                            <div class="wave-bar"></div><div class="wave-bar"></div>
+                        </div>
+                    </div>
+
+                    <div class="dialog-bubble" id="focusText">星际最高法庭正在核验两造案卷...</div>
+                </div>
+
+                <!-- 右侧辩护方长桌与被告席 -->
+                <div class="bench-side defense" id="defenseSide">
+                    <div>
+                        <div class="side-badge">DEFENSE · 辩护与被告</div>
+                        <div class="side-avatar" id="defAvatar">🟣</div>
+                        <div style="font-size:0.95rem; font-weight:900; color:#fff;" id="defName">灭霸</div>
+                        <div style="font-size:0.68rem; color:#c084fc;">被告人 / 辩护团队</div>
+                    </div>
+                    <div style="font-size:0.68rem; color:#94a3b8; line-height:1.4;">
+                        辩护抗辩：紧急避险<br>生态拯救不构成犯罪
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下方审判列席人员阵容 -->
+            <div class="court-roster-row">
+                <div class="roster-header">
+                    <span>👥 庭审出庭人员席位 (COURT MEMBERS)</span>
+                    <span style="font-size: 0.68rem; color: #64748b;">点击人员可快速定位案卷</span>
+                </div>
+                <div class="roster-grid" id="rosterGrid"></div>
+            </div>
+        </div>
+
+        <!-- 侧栏控制 -->
+        <div class="sidebar">
+            <div class="panel-box">
+                <div class="panel-title">
+                    <span>法庭庭审演播控制器</span>
+                    <label style="font-size: 0.74rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="checkbox" id="ttsToggle" checked> 开启拟音朗读
+                    </label>
+                </div>
+
+                <div class="delay-control-bar">
+                    <span>庭审应答间歇:</span>
+                    <input type="range" id="speechDelayRange" min="0.1" max="1.5" step="0.05" value="0.25" oninput="updateSpeechDelay(this.value)">
+                    <span id="delayValLabel" style="font-weight: bold; color: #f59e0b; width: 38px; text-align: right;">0.25s</span>
+                </div>
+
+                <div class="btn-controls">
+                    <button class="btn primary" id="togglePlayBtn" onclick="togglePlay()">▶ 开庭公审</button>
+                    <button class="btn" onclick="prevDialogue()">⏮ 上一句</button>
+                    <button class="btn" onclick="nextDialogue()">下一句 ⏭</button>
+                </div>
+            </div>
+
+            <div class="panel-box" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="panel-title">
+                    <span>实时庭审速记流</span>
+                    <span id="scriptCount" style="font-size: 0.72rem;">0 / 0</span>
+                </div>
+                <div class="script-list" id="scriptList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 1：出庭人员与音色配置 -->
+    <div class="modal-overlay" id="charModal">
+        <div class="modal-card">
+            <h2>庭审人员、头像与国语专属音色绑定</h2>
+            <div class="modal-body">
+                <table class="char-table">
+                    <thead>
+                        <tr>
+                            <th width="75">头像</th>
+                            <th width="100">诉讼身份</th>
+                            <th width="110">人员姓名</th>
+                            <th>分配专属音色</th>
+                        </tr>
+                    </thead>
+                    <tbody id="charTableBody"></tbody>
+                </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" onclick="closeModal('charModal')">取消</button>
+                <button class="btn primary" onclick="saveCharacters()">保存并应用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 2：台本编辑器 -->
+    <div class="modal-overlay" id="scriptModal">
+        <div class="modal-card">
+            <h2>庭审速记台本编辑器</h2>
+            <div class="modal-body" id="scriptEditList"></div>
+            <div style="display: flex; justify-content: space-between;">
+                <button class="btn" onclick="addNewScriptLine()">+ 增添一句笔录</button>
+                <div>
+                    <button class="btn" onclick="closeModal('scriptModal')">取消</button>
+                    <button class="btn primary" onclick="saveScriptEdits()">保存台本</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 3：录制视频预览确认 -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-card" style="max-width: 760px;">
+            <h2>🎬 模拟法庭庭审录制完成</h2>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 6px;">
+                文件名：<span id="previewFilename" style="color: #f59e0b; font-weight: 600;"></span>
+                <span id="previewAudioStatus"></span>
+            </p>
+            <div class="modal-body" style="display: flex; justify-content: center; padding: 10px 0;">
+                <video id="previewVideo" controls playsinline></video>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" onclick="closePreviewModal()">关闭</button>
+                <button class="btn primary" id="previewDownloadBtn">💾 下载录像文件</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_ROSTER = [
+            { id: "c1", name: "审判长", role: "审判长", faction: "judge", avatar: "👁️", avatarType: "text", voiceURI: "" },
+            { id: "c2", name: "公诉人", role: "公诉人", faction: "pros", avatar: "🦾", avatarType: "text", voiceURI: "" },
+            { id: "c3", name: "辩护人", role: "辩护人", faction: "def", avatar: "⚖️", avatarType: "text", voiceURI: "" },
+            { id: "c4", name: "灭霸", role: "被告人", faction: "def", avatar: "🟣", avatarType: "text", voiceURI: "" },
+            { id: "c5", name: "卡魔拉", role: "证人", faction: "witness", avatar: "🗡️", avatarType: "text", voiceURI: "" },
+            { id: "c6", name: "奇异博士", role: "专家证人", faction: "witness", avatar: "✨", avatarType: "text", voiceURI: "" }
+        ];
+
+        let characters = [];
+        let script = [];
+        let caseTitle = "《宇宙公诉案件：灭霸种族灭绝与反生命罪》";
+        let speechDelay = 0.25;
+        let currentIndex = 0;
+        let isPlaying = false;
+        let playTimer = null;
+
+        let availableVoices = [];
+        let tempCharEditing = [];
+        let currentUtter = null;
+        let speakToken = 0;
+
+        let mediaRecorder = null;
+        let displayStream = null;
+        let micStream = null;
+        let audioContext = null;
+        let mixedAudioDestination = null;
+        let recordAudioSourceNodes = [];
+        let recordAudioInputNodes = [];
+        let recordInputMediaStreams = [];
+        let recordOutputTracks = [];
+        let recordedChunks = [];
+        let recordMimeType = '';
+        let isRecording = false;
+        let drawingCanvas = false;
+        let recordCanvas = null;
+        let previewBlobUrl = null;
+        let recordingHasAudio = false;
+
+        const STORAGE_KEY_CHARS = "court_chars_v1";
+        const STORAGE_KEY_DELAY = "court_delay_v1";
+
+        function isChineseVoice(v) {
+            if (!v) return false;
+            const lang = (v.lang || "").toLowerCase();
+            const name = (v.name || "").toLowerCase();
+            return lang.includes("zh") || lang.includes("cmn") || name.includes("chinese") || name.includes("mandarin") || name.includes("普通话") || name.includes("中文");
+        }
+
+        function getChineseVoices() { return availableVoices.filter(isChineseVoice); }
+
+        function loadStoredData() {
+            const stored = localStorage.getItem(STORAGE_KEY_CHARS);
+            if (stored) {
+                try { characters = JSON.parse(stored); } catch(e) { characters = JSON.parse(JSON.stringify(DEFAULT_ROSTER)); }
+            } else {
+                characters = JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+            }
+
+            const storedDelay = localStorage.getItem(STORAGE_KEY_DELAY);
+            if (storedDelay) {
+                speechDelay = parseFloat(storedDelay);
+                document.getElementById("speechDelayRange").value = speechDelay;
+                document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";
+            }
+        }
+
+        function persistCharacters() { localStorage.setItem(STORAGE_KEY_CHARS, JSON.stringify(characters)); }
+
+        function renderCourtRoster() {
+            const grid = document.getElementById("rosterGrid");
+            grid.innerHTML = "";
+
+            characters.forEach((char) => {
+                const card = document.createElement("div");
+                card.className = "court-seat-card";
+                card.id = `court-seat-${char.name}`;
+                card.onclick = () => {
+                    const idx = script.findIndex(s => s.speaker === char.name);
+                    if (idx !== -1) jumpTo(idx);
+                };
+
+                const avatarContent = char.avatarType === 'img' ? `<img src="${char.avatar}">` : char.avatar;
+
+                card.innerHTML = `
+                    <div class="seat-avatar">${avatarContent}</div>
+                    <div class="seat-name" title="${char.name}">${char.name}</div>
+                    <div style="font-size:0.6rem; color:#64748b;">${char.role}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderScriptList() {
+            const listEl = document.getElementById("scriptList");
+            listEl.innerHTML = "";
+
+            script.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.className = "script-item";
+                div.id = `script-item-${index}`;
+
+                let color = "#38bdf8";
+                if (item.speaker === "审判长") color = "#f59e0b";
+                if (item.speaker === "灭霸" || item.speaker === "辩护人") color = "#c084fc";
+
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:2px; font-weight:bold;">
+                        <span style="color:${color}">
+                            ⚖️ ${item.speaker}
+                        </span>
+                        <span style="color:#64748b; font-size:0.7rem;">${item.evidence ? '呈堂证物' : '庭审辩论'}</span>
+                    </div>
+                    <div>${item.text}</div>
+                `;
+                div.onclick = () => jumpTo(index);
+                listEl.appendChild(div);
+            });
+
+            document.getElementById("scriptCount").textContent = `${script.length ? currentIndex + 1 : 0} / ${script.length}`;
+        }
+
+        function renderFocus(index) {
+            if (!script.length) return;
+            const currentItem = script[index];
+            const speaker = characters.find(c => c.name === currentItem.speaker) || {
+                name: currentItem.speaker,
+                role: "出庭人员",
+                faction: "witness",
+                avatar: "⚖️",
+                avatarType: "text"
+            };
+
+            // 清除上一轮高亮
+            document.querySelectorAll(".court-seat-card").forEach(c => c.classList.remove("speaking"));
+            const seat = document.getElementById(`court-seat-${speaker.name}`);
+            if (seat) seat.classList.add("speaking");
+
+            const prosSide = document.getElementById("prosecutionSide");
+            const defSide = document.getElementById("defenseSide");
+            const witnessStand = document.getElementById("witnessStand");
+            const gavelBox = document.getElementById("gavelBox");
+
+            prosSide.classList.remove("active-speaking");
+            defSide.classList.remove("active-speaking");
+            witnessStand.classList.remove("active-witness");
+            gavelBox.classList.remove("striking");
+
+            // 法槌敲击触发（审判长说话时自动触发法槌动效）
+            if (speaker.role === "审判长" || currentItem.text.includes("肃静") || currentItem.text.includes("法槌")) {
+                gavelBox.classList.add("striking");
+            }
+
+            // 触发反对/异议震屏（包含“异议”或“反对”字样时）
+            const objectionOverlay = document.getElementById("objectionOverlay");
+            if (currentItem.text.startsWith("反对") || currentItem.text.startsWith("异议") || currentItem.objection) {
+                objectionOverlay.classList.add("active");
+                setTimeout(() => objectionOverlay.classList.remove("active"), 800);
+            }
+
+            // 区分高亮阵营
+            if (speaker.name === "公诉人" || speaker.name.includes("史塔克") || speaker.name.includes("托尼")) {
+                prosSide.classList.add("active-speaking");
+            } else if (speaker.name === "辩护人" || speaker.name === "灭霸") {
+                defSide.classList.add("active-speaking");
+            } else {
+                witnessStand.classList.add("active-witness");
+            }
+
+            // 呈堂物证卡片
+            const evCard = document.getElementById("evidenceCard");
+            if (currentItem.evidence) {
+                evCard.style.display = "flex";
+                document.getElementById("evidenceName").textContent = currentItem.evidence;
+            } else {
+                evCard.style.display = "none";
+            }
+
+            // 更新中央发言区信息
+            const avatarWrap = document.getElementById("speakerAvatar");
+            avatarWrap.innerHTML = speaker.avatarType === 'img' ? `<img src="${speaker.avatar}">` : speaker.avatar;
+            document.getElementById("speakerName").textContent = speaker.name;
+
+            const roleTag = document.getElementById("speakerRoleTag");
+            roleTag.textContent = speaker.role;
+            if (speaker.role === "审判长") {
+                roleTag.style.background = "rgba(245, 158, 11, 0.2)";
+                roleTag.style.color = "#fbbf24";
+            } else if (speaker.faction === "pros") {
+                roleTag.style.background = "rgba(2, 132, 199, 0.25)";
+                roleTag.style.color = "#38bdf8";
+            } else if (speaker.faction === "def") {
+                roleTag.style.background = "rgba(168, 85, 247, 0.25)";
+                roleTag.style.color = "#c084fc";
+            } else {
+                roleTag.style.background = "rgba(255, 255, 255, 0.15)";
+                roleTag.style.color = "#fff";
+            }
+
+            document.getElementById("focusText").textContent = currentItem.text;
+
+            // 列表滚动高亮
+            document.querySelectorAll(".script-item").forEach(el => el.classList.remove("active"));
+            const activeScriptEl = document.getElementById(`script-item-${index}`);
+            if (activeScriptEl) {
+                activeScriptEl.classList.add("active");
+                activeScriptEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+
+            document.getElementById("scriptCount").textContent = `${index + 1} / ${script.length}`;
+
+            speakLine(speaker, currentItem.text);
+        }
+
+        function speakLine(speaker, text) {
+            clearTimeout(playTimer);
+
+            if (currentUtter) {
+                try {
+                    currentUtter.onend = null;
+                    currentUtter.onerror = null;
+                    currentUtter.onstart = null;
+                } catch(e) {}
+                currentUtter = null;
+            }
+            try { window.speechSynthesis.cancel(); } catch(e) {}
+
+            const soundWave = document.getElementById("soundWave");
+            const enableTTS = document.getElementById("ttsToggle").checked;
+            const isLastLine = (currentIndex >= script.length - 1);
+
+            speakToken++;
+            const myToken = speakToken;
+
+            const handleFinish = () => {
+                if (myToken !== speakToken) return;
+                soundWave.classList.remove("active");
+                if (!isPlaying) return;
+
+                if (isLastLine) {
+                    stopPlay();
+                    if (isRecording) {
+                        setTimeout(() => { if (isRecording) stopRecording(); }, 1500);
+                    }
+                    return;
+                }
+
+                playTimer = setTimeout(() => {
+                    if (isPlaying) nextDialogue();
+                }, speechDelay * 1000);
+            };
+
+            if (!enableTTS) {
+                soundWave.classList.remove("active");
+                if (isPlaying) {
+                    const fallbackTime = Math.max(1200, text.length * 150);
+                    playTimer = setTimeout(handleFinish, fallbackTime);
+                }
+                return;
+            }
+
+            const utter = new SpeechSynthesisUtterance(text);
+            if (speaker.voiceURI) {
+                const voice = availableVoices.find(v => v.voiceURI === speaker.voiceURI);
+                if (voice) utter.voice = voice;
+            }
+
+            utter.onstart = () => {
+                if (myToken !== speakToken) return;
+                soundWave.classList.add("active");
+            };
+            utter.onend = handleFinish;
+            utter.onerror = handleFinish;
+
+            currentUtter = utter;
+            try { window.speechSynthesis.speak(utter); } catch(e) { handleFinish(); }
+        }
+
+        function jumpTo(index) {
+            currentIndex = index;
+            renderFocus(currentIndex);
+        }
+
+        function nextDialogue() {
+            if (!script.length) return;
+            if (currentIndex >= script.length - 1) { stopPlay(); return; }
+            currentIndex++;
+            renderFocus(currentIndex);
+        }
+
+        function prevDialogue() {
+            if (!script.length) return;
+            currentIndex = (currentIndex - 1 + script.length) % script.length;
+            renderFocus(currentIndex);
+        }
+
+        function togglePlay() {
+            if (isPlaying) stopPlay();
+            else startPlay();
+        }
+
+        function startPlay() {
+            if (!script.length) return;
+            if (currentIndex >= script.length - 1) currentIndex = 0;
+            isPlaying = true;
+            const btn = document.getElementById("togglePlayBtn");
+            btn.textContent = "⏸ 暂停审判";
+            btn.classList.add("danger");
+            btn.classList.remove("primary");
+            renderFocus(currentIndex);
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            clearTimeout(playTimer);
+            try { window.speechSynthesis.cancel(); } catch(e) {}
+            const sw = document.getElementById("soundWave");
+            if (sw) sw.classList.remove("active");
+            const btn = document.getElementById("togglePlayBtn");
+            if (btn) {
+                btn.textContent = "▶ 开庭公审";
+                btn.classList.remove("danger");
+                btn.classList.add("primary");
+            }
+        }
+
+        function updateSpeechDelay(val) {
+            speechDelay = parseFloat(val);
+            document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";
+            localStorage.setItem(STORAGE_KEY_DELAY, speechDelay);
+        }
+
+        /* 模态框逻辑 */
+        function openCharModal() {
+            tempCharEditing = JSON.parse(JSON.stringify(characters));
+            renderCharEditTable();
+            document.getElementById("charModal").classList.add("show");
+        }
+
+        function renderCharEditTable() {
+            const tbody = document.getElementById("charTableBody");
+            tbody.innerHTML = "";
+            const chineseVoices = getChineseVoices();
+
+            tempCharEditing.forEach((char, index) => {
+                const tr = document.createElement("tr");
+                let voiceOptions = `<option value="">-- 系统默认普通话 --</option>`;
+                chineseVoices.forEach(v => {
+                    const sel = v.voiceURI === char.voiceURI ? "selected" : "";
+                    voiceOptions += `<option value="${v.voiceURI}" ${sel}>${v.name} (${v.lang})</option>`;
+                });
+
+                const avatarPreview = char.avatarType === 'img' ? `<img src="${char.avatar}">` : char.avatar;
+
+                tr.innerHTML = `
+                    <td><div style="width:30px; height:30px; border-radius:50%; background:#202742; display:flex; align-items:center; justify-content:center; font-size:1.1rem; overflow:hidden;">${avatarPreview}</div></td>
+                    <td>
+                        <select class="char-select" onchange="tempCharEditing[${index}].role = this.value">
+                            <option value="审判长" ${char.role==='审判长'?'selected':''}>审判长</option>
+                            <option value="公诉人" ${char.role==='公诉人'?'selected':''}>公诉人</option>
+                            <option value="辩护人" ${char.role==='辩护人'?'selected':''}>辩护人</option>
+                            <option value="被告人" ${char.role==='被告人'?'selected':''}>被告人</option>
+                            <option value="证人" ${char.role==='证人'?'selected':''}>证人</option>
+                            <option value="专家证人" ${char.role==='专家证人'?'selected':''}>专家证人</option>
+                        </select>
+                    </td>
+                    <td><input class="char-input" type="text" value="${char.name}" onchange="tempCharEditing[${index}].name = this.value"></td>
+                    <td>
+                        <div class="voice-cell">
+                            <select class="char-select" id="char-voice-${index}" onchange="tempCharEditing[${index}].voiceURI = this.value">
+                                ${voiceOptions}
+                            </select>
+                            <button class="btn preview-btn" onclick="previewCharVoice(${index})">🔊 试听</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function previewCharVoice(index) {
+            const char = tempCharEditing[index];
+            if (!char) return;
+            if (!('speechSynthesis' in window)) return alert("当前浏览器不支持TTS语音！");
+            if (isPlaying) stopPlay();
+
+            try { window.speechSynthesis.cancel(); } catch(e) {}
+            const selectEl = document.getElementById(`char-voice-${index}`);
+            const voiceURI = selectEl ? selectEl.value : char.voiceURI;
+            const utter = new SpeechSynthesisUtterance(`我是本案${char.role}${char.name}。这是我在星际最高法庭的陈述声音！`);
+            const voice = availableVoices.find(v => v.voiceURI === voiceURI);
+            if (voice) utter.voice = voice;
+            utter.lang = "zh-CN";
+            window.speechSynthesis.speak(utter);
+        }
+
+        function saveCharacters() {
+            characters = JSON.parse(JSON.stringify(tempCharEditing));
+            persistCharacters();
+            closeModal('charModal');
+            renderCourtRoster();
+            renderScriptList();
+            renderFocus(currentIndex);
+        }
+
+        /* 案卷编辑与导入 */
+        function openScriptModal() {
+            renderScriptEditor();
+            document.getElementById("scriptModal").classList.add("show");
+        }
+
+        function renderScriptEditor() {
+            const container = document.getElementById("scriptEditList");
+            container.innerHTML = "";
+
+            script.forEach((item, index) => {
+                const row = document.createElement("div");
+                row.className = "script-edit-item";
+
+                let options = "";
+                characters.forEach(c => {
+                    const sel = c.name === item.speaker ? 'selected' : '';
+                    options += `<option value="${c.name}" ${sel}>${c.name} (${c.role})</option>`;
+                });
+
+                row.innerHTML = `
+                    <select class="char-select" style="width: 140px;" onchange="script[${index}].speaker = this.value">
+                        ${options}
+                    </select>
+                    <textarea class="char-input" style="flex:1; height:38px; resize:none;" onchange="script[${index}].text = this.value">${item.text}</textarea>
+                    <button class="btn" style="color:#ff4757;" onclick="deleteScriptLine(${index})">×</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addNewScriptLine() {
+            script.push({ speaker: "审判长", text: "法庭调查继续进行..." });
+            renderScriptEditor();
+        }
+
+        function deleteScriptLine(index) {
+            script.splice(index, 1);
+            renderScriptEditor();
+        }
+
+        function saveScriptEdits() {
+            closeModal('scriptModal');
+            currentIndex = 0;
+            renderScriptList();
+            renderFocus(0);
+        }
+
+        function downloadTemplate() {
+            const templateText =
+`# 案由: 《宇宙公诉案件：灭霸种族灭绝与反生命罪》
+
+审判长: 肃静！星际最高法庭现在开庭。
+公诉人: 尊敬的审判长，我方指控灭霸犯下宇宙级种族灭绝罪！
+辩护人: 反对！公诉人忽视了宇宙资源崩溃的前提！
+审判长: 反对有效，请辩方出示物证。
+灭霸: 你们以为我在毁灭，我是在拯救！
+`;
+            const blob = new Blob([templateText], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "法庭案卷模板.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importScriptTxt(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const lines = evt.target.result.split(/\r?\n/);
+                const newScript = [];
+
+                lines.forEach(line => {
+                    let trimmed = line.trim();
+                    if (!trimmed) return;
+
+                    const titleMatch = trimmed.match(/^#?\s*(案由|案件名称|CASE)[:：]\s*(.*)/i);
+                    if (titleMatch) {
+                        caseTitle = titleMatch[2].trim();
+                        document.getElementById("caseTitle").textContent = caseTitle;
+                        return;
+                    }
+
+                    if (trimmed.startsWith("#")) return;
+
+                    let evidence = "";
+                    const evMatch = trimmed.match(/\[(物证|证物)[:：](.*?)\]/);
+                    if (evMatch) {
+                        evidence = evMatch[2].trim();
+                        trimmed = trimmed.replace(/\[(物证|证物)[:：](.*?)\]/, '').trim();
+                    }
+
+                    const splitIdx = trimmed.indexOf(":") !== -1 ? trimmed.indexOf(":") : trimmed.indexOf("：");
+                    if (splitIdx !== -1) {
+                        const name = trimmed.substring(0, splitIdx).trim();
+                        const text = trimmed.substring(splitIdx + 1).trim();
+                        if (name && text) {
+                            newScript.push({ speaker: name, text: text, evidence: evidence });
+                            if (!characters.some(c => c.name === name)) {
+                                characters.push({
+                                    id: "c_" + Date.now() + Math.random(),
+                                    name: name,
+                                    role: (name === "审判长") ? "审判长" : "证人",
+                                    faction: "witness",
+                                    avatar: "⚖️",
+                                    avatarType: "text",
+                                    voiceURI: ""
+                                });
+                            }
+                        }
+                    }
+                });
+
+                if (newScript.length === 0) return alert("未能解析出有效庭审笔录！");
+
+                persistCharacters();
+                script = newScript;
+                stopPlay();
+                currentIndex = 0;
+
+                renderCourtRoster();
+                renderScriptList();
+                renderFocus(0);
+                alert(`✅ 成功载入【${caseTitle}】！共识别出 ${script.length} 句庭审实录！`);
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = "";
+        }
+
+        function exportConfigFile() {
+            const config = {
+                type: "CourtroomConfig",
+                caseTitle: caseTitle,
+                speechDelay: speechDelay,
+                characters: characters
+            };
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "courtroom_config.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importConfigFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const cfg = JSON.parse(evt.target.result);
+                    if (cfg.characters) {
+                        characters = cfg.characters;
+                        if (cfg.caseTitle) {
+                            caseTitle = cfg.caseTitle;
+                            document.getElementById("caseTitle").textContent = caseTitle;
+                        }
+                        if (cfg.speechDelay) speechDelay = cfg.speechDelay;
+                        persistCharacters();
+                        renderCourtRoster();
+                        renderScriptList();
+                        renderFocus(currentIndex);
+                        alert("✅ 成功载入法庭配置！");
+                    }
+                } catch(err) {
+                    alert("配置文件解析失败！");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = "";
+        }
+
+        /* 录屏架构 */
+        async function toggleRecording() {
+            if (isRecording) stopRecording();
+            else await startRecording();
+        }
+
+        async function startRecording() {
+            if (!navigator.mediaDevices?.getDisplayMedia) return alert("当前浏览器不支持屏幕录制！");
+            const ok = confirm("🎥 庭审录制提示：\n1. 共享窗口请选择「整个屏幕」\n2. 务必勾选左下角「分享系统音频」！\n3. 点击分享后自动开庭录制。");
+            if (!ok) return;
+
+            try {
+                displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+                try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { micStream = null; }
+
+                const displayAudioTracks = displayStream.getAudioTracks();
+                const hasSystemAudio = displayAudioTracks.length > 0;
+                const hasMicAudio = micStream && micStream.getAudioTracks().length > 0;
+
+                if (!isPlaying) startPlay();
+                await new Promise(r => setTimeout(r, 400));
+
+                const srcVideo = document.createElement("video");
+                srcVideo.srcObject = displayStream;
+                srcVideo.muted = true;
+                srcVideo.playsInline = true;
+                await srcVideo.play();
+
+                const videoW = srcVideo.videoWidth || window.innerWidth;
+                const videoH = srcVideo.videoHeight || window.innerHeight;
+                const hallEl = document.getElementById("courtViewport");
+                const rect = hallEl.getBoundingClientRect();
+
+                const sx = videoW / window.innerWidth;
+                const sy = videoH / window.innerHeight;
+                const srcX = Math.max(0, rect.left * sx);
+                const srcY = Math.max(0, rect.top * sy);
+                const srcW = Math.min(videoW - srcX, rect.width * sx);
+                const srcH = Math.min(videoH - srcY, rect.height * sy);
+
+                let outW = 1280;
+                let outH = Math.round(outW / (srcW / srcH));
+                outW -= (outW % 2);
+                outH -= (outH % 2);
+
+                recordCanvas = document.createElement("canvas");
+                recordCanvas.width = outW;
+                recordCanvas.height = outH;
+                const ctx = recordCanvas.getContext("2d", { alpha: false });
+
+                drawingCanvas = true;
+                const drawLoop = () => {
+                    if (!drawingCanvas) return;
+                    ctx.drawImage(srcVideo, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+                    requestAnimationFrame(drawLoop);
+                };
+                drawLoop();
+
+                const canvasStream = recordCanvas.captureStream(30);
+                const canvasVideoTrack = canvasStream.getVideoTracks()[0];
+
+                let audioTracks = [];
+                recordAudioSourceNodes = [];
+                recordAudioInputNodes = [];
+                recordInputMediaStreams = [];
+
+                if (hasSystemAudio || hasMicAudio) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        mixedAudioDestination = audioContext.createMediaStreamDestination();
+                        if (hasSystemAudio) {
+                            const sysStream = new MediaStream(displayAudioTracks);
+                            recordInputMediaStreams.push(sysStream);
+                            const sysNode = audioContext.createMediaStreamSource(sysStream);
+                            sysNode.connect(mixedAudioDestination);
+                            recordAudioSourceNodes.push(sysNode);
+                        }
+                        if (hasMicAudio) {
+                            const micIn = new MediaStream(micStream.getAudioTracks());
+                            recordInputMediaStreams.push(micIn);
+                            const micNode = audioContext.createMediaStreamSource(micIn);
+                            micNode.connect(mixedAudioDestination);
+                            recordAudioSourceNodes.push(micNode);
+                        }
+                        audioTracks = mixedAudioDestination.stream.getAudioTracks();
+                    } catch (e) {
+                        audioTracks = hasSystemAudio ? [...displayAudioTracks] : [...micStream.getAudioTracks()];
+                    }
+                }
+
+                const finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
+                recordOutputTracks = [canvasVideoTrack, ...audioTracks];
+                recordingHasAudio = audioTracks.length > 0;
+
+                const candidates = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=h264,opus', 'video/webm'];
+                recordMimeType = candidates.find(c => MediaRecorder.isTypeSupported(c)) || 'video/webm';
+
+                mediaRecorder = new MediaRecorder(finalStream, { mimeType: recordMimeType, videoBitsPerSecond: 6000000 });
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: recordMimeType });
+                    drawingCanvas = false;
+                    if (audioContext) { try { audioContext.close(); } catch (e) {} audioContext = null; }
+                    if (displayStream) { displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }
+                    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+                    showRecordingPreview(blob);
+                };
+
+                mediaRecorder.start(1000);
+                isRecording = true;
+                const btn = document.getElementById("recordBtn");
+                btn.textContent = "⏹ 停止录制";
+                btn.classList.add("recording");
+                btn.classList.remove("record");
+                document.getElementById("recordIndicator").classList.add("show");
+            } catch (err) {
+                console.error(err);
+                alert("录制启动失败或用户取消！");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                try { mediaRecorder.stop(); } catch (e) {}
+            }
+            isRecording = false;
+            stopPlay();
+            const btn = document.getElementById("recordBtn");
+            if (btn) {
+                btn.textContent = "🎥 录制庭审";
+                btn.classList.remove("recording");
+                btn.classList.add("record");
+            }
+            const ri = document.getElementById("recordIndicator");
+            if (ri) ri.classList.remove("show");
+        }
+
+        function showRecordingPreview(blob) {
+            const ext = recordMimeType.includes("mp4") ? "mp4" : "webm";
+            const filename = `星际法庭审判_${Date.now()}.${ext}`;
+            if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+            previewBlobUrl = URL.createObjectURL(blob);
+
+            const videoEl = document.getElementById("previewVideo");
+            videoEl.src = previewBlobUrl;
+            videoEl.volume = 1.0;
+
+            document.getElementById("previewFilename").textContent = filename;
+            document.getElementById("previewAudioStatus").innerHTML = recordingHasAudio
+                ? `<span style="color:#2ed573; font-size:0.75rem; margin-left:6px;">🔊 已包含音频</span>`
+                : `<span style="color:#fbbf24; font-size:0.75rem; margin-left:6px;">⚠️ 无音频</span>`;
+
+            const downloadBtn = document.getElementById("previewDownloadBtn");
+            downloadBtn.onclick = () => {
+                const a = document.createElement("a");
+                a.href = previewBlobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            document.getElementById("previewModal").classList.add("show");
+        }
+
+        function closePreviewModal() {
+            const videoEl = document.getElementById("previewVideo");
+            try { videoEl.pause(); } catch (e) {}
+            videoEl.removeAttribute("src");
+            if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); previewBlobUrl = null; }
+            document.getElementById("previewModal").classList.remove("show");
+        }
+
+        function closeModal(id) {
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+            document.getElementById(id).classList.remove("show");
+        }
+
+        function initTTSVoices() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    availableVoices = window.speechSynthesis.getVoices();
+                    const zhVoices = getChineseVoices();
+                    const pool = zhVoices.length > 0 ? zhVoices : availableVoices;
+
+                    let changed = false;
+                    characters.forEach((char, idx) => {
+                        if (!char.voiceURI && pool.length > 0) {
+                            char.voiceURI = pool[idx % pool.length].voiceURI;
+                            changed = true;
+                        }
+                    });
+                    if (changed) persistCharacters();
+                };
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            loadStoredData();
+            initTTSVoices();
+            renderCourtRoster();
+        });
+    </script>
+</body>
+</html>

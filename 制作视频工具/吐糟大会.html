@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大唐脱口秀俱乐部·吐槽大会演播厅</title>
+    <style>
+        :root {
+            --bg: #0c0814;
+            --panel: rgba(22, 14, 38, 0.94);
+            --border: rgba(255, 255, 255, 0.12);
+            --neon-pink: #ff2a85;
+            --neon-blue: #00f3ff;
+            --neon-gold: #f59e0b;
+            --hot-seat: #e11d48;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 50% 10%, rgba(255, 42, 133, 0.2) 0%, transparent 60%),
+                radial-gradient(circle at 85% 30%, rgba(0, 243, 255, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 15% 80%, rgba(245, 158, 11, 0.12) 0%, transparent 50%),
+                linear-gradient(180deg, #120b1f 0%, #08040d 100%);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部导航控制台 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 22px;
+            background: rgba(16, 9, 28, 0.96);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(14px);
+            z-index: 50;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .header-title-box h1 {
+            font-size: 1.2rem;
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #ff2a85, #f59e0b, #00f3ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        .btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.06);
+            color: #f1f5f9;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+        .btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+        .btn.primary { background: linear-gradient(135deg, #ff2a85, #8b5cf6); border: none; }
+        .btn.primary:hover { opacity: 0.92; }
+        .btn.danger { background: #e11d48; border: none; }
+        .btn.highlight { border-color: rgba(0, 243, 255, 0.5); background: rgba(0, 243, 255, 0.12); color: #00f3ff; }
+
+        .btn.record { border-color: rgba(225, 29, 72, 0.5); background: rgba(225, 29, 72, 0.12); color: #fda4af; }
+        .btn.recording { background: #e11d48 !important; border-color: #e11d48 !important; color: #fff !important; animation: recordPulse 1s infinite alternate; }
+        @keyframes recordPulse {
+            0% { box-shadow: 0 0 4px rgba(225, 29, 72, 0.4); }
+            100% { box-shadow: 0 0 16px rgba(225, 29, 72, 0.9); }
+        }
+
+        /* 主舞台布局 */
+        .stage-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 370px;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1650px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .roast-viewport {
+            position: relative;
+            background: var(--panel);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 18px 24px;
+            min-height: 680px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+
+        .record-indicator {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: rgba(225, 29, 72, 0.95);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            z-index: 40;
+            box-shadow: 0 4px 14px rgba(225, 29, 72, 0.6);
+            pointer-events: none;
+        }
+        .record-indicator.show { display: flex; }
+        .record-indicator .dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0.2; } }
+
+        /* 顶部脱口秀大看板与爆梗分贝仪 */
+        .roast-top-deck {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .show-billboard {
+            background: rgba(14, 7, 26, 0.8);
+            border: 1.5px solid rgba(255, 42, 133, 0.35);
+            border-radius: 14px;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 20px rgba(255, 42, 133, 0.15);
+        }
+        .show-tag {
+            font-size: 0.68rem;
+            color: var(--neon-pink);
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .show-title {
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        /* 爆梗笑声分贝计 */
+        .laugh-meter-box {
+            background: rgba(10, 5, 20, 0.85);
+            border: 1.5px solid rgba(0, 243, 255, 0.35);
+            border-radius: 14px;
+            padding: 8px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+        }
+        .laugh-meter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.68rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            color: #00f3ff;
+        }
+        .meter-bars {
+            display: flex;
+            gap: 3px;
+            height: 12px;
+            align-items: flex-end;
+        }
+        .meter-bar {
+            flex: 1;
+            background: #25163f;
+            border-radius: 2px;
+            height: 3px;
+            transition: height 0.15s ease, background 0.15s;
+        }
+        .laugh-meter-box.active .meter-bar { animation: meterJump 0.35s infinite alternate ease-in-out; }
+        .laugh-meter-box.active .meter-bar:nth-child(2n) { animation-delay: 0.08s; }
+        .laugh-meter-box.active .meter-bar:nth-child(3n) { animation-delay: 0.16s; }
+        @keyframes meterJump {
+            0% { height: 3px; background: #00f3ff; }
+            50% { height: 11px; background: #f59e0b; }
+            100% { height: 14px; background: #ff2a85; }
+        }
+
+        /* ================= 俱乐部中央舞台区 ================= */
+        .roast-arena {
+            display: grid;
+            grid-template-columns: 1fr 240px;
+            gap: 20px;
+            align-items: stretch;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        /* 1) 左侧脱口秀单人主讲台 */
+        .spotlight-stage {
+            position: relative;
+            background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.08) 0%, rgba(15, 8, 28, 0.95) 75%);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.7);
+            overflow: hidden;
+        }
+
+        /* 舞台追光束 */
+        .spotlight-stage::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            height: 320px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+            clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%);
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .mic-badge {
+            position: absolute;
+            top: 10px;
+            left: 16px;
+            background: rgba(255, 42, 133, 0.2);
+            border: 1px solid var(--neon-pink);
+            color: #ff2a85;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .performer-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 10px;
+            position: relative;
+            z-index: 5;
+        }
+        .performer-avatar {
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            border: 3px solid var(--neon-pink);
+            background: #1e1136;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 42, 133, 0.4);
+            flex-shrink: 0;
+        }
+        .performer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .performer-info .name { font-size: 1.2rem; font-weight: 900; color: #fff; }
+        .performer-info .role-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: rgba(0, 243, 255, 0.2);
+            color: #00f3ff;
+            margin-top: 3px;
+        }
+
+        .sound-wave {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            height: 12px;
+            align-items: flex-end;
+            margin: 6px 0 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .sound-wave.active { opacity: 1; }
+        .wave-bar {
+            width: 3px;
+            background: var(--neon-pink);
+            border-radius: 2px;
+            animation: waveAnim 0.35s ease-in-out infinite alternate;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.08s; height: 10px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.16s; height: 14px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.24s; height: 7px; }
+        @keyframes waveAnim { 0% { height: 3px; } 100% { height: 13px; } }
+
+        .dialog-bubble {
+            width: 100%;
+            font-size: 0.96rem;
+            line-height: 1.55;
+            color: #f8fafc;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px 18px;
+            border-radius: 14px;
+            min-height: 60px;
+            text-align: left;
+            border-left: 4px solid var(--neon-pink);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            position: relative;
+            z-index: 5;
+        }
+
+        /* 2) 右侧主咖红沙发席位 (HOT SEAT) */
+        .hot-seat-card {
+            background: linear-gradient(180deg, rgba(225, 29, 72, 0.25) 0%, rgba(35, 10, 22, 0.95) 100%);
+            border: 2px solid rgba(225, 29, 72, 0.5);
+            border-radius: 20px;
+            padding: 16px 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(225, 29, 72, 0.2);
+            position: relative;
+        }
+        .hot-seat-card.is-roasting {
+            border-color: #ff2a85;
+            box-shadow: 0 0 35px rgba(255, 42, 133, 0.6);
+            animation: hotSeatPulse 1.2s infinite alternate;
+        }
+        @keyframes hotSeatPulse {
+            0% { transform: scale(0.98); }
+            100% { transform: scale(1.02); }
+        }
+
+        .hot-seat-badge {
+            position: absolute;
+            top: -10px;
+            background: #e11d48;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 2px 12px;
+            border-radius: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(225, 29, 72, 0.8);
+        }
+
+        .hot-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 3px solid var(--hot-seat);
+            background: #1c0915;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            margin: 12px 0 8px;
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(225, 29, 72, 0.5);
+        }
+        .hot-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .hot-name { font-size: 1.15rem; font-weight: 900; color: #fff; }
+        .hot-title { font-size: 0.7rem; color: #fda4af; margin-top: 2px; }
+
+        /* 主咖实时神态反应标签 */
+        .reaction-bubble {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(225, 29, 72, 0.4);
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #fda4af;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 下方嘉宾席阵容 (副咖排座) */
+        .guests-gallery {
+            background: rgba(14, 8, 26, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 10px 14px;
+        }
+        .guests-header {
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .guests-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .guest-seat-card {
+            background: #170e28;
+            border: 1.5px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 6px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .guest-seat-card:hover { transform: translateY(-2px); border-color: #fff; }
+        .guest-seat-card.speaking {
+            transform: scale(1.08) translateY(-3px);
+            border-color: var(--neon-pink) !important;
+            background: #2b123d;
+            box-shadow: 0 0 16px rgba(255, 42, 133, 0.6);
+        }
+
+        .guest-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #26163f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 3px;
+            border: 1.5px solid rgba(255,255,255,0.15);
+            overflow: hidden;
+        }
+        .guest-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .guest-name {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90%;
+        }
+
+        /* 侧栏控制 */
+        .sidebar { display: flex; flex-direction: column; gap: 12px; }
+        .panel-box {
+            background: var(--panel);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 12px;
+        }
+        .panel-title {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+        }
+
+        .delay-control-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.76rem;
+            color: #cbd5e1;
+        }
+        .delay-control-bar input[type="range"] { flex: 1; accent-color: var(--neon-pink); cursor: pointer; }
+
+        .btn-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+        .script-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 460px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 4px;
+        }
+        .script-list::-webkit-scrollbar { width: 4px; }
+        .script-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+
+        .script-item {
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.78rem;
+        }
+        .script-item:hover { background: rgba(255,255,255,0.07); }
+        .script-item.active {
+            background: rgba(255, 42, 133, 0.12);
+            border-left-color: var(--neon-pink);
+            transform: translateX(4px);
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            width: 90%; max-width: 860px; max-height: 85vh; background: #130a22;
+            border: 1px solid var(--border); border-radius: 18px; padding: 20px;
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+        .modal-body { flex: 1; overflow-y: auto; margin: 12px 0; padding-right: 6px; }
+
+        .char-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .char-table th, .char-table td { padding: 7px 5px; border-bottom: 1px solid rgba(255,255,255,0.07); text-align: left; }
+        .char-input, .char-select {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: #fff; padding: 5px 8px; border-radius: 6px; font-size: 0.78rem; width: 100%;
+        }
+        .char-select option { background: #1f1136; color: #fff; }
+
+        .voice-cell { display: flex; align-items: center; gap: 6px; }
+        .preview-btn { flex-shrink: 0; padding: 4px 8px; font-size: 0.7rem; }
+        #previewVideo { width: 100%; max-height: 52vh; border-radius: 10px; background: #000; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-box">
+            <h1>🎤 大唐脱口秀俱乐部·吐槽大会</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn record" id="recordBtn" onclick="toggleRecording()" title="录制脱口秀完整视频（含声音）">
+                🎥 录制脱口秀
+            </button>
+            <button class="btn highlight" onclick="exportConfigFile()" title="导出配置">
+                💾 导出配置
+            </button>
+            <label class="btn highlight">
+                📂 载入配置
+                <input type="file" id="configFileUploader" accept=".json" style="display:none;" onchange="importConfigFile(event)">
+            </label>
+            <button class="btn" onclick="openCharModal()">👥 嘉宾与音色</button>
+            <button class="btn" onclick="openScriptModal()">📝 段子编辑</button>
+            <button class="btn" onclick="downloadTemplate()">⬇️ 下载台本模板</button>
+            <label class="btn">
+                📂 导入脱口秀TXT
+                <input type="file" id="txtFileInput" accept=".txt" style="display: none;" onchange="importScriptTxt(event)">
+            </label>
+        </div>
+    </header>
+
+    <div class="stage-container" id="stageContainer">
+        <!-- 俱乐部舞台全景 -->
+        <div class="roast-viewport" id="roastViewport">
+            <div class="record-indicator" id="recordIndicator">
+                <span class="dot"></span> 正在转播录制
+            </div>
+
+            <!-- 顶部节目看板与分贝仪 -->
+            <div class="roast-top-deck">
+                <div class="show-billboard">
+                    <div>
+                        <div class="show-tag">TANG DYNASTY COMEDY ROAST</div>
+                        <div class="show-title" id="showTitle">《大唐诗仙李白的主咖之夜》</div>
+                    </div>
+                    <div style="font-size: 0.72rem; color: #f59e0b; font-weight: 700;">
+                        本期主咖：李白
+                    </div>
+                </div>
+
+                <!-- 爆梗笑声分贝仪 -->
+                <div class="laugh-meter-box" id="laughMeterBox">
+                    <div class="laugh-meter-header">
+                        <span>💥 LAUGH METER 爆梗分贝</span>
+                        <span id="meterScore" style="color: #ff2a85;">999+</span>
+                    </div>
+                    <div class="meter-bars">
+                        <div class="meter-bar"></div><div class="meter-bar"></div>
+                        <div class="meter-bar"></div><div class="meter-bar"></div>
+                        <div class="meter-bar"></div><div class="meter-bar"></div>
+                        <div class="meter-bar"></div><div class="meter-bar"></div>
+                        <div class="meter-bar"></div><div class="meter-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中央舞台区：单人追光立麦讲台 + 主咖红沙发席 -->
+            <div class="roast-arena">
+                <!-- 单人站立讲台 -->
+                <div class="spotlight-stage" id="spotlightStage">
+                    <div class="mic-badge">🎙️ ON STAGE 开麦中</div>
+
+                    <div class="performer-meta">
+                        <div class="performer-avatar" id="performerAvatar">🧓</div>
+                        <div class="performer-info">
+                            <div class="name" id="performerName">贺知章</div>
+                            <div class="role-tag" id="performerRoleTag">开场主持 · 诗狂</div>
+                        </div>
+                    </div>
+
+                    <div class="sound-wave" id="soundWave">
+                        <div class="wave-bar"></div><div class="wave-bar"></div>
+                        <div class="wave-bar"></div><div class="wave-bar"></div>
+                    </div>
+
+                    <div class="dialog-bubble" id="focusText">等待演员上台开麦...</div>
+                </div>
+
+                <!-- 主咖专属红沙发 (HOT SEAT) -->
+                <div class="hot-seat-card" id="hotSeatCard">
+                    <div class="hot-seat-badge">🔥 本期主咖</div>
+                    <div class="hot-avatar" id="hotAvatarSlot">🍶</div>
+                    <div class="hot-name" id="hotNameSlot">李白</div>
+                    <div class="hot-title">大唐诗仙 · 谪仙人</div>
+                    <div class="reaction-bubble" id="reactionBubble">
+                        <span>🍷</span> <span id="reactionText">战术性狂饮买醉</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下方嘉宾席阵容 (副咖排座) -->
+            <div class="guests-gallery">
+                <div class="guests-header">
+                    <span>👥 吐槽嘉宾席 (ROASTERS)</span>
+                    <span style="font-size: 0.68rem; color: #64748b;">点击嘉宾可快速切镜头</span>
+                </div>
+                <div class="guests-grid" id="guestsGrid"></div>
+            </div>
+        </div>
+
+        <!-- 侧栏控制 -->
+        <div class="sidebar">
+            <div class="panel-box">
+                <div class="panel-title">
+                    <span>脱口秀演播控制</span>
+                    <label style="font-size: 0.74rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                        <input type="checkbox" id="ttsToggle" checked> 角色拟音朗读
+                    </label>
+                </div>
+
+                <div class="delay-control-bar">
+                    <span>接梗停顿时间:</span>
+                    <input type="range" id="speechDelayRange" min="0.1" max="1.5" step="0.05" value="0.25" oninput="updateSpeechDelay(this.value)">
+                    <span id="delayValLabel" style="font-weight: bold; color: #ff2a85; width: 38px; text-align: right;">0.25s</span>
+                </div>
+
+                <div class="btn-controls">
+                    <button class="btn primary" id="togglePlayBtn" onclick="togglePlay()">▶ 开始演播</button>
+                    <button class="btn" onclick="prevDialogue()">⏮ 上一句</button>
+                    <button class="btn" onclick="nextDialogue()">下一句 ⏭</button>
+                </div>
+            </div>
+
+            <div class="panel-box" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="panel-title">
+                    <span>实时脱口秀台本流</span>
+                    <span id="scriptCount" style="font-size: 0.72rem;">0 / 0</span>
+                </div>
+                <div class="script-list" id="scriptList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 1：嘉宾与音色配置 -->
+    <div class="modal-overlay" id="charModal">
+        <div class="modal-card">
+            <h2>吐槽嘉宾、头像与国语专属音色绑定</h2>
+            <div class="modal-body">
+                <table class="char-table">
+                    <thead>
+                        <tr>
+                            <th width="75">头像</th>
+                            <th width="100">角色</th>
+                            <th width="110">嘉宾姓名</th>
+                            <th>分配专属音色</th>
+                        </tr>
+                    </thead>
+                    <tbody id="charTableBody"></tbody>
+                </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" onclick="closeModal('charModal')">取消</button>
+                <button class="btn primary" onclick="saveCharacters()">保存并应用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 2：台本编辑器 -->
+    <div class="modal-overlay" id="scriptModal">
+        <div class="modal-card">
+            <h2>脱口秀台本编辑器</h2>
+            <div class="modal-body" id="scriptEditList"></div>
+            <div style="display: flex; justify-content: space-between;">
+                <button class="btn" onclick="addNewScriptLine()">+ 增添一句段子</button>
+                <div>
+                    <button class="btn" onclick="closeModal('scriptModal')">取消</button>
+                    <button class="btn primary" onclick="saveScriptEdits()">保存台本</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 3：录制视频预览确认 -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-card" style="max-width: 760px;">
+            <h2>🎬 脱口秀录制完成</h2>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 6px;">
+                文件名：<span id="previewFilename" style="color: #ff2a85; font-weight: 600;"></span>
+                <span id="previewAudioStatus"></span>
+            </p>
+            <div class="modal-body" style="display: flex; justify-content: center; padding: 10px 0;">
+                <video id="previewVideo" controls playsinline></video>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" onclick="closePreviewModal()">关闭</button>
+                <button class="btn primary" id="previewDownloadBtn">💾 下载录像文件</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_ROSTER = [
+            { id: "c1", name: "贺知章", role: "主持人", avatar: "🧓", avatarType: "text", voiceURI: "" },
+            { id: "c2", name: "李白", role: "主咖", avatar: "🍶", avatarType: "text", voiceURI: "" },
+            { id: "c3", name: "杜甫", role: "吐槽嘉宾", avatar: "📜", avatarType: "text", voiceURI: "" },
+            { id: "c4", name: "高适", role: "吐槽嘉宾", avatar: "🐎", avatarType: "text", voiceURI: "" },
+            { id: "c5", name: "汪伦", role: "吐槽嘉宾", avatar: "🍑", avatarType: "text", voiceURI: "" },
+            { id: "c6", name: "王维", role: "吐槽嘉宾", avatar: "🏔️", avatarType: "text", voiceURI: "" },
+            { id: "c7", name: "白居易", role: "吐槽嘉宾", avatar: "琵琶", avatarType: "text", voiceURI: "" }
+        ];
+
+        /* 主咖实时反应字典（根据发言人/台词自动随机切神态） */
+        const REACTIONS = [
+            { icon: "🍷", text: "战术性狂饮买醉" },
+            { icon: "😅", text: "尴尬而不失礼貌的微笑" },
+            { icon: "🗡️", text: "手按剑柄，杀气升腾" },
+            { icon: "👀", text: "望天假装无事发生" },
+            { icon: "💥", text: "濒临掀桌边缘" },
+            { icon: "🤦", text: "扶额叹息交友不慎" }
+        ];
+
+        let characters = [];
+        let script = [];
+        let showTitle = "《大唐诗仙李白的主咖之夜》";
+        let hostName = "贺知章";
+        let targetName = "李白";
+        let speechDelay = 0.25;
+        let currentIndex = 0;
+        let isPlaying = false;
+        let playTimer = null;
+
+        let availableVoices = [];
+        let tempCharEditing = [];
+        let currentUtter = null;
+        let speakToken = 0;
+
+        let mediaRecorder = null;
+        let displayStream = null;
+        let micStream = null;
+        let audioContext = null;
+        let mixedAudioDestination = null;
+        let recordAudioSourceNodes = [];
+        let recordAudioInputNodes = [];
+        let recordInputMediaStreams = [];
+        let recordOutputTracks = [];
+        let recordedChunks = [];
+        let recordMimeType = '';
+        let isRecording = false;
+        let drawingCanvas = false;
+        let recordCanvas = null;
+        let previewBlobUrl = null;
+        let recordingHasAudio = false;
+
+        const STORAGE_KEY_CHARS = "roast_club_chars_v1";
+        const STORAGE_KEY_DELAY = "roast_club_delay_v1";
+
+        function isChineseVoice(v) {
+            if (!v) return false;
+            const lang = (v.lang || "").toLowerCase();
+            const name = (v.name || "").toLowerCase();
+            return lang.includes("zh") || lang.includes("cmn") || name.includes("chinese") || name.includes("mandarin") || name.includes("普通话") || name.includes("中文");
+        }
+
+        function getChineseVoices() { return availableVoices.filter(isChineseVoice); }
+
+        function loadStoredData() {
+            const stored = localStorage.getItem(STORAGE_KEY_CHARS);
+            if (stored) {
+                try { characters = JSON.parse(stored); } catch(e) { characters = JSON.parse(JSON.stringify(DEFAULT_ROSTER)); }
+            } else {
+                characters = JSON.parse(JSON.stringify(DEFAULT_ROSTER));
+            }
+
+            const storedDelay = localStorage.getItem(STORAGE_KEY_DELAY);
+            if (storedDelay) {
+                speechDelay = parseFloat(storedDelay);
+                document.getElementById("speechDelayRange").value = speechDelay;
+                document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";
+            }
+        }
+
+        function persistCharacters() { localStorage.setItem(STORAGE_KEY_CHARS, JSON.stringify(characters)); }
+
+        function renderGuestsGallery() {
+            const grid = document.getElementById("guestsGrid");
+            grid.innerHTML = "";
+
+            characters.forEach((char, index) => {
+                const card = document.createElement("div");
+                card.className = "guest-seat-card";
+                card.id = `guest-seat-${char.name}`;
+                card.onclick = () => {
+                    const idx = script.findIndex(s => s.speaker === char.name);
+                    if (idx !== -1) jumpTo(idx);
+                };
+
+                const avatarContent = char.avatarType === 'img' ? `<img src="${char.avatar}">` : char.avatar;
+
+                card.innerHTML = `
+                    <div class="guest-avatar">${avatarContent}</div>
+                    <div class="guest-name" title="${char.name}">${char.name}</div>
+                    <div style="font-size:0.6rem; color:#64748b;">${char.role}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderScriptList() {
+            const listEl = document.getElementById("scriptList");
+            listEl.innerHTML = "";
+
+            script.forEach((item, index) => {
+                const isTarget = item.speaker === targetName;
+                const div = document.createElement("div");
+                div.className = "script-item";
+                div.id = `script-item-${index}`;
+
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:2px; font-weight:bold;">
+                        <span style="color:${isTarget ? '#e11d48' : '#ff2a85'}">
+                            ${isTarget ? '🔥 [主咖反击] ' : '🎙️ '}${item.speaker}
+                        </span>
+                        <span style="color:#64748b; font-size:0.7rem;">${isTarget ? '大招收官' : '吐槽开火'}</span>
+                    </div>
+                    <div>${item.text}</div>
+                `;
+                div.onclick = () => jumpTo(index);
+                listEl.appendChild(div);
+            });
+
+            document.getElementById("scriptCount").textContent = `${script.length ? currentIndex + 1 : 0} / ${script.length}`;
+        }
+
+        function renderFocus(index) {
+            if (!script.length) return;
+            const currentItem = script[index];
+            const speaker = characters.find(c => c.name === currentItem.speaker) || {
+                name: currentItem.speaker,
+                role: "神秘特邀",
+                avatar: "🎤",
+                avatarType: "text"
+            };
+
+            const isTargetSpeaking = (speaker.name === targetName);
+
+            // 更新坐席高亮
+            document.querySelectorAll(".guest-seat-card").forEach(c => c.classList.remove("speaking"));
+            const seat = document.getElementById(`guest-seat-${speaker.name}`);
+            if (seat) seat.classList.add("speaking");
+
+            // 更新主咖红沙发卡片状态
+            const hotSeatCard = document.getElementById("hotSeatCard");
+            if (isTargetSpeaking) {
+                hotSeatCard.classList.remove("is-roasting");
+            } else {
+                hotSeatCard.classList.add("is-roasting");
+                // 随机切换李白破防神态
+                const randomReact = REACTIONS[Math.floor(Math.random() * REACTIONS.length)];
+                const rb = document.getElementById("reactionBubble");
+                rb.innerHTML = `<span>${randomReact.icon}</span> <span>${randomReact.text}</span>`;
+            }
+
+            // 更新主舞台讲台
+            const avatarWrap = document.getElementById("performerAvatar");
+            avatarWrap.innerHTML = speaker.avatarType === 'img' ? `<img src="${speaker.avatar}">` : speaker.avatar;
+            document.getElementById("performerName").textContent = speaker.name;
+
+            const roleTag = document.getElementById("performerRoleTag");
+            roleTag.textContent = isTargetSpeaking ? "🔥 主咖绝地反杀" : `脱口秀演员 · ${speaker.role}`;
+            roleTag.style.background = isTargetSpeaking ? "rgba(225, 29, 72, 0.25)" : "rgba(0, 243, 255, 0.2)";
+            roleTag.style.color = isTargetSpeaking ? "#fda4af" : "#00f3ff";
+
+            document.getElementById("focusText").textContent = currentItem.text;
+
+            // 爆梗分贝计跳动
+            const lm = document.getElementById("laughMeterBox");
+            lm.classList.add("active");
+            document.getElementById("meterScore").textContent = Math.floor(800 + Math.random() * 200) + "+";
+
+            // 列表滚动高亮
+            document.querySelectorAll(".script-item").forEach(el => el.classList.remove("active"));
+            const activeScriptEl = document.getElementById(`script-item-${index}`);
+            if (activeScriptEl) {
+                activeScriptEl.classList.add("active");
+                activeScriptEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+
+            document.getElementById("scriptCount").textContent = `${index + 1} / ${script.length}`;
+
+            speakLine(speaker, currentItem.text);
+        }
+
+        function speakLine(speaker, text) {
+            clearTimeout(playTimer);
+
+            if (currentUtter) {
+                try {
+                    currentUtter.onend = null;
+                    currentUtter.onerror = null;
+                    currentUtter.onstart = null;
+                } catch(e) {}
+                currentUtter = null;
+            }
+            try { window.speechSynthesis.cancel(); } catch(e) {}
+
+            const soundWave = document.getElementById("soundWave");
+            const enableTTS = document.getElementById("ttsToggle").checked;
+            const isLastLine = (currentIndex >= script.length - 1);
+
+            speakToken++;
+            const myToken = speakToken;
+
+            const handleFinish = () => {
+                if (myToken !== speakToken) return;
+                soundWave.classList.remove("active");
+                document.getElementById("laughMeterBox").classList.remove("active");
+                if (!isPlaying) return;
+
+                if (isLastLine) {
+                    stopPlay();
+                    if (isRecording) {
+                        setTimeout(() => { if (isRecording) stopRecording(); }, 1500);
+                    }
+                    return;
+                }
+
+                playTimer = setTimeout(() => {
+                    if (isPlaying) nextDialogue();
+                }, speechDelay * 1000);
+            };
+
+            if (!enableTTS) {
+                soundWave.classList.remove("active");
+                if (isPlaying) {
+                    const fallbackTime = Math.max(1200, text.length * 150);
+                    playTimer = setTimeout(handleFinish, fallbackTime);
+                }
+                return;
+            }
+
+            const utter = new SpeechSynthesisUtterance(text);
+            if (speaker.voiceURI) {
+                const voice = availableVoices.find(v => v.voiceURI === speaker.voiceURI);
+                if (voice) utter.voice = voice;
+            }
+
+            utter.onstart = () => {
+                if (myToken !== speakToken) return;
+                soundWave.classList.add("active");
+            };
+            utter.onend = handleFinish;
+            utter.onerror = handleFinish;
+
+            currentUtter = utter;
+            try { window.speechSynthesis.speak(utter); } catch(e) { handleFinish(); }
+        }
+
+        function jumpTo(index) {
+            currentIndex = index;
+            renderFocus(currentIndex);
+        }
+
+        function nextDialogue() {
+            if (!script.length) return;
+            if (currentIndex >= script.length - 1) { stopPlay(); return; }
+            currentIndex++;
+            renderFocus(currentIndex);
+        }
+
+        function prevDialogue() {
+            if (!script.length) return;
+            currentIndex = (currentIndex - 1 + script.length) % script.length;
+            renderFocus(currentIndex);
+        }
+
+        function togglePlay() {
+            if (isPlaying) stopPlay();
+            else startPlay();
+        }
+
+        function startPlay() {
+            if (!script.length) return;
+            if (currentIndex >= script.length - 1) currentIndex = 0;
+            isPlaying = true;
+            const btn = document.getElementById("togglePlayBtn");
+            btn.textContent = "⏸ 暂停演播";
+            btn.classList.add("danger");
+            btn.classList.remove("primary");
+            renderFocus(currentIndex);
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            clearTimeout(playTimer);
+            try { window.speechSynthesis.cancel(); } catch(e) {}
+            const sw = document.getElementById("soundWave");
+            if (sw) sw.classList.remove("active");
+            const btn = document.getElementById("togglePlayBtn");
+            if (btn) {
+                btn.textContent = "▶ 开始演播";
+                btn.classList.remove("danger");
+                btn.classList.add("primary");
+            }
+        }
+
+        function updateSpeechDelay(val) {
+            speechDelay = parseFloat(val);
+            document.getElementById("delayValLabel").textContent = speechDelay.toFixed(2) + "s";
+            localStorage.setItem(STORAGE_KEY_DELAY, speechDelay);
+        }
+
+        /* ========== 嘉宾与音色模态框 ========== */
+        function openCharModal() {
+            tempCharEditing = JSON.parse(JSON.stringify(characters));
+            renderCharEditTable();
+            document.getElementById("charModal").classList.add("show");
+        }
+
+        function renderCharEditTable() {
+            const tbody = document.getElementById("charTableBody");
+            tbody.innerHTML = "";
+            const chineseVoices = getChineseVoices();
+
+            tempCharEditing.forEach((char, index) => {
+                const tr = document.createElement("tr");
+                let voiceOptions = `<option value="">-- 系统默认普通话 --</option>`;
+                chineseVoices.forEach(v => {
+                    const sel = v.voiceURI === char.voiceURI ? "selected" : "";
+                    voiceOptions += `<option value="${v.voiceURI}" ${sel}>${v.name} (${v.lang})</option>`;
+                });
+
+                const avatarPreview = char.avatarType === 'img' ? `<img src="${char.avatar}">` : char.avatar;
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="avatar-preview-box">
+                            <div class="avatar-preview" id="char-prev-${index}">${avatarPreview}</div>
+                            <label class="btn" style="padding: 2px 5px; font-size:0.65rem;">
+                                传图
+                                <input type="file" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event, ${index})">
+                            </label>
+                        </div>
+                    </td>
+                    <td>
+                        <select class="char-select" onchange="tempCharEditing[${index}].role = this.value">
+                            <option value="主持人" ${char.role==='主持人'?'selected':''}>主持人</option>
+                            <option value="主咖" ${char.role==='主咖'?'selected':''}>主咖</option>
+                            <option value="吐槽嘉宾" ${char.role==='吐槽嘉宾'?'selected':''}>吐槽嘉宾</option>
+                        </select>
+                    </td>
+                    <td><input class="char-input" type="text" value="${char.name}" onchange="tempCharEditing[${index}].name = this.value"></td>
+                    <td>
+                        <div class="voice-cell">
+                            <select class="char-select" id="char-voice-${index}" onchange="tempCharEditing[${index}].voiceURI = this.value">
+                                ${voiceOptions}
+                            </select>
+                            <button class="btn preview-btn" onclick="previewCharVoice(${index})">🔊 试听</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function previewCharVoice(index) {
+            const char = tempCharEditing[index];
+            if (!char) return;
+            if (!('speechSynthesis' in window)) return alert("当前浏览器不支持TTS语音！");
+            if (isPlaying) stopPlay();
+
+            try { window.speechSynthesis.cancel(); } catch(e) {}
+            const selectEl = document.getElementById(`char-voice-${index}`);
+            const voiceURI = selectEl ? selectEl.value : char.voiceURI;
+            const utter = new SpeechSynthesisUtterance(`大家好，我是${char.name}！今晚的脱口秀，让我来爆个猛料！`);
+            const voice = availableVoices.find(v => v.voiceURI === voiceURI);
+            if (voice) utter.voice = voice;
+            utter.lang = "zh-CN";
+            window.speechSynthesis.speak(utter);
+        }
+
+        function handleAvatarUpload(e, index) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                tempCharEditing[index].avatar = evt.target.result;
+                tempCharEditing[index].avatarType = 'img';
+                const p = document.getElementById(`char-prev-${index}`);
+                if (p) p.innerHTML = `<img src="${evt.target.result}">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveCharacters() {
+            characters = JSON.parse(JSON.stringify(tempCharEditing));
+            persistCharacters();
+            closeModal('charModal');
+
+            // 重新绑定主咖信息
+            const target = characters.find(c => c.role === "主咖") || characters[1];
+            if (target) {
+                targetName = target.name;
+                document.getElementById("hotNameSlot").textContent = target.name;
+                const slot = document.getElementById("hotAvatarSlot");
+                slot.innerHTML = target.avatarType === 'img' ? `<img src="${target.avatar}">` : target.avatar;
+            }
+
+            renderGuestsGallery();
+            renderScriptList();
+            renderFocus(currentIndex);
+        }
+
+        /* ========== 台本编辑与导入 ========== */
+        function openScriptModal() {
+            renderScriptEditor();
+            document.getElementById("scriptModal").classList.add("show");
+        }
+
+        function renderScriptEditor() {
+            const container = document.getElementById("scriptEditList");
+            container.innerHTML = "";
+
+            script.forEach((item, index) => {
+                const row = document.createElement("div");
+                row.className = "script-edit-item";
+
+                let options = "";
+                characters.forEach(c => {
+                    const sel = c.name === item.speaker ? 'selected' : '';
+                    options += `<option value="${c.name}" ${sel}>${c.name} (${c.role})</option>`;
+                });
+
+                row.innerHTML = `
+                    <select class="char-select" style="width: 130px;" onchange="script[${index}].speaker = this.value">
+                        ${options}
+                    </select>
+                    <textarea class="char-input" style="flex:1; height:38px; resize:none;" onchange="script[${index}].text = this.value">${item.text}</textarea>
+                    <button class="btn" style="color:#ff4757;" onclick="deleteScriptLine(${index})">×</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addNewScriptLine() {
+            script.push({ speaker: characters[0].name, text: "新的脱口秀爆梗段子..." });
+            renderScriptEditor();
+        }
+
+        function deleteScriptLine(index) {
+            script.splice(index, 1);
+            renderScriptEditor();
+        }
+
+        function saveScriptEdits() {
+            closeModal('scriptModal');
+            currentIndex = 0;
+            renderScriptList();
+            renderFocus(0);
+        }
+
+        function downloadTemplate() {
+            const templateText =
+`# 节目名称: 《大唐诗仙李白的主咖之夜》
+# 本期主咖: 李白
+
+贺知章: 欢迎来到大唐脱口秀！
+杜甫: 我给李白写了十几首诗，李白转头送了汪伦！
+汪伦: 我承认十里桃花万家酒店是我骗他来喝酒的！
+李白: 你们都给我坐下，轮到谪仙人掀桌子了！
+`;
+            const blob = new Blob([templateText], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "脱口秀台本模板.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importScriptTxt(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const lines = evt.target.result.split(/\r?\n/);
+                const newScript = [];
+
+                lines.forEach(line => {
+                    let trimmed = line.trim();
+                    if (!trimmed) return;
+
+                    const titleMatch = trimmed.match(/^#?\s*(节目名称|SHOW)[:：]\s*(.*)/i);
+                    if (titleMatch) {
+                        showTitle = titleMatch[2].trim();
+                        document.getElementById("showTitle").textContent = showTitle;
+                        return;
+                    }
+
+                    const targetMatch = trimmed.match(/^#?\s*(本期主咖|主咖|TARGET)[:：]\s*(.*)/i);
+                    if (targetMatch) {
+                        targetName = targetMatch[2].trim();
+                        document.getElementById("hotNameSlot").textContent = targetName;
+                        return;
+                    }
+
+                    if (trimmed.startsWith("#")) return;
+
+                    const splitIdx = trimmed.indexOf(":") !== -1 ? trimmed.indexOf(":") : trimmed.indexOf("：");
+                    if (splitIdx !== -1) {
+                        const name = trimmed.substring(0, splitIdx).trim();
+                        const text = trimmed.substring(splitIdx + 1).trim();
+                        if (name && text) {
+                            newScript.push({ speaker: name, text: text });
+                            if (!characters.some(c => c.name === name)) {
+                                characters.push({
+                                    id: "c_" + Date.now() + Math.random(),
+                                    name: name,
+                                    role: (name === targetName) ? "主咖" : "吐槽嘉宾",
+                                    avatar: "🎤",
+                                    avatarType: "text",
+                                    voiceURI: ""
+                                });
+                            }
+                        }
+                    }
+                });
+
+                if (newScript.length === 0) return alert("未能解析出有效台词，请检查格式！");
+
+                persistCharacters();
+                script = newScript;
+                stopPlay();
+                currentIndex = 0;
+
+                renderGuestsGallery();
+                renderScriptList();
+                renderFocus(0);
+                alert(`✅ 成功载入【${showTitle}】！共识别出 ${script.length} 句爆笑台词！`);
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = "";
+        }
+
+        function exportConfigFile() {
+            const config = {
+                type: "RoastClubConfig",
+                showTitle: showTitle,
+                targetName: targetName,
+                speechDelay: speechDelay,
+                characters: characters
+            };
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "roast_club_config.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importConfigFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const cfg = JSON.parse(evt.target.result);
+                    if (cfg.characters) {
+                        characters = cfg.characters;
+                        if (cfg.showTitle) {
+                            showTitle = cfg.showTitle;
+                            document.getElementById("showTitle").textContent = showTitle;
+                        }
+                        if (cfg.targetName) {
+                            targetName = cfg.targetName;
+                            document.getElementById("hotNameSlot").textContent = targetName;
+                        }
+                        if (cfg.speechDelay) speechDelay = cfg.speechDelay;
+                        persistCharacters();
+                        renderGuestsGallery();
+                        renderScriptList();
+                        renderFocus(currentIndex);
+                        alert("✅ 成功载入配置文件！");
+                    }
+                } catch(err) {
+                    alert("配置文件解析失败！");
+                }
+            };
+            reader.readAsText(file, "UTF-8");
+            e.target.value = "";
+        }
+
+        /* ================= 🎥 视频录制核心 ================= */
+        async function toggleRecording() {
+            if (isRecording) stopRecording();
+            else await startRecording();
+        }
+
+        async function startRecording() {
+            if (!navigator.mediaDevices?.getDisplayMedia) return alert("当前浏览器不支持屏幕录制！");
+            const ok = confirm("🎥 脱口秀录制提示：\n1. 共享窗口选择「整个屏幕」\n2. 务必勾选左下角「分享系统音频」！\n3. 点击分享后自动录制。");
+            if (!ok) return;
+
+            try {
+                displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+                try { micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { micStream = null; }
+
+                const displayAudioTracks = displayStream.getAudioTracks();
+                const hasSystemAudio = displayAudioTracks.length > 0;
+                const hasMicAudio = micStream && micStream.getAudioTracks().length > 0;
+
+                if (!isPlaying) startPlay();
+                await new Promise(r => setTimeout(r, 400));
+
+                const srcVideo = document.createElement("video");
+                srcVideo.srcObject = displayStream;
+                srcVideo.muted = true;
+                srcVideo.playsInline = true;
+                await srcVideo.play();
+
+                const videoW = srcVideo.videoWidth || window.innerWidth;
+                const videoH = srcVideo.videoHeight || window.innerHeight;
+                const hallEl = document.getElementById("roastViewport");
+                const rect = hallEl.getBoundingClientRect();
+
+                const sx = videoW / window.innerWidth;
+                const sy = videoH / window.innerHeight;
+                const srcX = Math.max(0, rect.left * sx);
+                const srcY = Math.max(0, rect.top * sy);
+                const srcW = Math.min(videoW - srcX, rect.width * sx);
+                const srcH = Math.min(videoH - srcY, rect.height * sy);
+
+                let outW = 1280;
+                let outH = Math.round(outW / (srcW / srcH));
+                outW -= (outW % 2);
+                outH -= (outH % 2);
+
+                recordCanvas = document.createElement("canvas");
+                recordCanvas.width = outW;
+                recordCanvas.height = outH;
+                const ctx = recordCanvas.getContext("2d", { alpha: false });
+
+                drawingCanvas = true;
+                const drawLoop = () => {
+                    if (!drawingCanvas) return;
+                    ctx.drawImage(srcVideo, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+                    requestAnimationFrame(drawLoop);
+                };
+                drawLoop();
+
+                const canvasStream = recordCanvas.captureStream(30);
+                const canvasVideoTrack = canvasStream.getVideoTracks()[0];
+
+                let audioTracks = [];
+                recordAudioSourceNodes = [];
+                recordAudioInputNodes = [];
+                recordInputMediaStreams = [];
+
+                if (hasSystemAudio || hasMicAudio) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        mixedAudioDestination = audioContext.createMediaStreamDestination();
+                        if (hasSystemAudio) {
+                            const sysStream = new MediaStream(displayAudioTracks);
+                            recordInputMediaStreams.push(sysStream);
+                            const sysNode = audioContext.createMediaStreamSource(sysStream);
+                            sysNode.connect(mixedAudioDestination);
+                            recordAudioSourceNodes.push(sysNode);
+                        }
+                        if (hasMicAudio) {
+                            const micIn = new MediaStream(micStream.getAudioTracks());
+                            recordInputMediaStreams.push(micIn);
+                            const micNode = audioContext.createMediaStreamSource(micIn);
+                            micNode.connect(mixedAudioDestination);
+                            recordAudioSourceNodes.push(micNode);
+                        }
+                        audioTracks = mixedAudioDestination.stream.getAudioTracks();
+                    } catch (e) {
+                        audioTracks = hasSystemAudio ? [...displayAudioTracks] : [...micStream.getAudioTracks()];
+                    }
+                }
+
+                const finalStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
+                recordOutputTracks = [canvasVideoTrack, ...audioTracks];
+                recordingHasAudio = audioTracks.length > 0;
+
+                const candidates = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=h264,opus', 'video/webm'];
+                recordMimeType = candidates.find(c => MediaRecorder.isTypeSupported(c)) || 'video/webm';
+
+                mediaRecorder = new MediaRecorder(finalStream, { mimeType: recordMimeType, videoBitsPerSecond: 6000000 });
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: recordMimeType });
+                    drawingCanvas = false;
+                    if (audioContext) { try { audioContext.close(); } catch (e) {} audioContext = null; }
+                    if (displayStream) { displayStream.getTracks().forEach(t => t.stop()); displayStream = null; }
+                    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+                    showRecordingPreview(blob);
+                };
+
+                mediaRecorder.start(1000);
+                isRecording = true;
+                const btn = document.getElementById("recordBtn");
+                btn.textContent = "⏹ 停止录制";
+                btn.classList.add("recording");
+                btn.classList.remove("record");
+                document.getElementById("recordIndicator").classList.add("show");
+            } catch (err) {
+                console.error(err);
+                alert("录制启动失败或用户取消！");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                try { mediaRecorder.stop(); } catch (e) {}
+            }
+            isRecording = false;
+            stopPlay();
+            const btn = document.getElementById("recordBtn");
+            if (btn) {
+                btn.textContent = "🎥 录制脱口秀";
+                btn.classList.remove("recording");
+                btn.classList.add("record");
+            }
+            const ri = document.getElementById("recordIndicator");
+            if (ri) ri.classList.remove("show");
+        }
+
+        function showRecordingPreview(blob) {
+            const ext = recordMimeType.includes("mp4") ? "mp4" : "webm";
+            const filename = `大唐脱口秀_${Date.now()}.${ext}`;
+            if (previewBlobUrl) URL.revokeObjectURL(previewBlobUrl);
+            previewBlobUrl = URL.createObjectURL(blob);
+
+            const videoEl = document.getElementById("previewVideo");
+            videoEl.src = previewBlobUrl;
+            videoEl.volume = 1.0;
+
+            document.getElementById("previewFilename").textContent = filename;
+            document.getElementById("previewAudioStatus").innerHTML = recordingHasAudio
+                ? `<span style="color:#2ed573; font-size:0.75rem; margin-left:6px;">🔊 包含声音</span>`
+                : `<span style="color:#fbbf24; font-size:0.75rem; margin-left:6px;">⚠️ 无声音</span>`;
+
+            const downloadBtn = document.getElementById("previewDownloadBtn");
+            downloadBtn.onclick = () => {
+                const a = document.createElement("a");
+                a.href = previewBlobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            document.getElementById("previewModal").classList.add("show");
+        }
+
+        function closePreviewModal() {
+            const videoEl = document.getElementById("previewVideo");
+            try { videoEl.pause(); } catch (e) {}
+            videoEl.removeAttribute("src");
+            if (previewBlobUrl) { URL.revokeObjectURL(previewBlobUrl); previewBlobUrl = null; }
+            document.getElementById("previewModal").classList.remove("show");
+        }
+
+        function closeModal(id) {
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+            document.getElementById(id).classList.remove("show");
+        }
+
+        function initTTSVoices() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    availableVoices = window.speechSynthesis.getVoices();
+                    const zhVoices = getChineseVoices();
+                    const pool = zhVoices.length > 0 ? zhVoices : availableVoices;
+
+                    let changed = false;
+                    characters.forEach((char, idx) => {
+                        if (!char.voiceURI && pool.length > 0) {
+                            char.voiceURI = pool[idx % pool.length].voiceURI;
+                            changed = true;
+                        }
+                    });
+                    if (changed) persistCharacters();
+                };
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            loadStoredData();
+            initTTSVoices();
+            renderGuestsGallery();
+        });
+    </script>
+</body>
+</html>
