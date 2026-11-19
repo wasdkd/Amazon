@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 🌟 核心：锁定 1400px 电脑级视口宽度，初始等比微缩至手机全屏，并开启双指自由缩放放大 -->
+    <meta name="viewport" id="viewportMeta" content="width=1400, user-scalable=yes">
+    <script>
+        (function() {
+            var screenW = window.screen.width;
+            if (screenW > 0 && screenW < 1400) {
+                var initScale = screenW / 1400;
+                var meta = document.getElementById('viewportMeta');
+                if (meta) {
+                    meta.content = 'width=1400, initial-scale=' + initScale + ', minimum-scale=' + (initScale * 0.5) + ', maximum-scale=3.5, user-scalable=yes';
+                }
+            }
+        })();
+    </script>
+
+    <title>Our Exclusive Memories | 独家全景记忆艺术馆</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google 浪漫艺术字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        html { scroll-behavior: smooth; }
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-romantic { font-family: 'Dancing Script', cursive; }
+
+        /* 默认浅粉色系柔美渐变 */
+        :root {
+            --page-bg: linear-gradient(135deg, #fff0f3 0%, #ffe4e9 45%, #fce7f3 75%, #fbcfe8 100%);
+        }
+
+        /* 锁定 1400px 电脑版宽度底线，杜绝手机端单列折行 */
+        body {
+            background: var(--page-bg);
+            min-height: 100vh;
+            min-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            transition: background 0.4s ease;
+            touch-action: auto !important; /* 允许双指缩放放大 */
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.95);
+        }
+
+        /* 优雅精细滚动条 */
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #f43f5e; border-radius: 999px; }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #f43f5e;
+            cursor: pointer;
+        }
+
+        .photo-card.dragging { opacity: 0.35; transform: scale(0.95); }
+        .photo-card.drag-over { border: 2.5px dashed #f43f5e !important; }
+        .chapter-block.drag-file-active { border: 3px dashed #f43f5e !important; background: rgba(255, 228, 230, 0.95) !important; }
+
+        /* 图片所有底色一律设为纯白 */
+        .fit-cover { object-fit: cover !important; background: #ffffff !important; }
+        .fit-contain { object-fit: contain !important; background: #ffffff !important; }
+
+        /* 1. 拍立得 (电脑版宽展排布) */
+        .style-polaroid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 28px;
+            padding: 20px 10px;
+        }
+        .style-polaroid .photo-card {
+            background: #ffffff !important;
+            padding: 12px 12px 28px 12px;
+            box-shadow: 0 10px 25px rgba(244, 63, 94, 0.08);
+            border-radius: 10px;
+            width: 270px;
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.15), box-shadow 0.3s;
+            cursor: grab;
+        }
+        .style-polaroid .photo-card:nth-child(even) { transform: rotate(1.8deg); }
+        .style-polaroid .photo-card:nth-child(odd) { transform: rotate(-1.8deg); }
+        .style-polaroid .photo-card:hover {
+            transform: scale(1.05) rotate(0deg) !important;
+            z-index: 10;
+            box-shadow: 0 18px 30px rgba(244, 63, 94, 0.22);
+        }
+
+        /* 2. 电影胶卷 (宽幅水平滑轨) */
+        .style-filmstrip {
+            display: flex;
+            gap: 24px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 34px 24px 28px 24px;
+            background: #ffffff;
+            border-radius: 24px;
+            border-top: 6px dashed #fecdd3;
+            border-bottom: 6px dashed #fecdd3;
+            box-shadow: 0 10px 30px rgba(244, 63, 94, 0.06);
+            -webkit-overflow-scrolling: touch;
+        }
+        .style-filmstrip .photo-card {
+            flex-shrink: 0;
+            width: 320px;
+            background: #ffffff !important;
+            padding: 10px;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            color: #1e293b;
+            cursor: grab;
+            border: 1px solid #ffe4e6;
+        }
+
+        /* 3. 瀑布流网格 (固定保持多列展示，绝不变成单列) */
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+        .style-grid .photo-card {
+            border-radius: 18px;
+            overflow: hidden;
+            background: #ffffff !important;
+            box-shadow: 0 8px 22px rgba(244, 63, 94, 0.07);
+            padding: 10px;
+            cursor: grab;
+        }
+
+        /* 4. 经典大图 */
+        .style-classic {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 30px;
+        }
+        .style-classic .photo-card {
+            border-radius: 24px;
+            overflow: hidden;
+            background: #ffffff !important;
+            padding: 14px;
+            box-shadow: 0 10px 25px rgba(244, 63, 94, 0.08);
+            cursor: grab;
+        }
+
+        /* ========= 3D 全景舞台 (固定电脑级宽幅 640px 高度) ========= */
+        .stage-3d-wrapper {
+            width: 100%;
+            height: 640px;
+            perspective: 1400px;
+            overflow: hidden;
+            position: relative;
+            border-radius: 28px;
+            background: radial-gradient(circle at 50% 50%, #311042 0%, #17112c 70%, #0c0818 100%);
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.8), 0 18px 40px rgba(244, 63, 94, 0.15);
+            user-select: none;
+        }
+
+        body:not(.is-exported-view) .stage-3d-wrapper { cursor: grab; }
+        body:not(.is-exported-view) .stage-3d-wrapper:active { cursor: grabbing; }
+        body.is-exported-view .stage-3d-wrapper { cursor: default !important; }
+
+        .stage-3d {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform-style: preserve-3d;
+            transition: transform 0.05s linear;
+        }
+        .card-3d {
+            position: absolute;
+            width: 320px;
+            height: 215px;
+            left: -160px;
+            top: -107.5px;
+            border-radius: 12px;
+            background: #ffffff !important;
+            padding: 6px;
+            box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.45);
+            transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.15), box-shadow 0.3s;
+            backface-visibility: visible;
+        }
+        .card-3d:hover {
+            box-shadow: 0 0 0 3px #f43f5e, 0 18px 35px rgba(244, 63, 94, 0.5);
+            z-index: 100;
+        }
+        .card-3d img {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            display: block;
+            pointer-events: none;
+            background: #ffffff !important;
+        }
+
+        /* 3D 浮动控制面板 */
+        .stage-3d-controls {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            padding: 6px 16px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            max-width: 95%;
+        }
+
+        #themeColorPickerModal {
+            display: none;
+            position: absolute;
+            top: 48px;
+            right: 210px;
+            background: white;
+            border: 1px solid #fecdd3;
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 15px 35px rgba(244, 63, 94, 0.18);
+            z-index: 100;
+        }
+
+        #heartsCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+    </style>
+</head>
+<body class="text-slate-800 font-sans selection:bg-rose-400 selection:text-white">
+
+    <canvas id="heartsCanvas"></canvas>
+
+    <!-- ================= 顶部全局控制台 (导出时完全清除) ================= -->
+    <header id="topControlBar" class="edit-only fixed top-4 inset-x-0 mx-auto w-[96vw] max-w-[1900px] min-w-[1360px] z-50 glass-panel px-6 py-2.5 rounded-full shadow-2xl flex items-center justify-between gap-3 border border-white">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+            <span class="text-sm font-bold text-slate-800">电脑原版等比排版</span>
+            <span class="text-xs text-rose-500 font-medium">💻 手机端自动等比缩小展示 · 支持双指自由放大缩小看图</span>
+        </div>
+
+        <div class="flex items-center gap-2.5 relative">
+            <button onclick="toggleThemePicker()" class="px-3.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition flex items-center gap-1.5 border border-rose-200">
+                <i class="fa-solid fa-palette"></i>
+                <span>🎨 页面底色</span>
+            </button>
+
+            <!-- 调色弹窗 -->
+            <div id="themeColorPickerModal">
+                <div class="text-xs font-bold text-slate-700 mb-2">选择预设浅色底色 (自动记忆):</div>
+                <div class="flex items-center gap-2">
+                    <button onclick="applyTheme('pink')" title="柔樱浅粉(默认)" class="w-7 h-7 rounded-full border-2 border-white shadow-md hover:scale-110 transition" style="background: linear-gradient(135deg, #fff0f3, #fce7f3);"></button>
+                    <button onclick="applyTheme('cream')" title="暖杏奶茶" class="w-7 h-7 rounded-full border-2 border-white shadow-md hover:scale-110 transition" style="background: linear-gradient(135deg, #fff8f0, #ffedd5);"></button>
+                    <button onclick="applyTheme('purple')" title="暮薰浅紫" class="w-7 h-7 rounded-full border-2 border-white shadow-md hover:scale-110 transition" style="background: linear-gradient(135deg, #faf5ff, #f3e8ff);"></button>
+                    <button onclick="applyTheme('blue')" title="晴空淡蓝" class="w-7 h-7 rounded-full border-2 border-white shadow-md hover:scale-110 transition" style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe);"></button>
+                    <button onclick="applyTheme('mint')" title="晨露淡绿" class="w-7 h-7 rounded-full border-2 border-white shadow-md hover:scale-110 transition" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7);"></button>
+                    <label class="w-7 h-7 rounded-full border border-slate-300 shadow-md cursor-pointer flex items-center justify-center hover:scale-110 transition" title="自定义色盘">
+                        <i class="fa-solid fa-eye-dropper text-[10px] text-slate-500"></i>
+                        <input type="color" id="customColorInput" onchange="applyCustomTheme(this.value)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="addNewChapterModal()" class="px-4 py-1.5 rounded-full bg-pink-100 hover:bg-pink-200 text-rose-700 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>新增故事章节</span>
+            </button>
+
+            <!-- 导出按钮 -->
+            <button onclick="exportPermanentCleanHTML()" class="px-5 py-1.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-xs font-bold shadow-md shadow-rose-500/30 transition flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-lock"></i>
+                <span>🔒 导出最终完美版(锁定视角)</span>
+            </button>
+        </div>
+    </header>
+
+    <input type="file" id="batchImageInput" accept="image/*" multiple class="hidden">
+    <input type="file" id="singleReplaceInput" accept="image/*" class="hidden">
+
+
+    <!-- ================= 🌟 重点优化：扉页序曲 (支持多场景预设选择 & 正倒计时) ================= -->
+    <section class="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-4 pt-24 pb-14">
+        <div class="relative z-10 w-[96vw] max-w-[1900px] min-w-[1360px] mx-auto space-y-5">
+
+            <!-- 🌟 预设快捷场景切换器 (导出时自动清除，不影响成片) -->
+            <div class="edit-only inline-flex items-center gap-2 p-1.5 px-3 rounded-full bg-white/90 shadow-md border border-rose-200 backdrop-blur-md mx-auto">
+                <span class="text-xs font-bold text-rose-600 flex items-center gap-1 pl-1">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 场景切换:
+                </span>
+                <button onclick="applyHeroPreset('love')" class="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 hover:bg-rose-500 hover:text-white text-rose-700 transition active:scale-95">❤️ 恋爱情侣</button>
+                <button onclick="applyHeroPreset('birthday')" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-700 transition active:scale-95">🎂 生日庆典</button>
+                <button onclick="applyHeroPreset('anniversary')" class="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 hover:bg-purple-500 hover:text-white text-purple-700 transition active:scale-95">💍 领证/结婚纪念</button>
+                <button onclick="applyHeroPreset('baby')" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 hover:bg-emerald-500 hover:text-white text-emerald-700 transition active:scale-95">🍼 宝宝成长</button>
+                <button onclick="applyHeroPreset('friendship')" class="px-3 py-1 rounded-full text-xs font-bold bg-sky-50 hover:bg-sky-500 hover:text-white text-sky-700 transition active:scale-95">🌟 毕业/友谊万岁</button>
+            </div>
+
+            <!-- 副标题英文字样 -->
+            <span id="heroSubBadge" class="font-romantic text-rose-600 text-4xl block" contenteditable="true">Our Love Story</span>
+
+            <!-- 主标题区域 (可自由点击任意处修改) -->
+            <h1 id="heroTitle" class="text-6xl font-serif-sc font-extrabold text-slate-900 tracking-tight flex items-center justify-center gap-3 flex-wrap">
+                <span contenteditable="true" class="px-2">男生名字</span>
+                <i class="fa-solid fa-heart text-rose-500 text-4xl animate-pulse"></i>
+                <span contenteditable="true" class="px-2">女生名字</span>
+            </h1>
+
+            <!-- 寄语说明 -->
+            <p id="heroQuote" class="text-xl text-slate-700 font-serif-sc font-light max-w-2xl mx-auto italic px-4" contenteditable="true">
+                “世界再大，走过山川湖海，最美的风景依然是你的眼睛。”
+            </p>
+
+            <!-- 封面图容器 -->
+            <div class="w-56 h-56 mx-auto rounded-full p-2 bg-white shadow-2xl relative my-3 group">
+                <div class="w-full h-full rounded-full overflow-hidden relative bg-white">
+                    <img id="heroCoverImg" src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800" class="w-full h-full object-cover">
+                    <div onclick="triggerReplaceHero()" class="edit-only absolute inset-0 bg-black/40 text-white flex flex-col items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                        <i class="fa-solid fa-camera text-base mb-1"></i>更换封面照
+                    </div>
+                </div>
+            </div>
+
+            <!-- 计时卡片 -->
+            <div class="glass-panel py-3.5 px-8 rounded-3xl max-w-md mx-auto shadow-lg relative">
+                <!-- 计时状态提示 -->
+                <div class="text-[11px] font-bold text-slate-500 mb-1 flex items-center justify-center gap-1.5">
+                    <span id="timerStatusLabel" contenteditable="true">已携手相伴度过</span>
+                    <button onclick="toggleTimerMode()" class="edit-only px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 text-rose-600 text-[10px] font-semibold transition" title="切换正计时或倒计时">
+                        <i class="fa-solid fa-repeat mr-0.5"></i><span id="timerModeBtnText">切换倒计时</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-4 gap-3">
+                    <div>
+                        <span id="days" class="text-3xl font-extrabold font-mono text-rose-600">000</span>
+                        <p class="text-[10px] text-slate-500 mt-0.5 uppercase">Days</p>
+                    </div>
+                    <div>
+                        <span id="hours" class="text-3xl font-extrabold font-mono text-rose-600">00</span>
+                        <p class="text-[10px] text-slate-500 mt-0.5 uppercase">Hours</p>
+                    </div>
+                    <div>
+                        <span id="mins" class="text-3xl font-extrabold font-mono text-rose-600">00</span>
+                        <p class="text-[10px] text-slate-500 mt-0.5 uppercase">Mins</p>
+                    </div>
+                    <div>
+                        <span id="secs" class="text-3xl font-extrabold font-mono text-rose-600">00</span>
+                        <p class="text-[10px] text-slate-500 mt-0.5 uppercase">Secs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 纪念日设置文本 -->
+            <div class="text-xs text-slate-500 font-medium">
+                <span id="anniversaryLabel" contenteditable="true">相爱纪念日：</span>
+                <span id="anniversaryInput" contenteditable="true" onblur="setAnniversaryDate(this.innerText)">2023-01-01</span>
+                <span class="edit-only text-rose-400"> (点击日期可直接修改)</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================= 故事章节主容器 (电脑版宽幅锁定，手机等比缩放) ================= -->
+    <main id="chaptersContainer" class="w-[96vw] max-w-[1900px] min-w-[1360px] mx-auto px-2 py-16 space-y-24 relative z-10">
+
+        <!-- ===== 章节 1：电影胶卷 ===== -->
+        <section class="chapter-block relative glass-panel p-10 rounded-[36px] shadow-xl border border-white" data-layout="filmstrip" data-fit="cover" data-scale="1" data-spacing="1" data-cols="5" data-layers="2" data-speed="0.5" data-spinning="true" data-align="stagger" data-rot-x="0" data-rot-y="0" data-zoom="0">
+            <div class="edit-only flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-rose-200/60 bg-rose-50/70 -mx-10 -mt-10 p-4 rounded-t-[36px]">
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                    <span class="font-bold text-slate-600 mr-1"><i class="fa-solid fa-shapes mr-1"></i>切换排版:</span>
+                    <button onclick="setChapterLayout(this, 'filmstrip')" class="px-3 py-1 rounded-lg bg-rose-500 text-white font-bold shadow-sm">🎞️ 电影胶卷</button>
+                    <button onclick="setChapterLayout(this, 'curvedWall')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🌟 3D环幕墙</button>
+                    <button onclick="setChapterLayout(this, 'doubleRing')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🌊 3D多层环</button>
+                    <button onclick="setChapterLayout(this, 'polaroid')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">📸 拍立得</button>
+                    <button onclick="setChapterLayout(this, 'grid')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🔲 瀑布网格</button>
+                    <button onclick="setChapterLayout(this, 'classic')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">📖 故事大图</button>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                    <button onclick="toggleFitMode(this)" class="px-3 py-1 bg-white hover:bg-slate-50 text-indigo-600 rounded-lg shadow-sm font-semibold">🔲 铺满裁剪</button>
+                    <button onclick="moveChapter(this, -1)" class="p-1.5 px-2 bg-white rounded-lg hover:text-rose-500 shadow-sm"><i class="fa-solid fa-arrow-up"></i></button>
+                    <button onclick="moveChapter(this, 1)" class="p-1.5 px-2 bg-white rounded-lg hover:text-rose-500 shadow-sm"><i class="fa-solid fa-arrow-down"></i></button>
+                    <button onclick="deleteChapter(this)" class="p-1.5 px-2.5 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 shadow-sm font-bold"><i class="fa-solid fa-trash-can mr-1"></i>删除</button>
+                </div>
+            </div>
+
+            <div class="text-center max-w-3xl mx-auto mb-8 space-y-2">
+                <span class="text-rose-500 font-romantic text-2xl tracking-wider block" contenteditable="true">Chapter 01</span>
+                <h2 class="text-3xl font-serif-sc font-bold text-slate-900" contenteditable="true">初相识 · 光影胶卷纪事</h2>
+                <p class="text-sm text-slate-500 font-serif-sc leading-relaxed" contenteditable="true">
+                    “底片缓缓划过，每一帧都是遇见你时的明媚色彩。”
+                </p>
+            </div>
+
+            <!-- 胶卷展示区 -->
+            <div class="gallery-container style-filmstrip custom-scrollbar">
+                <div class="photo-card relative group" draggable="true">
+                    <div class="w-full h-56 rounded-lg overflow-hidden bg-white">
+                        <img src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=800" class="w-full h-full fit-cover">
+                    </div>
+                    <div class="p-2 text-center">
+                        <p class="text-xs text-slate-700 font-serif-sc truncate" contenteditable="true">街角电车与你的回眸</p>
+                    </div>
+                    <div class="edit-only absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-20">
+                        <button onclick="replaceSinglePhoto(this)" class="w-7 h-7 bg-white/90 text-slate-700 hover:text-rose-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-camera"></i></button>
+                        <button onclick="deleteCardImage(this)" class="w-7 h-7 bg-white/90 text-red-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="photo-card relative group" draggable="true">
+                    <div class="w-full h-56 rounded-lg overflow-hidden bg-white">
+                        <img src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800" class="w-full h-full fit-cover">
+                    </div>
+                    <div class="p-2 text-center">
+                        <p class="text-xs text-slate-700 font-serif-sc truncate" contenteditable="true">雪中漫步的浪漫午后</p>
+                    </div>
+                    <div class="edit-only absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-20">
+                        <button onclick="replaceSinglePhoto(this)" class="w-7 h-7 bg-white/90 text-slate-700 hover:text-rose-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-camera"></i></button>
+                        <button onclick="deleteCardImage(this)" class="w-7 h-7 bg-white/90 text-red-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="photo-card relative group" draggable="true">
+                    <div class="w-full h-56 rounded-lg overflow-hidden bg-white">
+                        <img src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=800" class="w-full h-full fit-cover">
+                    </div>
+                    <div class="p-2 text-center">
+                        <p class="text-xs text-slate-700 font-serif-sc truncate" contenteditable="true">城市夜色里的欢声笑语</p>
+                    </div>
+                    <div class="edit-only absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-20">
+                        <button onclick="replaceSinglePhoto(this)" class="w-7 h-7 bg-white/90 text-slate-700 hover:text-rose-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-camera"></i></button>
+                        <button onclick="deleteCardImage(this)" class="w-7 h-7 bg-white/90 text-red-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <div class="photo-card relative group" draggable="true">
+                    <div class="w-full h-56 rounded-lg overflow-hidden bg-white">
+                        <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=800" class="w-full h-full fit-cover">
+                    </div>
+                    <div class="p-2 text-center">
+                        <p class="text-xs text-slate-700 font-serif-sc truncate" contenteditable="true">草坪野餐时的阳光</p>
+                    </div>
+                    <div class="edit-only absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-20">
+                        <button onclick="replaceSinglePhoto(this)" class="w-7 h-7 bg-white/90 text-slate-700 hover:text-rose-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-camera"></i></button>
+                        <button onclick="deleteCardImage(this)" class="w-7 h-7 bg-white/90 text-red-500 rounded-full shadow flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-only mt-6 flex flex-wrap justify-center items-center gap-3">
+                <button onclick="triggerBatchUpload(this)" class="px-5 py-2 rounded-full border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-50 font-bold text-xs transition inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-images"></i> 批量选择多张照片导入
+                </button>
+                <span class="text-xs text-slate-500">将电脑图片直接拖拽进卡片也能上传 | 鼠标按住卡片可自由拖拽换位</span>
+            </div>
+        </section>
+
+
+        <!-- ===== 章节 2：全景 3D 展厅 (凹面在前 + 导出视角全锁定 + 手机支持自由放大) ===== -->
+        <section class="chapter-block relative glass-panel p-10 rounded-[36px] shadow-xl border border-white" data-layout="curvedWall" data-fit="cover" data-scale="0.85" data-spacing="1.0" data-cols="5" data-layers="2" data-speed="0.5" data-spinning="true" data-align="stagger" data-rot-x="0" data-rot-y="0" data-zoom="0">
+            <div class="edit-only flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-rose-200/60 bg-rose-50/70 -mx-10 -mt-10 p-4 rounded-t-[36px]">
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                    <span class="font-bold text-slate-600 mr-1"><i class="fa-solid fa-shapes mr-1"></i>切换排版:</span>
+                    <button onclick="setChapterLayout(this, 'filmstrip')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🎞️ 电影胶卷</button>
+                    <button onclick="setChapterLayout(this, 'curvedWall')" class="px-3 py-1 rounded-lg bg-rose-500 text-white font-bold shadow-sm">🌟 3D环幕墙</button>
+                    <button onclick="setChapterLayout(this, 'doubleRing')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🌊 3D多层环</button>
+                    <button onclick="setChapterLayout(this, 'polaroid')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">📸 拍立得</button>
+                    <button onclick="setChapterLayout(this, 'grid')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🔲 瀑布网格</button>
+                    <button onclick="setChapterLayout(this, 'classic')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">📖 故事大图</button>
+                </div>
+                <div class="flex items-center gap-2 text-xs">
+                    <button onclick="toggleFitMode(this)" class="px-3 py-1 bg-white hover:bg-slate-50 text-indigo-600 rounded-lg shadow-sm font-semibold">🔲 铺满裁剪</button>
+                    <button onclick="moveChapter(this, -1)" class="p-1.5 px-2 bg-white rounded-lg hover:text-rose-500 shadow-sm"><i class="fa-solid fa-arrow-up"></i></button>
+                    <button onclick="moveChapter(this, 1)" class="p-1.5 px-2 bg-white rounded-lg hover:text-rose-500 shadow-sm"><i class="fa-solid fa-arrow-down"></i></button>
+                    <button onclick="deleteChapter(this)" class="p-1.5 px-2.5 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 shadow-sm font-bold"><i class="fa-solid fa-trash-can mr-1"></i>删除</button>
+                </div>
+            </div>
+
+            <div class="text-center max-w-3xl mx-auto mb-6 space-y-2">
+                <span class="text-rose-500 font-romantic text-2xl tracking-wider block" contenteditable="true">Chapter 02</span>
+                <h2 class="text-3xl font-serif-sc font-bold text-slate-900" contenteditable="true">星河殿堂 · 3D 全景立体空间</h2>
+                <p class="text-sm text-slate-500 font-serif-sc leading-relaxed" contenteditable="true">
+                    “电脑版原比例等比展现，手机端可随时用双指放大、缩小仔细观赏。”
+                </p>
+            </div>
+
+            <!-- 3D 渲染主视界舞台 (固定电脑级高度) -->
+            <div class="stage-3d-wrapper">
+                <!-- 3D 悬浮参数调节面板 -->
+                <div class="stage-3d-controls edit-only">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-700">
+                        <span class="font-semibold text-[11px]">尺寸:</span>
+                        <input type="range" class="ctrl-scale w-14" min="0.4" max="1.8" step="0.05" value="0.85" oninput="update3DParam(this, 'scale')">
+                    </div>
+
+                    <div class="flex items-center gap-1.5 text-xs text-slate-700">
+                        <span class="font-semibold text-[11px]">间距:</span>
+                        <input type="range" class="ctrl-spacing w-14" min="0.5" max="2.0" step="0.05" value="1.0" oninput="update3DParam(this, 'spacing')">
+                    </div>
+
+                    <!-- 环幕墙专属: 每行张数 -->
+                    <div class="ctrl-cols-box flex items-center gap-1.5 text-xs text-slate-700">
+                        <span class="font-semibold text-[11px]">一行张数:</span>
+                        <input type="range" class="ctrl-cols w-14" min="3" max="10" step="1" value="5" oninput="update3DParam(this, 'cols')">
+                        <span class="val-cols text-rose-500 font-bold text-[11px]">5</span>
+                        <button class="px-2 py-0.5 rounded text-[11px] bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 font-semibold ml-1" onclick="resetFrontConcaveAngle(this)" title="恢复最美凹面正对前方视角">🎯 正对凹面</button>
+                    </div>
+
+                    <!-- 多层环专属: 层数 -->
+                    <div class="ctrl-layers-box flex items-center gap-1.5 text-xs text-slate-700" style="display:none;">
+                        <span class="font-semibold text-[11px]">层数:</span>
+                        <input type="range" class="ctrl-layers w-12" min="1" max="8" step="1" value="2" oninput="update3DParam(this, 'layers')">
+                        <span class="val-layers text-rose-500 font-bold text-[11px]">2</span>
+                    </div>
+
+                    <!-- 多层环专属: 错开/对齐 -->
+                    <button class="ctrl-align-btn px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold" style="display:none;" onclick="toggle3DAlign(this)">🌀 错开</button>
+
+                    <!-- 多层环专属: 巡航自转 -->
+                    <div class="ctrl-spin-box flex items-center gap-2" style="display:none;">
+                        <div class="w-px h-3.5 bg-slate-300"></div>
+                        <button class="ctrl-spin-btn px-2.5 py-0.5 rounded text-[11px] bg-rose-100 text-rose-700 font-bold" onclick="toggle3DSpin(this)">⏸️ 巡航</button>
+                        <div class="flex items-center gap-1 text-xs text-slate-700">
+                            <span class="text-[11px]">速度:</span>
+                            <input type="range" class="ctrl-speed w-12" min="0.1" max="2.5" step="0.1" value="0.5" oninput="update3DParam(this, 'speed')">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 核心 3D 舞台 -->
+                <div class="stage-3d"></div>
+            </div>
+
+            <!-- 数据底座 -->
+            <div class="gallery-container hidden">
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=800"><p contenteditable="true">山野之风</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=800"><p contenteditable="true">雪山日落</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?q=80&w=800"><p contenteditable="true">绿野仙踪</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=800"><p contenteditable="true">晨雾之光</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1426604966848-d7adac402bff?q=80&w=800"><p contenteditable="true">林间微风</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=800"><p contenteditable="true">湖畔倒影</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=800"><p contenteditable="true">水天一色</p></div>
+                <div class="photo-card" draggable="true"><img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=800"><p contenteditable="true">花海烂漫</p></div>
+            </div>
+
+            <div class="edit-only mt-6 flex flex-wrap justify-center items-center gap-3">
+                <button onclick="triggerBatchUpload(this)" class="px-5 py-2 rounded-full border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-50 font-bold text-xs transition inline-flex items-center gap-1.5">
+                    <i class="fa-solid fa-images"></i> 批量选择多张照片导入本 3D 展厅
+                </button>
+                <span class="text-xs text-slate-500">直接将电脑多张照片拖进本卡片区域也能立刻添加</span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 底部寄语 -->
+    <section class="w-[96vw] max-w-[1900px] min-w-[1360px] mx-auto px-4 py-20 text-center relative z-10">
+        <div class="glass-panel p-12 rounded-[36px] shadow-xl border border-white space-y-4 max-w-4xl mx-auto">
+            <i class="fa-solid fa-heart-pulse text-3xl text-rose-400 animate-bounce"></i>
+            <h3 class="text-2xl font-serif-sc font-bold text-slate-900" contenteditable="true">未完待续 · 岁岁年年有如今</h3>
+            <p class="font-serif-sc text-sm text-slate-600 leading-relaxed max-w-xl mx-auto" contenteditable="true">
+                故事从这里启程，而属于我们的美好篇章，还在每一天的晨曦与黄昏里继续书写。
+            </p>
+            <p class="font-romantic text-3xl text-rose-500 pt-2" contenteditable="true">Forever With You.</p>
+        </div>
+    </section>
+
+    <footer class="py-8 text-center text-xs text-slate-400 relative z-10">
+        <p>Our Exclusive Memory Vault · 珍藏独家时光</p>
+    </footer>
+
+
+    <!-- ================= JS 核心架构与 3D 动画引擎 ================= -->
+    <script id="mainScript">
+        // 0. 主题切换与自动记忆系统 (LocalStorage Memory)
+        const PRESET_THEMES = {
+            pink: 'linear-gradient(135deg, #fff0f3 0%, #ffe4e9 45%, #fce7f3 75%, #fbcfe8 100%)', // 柔樱浅粉(默认)
+            cream: 'linear-gradient(135deg, #fffaf5 0%, #fff1e6 45%, #fed7aa 80%, #fdba74 100%)', // 暖杏奶茶
+            purple: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 45%, #ede9fe 75%, #ddd6fe 100%)', // 暮薰浅紫
+            blue: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 45%, #bae6fd 75%, #7dd3fc 100%)',   // 晴空淡蓝
+            mint: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 45%, #bbf7d0 75%, #86efac 100%)'    // 晨露浅绿
+        };
+
+        function initThemeMemory() {
+            try {
+                const savedTheme = localStorage.getItem('love_story_theme_bg');
+                if (savedTheme) {
+                    document.documentElement.style.setProperty('--page-bg', savedTheme);
+                }
+            } catch (e) {}
+        }
+        initThemeMemory();
+
+        function toggleThemePicker() {
+            const modal = document.getElementById('themeColorPickerModal');
+            if (modal) modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('themeColorPickerModal');
+            if (modal && !e.target.closest('#themeColorPickerModal') && !e.target.closest('button[onclick="toggleThemePicker()"]')) {
+                modal.style.display = 'none';
+            }
+        });
+
+        function applyTheme(themeKey) {
+            const bgVal = PRESET_THEMES[themeKey] || PRESET_THEMES.pink;
+            document.documentElement.style.setProperty('--page-bg', bgVal);
+            try { localStorage.setItem('love_story_theme_bg', bgVal); } catch(e){}
+            const modal = document.getElementById('themeColorPickerModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function applyCustomTheme(hexColor) {
+            const customGrad = `linear-gradient(135deg, #ffffff 0%, ${hexColor} 100%)`;
+            document.documentElement.style.setProperty('--page-bg', customGrad);
+            try { localStorage.setItem('love_story_theme_bg', customGrad); } catch(e){}
+            const modal = document.getElementById('themeColorPickerModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+
+        // 🌟 1. 场景预设数据与切换逻辑
+        const HERO_PRESETS = {
+            love: {
+                themeColor: 'pink',
+                subBadge: 'Our Love Story',
+                titleHtml: '<span contenteditable="true" class="px-2">男生名字</span><i class="fa-solid fa-heart text-rose-500 text-4xl animate-pulse"></i><span contenteditable="true" class="px-2">女生名字</span>',
+                quote: '“世界再大，走过山川湖海，最美的风景依然是你的眼睛。”',
+                label: '相爱纪念日：',
+                statusText: '已携手相伴度过',
+                defaultDate: '2023-01-01',
+                mode: 'up',
+                coverImg: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=800'
+            },
+            birthday: {
+                themeColor: 'cream',
+                subBadge: 'Happy Birthday',
+                titleHtml: '<span class="text-5xl">🎂</span> <span contenteditable="true" class="px-2">亲爱的宝贝</span> <span class="text-rose-500">生日快乐</span>',
+                quote: '“愿你眼里有星辰大海，身边有微风暖阳，岁岁常欢愉，万事皆胜意。”',
+                label: '破壳出生日：',
+                statusText: '来到这个世界已度过',
+                defaultDate: '2000-01-01',
+                mode: 'up',
+                coverImg: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=800'
+            },
+            anniversary: {
+                themeColor: 'purple',
+                subBadge: 'Happy Anniversary',
+                titleHtml: '<span class="text-5xl">💍</span> <span contenteditable="true" class="px-2">执子之手</span> · <span contenteditable="true" class="px-2">与子偕老</span>',
+                quote: '“从心动到白首，从一餐一饭到三餐四季，平淡流年，有你皆是良辰。”',
+                label: '结婚纪念日：',
+                statusText: '并肩携手走过',
+                defaultDate: '2022-05-20',
+                mode: 'up',
+                coverImg: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800'
+            },
+            baby: {
+                themeColor: 'mint',
+                subBadge: "Baby's Wonder World",
+                titleHtml: '<span class="text-5xl">🍼</span> <span contenteditable="true" class="px-2">小天使</span> <span class="text-rose-500">成长档案</span>',
+                quote: '“小小的你，蕴藏着整个宇宙的奇迹。愿你平安顺遂，快乐无忧慢慢长大。”',
+                label: '宝宝破壳日：',
+                statusText: '陪伴宝贝成长',
+                defaultDate: '2023-06-01',
+                mode: 'up',
+                coverImg: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?q=80&w=800'
+            },
+            friendship: {
+                themeColor: 'blue',
+                subBadge: 'Best Friends Forever',
+                titleHtml: '<span class="text-5xl">🌟</span> <span contenteditable="true" class="px-2">青春不散场</span> · <span class="text-rose-500">友谊万岁</span>',
+                quote: '“一个眼神就能懂的默契。无论走多远，回过头，我们永远都在。”',
+                label: '相遇纪念日：',
+                statusText: '成为死党已度过',
+                defaultDate: '2019-09-01',
+                mode: 'up',
+                coverImg: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=800'
+            }
+        };
+
+        function applyHeroPreset(presetKey) {
+            const data = HERO_PRESETS[presetKey];
+            if (!data) return;
+
+            // 切换主题底色
+            applyTheme(data.themeColor);
+
+            // 更新文字与图文
+            document.getElementById('heroSubBadge').innerText = data.subBadge;
+            document.getElementById('heroTitle').innerHTML = data.titleHtml;
+            document.getElementById('heroQuote').innerText = data.quote;
+            document.getElementById('anniversaryLabel').innerText = data.label;
+            document.getElementById('timerStatusLabel').innerText = data.statusText;
+            document.getElementById('anniversaryInput').innerText = data.defaultDate;
+            document.getElementById('heroCoverImg').src = data.coverImg;
+
+            timerMode = data.mode;
+            updateTimerModeBtnUI();
+            setAnniversaryDate(data.defaultDate);
+        }
+
+        // 🌟 2. 计时器计算（支持已度过【正计时】与期待【倒计时】双向切换）
+        let anniversaryDate = new Date('2023-01-01T00:00:00');
+        let timerMode = 'up'; // 'up' = 正计时(已过去), 'down' = 倒计时(距离目标)
+
+        function toggleTimerMode() {
+            timerMode = timerMode === 'up' ? 'down' : 'up';
+            const statusLabel = document.getElementById('timerStatusLabel');
+            if (timerMode === 'down') {
+                if (statusLabel.innerText.includes('度过') || statusLabel.innerText.includes('走过')) {
+                    statusLabel.innerText = '距离目标纪念日倒计时还有';
+                }
+            } else {
+                if (statusLabel.innerText.includes('倒计时')) {
+                    statusLabel.innerText = '已携手相伴度过';
+                }
+            }
+            updateTimerModeBtnUI();
+            calcTimer();
+        }
+
+        function updateTimerModeBtnUI() {
+            const btnText = document.getElementById('timerModeBtnText');
+            if (btnText) {
+                btnText.innerText = timerMode === 'up' ? '切换倒计时' : '切换正计时';
+            }
+        }
+
+        function setAnniversaryDate(val) {
+            const parsed = new Date(val.trim());
+            if (!isNaN(parsed.getTime())) {
+                anniversaryDate = parsed;
+                calcTimer();
+            }
+        }
+
+        function calcTimer() {
+            const now = new Date();
+            let diff = 0;
+
+            if (timerMode === 'down') {
+                diff = anniversaryDate - now;
+                if (diff < 0) diff = 0; // 倒计时结束
+            } else {
+                diff = now - anniversaryDate;
+                if (diff < 0) diff = 0;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const mins = Math.floor((diff / (1000 * 60)) % 60);
+            const secs = Math.floor((diff / 1000) % 60);
+
+            const dEl = document.getElementById('days');
+            if (dEl) {
+                dEl.innerText = String(days).padStart(3, '0');
+                document.getElementById('hours').innerText = String(hours).padStart(2, '0');
+                document.getElementById('mins').innerText = String(mins).padStart(2, '0');
+                document.getElementById('secs').innerText = String(secs).padStart(2, '0');
+            }
+        }
+        setInterval(calcTimer, 1000);
+        calcTimer();
+
+
+        // 3. 高效轻量无损图片压缩转 Base64
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    const maxSide = 1400;
+                    if (w > h && w > maxSide) { h = Math.round((h * maxSide) / w); w = maxSide; }
+                    else if (h > maxSide) { w = Math.round((w * maxSide) / h); h = maxSide; }
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    callback(canvas.toDataURL('image/jpeg', 0.84));
+                };
+            };
+        }
+
+
+        // 4. 照片拖拽换位
+        let draggedItem = null;
+        function initDragAndDrop(card) {
+            card.setAttribute('draggable', 'true');
+            card.addEventListener('dragstart', (e) => {
+                draggedItem = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            card.addEventListener('dragend', () => {
+                if (draggedItem) draggedItem.classList.remove('dragging');
+                draggedItem = null;
+                document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('drag-over'));
+            });
+            card.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedItem && draggedItem !== card && card.parentElement === draggedItem.parentElement) {
+                    card.classList.add('drag-over');
+                }
+            });
+            card.addEventListener('dragleave', () => {
+                card.classList.remove('drag-over');
+            });
+            card.addEventListener('drop', (e) => {
+                e.preventDefault();
+                card.classList.remove('drag-over');
+                if (draggedItem && draggedItem !== card && card.parentElement === draggedItem.parentElement) {
+                    const parent = card.parentElement;
+                    const allCards = Array.from(parent.children);
+                    const draggedIdx = allCards.indexOf(draggedItem);
+                    const droppedIdx = allCards.indexOf(card);
+                    if (draggedIdx < droppedIdx) {
+                        parent.insertBefore(draggedItem, card.nextSibling);
+                    } else {
+                        parent.insertBefore(draggedItem, card);
+                    }
+                    const chapter = parent.closest('.chapter-block');
+                    if (chapter) update3DStage(chapter);
+                }
+            });
+        }
+        document.querySelectorAll('.photo-card').forEach(initDragAndDrop);
+
+
+        // 5. 图片文件拖入章节卡片批量上传
+        function initChapterFileDrop(chapter) {
+            chapter.addEventListener('dragover', (e) => {
+                if (e.dataTransfer.types.includes('Files')) {
+                    e.preventDefault();
+                    chapter.classList.add('drag-file-active');
+                }
+            });
+            chapter.addEventListener('dragleave', (e) => {
+                if (!chapter.contains(e.relatedTarget)) {
+                    chapter.classList.remove('drag-file-active');
+                }
+            });
+            chapter.addEventListener('drop', (e) => {
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    e.preventDefault();
+                    chapter.classList.remove('drag-file-active');
+                    handleBatchFilesForChapter(chapter, e.dataTransfer.files);
+                }
+            });
+        }
+        document.querySelectorAll('.chapter-block').forEach(initChapterFileDrop);
+
+
+        // 6. 批量图片上传处理
+        let targetChapterForBatch = null;
+        const batchInput = document.getElementById('batchImageInput');
+
+        function triggerBatchUpload(btn) {
+            targetChapterForBatch = btn.closest('.chapter-block');
+            if (batchInput) batchInput.click();
+        }
+
+        if (batchInput) {
+            batchInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0 && targetChapterForBatch) {
+                    handleBatchFilesForChapter(targetChapterForBatch, e.target.files);
+                }
+                batchInput.value = '';
+            });
+        }
+
+        function handleBatchFilesForChapter(chapter, fileList) {
+            const gallery = chapter.querySelector('.gallery-container');
+            const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            if (files.length === 0) return;
+
+            const isContain = chapter.getAttribute('data-fit') === 'contain';
+            const fitClass = isContain ? 'fit-contain' : 'fit-cover';
+
+            files.forEach(file => {
+                compressImage(file, (base64) => {
+                    const card = document.createElement('div');
+                    card.className = "photo-card relative group";
+                    card.innerHTML = `
+                        <div class="w-full h-56 rounded-lg overflow-hidden bg-white">
+                            <img src="${base64}" class="w-full h-full ${fitClass}">
+                        </div>
+                        <div class="p-2 text-center">
+                            <p class="text-xs text-slate-700 font-serif-sc truncate" contenteditable="true">点击记录这一刻的心情...</p>
+                        </div>
+                        <div class="edit-only absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-20">
+                            <button onclick="replaceSinglePhoto(this)" class="w-7 h-7 bg-white/90 text-slate-700 hover:text-rose-500 rounded-full shadow flex items-center justify-center text-xs" title="换图"><i class="fa-solid fa-camera"></i></button>
+                            <button onclick="deleteCardImage(this)" class="w-7 h-7 bg-white/90 text-red-500 rounded-full shadow flex items-center justify-center text-xs" title="删图"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    `;
+                    initDragAndDrop(card);
+                    gallery.appendChild(card);
+                    update3DStage(chapter);
+                });
+            });
+        }
+
+
+        // 7. 单张图片替换与删除
+        let targetImgElem = null;
+        const singleInput = document.getElementById('singleReplaceInput');
+
+        function triggerReplaceHero() {
+            targetImgElem = document.getElementById('heroCoverImg');
+            if (singleInput) singleInput.click();
+        }
+        function replaceSinglePhoto(btn) {
+            const card = btn.closest('.photo-card');
+            targetImgElem = card.querySelector('img');
+            if (singleInput) singleInput.click();
+        }
+        function deleteCardImage(btn) {
+            if (confirm("确定要删除这张照片吗？")) {
+                const card = btn.closest('.photo-card');
+                const chapter = card.closest('.chapter-block');
+                card.remove();
+                if (chapter) update3DStage(chapter);
+            }
+        }
+        if (singleInput) {
+            singleInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && targetImgElem) {
+                    compressImage(file, (base64) => {
+                        targetImgElem.src = base64;
+                        const chapter = targetImgElem.closest('.chapter-block');
+                        if (chapter) update3DStage(chapter);
+                    });
+                }
+                singleInput.value = '';
+            });
+        }
+
+
+        // 8. 图片裁剪/铺满模式切换
+        function toggleFitMode(btn) {
+            const chapter = btn.closest('.chapter-block');
+            const currentFit = chapter.getAttribute('data-fit') || 'cover';
+            const nextFit = currentFit === 'cover' ? 'contain' : 'cover';
+            chapter.setAttribute('data-fit', nextFit);
+
+            btn.innerText = nextFit === 'cover' ? '🔲 铺满裁剪' : '📐 完整显示';
+            btn.className = nextFit === 'cover'
+                ? "px-3 py-1 bg-white hover:bg-slate-50 text-indigo-600 rounded-lg shadow-sm font-semibold"
+                : "px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg shadow-sm font-bold";
+
+            const imgs = chapter.querySelectorAll('.gallery-container img, .stage-3d-wrapper img');
+            imgs.forEach(img => {
+                if (nextFit === 'contain') {
+                    img.classList.remove('fit-cover');
+                    img.classList.add('fit-contain');
+                } else {
+                    img.classList.remove('fit-contain');
+                    img.classList.add('fit-cover');
+                }
+            });
+            update3DStage(chapter);
+        }
+
+
+        // 9. 3D 参数更新
+        function update3DParam(input, param) {
+            const chapter = input.closest('.chapter-block');
+            const val = input.value;
+            chapter.setAttribute(`data-${param}`, val);
+
+            if (param === 'layers') {
+                const badge = chapter.querySelector('.val-layers');
+                if (badge) badge.textContent = val;
+            } else if (param === 'cols') {
+                const badge = chapter.querySelector('.val-cols');
+                if (badge) badge.textContent = val;
+            }
+            update3DStage(chapter);
+        }
+
+        // 一键恢复凹面朝前 (rotX=0, rotY=0)
+        function resetFrontConcaveAngle(btn) {
+            const chapter = btn.closest('.chapter-block');
+            chapter.setAttribute('data-rot-x', '0');
+            chapter.setAttribute('data-rot-y', '0');
+            const wrapper = chapter.querySelector('.stage-3d-wrapper');
+            if (wrapper && wrapper._syncAngle) {
+                wrapper._syncAngle(0, 0);
+            }
+        }
+
+        function toggle3DAlign(btn) {
+            const chapter = btn.closest('.chapter-block');
+            const curr = chapter.getAttribute('data-align') || 'stagger';
+            const next = curr === 'stagger' ? 'aligned' : 'stagger';
+            chapter.setAttribute('data-align', next);
+            btn.textContent = next === 'stagger' ? '🌀 错开' : '🌛 对齐';
+            btn.className = next === 'aligned'
+                ? "ctrl-align-btn px-2 py-0.5 rounded text-[11px] bg-indigo-100 text-indigo-700 font-bold"
+                : "ctrl-align-btn px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold";
+            update3DStage(chapter);
+        }
+
+        function toggle3DSpin(btn) {
+            const chapter = btn.closest('.chapter-block');
+            const isSpinning = chapter.getAttribute('data-spinning') !== 'false';
+            const nextState = !isSpinning;
+            chapter.setAttribute('data-spinning', String(nextState));
+            btn.textContent = nextState ? "⏸️ 巡航" : "▶️ 巡航";
+            btn.className = nextState
+                ? "ctrl-spin-btn px-2.5 py-0.5 rounded text-[11px] bg-rose-100 text-rose-700 font-bold"
+                : "ctrl-spin-btn px-2.5 py-0.5 rounded text-[11px] bg-slate-200 text-slate-700 font-semibold";
+        }
+
+
+        // 10. 切换章节的布局风格
+        function setChapterLayout(btn, layoutName) {
+            const chapter = btn.closest('.chapter-block');
+            chapter.setAttribute('data-layout', layoutName);
+
+            const btnGroup = btn.parentElement.querySelectorAll('button');
+            btnGroup.forEach(b => {
+                b.className = "px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm";
+            });
+            btn.className = "px-3 py-1 rounded-lg bg-rose-500 text-white font-bold shadow-sm";
+
+            const gallery = chapter.querySelector('.gallery-container');
+            let stageWrapper = chapter.querySelector('.stage-3d-wrapper');
+
+            gallery.classList.remove('style-filmstrip', 'style-polaroid', 'style-grid', 'style-classic', 'custom-scrollbar', 'hidden');
+
+            if (layoutName === 'curvedWall' || layoutName === 'doubleRing') {
+                if (!stageWrapper) {
+                    stageWrapper = document.createElement('div');
+                    stageWrapper.className = "stage-3d-wrapper";
+                    stageWrapper.innerHTML = `
+                        <div class="stage-3d-controls edit-only">
+                            <div class="flex items-center gap-1.5 text-xs text-slate-700">
+                                <span class="font-semibold text-[11px]">尺寸:</span>
+                                <input type="range" class="ctrl-scale w-14" min="0.4" max="1.8" step="0.05" value="0.85" oninput="update3DParam(this, 'scale')">
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs text-slate-700">
+                                <span class="font-semibold text-[11px]">间距:</span>
+                                <input type="range" class="ctrl-spacing w-14" min="0.5" max="2.0" step="0.05" value="1.0" oninput="update3DParam(this, 'spacing')">
+                            </div>
+                            <div class="ctrl-cols-box flex items-center gap-1.5 text-xs text-slate-700">
+                                <span class="font-semibold text-[11px]">一行张数:</span>
+                                <input type="range" class="ctrl-cols w-14" min="3" max="10" step="1" value="5" oninput="update3DParam(this, 'cols')">
+                                <span class="val-cols text-rose-500 font-bold text-[11px]">5</span>
+                                <button class="px-2 py-0.5 rounded text-[11px] bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 font-semibold ml-1" onclick="resetFrontConcaveAngle(this)" title="恢复最美凹面正对前方视角">🎯 正对凹面</button>
+                            </div>
+                            <div class="ctrl-layers-box flex items-center gap-1.5 text-xs text-slate-700" style="display:none;">
+                                <span class="font-semibold text-[11px]">层数:</span>
+                                <input type="range" class="ctrl-layers w-12" min="1" max="8" step="1" value="2" oninput="update3DParam(this, 'layers')">
+                                <span class="val-layers text-rose-500 font-bold text-[11px]">2</span>
+                            </div>
+                            <button class="ctrl-align-btn px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold" style="display:none;" onclick="toggle3DAlign(this)">🌀 错开</button>
+                            <div class="ctrl-spin-box flex items-center gap-2" style="display:none;">
+                                <div class="w-px h-3.5 bg-slate-300"></div>
+                                <button class="ctrl-spin-btn px-2.5 py-0.5 rounded text-[11px] bg-rose-100 text-rose-700 font-bold" onclick="toggle3DSpin(this)">⏸️ 巡航</button>
+                                <div class="flex items-center gap-1 text-xs text-slate-700">
+                                    <span class="text-[11px]">速度:</span>
+                                    <input type="range" class="ctrl-speed w-12" min="0.1" max="2.5" step="0.1" value="0.5" oninput="update3DParam(this, 'speed')">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stage-3d"></div>
+                    `;
+                    chapter.insertBefore(stageWrapper, gallery);
+                    init3DStageInteraction(stageWrapper, chapter);
+                }
+                stageWrapper.style.display = 'block';
+                gallery.classList.add('hidden');
+
+                const layerCtrl = stageWrapper.querySelector('.ctrl-layers-box');
+                const alignBtn = stageWrapper.querySelector('.ctrl-align-btn');
+                const spinBox = stageWrapper.querySelector('.ctrl-spin-box');
+                const colsBox = stageWrapper.querySelector('.ctrl-cols-box');
+
+                if (layoutName === 'curvedWall') {
+                    if (colsBox) colsBox.style.display = 'flex';
+                    if (layerCtrl) layerCtrl.style.display = 'none';
+                    if (alignBtn) alignBtn.style.display = 'none';
+                    if (spinBox) spinBox.style.display = 'none';
+                } else if (layoutName === 'doubleRing') {
+                    if (colsBox) colsBox.style.display = 'none';
+                    if (layerCtrl) layerCtrl.style.display = 'flex';
+                    if (alignBtn) alignBtn.style.display = 'inline-block';
+                    if (spinBox) spinBox.style.display = 'flex';
+                }
+
+                update3DStage(chapter);
+            } else {
+                if (stageWrapper) stageWrapper.style.display = 'none';
+                gallery.classList.remove('hidden');
+
+                if (layoutName === 'filmstrip') gallery.classList.add('style-filmstrip', 'custom-scrollbar');
+                else if (layoutName === 'polaroid') gallery.classList.add('style-polaroid');
+                else if (layoutName === 'grid') gallery.classList.add('style-grid');
+                else if (layoutName === 'classic') gallery.classList.add('style-classic');
+            }
+        }
+
+
+        // 11. 3D 舞台生成 (电脑版超宽尺度直接渲染)
+        function update3DStage(chapter) {
+            const layout = chapter.getAttribute('data-layout');
+            if (layout !== 'curvedWall' && layout !== 'doubleRing') return;
+
+            const stage = chapter.querySelector('.stage-3d');
+            if (!stage) return;
+
+            const gallery = chapter.querySelector('.gallery-container');
+            const photoCards = Array.from(gallery.querySelectorAll('.photo-card'));
+            const isContain = chapter.getAttribute('data-fit') === 'contain';
+            const fitClass = isContain ? 'fit-contain' : 'fit-cover';
+
+            const cardScale = parseFloat(chapter.getAttribute('data-scale') || '0.85');
+            const spacingMultiplier = parseFloat(chapter.getAttribute('data-spacing') || '1.0');
+            const ringLayers = parseInt(chapter.getAttribute('data-layers') || '2');
+            const ringAlign = chapter.getAttribute('data-align') || 'stagger';
+            const itemsPerRow = parseInt(chapter.getAttribute('data-cols') || '5');
+
+            stage.innerHTML = '';
+            const total = photoCards.length;
+            if (total === 0) return;
+
+            const baseW = 320 * cardScale;
+            const baseH = 215 * cardScale;
+
+            photoCards.forEach((card, i) => {
+                const img = card.querySelector('img');
+                if (!img) return;
+
+                const card3d = document.createElement('div');
+                card3d.className = 'card-3d';
+                card3d.style.width = `${baseW}px`;
+                card3d.style.height = `${baseH}px`;
+                card3d.style.left = `-${baseW / 2}px`;
+                card3d.style.top = `-${baseH / 2}px`;
+
+                const clonedImg = document.createElement('img');
+                clonedImg.src = img.src;
+                clonedImg.className = fitClass;
+                card3d.appendChild(clonedImg);
+
+                let transformStr = "";
+
+                if (layout === 'curvedWall') {
+                    // 🌟 3D 环幕墙：中间正对视线，两侧向后内弧弯曲（凹面在前）
+                    const cols = itemsPerRow;
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    const totalRows = Math.ceil(total / cols);
+                    const midCol = (cols - 1) / 2;
+                    const midRow = (totalRows - 1) / 2;
+
+                    const angleY = (col - midCol) * 8.5;
+                    const radius = 1350 * spacingMultiplier;
+                    const transZ = -(1 - Math.cos((angleY * Math.PI) / 180)) * radius;
+                    const transX = (col - midCol) * (baseW + 18 * spacingMultiplier);
+                    const transY = (row - midRow) * (baseH + 18 * spacingMultiplier);
+                    transformStr = `translate3d(${transX}px, ${transY}px, ${transZ}px) rotateY(${angleY}deg)`;
+
+                } else if (layout === 'doubleRing') {
+                    // 🌊 3D 多层环
+                    const layers = Math.min(Math.max(1, ringLayers), total);
+                    const slotCount = Math.max(2, Math.ceil(total / layers));
+                    const layer = Math.min(layers - 1, Math.floor(i / slotCount));
+                    const indexInLayer = i - layer * slotCount;
+
+                    const angleOffset = ringAlign === 'aligned' ? 0 : (layer % 2) * (180 / slotCount);
+                    const angle = indexInLayer * (360 / slotCount) + angleOffset;
+
+                    const radius = Math.max(
+                        380,
+                        ((baseW + 28 * spacingMultiplier) / 2) / Math.tan(Math.PI / slotCount)
+                    ) * spacingMultiplier;
+
+                    const layerGap = (baseH + 24 * spacingMultiplier);
+                    const posY = (layer - (layers - 1) / 2) * layerGap;
+
+                    transformStr = `rotateY(${angle}deg) translateZ(${radius}px) translateY(${posY}px)`;
+                }
+
+                card3d.style.transform = transformStr;
+                stage.appendChild(card3d);
+            });
+        }
+
+
+        // 12. 3D 舞台交互核心 (原生电脑版直接渲染，双指自由放大缩小)
+        function init3DStageInteraction(wrapper, chapter) {
+            const stage = wrapper.querySelector('.stage-3d');
+            const isExportedMode = !document.getElementById('topControlBar');
+
+            let rotX = parseFloat(chapter.getAttribute('data-rot-x') || '0');
+            let rotY = parseFloat(chapter.getAttribute('data-rot-y') || '0');
+            let targetRotX = rotX;
+            let targetRotY = rotY;
+            let zoomZ = parseFloat(chapter.getAttribute('data-zoom') || '0');
+            let isDragging = false;
+            let startX, startY;
+
+            wrapper._syncAngle = (rx, ry) => {
+                targetRotX = rx; targetRotY = ry;
+                rotX = rx; rotY = ry;
+                chapter.setAttribute('data-rot-x', rx);
+                chapter.setAttribute('data-rot-y', ry);
+            };
+
+            // 仅在编辑模式下才注册拖拽旋转与滚轮缩放事件；导出模式完全静止锁定！
+            if (!isExportedMode) {
+                wrapper.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.stage-3d-controls')) return;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    targetRotY += dx * 0.35;
+                    targetRotX -= dy * 0.25;
+                    targetRotX = Math.max(-75, Math.min(75, targetRotX));
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    chapter.setAttribute('data-rot-x', targetRotX.toFixed(2));
+                    chapter.setAttribute('data-rot-y', targetRotY.toFixed(2));
+                });
+                window.addEventListener('mouseup', () => isDragging = false);
+
+                wrapper.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    zoomZ -= e.deltaY * 0.9;
+                    zoomZ = Math.max(-3500, Math.min(800, zoomZ));
+                    chapter.setAttribute('data-zoom', zoomZ.toFixed(2));
+                }, { passive: false });
+            }
+
+            // 动画主循环：完全按原生 100% 电脑比例渲染，通过手机视口等比收纳
+            function loop3D() {
+                const layout = chapter.getAttribute('data-layout');
+                const isSpinning = chapter.getAttribute('data-spinning') !== 'false';
+                const spinSpeed = parseFloat(chapter.getAttribute('data-speed') || '0.5');
+
+                if (!isExportedMode) {
+                    if (layout === 'doubleRing' && isSpinning && !isDragging) {
+                        targetRotY += spinSpeed * 0.4;
+                    }
+                    rotX += (targetRotX - rotX) * 0.1;
+                    rotY += (targetRotY - rotY) * 0.1;
+                } else {
+                    // 🔒 导出模式：视角严格锁定，多层环自转
+                    if (layout === 'doubleRing' && isSpinning) {
+                        rotY += spinSpeed * 0.4;
+                    } else {
+                        rotY = parseFloat(chapter.getAttribute('data-rot-y') || '0');
+                    }
+                    rotX = parseFloat(chapter.getAttribute('data-rot-x') || '0');
+                    zoomZ = parseFloat(chapter.getAttribute('data-zoom') || '0');
+                }
+
+                stage.style.transform = `translateZ(${zoomZ}px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+                requestAnimationFrame(loop3D);
+            }
+            requestAnimationFrame(loop3D);
+        }
+
+        document.querySelectorAll('.stage-3d-wrapper').forEach(wrapper => {
+            const chapter = wrapper.closest('.chapter-block');
+            init3DStageInteraction(wrapper, chapter);
+            update3DStage(chapter);
+        });
+
+
+        // 13. 章节排序与新建
+        function moveChapter(btn, dir) {
+            const chapter = btn.closest('.chapter-block');
+            const container = document.getElementById('chaptersContainer');
+            if (dir === -1 && chapter.previousElementSibling) {
+                container.insertBefore(chapter, chapter.previousElementSibling);
+            } else if (dir === 1 && chapter.nextElementSibling) {
+                container.insertBefore(chapter.nextElementSibling, chapter);
+            }
+        }
+        function deleteChapter(btn) {
+            if (confirm("确定要删除此章节吗？里面的所有照片将被一并移除。")) {
+                btn.closest('.chapter-block').remove();
+            }
+        }
+
+        function addNewChapterModal() {
+            const title = prompt("请输入新故事章节的标题（例如：洱海看日落、第一次露营、求婚日记）：", "浪漫时光");
+            if (!title) return;
+
+            const container = document.getElementById('chaptersContainer');
+            const newChapter = document.createElement('section');
+            newChapter.className = "chapter-block relative glass-panel p-10 rounded-[36px] shadow-xl border border-white";
+            newChapter.setAttribute('data-layout', 'polaroid');
+            newChapter.setAttribute('data-fit', 'cover');
+            newChapter.setAttribute('data-scale', '0.85');
+            newChapter.setAttribute('data-spacing', '1.0');
+            newChapter.setAttribute('data-cols', '5');
+            newChapter.setAttribute('data-layers', '2');
+            newChapter.setAttribute('data-speed', '0.5');
+            newChapter.setAttribute('data-spinning', 'true');
+            newChapter.setAttribute('data-align', 'stagger');
+            newChapter.setAttribute('data-rot-x', '0');
+            newChapter.setAttribute('data-rot-y', '0');
+            newChapter.setAttribute('data-zoom', '0');
+
+            newChapter.innerHTML = `
+                <div class="edit-only flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-rose-200/60 bg-rose-50/70 -mx-10 -mt-10 p-4 rounded-t-[36px]">
+                    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span class="font-bold text-slate-600 mr-1"><i class="fa-solid fa-shapes mr-1"></i>切换排版:</span>
+                        <button onclick="setChapterLayout(this, 'filmstrip')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🎞️ 电影胶卷</button>
+                        <button onclick="setChapterLayout(this, 'curvedWall')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🌟 3D环幕墙</button>
+                        <button onclick="setChapterLayout(this, 'doubleRing')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🌊 3D多层环</button>
+                        <button onclick="setChapterLayout(this, 'polaroid')" class="px-3 py-1 rounded-lg bg-rose-500 text-white font-bold shadow-sm">📸 拍立得</button>
+                        <button onclick="setChapterLayout(this, 'grid')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">🔲 瀑布网格</button>
+                        <button onclick="setChapterLayout(this, 'classic')" class="px-3 py-1 rounded-lg bg-white/80 hover:bg-white text-slate-700 font-semibold shadow-sm">📖 故事大图</button>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <button onclick="toggleFitMode(this)" class="px-3 py-1 bg-white hover:bg-slate-50 text-indigo-600 rounded-lg shadow-sm font-semibold">🔲 铺满裁剪</button>
+                        <button onclick="moveChapter(this, -1)" class="p-1.5 px-2 bg-white rounded-lg hover:text-rose-500 shadow-sm"><i class="fa-solid fa-arrow-up"></i></button>
+                        <button onclick="moveChapter(this, 1)" class="p-1.5 px-2 bg-white rounded-lg hover:text-rose-500 shadow-sm"><i class="fa-solid fa-arrow-down"></i></button>
+                        <button onclick="deleteChapter(this)" class="p-1.5 px-2.5 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200 shadow-sm font-bold"><i class="fa-solid fa-trash-can mr-1"></i>删除</button>
+                    </div>
+                </div>
+
+                <div class="text-center max-w-3xl mx-auto mb-8 space-y-2">
+                    <span class="text-rose-500 font-romantic text-2xl tracking-wider block" contenteditable="true">Our Adventure</span>
+                    <h2 class="text-3xl font-serif-sc font-bold text-slate-900" contenteditable="true">${title}</h2>
+                    <p class="text-sm text-slate-500 font-serif-sc leading-relaxed" contenteditable="true">
+                        “点击此处写下关于这个章节的美好回忆小传...”
+                    </p>
+                </div>
+
+                <div class="gallery-container style-polaroid"></div>
+
+                <div class="edit-only mt-6 flex flex-wrap justify-center items-center gap-3">
+                    <button onclick="triggerBatchUpload(this)" class="px-5 py-2 rounded-full border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-50 font-bold text-xs transition inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-images"></i> 批量选择多张照片导入
+                    </button>
+                    <span class="text-xs text-slate-500">将电脑图片直接拖拽进卡片也能上传</span>
+                </div>
+            `;
+            initChapterFileDrop(newChapter);
+            container.appendChild(newChapter);
+            newChapter.scrollIntoView({ behavior: 'smooth' });
+        }
+
+
+        // 14. 🔒 导出终极完美展品 (保留 1400px 电脑版原貌等比缩放视口配置)
+        function exportPermanentCleanHTML() {
+            const clone = document.documentElement.cloneNode(true);
+
+            clone.querySelectorAll('.edit-only, #topControlBar, #batchImageInput, #singleReplaceInput, .stage-3d-controls, #themeColorPickerModal').forEach(el => el.remove());
+            clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+            clone.querySelectorAll('[draggable]').forEach(el => el.removeAttribute('draggable'));
+            clone.querySelectorAll('.drag-over, .dragging, .drag-file-active').forEach(el => {
+                el.classList.remove('drag-over', 'dragging', 'drag-file-active');
+            });
+
+            clone.querySelector('body').classList.add('is-exported-view');
+
+            const currentBg = getComputedStyle(document.documentElement).getPropertyValue('--page-bg') || PRESET_THEMES.pink;
+            clone.querySelector('body').style.background = currentBg;
+
+            const finalCleanHTML = "<!DOCTYPE html>\n" + clone.outerHTML;
+            const blob = new Blob([finalCleanHTML], { type: "text/html;charset=utf-8" });
+            const downloadUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const today = new Date().toISOString().slice(0, 10);
+            a.href = downloadUrl;
+            a.download = `独家全景回忆录_终极珍藏版_${today}.html`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+
+            alert("🎉 导出成功！\n\n1. 【电脑版原貌锁死】：在手机上打开，排版 100% 和电脑完全一样（绝不变成竖排单张）！\n2. 【支持双指放大】：手机双指随时拉大拉小仔细看！\n3. 【视角完全固定】：他人无法随意拖歪视角，多层环自动旋转！");
+        }
+
+
+        // 15. 爱心粒子画布
+        const canvas = document.getElementById('heartsCanvas');
+        const ctx = canvas.getContext('2d');
+        let hearts = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class ParticleHeart {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + 20;
+                this.size = Math.random() * 10 + 6;
+                this.speedY = Math.random() * 0.8 + 0.4;
+                this.speedX = Math.random() * 0.6 - 0.3;
+                this.opacity = Math.random() * 0.3 + 0.15;
+            }
+            update() {
+                this.y -= this.speedY; this.x += this.speedX;
+                if (this.y < -20) this.reset();
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath();
+                const h = this.size * 0.3;
+                ctx.moveTo(this.x, this.y + h);
+                ctx.bezierCurveTo(this.x, this.y, this.x - this.size / 2, this.y, this.x - this.size / 2, this.y + h);
+                ctx.bezierCurveTo(this.x - this.size / 2, this.y + (this.size + h) / 2, this.x, this.y + this.size, this.x, this.y + this.size);
+                ctx.bezierCurveTo(this.x, this.y + this.size, this.x + this.size / 2, this.y + (this.size + h) / 2, this.x + this.size / 2, this.y + h);
+                ctx.bezierCurveTo(this.x + this.size / 2, this.y, this.x, this.y, this.x, this.y + h);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        for (let i = 0; i < 20; i++) hearts.push(new ParticleHeart());
+        function anim() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hearts.forEach(h => { h.update(); h.draw(); });
+            requestAnimationFrame(anim);
+        }
+        anim();
+    </script>
+</body>
+</html>
