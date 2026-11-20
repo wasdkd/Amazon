@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="zh-CN" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊全维度选品打标系统</title>
+
+    <!-- 外部核心依赖库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --purple: #8b5cf6;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --border: #cbd5e1;
+            --text-main: #0f172a;
+            --focus-col-bg: #eff6ff;
+            --focus-col-header: #bfdbfe;
+            --table-img-w: 75px;
+            --table-img-h: 92px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ===== 顶部导航栏 ===== */
+        .header {
+            background: #0f172a;
+            color: #fff;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .header-title { font-size: 15px; font-weight: bold; color: #38bdf8; margin-right: 8px; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 12px; font-size: 12px; font-weight: 600;
+            border-radius: 6px; border: none; cursor: pointer;
+            transition: all 0.15s ease; color: #fff; line-height: 1;
+        }
+        .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-blue { background: var(--primary); }
+        .btn-green { background: var(--success); }
+        .btn-orange { background: var(--warning); }
+        .btn-purple { background: var(--purple); }
+        .btn-red { background: var(--danger); }
+        .btn-dark { background: #334155; }
+        .btn-guide { background: linear-gradient(135deg, #6366f1, #a855f7); color:#fff; box-shadow: 0 2px 6px rgba(168,85,247,0.3); }
+        .btn-outline { background: transparent; border: 1px solid #475569; color: #cbd5e1; }
+        .btn-outline:hover { background: #1e293b; color: #fff; }
+
+        .view-switch {
+            display: inline-flex; background: #1e293b; padding: 3px; border-radius: 6px; border: 1px solid #334155;
+        }
+        .view-btn {
+            padding: 5px 12px; font-size: 12px; font-weight: bold; color: #94a3b8; border-radius: 4px;
+            cursor: pointer; transition: all 0.15s; border: none; background: transparent;
+        }
+        .view-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* ===== 工具栏 ===== */
+        .batch-bar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 6px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            flex-shrink: 0;
+        }
+        .dim-selector {
+            display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: bold; color: #334155;
+        }
+        .dim-selector select {
+            padding: 5px 10px; border-radius: 6px; border: 2px solid var(--primary);
+            font-size: 13px; font-weight: bold; color: var(--primary); outline: none; background: #eff6ff; cursor: pointer;
+        }
+        .tags-palette {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-grow: 1;
+        }
+        .tag-pill {
+            padding: 3px 9px; border-radius: 16px; font-size: 12px; font-weight: 600;
+            cursor: pointer; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155;
+            transition: all 0.12s; display: flex; align-items: center; gap: 4px;
+        }
+        .tag-pill:hover { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+        .tag-pill .kbd { font-size: 10px; opacity: 0.6; background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 4px; }
+        .tag-pill.brush-active { background: #dbeafe !important; border-color: var(--primary) !important; color: var(--primary) !important; box-shadow: 0 0 0 2px var(--primary); }
+
+        /* ===== 质检抽检条 ===== */
+        .inspect-bar {
+            background: #f1f5f9;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 5px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+        .inspect-title { font-weight: bold; color: #334155; white-space: nowrap; }
+        .filter-capsule {
+            padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: 600;
+            background: #ffffff; border: 1px solid #cbd5e1; color: #475569;
+            cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;
+            transition: all 0.15s;
+        }
+        .filter-capsule .badge-count { background: #e2e8f0; color: #0f172a; padding: 0 5px; border-radius: 10px; font-size: 10px; }
+        .filter-capsule:hover { border-color: var(--primary); color: var(--primary); }
+        .filter-capsule.active { background: #0f172a; border-color: #0f172a; color: #fff; }
+        .filter-capsule.active .badge-count { background: #3b82f6; color: #fff; }
+        .filter-capsule.danger { border-color: #fca5a5; background: #fff5f5; color: #b91c1c; }
+        .filter-capsule.danger.active { background: #dc2626; color: #fff; border-color: #b91c1c; }
+
+        /* ===== 主容器区 ===== */
+        .main-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 视图 1: Excel 表格 */
+        .table-view-wrap {
+            flex: 1;
+            overflow: auto;
+            background: #fff;
+            position: relative;
+        }
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            table-layout: fixed;
+        }
+        .excel-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: #f1f5f9;
+        }
+        .excel-table th {
+            padding: 8px 6px;
+            font-weight: 700;
+            color: #1e293b;
+            border: 1px solid #cbd5e1;
+            background: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.15s;
+        }
+        .excel-table th.focus-dim-header {
+            background: var(--focus-col-header) !important;
+            color: #1e3a8a !important;
+            border-top: 3px solid #2563eb !important;
+            border-left: 2px solid #3b82f6 !important;
+            border-right: 2px solid #3b82f6 !important;
+        }
+
+        .excel-table td {
+            padding: 0;
+            border: 1px solid #cbd5e1;
+            vertical-align: middle;
+            background: #fff;
+            position: relative;
+            transition: background-color 0.15s;
+        }
+        .excel-table td.focus-dim-cell {
+            background-color: var(--focus-col-bg) !important;
+            border-left: 2px solid #93c5fd !important;
+            border-right: 2px solid #93c5fd !important;
+        }
+        .excel-table tr.selected td {
+            background-color: #eff6ff !important;
+        }
+
+        /* 大图样式 */
+        .table-thumb {
+            width: var(--table-img-w);
+            height: var(--table-img-h);
+            object-fit: contain;
+            display: block;
+            margin: 4px auto;
+            cursor: zoom-in;
+            background: #f8fafc;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            transition: transform 0.15s;
+        }
+        .table-thumb:hover { transform: scale(1.04); }
+
+        /* 单元格单行 Input */
+        .excel-cell-input {
+            width: 100%;
+            height: 100%;
+            min-height: 40px;
+            border: 2px solid transparent;
+            padding: 6px 8px;
+            font-size: 13px;
+            outline: none;
+            background: transparent;
+            color: #0f172a;
+            font-family: inherit;
+        }
+        .excel-cell-input:focus {
+            background: #ffffff !important;
+            border-color: #2563eb !important;
+            box-shadow: inset 0 0 0 1px #2563eb;
+            z-index: 5;
+        }
+
+        /* 元素与材质自适应多行输入域 (支持换行自动展开) */
+        .excel-cell-textarea {
+            width: 100%;
+            min-height: 75px;
+            border: 2px solid transparent;
+            padding: 6px 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            outline: none;
+            background: transparent;
+            color: #0f172a;
+            font-family: inherit;
+            resize: vertical;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        .excel-cell-textarea:focus {
+            background: #ffffff !important;
+            border-color: #2563eb !important;
+            box-shadow: inset 0 0 0 1px #2563eb;
+            z-index: 5;
+        }
+
+        /* 商品标题多行自动换行单元格 */
+        .table-title-cell {
+            padding: 6px 10px;
+            font-size: 11px;
+            line-height: 1.45;
+            color: #475569;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-height: 110px;
+            overflow-y: auto;
+        }
+
+        /* 视图 2: 极速卡片模式 */
+        .card-view-wrap {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: #93c5fd; }
+        .card.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary);
+            background: #f0f7ff;
+        }
+        .card-checkbox {
+            position: absolute; top: 6px; left: 6px; z-index: 5;
+            width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;
+        }
+        .sales-tag {
+            position: absolute; top: 6px; right: 6px; z-index: 5;
+            font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 4px;
+            background: rgba(15, 23, 42, 0.75); color: #fff;
+        }
+        .sales-tag.high { background: rgba(16, 185, 129, 0.9); }
+        .img-wrap { width: 100%; aspect-ratio: 3/4; background: #f8fafc; overflow: hidden; position: relative; }
+        .img-wrap img { width: 100%; height: 100%; object-fit: contain; }
+        .card-body { padding: 8px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
+        .cur-tag-badge {
+            font-size: 12px; font-weight: bold; text-align: center; padding: 4px 6px;
+            border-radius: 4px; background: #f1f5f9; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cur-tag-badge.active { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .cur-tag-badge.missing { background: #fee2e2; color: #dc2626; border: 1px dashed #fca5a5; }
+
+        .tags-summary {
+            font-size: 11px; color: #64748b; line-height: 1.4; display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px;
+        }
+        .asin-title { font-size: 10px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* 底栏 */
+        .footer {
+            background: #ffffff;
+            border-top: 1px solid #cbd5e1;
+            padding: 6px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+
+        /* 模态弹窗 */
+        .modal-mask {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+            z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);
+        }
+        .modal-mask.show { display: flex; }
+        .edit-modal {
+            background: #fff; border-radius: 12px; width: 900px; max-width: 95vw; max-height: 90vh;
+            display: flex; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
+        .modal-left { width: 380px; background: #0f172a; display: flex; align-items: center; justify-content: center; position: relative; }
+        .modal-left img { max-width: 100%; max-height: 90vh; object-fit: contain; }
+        .modal-right { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .form-row { display: flex; flex-direction: column; gap: 4px; }
+        .form-row label { font-size: 12px; font-weight: bold; color: #475569; }
+        .form-row input {
+            padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none;
+        }
+
+        .dim-modal-content {
+            background: #fff; border-radius: 12px; width: 700px; max-width: 95vw; max-height: 85vh;
+            padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+        .dim-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; }
+        .dim-item-row {
+            display: flex; flex-direction: column; gap: 6px;
+            padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+        }
+        .dim-options-cloud { display: flex; flex-wrap: wrap; gap: 4px; }
+        .dim-option-tag {
+            background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1px 7px;
+            font-size: 11px; display: inline-flex; align-items: center; gap: 4px; color: #334155;
+        }
+        .dim-option-tag .del-btn { cursor: pointer; color: #ef4444; font-weight: bold; font-size: 12px; }
+        .dim-option-tag .del-btn:hover { color: #b91c1c; }
+
+        /* 导出遮罩 */
+        #export-mask {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            z-index: 2000; color: white; justify-content: center; align-items: center; flex-direction: column; gap: 12px;
+        }
+        .progress-bar { width: 320px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+        .progress-inner { width: 0%; height: 100%; background: var(--success); transition: width 0.2s; }
+
+        #hoverPreview {
+            display: none; position: fixed; z-index: 9999; width: 280px; height: 360px;
+            background: #fff; border: 2px solid #3b82f6; border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); pointer-events: none; overflow: hidden;
+        }
+        #hoverPreview img { width: 100%; height: 100%; object-fit: contain; }
+
+        /* ===== 交互式新手引导教程 (Tour Spotlight) ===== */
+        .tour-spotlight {
+            display: none; position: fixed; inset: 0; z-index: 10000; pointer-events: none;
+            transition: all 0.25s ease-out;
+        }
+        .tour-spotlight.show { display: block; }
+        .tour-highlight-box {
+            position: fixed; border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.72);
+            border: 2px solid #38bdf8;
+            pointer-events: auto;
+            transition: all 0.25s ease-out;
+            z-index: 10001;
+        }
+        .tour-popover {
+            position: fixed; z-index: 10002; width: 340px; background: #fff;
+            border-radius: 12px; padding: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 10px; pointer-events: auto;
+            transition: all 0.25s ease-out;
+        }
+        .tour-step-badge {
+            font-size: 11px; font-weight: bold; color: #6366f1; background: #e0e7ff;
+            padding: 2px 8px; border-radius: 10px; width: fit-content;
+        }
+        .tour-title { font-size: 15px; font-weight: bold; color: #0f172a; }
+        .tour-content { font-size: 12.5px; line-height: 1.5; color: #475569; }
+        .tour-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 动态 datalist 挂载池 -->
+    <div id="datalistPool" style="display:none;"></div>
+
+    <!-- 顶部主导航 -->
+    <div class="header">
+        <div class="header-left">
+            <span class="header-title">🏷️ 亚马逊选品打标 & 质检系统</span>
+
+            <div class="view-switch" id="navViewSwitch">
+                <button class="view-btn active" id="btnViewTable" onclick="switchMainView('table')">📊 经典表格模式</button>
+                <button class="view-btn" id="btnViewCard" onclick="switchMainView('card')">⚡ 极速卡片模式</button>
+            </div>
+
+            <input type="file" id="fileInput" accept=".xlsx,.csv" style="display:none" onchange="handleFile(this)">
+            <button class="btn btn-orange" id="btnImport" onclick="document.getElementById('fileInput').click()">📂 导入表格</button>
+            <button class="btn btn-green" id="btnExport" onclick="exportData()">📥 导出 Excel</button>
+            <button class="btn btn-purple" id="btnDims" onclick="openDimensionManager()">⚙️ 管理/新增维度</button>
+            <button class="btn btn-guide" id="btnTourGuide" onclick="startTourGuide()">📖 使用教程</button>
+            <button class="btn btn-dark" onclick="exportImagesZip()">📦 导出图片包</button>
+            <button class="btn btn-outline" onclick="clearDB()">🗑️ 清空缓存</button>
+            <button class="btn btn-dark" onclick="window.location.href='https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'">🏠 返回平台</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; font-size:12px;">
+            <span>总计: <b id="stTotal" style="color:#38bdf8">0</b></span>
+            <span>筛选: <b id="stFiltered">0</b></span>
+            <span>已选: <b id="stSelected" style="color:#34d399">0</b></span>
+        </div>
+    </div>
+
+    <!-- 快捷操作与过滤栏 -->
+    <div class="batch-bar">
+        <div class="dim-selector" id="boxDimSelector">
+            <span>🎯 重点操作维度:</span>
+            <select id="curDimSelect" onchange="switchDimension(this.value)"></select>
+        </div>
+
+        <!-- 常用标签候选池 (坚决保留原 ID tagsPalette，修复报错) -->
+        <div class="tags-palette" id="tagsPalette"></div>
+
+        <div style="display:flex; align-items:center; gap:10px; font-size:12px; border-left:1px solid #cbd5e1; padding-left:12px;">
+            <!-- 表格图片尺寸微调 -->
+            <div id="tableImgSizeControls" style="display:flex; align-items:center; gap:4px; font-weight:600; color:#475569;">
+                <span>🖼️ 图片:</span>
+                <button class="btn btn-outline" style="color:#333; padding:2px 6px; font-size:11px;" onclick="setTableImgSize('small')">小</button>
+                <button class="btn btn-outline" style="color:#333; padding:2px 6px; font-size:11px; background:#e2e8f0;" id="btnImgMid" onclick="setTableImgSize('mid')">中</button>
+                <button class="btn btn-outline" style="color:#333; padding:2px 6px; font-size:11px;" onclick="setTableImgSize('large')">大</button>
+            </div>
+
+            <label style="cursor:pointer; display:none; align-items:center; gap:4px; font-weight:600;" id="brushModeContainer">
+                <input type="checkbox" id="chkBrushMode" onchange="toggleBrushMode(this)"> 🖌️ 画笔模式 (点击直赋)
+            </label>
+            <input type="text" id="txtSearch" placeholder="🔍 搜索任意内容..." oninput="applyFilter()" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; width:130px;">
+            <select id="sortSelect" onchange="applySort(this.value)" style="padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px;">
+                <option value="">默认排序</option>
+                <option value="sales-desc">销量降序 ↓</option>
+                <option value="sales-asc">销量升序 ↑</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 质检抽检条 (按打好的标签检查) -->
+    <div class="inspect-bar" id="boxInspectBar">
+        <span class="inspect-title">🔍 <span id="inspectDimName">领型</span> 质检抽检:</span>
+        <div id="inspectFilters" style="display:flex; align-items:center; gap:6px;"></div>
+    </div>
+
+    <!-- 主展示区 -->
+    <div class="main-container">
+        <!-- 视图 1: 经典表格模式 -->
+        <div class="table-view-wrap" id="tableView">
+            <table class="excel-table" id="dataTable">
+                <thead><tr id="tableHeaderRow"></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- 视图 2: 极速卡片瀑布流模式 -->
+        <div class="card-view-wrap" id="cardView" style="display:none;">
+            <div class="grid" id="cardGrid"></div>
+        </div>
+    </div>
+
+    <!-- 底部状态条与翻页 (已彻底删除 Alt 键直赋提示) -->
+    <div class="footer">
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-outline" style="color:#333; border-color:#ccc;" onclick="selectAllCurrent(true)">全选本页</button>
+            <button class="btn btn-outline" style="color:#333; border-color:#ccc;" onclick="selectAllCurrent(false)">取消选择</button>
+            <span style="color:#64748b; margin-left:8px;">
+                💡 <b>提示：</b>表格单元格支持直接打字，按 <b>Enter</b> 自动保存并跳到下一行；卡片模式可按 <b>1~9</b> 快速赋标。
+            </span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span>每页:
+                <select id="pageSizeSelect" onchange="changePageSize(this.value)" style="padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200" selected>200</option>
+                    <option value="500">500</option>
+                </select>
+            </span>
+            <span>第 <b id="pgCur">1</b> / <b id="pgTotal">1</b> 页</span>
+            <button class="btn btn-outline" style="color:#333; border-color:#ccc;" onclick="changePage(-1)">‹</button>
+            <button class="btn btn-outline" style="color:#333; border-color:#ccc;" onclick="changePage(1)">›</button>
+        </div>
+    </div>
+
+    <!-- 交互式分步新手教程导览 (Tour Spotlight) -->
+    <div class="tour-spotlight" id="tourSpotlight">
+        <div class="tour-highlight-box" id="tourHighlightBox"></div>
+        <div class="tour-popover" id="tourPopover">
+            <div class="tour-step-badge" id="tourBadge">步骤 1 / 7</div>
+            <div class="tour-title" id="tourTitle">标题</div>
+            <div class="tour-content" id="tourContent">说明内容</div>
+            <div class="tour-footer">
+                <button class="btn btn-outline" style="color:#64748b; border:none; padding:4px 8px;" onclick="exitTourGuide()">跳过教程</button>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn btn-outline" id="tourPrevBtn" style="color:#333; border-color:#ccc; padding:4px 10px;" onclick="changeTourStep(-1)">上一步</button>
+                    <button class="btn btn-blue" id="tourNextBtn" style="padding:4px 12px;" onclick="changeTourStep(1)">下一步</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悬浮大图预览 -->
+    <div id="hoverPreview"><img id="hoverPreviewImg" src=""></div>
+
+    <!-- 单品编辑弹窗 -->
+    <div class="modal-mask" id="editModal" onclick="if(event.target===this) closeModal()">
+        <div class="edit-modal">
+            <div class="modal-left"><img id="modalImg" src=""></div>
+            <div class="modal-right">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b id="modalAsin" style="font-size:16px; color:var(--primary);">ASIN</b>
+                    <span style="font-size:12px; color:#64748b;">按 ← / → 切换前后款 | ESC 退出</span>
+                </div>
+                <div id="modalForm" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"></div>
+                <div class="form-row">
+                    <label>材质 (成分)</label>
+                    <input type="text" id="modal_material" onchange="syncModalChange('material', this.value)">
+                </div>
+                <div class="form-row">
+                    <label>设计元素 (Elements)</label>
+                    <input type="text" id="modal_elements" onchange="syncModalChange('elements', this.value)">
+                </div>
+                <div class="form-row">
+                    <label>商品标题</label>
+                    <div id="modalTitle" style="font-size:12px; color:#475569; max-height:80px; overflow-y:auto; line-height:1.4;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 维度自由管理与清理脏选项弹窗 -->
+    <div class="modal-mask" id="dimModal" onclick="if(event.target===this) closeDimensionManager()">
+        <div class="dim-modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                <h3 style="font-size:16px; color:#0f172a;">⚙️ 管理维度与词库</h3>
+                <button class="btn btn-outline" style="color:#666; border-color:#ccc; padding:2px 8px;" onclick="closeDimensionManager()">✕</button>
+            </div>
+            <div style="background:#f1f5f9; padding:10px 12px; border-radius:6px; display:flex; flex-direction:column; gap:8px;">
+                <span style="font-size:12px; font-weight:bold; color:#334155;">➕ 新增维度（例如：waist 腰型 / season 季节）:</span>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="newDimKey" placeholder="英文标识(如 waist)" style="width:120px; font-size:12px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px;">
+                    <input type="text" id="newDimName" placeholder="中文列名(如 腰型)" style="width:120px; font-size:12px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px;">
+                    <input type="text" id="newDimOptions" placeholder="初始候选词(逗号隔开)" style="flex:1; font-size:12px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px;">
+                    <button class="btn btn-blue" onclick="addCustomDimension()">确认添加</button>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; font-weight:bold; color:#475569;">已启用的所有操作维度候选词：</span>
+                <button class="btn btn-orange" style="padding:3px 8px; font-size:11px;" onclick="cleanAllNumericGarbageOptions()">🧹 一键清除孤立脏选项</button>
+            </div>
+            <div class="dim-list" id="dimListContainer"></div>
+        </div>
+    </div>
+
+    <!-- 导出遮罩 -->
+    <div id="export-mask">
+        <h3 id="exp-status">正在生成 Excel...</h3>
+        <div class="progress-bar"><div class="progress-inner" id="exp-bar"></div></div>
+        <button class="btn btn-red" onclick="cancelExportProcess()">❌ 取消导出</button>
+    </div>
+
+    <script>
+        /* ================= 1. 基础预设与动态有效词库 ================= */
+        let PAGE_SIZE = 200;
+        let currentView = 'table';
+        let allData = [];
+        let filteredData = [];
+        let selectedIndices = new Set();
+        let currentPage = 1;
+        let currentDimension = 'collar';
+        let activeBrushTag = null;
+        let inspectActiveTag = 'ALL';
+        let lastSelectedIndex = null;
+        let modalCurrentIndex = null;
+        let isExportCancelled = false;
+
+        const BASE_PRESETS = {
+            category: ["Tops", "Dresses", "Pants", "Jeans", "Shorts", "Skirts", "Sweaters", "Sweatshirts", "Hoodies", "Jackets", "Coats", "Sets", "Swimsuits", "Blouse"],
+            collar: ["V领", "圆领", "半高领", "立领", "高领", "方领", "POLO领", "翻领", "娃娃领", "连帽", "船领", "荡领", "一字肩", "露肩", "挂脖", "桃心领", "单肩", "不对称领", "U领", "无"],
+            sleeve: ["无袖", "短袖", "盖袖", "长袖", "七分袖", "五分袖", "泡泡袖", "蝙蝠袖", "插肩袖", "荷叶袖", "喇叭袖", "挽袖", "开叉袖", "挖肩袖", "无"],
+            fit: ["修身", "合身", "宽松", "A字", "微喇", "裹身", "直筒", "男友风", "老爹风", "超宽松"],
+            length: ["长款", "拖地", "中长", "及膝", "短款", "九分", "七分", "盖臀", "及臀", "常规"],
+            pattern: ["纯色", "碎花", "印花", "条纹", "格纹", "豹纹", "波点", "扎染", "拼色", "撞色", "拼接", "渐变", "迷彩", "字母"],
+            style: ["休闲", "通勤", "派对", "婚礼", "晚礼", "正式", "度假", "波西米亚", "运动", "复古", "千禧风", "学院风", "甜美", "性感", "街头"],
+            fabric_visual: ["彩棉", "日本棉", "密根棉", "锦高弹", "坑条", "牛仔", "雪纺", "针织", "蕾丝", "灯芯绒", "缎面"]
+        };
+
+        let DIMENSION_CONFIG = [
+            { key: 'category', name: '品类', width: 95, baseOptions: [...BASE_PRESETS.category] },
+            { key: 'collar', name: '领型', width: 90, baseOptions: [...BASE_PRESETS.collar] },
+            { key: 'sleeve', name: '袖型', width: 90, baseOptions: [...BASE_PRESETS.sleeve] },
+            { key: 'fit', name: '版型', width: 90, baseOptions: [...BASE_PRESETS.fit] },
+            { key: 'length', name: '长度', width: 90, baseOptions: [...BASE_PRESETS.length] },
+            { key: 'pattern', name: '图案', width: 90, baseOptions: [...BASE_PRESETS.pattern] },
+            { key: 'style', name: '风格', width: 90, baseOptions: [...BASE_PRESETS.style] },
+            { key: 'fabric_visual', name: '面料', width: 90, baseOptions: [...BASE_PRESETS.fabric_visual] }
+        ];
+
+        let editableColsMeta = [];
+
+        const RAW_CAT_MAP = {
+            "dress pants": "Pants", "dress pant": "Pants", "wide leg pants": "Pants", "casual pants": "Pants", "work pants": "Pants", "yoga pants": "Pants", "trousers": "Pants", "trouser": "Pants", "slacks": "Pants", "capris": "Pants", "capri": "Pants", "leggings": "Pants", "legging": "Pants", "jean shorts": "Shorts", "denim shorts": "Shorts", "swim trunk": "Swimsuits", "bikini set": "Bikini", "cover up": "Swimsuits",
+            "vest": "Vests", "tank": "Tops", "cami": "Tops", "camisole": "Tops", "top": "Tops", "shirt": "Tops", "tee": "Tops", "blouse": "Blouse", "dress": "Dresses", "pants": "Pants", "pant": "Pants", "jean": "Jeans", "jeans": "Jeans", "shorts": "Shorts", "skirt": "Skirts", "skirts": "Skirts", "sweater": "Sweaters", "sweatshirt": "Sweatshirts", "hoodie": "Hoodies", "jacket": "Jackets", "coat": "Coats", "set": "Sets", "sets": "Sets", "suit": "Sets", "suits": "Sets", "bikini": "Bikini", "swim": "Swimsuits", "swimsuit": "Swimsuits", "t-shirt": "Tops", "cardigan": "Sweaters", "pullover": "Sweaters", "jumpsuit": "Sets", "romper": "Sets"
+        };
+        const SORTED_CAT_KEYS = Object.keys(RAW_CAT_MAP).sort((a,b) => b.length - a.length);
+        const BOTTOM_CATS = ['Pants', 'Jeans', 'Shorts', 'Skirts', 'Bikini', 'Swimsuits'];
+
+        const DICTS = {
+            length: { "maxi": "长款", "floor length": "拖地", "midi": "中长", "calf length": "中长", "knee length": "及膝", "mini": "短款", "crop": "短款", "cropped": "短款", "ankle": "九分", "capri": "七分" },
+            pattern: { "floral": "碎花", "flower": "碎花", "ditsy": "碎花", "print": "印花", "printed": "印花", "graphic": "印花", "letter": "字母", "solid": "纯色", "plain": "纯色", "stripe": "条纹", "striped": "条纹", "plaid": "格纹", "check": "格纹", "leopard": "豹纹", "polka dot": "波点", "dots": "波点", "tie dye": "扎染", "color block": "拼色" },
+            style: { "casual": "休闲", "daily": "休闲", "work": "通勤", "office": "通勤", "business": "通勤", "party": "派对", "cocktail": "派对", "club": "派对", "wedding": "婚礼", "formal": "正式", "vacation": "度假", "beach": "度假", "boho": "波西米亚", "sport": "运动", "vintage": "复古", "y2k": "千禧风", "sexy": "性感" },
+            fit: { "slim": "修身", "fitted": "修身", "tight": "修身", "bodycon": "修身", "regular": "合身", "standard": "合身", "loose": "宽松", "oversize": "宽松", "baggy": "宽松", "a-line": "A字", "flare": "微喇", "wrap": "裹身", "straight": "直筒" },
+            collar: { "v-neck": "V领", "v neck": "V领", "crew": "圆领", "crew neck": "圆领", "round": "圆领", "mock": "半高领", "stand": "立领", "turtle": "高领", "turtleneck": "高领", "square": "方领", "polo": "POLO领", "collared": "翻领", "lapel": "翻领", "hood": "连帽", "boat": "船领", "off shoulder": "一字肩", "halter": "挂脖", "sweetheart": "桃心领", "one shoulder": "单肩" },
+            sleeve: { "sleeveless": "无袖", "tank": "无袖", "short sleeve": "短袖", "cap sleeve": "盖袖", "long sleeve": "长袖", "3/4": "七分袖", "half sleeve": "五分袖", "puff": "泡泡袖", "batwing": "蝙蝠袖", "raglan": "插肩袖", "bell": "喇叭袖" },
+            elements: { "pocket": "口袋", "cargo": "工装口袋", "button": "纽扣", "lace": "蕾丝", "rib": "罗纹", "knit": "针织", "zipper": "拉链", "pleated": "褶皱", "smocked": "打揽(松紧)", "ruffle": "荷叶边", "mesh": "网纱", "sequin": "亮片", "belt": "腰带", "bow": "蝴蝶结", "drawstring": "抽绳", "split": "开叉" }
+        };
+
+        function cleanMaterial(text, isStrict) {
+            if (!text) return "";
+            let str = String(text).replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+            str = str.replace(/(\d)%([a-z])/gi, '$1% $2');
+            const regex = /(\d+(?:\.\d+)?\s*%\s*[a-z]+(?:\s+[a-z]+)?)/gi;
+            const matches = str.match(regex);
+            if (matches) {
+                const uniqueMap = new Map();
+                matches.forEach(m => {
+                    let clean = m.toLowerCase().trim().replace(/%\s*/, '% ');
+                    const numMatch = clean.match(/(\d+(?:\.\d+)?)/);
+                    const num = numMatch ? parseFloat(numMatch[1]) : 0;
+                    if(!uniqueMap.has(clean)) uniqueMap.set(clean, num);
+                });
+                return Array.from(uniqueMap.keys()).sort((a, b) => uniqueMap.get(b) - uniqueMap.get(a)).join(', ');
+            }
+            if (isStrict) return "";
+            const lower = str.toLowerCase();
+            if (lower.includes("imported") || lower.includes("machine wash") || lower.length > 50) return "";
+            return str;
+        }
+
+        function isValidTagOption(val) {
+            if (!val || typeof val !== 'string') return false;
+            const str = val.trim();
+            if (!str || str === "无" || str === "(空)") return false;
+            if (/^\d+$/.test(str)) return false;
+            if (/^[.,\/#!$%\^&\*;:{}=\-_`~()？。，、]+$/.test(str)) return false;
+            return true;
+        }
+
+        function getEffectiveOptions(dimKey) {
+            const dimObj = DIMENSION_CONFIG.find(d => d.key === dimKey);
+            if (!dimObj) return [];
+            const baseSet = new Set((dimObj.baseOptions || []).filter(isValidTagOption));
+            const inUseCustomSet = new Set();
+            allData.forEach(item => {
+                const val = (item[dimKey] || "").trim();
+                if (isValidTagOption(val) && !baseSet.has(val)) {
+                    inUseCustomSet.add(val);
+                }
+            });
+            return [...inUseCustomSet, ...baseSet];
+        }
+
+        /* ================= 2. 数据库与持久化 ================= */
+        const DB_NAME = "AmazonQuickTagDB_V8", DB_STORE = "tagStore";
+        let db;
+
+        window.onload = function() {
+            initDB();
+            loadCustomDimensionsFromStorage();
+            rebuildEditableMeta();
+            rebuildDatalists();
+            refreshDimensionDropdown();
+            renderTagsPalette();
+            bindGlobalShortcuts();
+            initHoverPreview();
+        };
+
+        function initDB() {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE);
+            request.onsuccess = e => {
+                db = e.target.result;
+                const tx = db.transaction([DB_STORE], "readonly");
+                const req = tx.objectStore(DB_STORE).get("autoSave");
+                req.onsuccess = () => {
+                    if (req.result && req.result.length > 0) {
+                        allData = req.result;
+                        rebuildDatalists();
+                        applyFilter();
+                    }
+                };
+            };
+        }
+
+        let saveTimeout;
+        function autoSave() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                if (db && allData.length > 0) {
+                    const tx = db.transaction([DB_STORE], "readwrite");
+                    tx.objectStore(DB_STORE).put(allData, "autoSave");
+                }
+            }, 300);
+        }
+
+        function clearDB() {
+            if (!confirm("确定要清空已存的所有本地缓存数据吗？")) return;
+            const tx = db.transaction([DB_STORE], "readwrite");
+            tx.objectStore(DB_STORE).delete("autoSave");
+            allData = [];
+            filteredData = [];
+            selectedIndices.clear();
+            rebuildDatalists();
+            renderView();
+            alert("缓存已清空");
+        }
+
+        /* ================= 3. 维度管理与动态 Datalist 重建 ================= */
+        function rebuildEditableMeta() {
+            editableColsMeta = [];
+            DIMENSION_CONFIG.forEach(d => {
+                editableColsMeta.push({ key: d.key, name: d.name, width: d.width || 90, hasDatalist: true, isTextarea: false });
+            });
+            editableColsMeta.push({ key: 'elements', name: '元素', width: 140, hasDatalist: false, isTextarea: true });
+            editableColsMeta.push({ key: 'material', name: '材质(成分)', width: 220, hasDatalist: false, isTextarea: true });
+        }
+
+        function rebuildDatalists() {
+            const pool = document.getElementById('datalistPool');
+            let html = '';
+            DIMENSION_CONFIG.forEach(d => {
+                const effOptions = getEffectiveOptions(d.key);
+                html += `<datalist id="dl_${d.key}">
+                    ${effOptions.map(opt => `<option value="${opt}"></option>`).join('')}
+                </datalist>`;
+            });
+            pool.innerHTML = html;
+        }
+
+        function cleanAllNumericGarbageOptions() {
+            DIMENSION_CONFIG.forEach(d => {
+                d.baseOptions = (d.baseOptions || []).filter(isValidTagOption);
+            });
+            let count = 0;
+            allData.forEach(item => {
+                DIMENSION_CONFIG.forEach(d => {
+                    if (item[d.key] && /^\d+$/.test(String(item[d.key]).trim())) {
+                        item[d.key] = "";
+                        count++;
+                    }
+                });
+            });
+            saveCustomDimensionsToStorage();
+            rebuildDatalists();
+            renderTagsPalette();
+            renderView();
+            alert(`已彻底净化完成！清除了 ${count} 个历史纯数字错误。`);
+        }
+
+        function removeSingleBaseOption(dimKey, optionVal) {
+            const dimObj = DIMENSION_CONFIG.find(d => d.key === dimKey);
+            if (dimObj && dimObj.baseOptions) {
+                dimObj.baseOptions = dimObj.baseOptions.filter(o => o !== optionVal);
+                saveCustomDimensionsToStorage();
+                rebuildDatalists();
+                if (dimKey === currentDimension) renderTagsPalette();
+                openDimensionManager();
+            }
+        }
+
+        function loadCustomDimensionsFromStorage() {
+            try {
+                const saved = localStorage.getItem("custom_dimensions_config_v8");
+                if (saved) DIMENSION_CONFIG = JSON.parse(saved);
+            } catch(e) {}
+        }
+
+        function saveCustomDimensionsToStorage() {
+            localStorage.setItem("custom_dimensions_config_v8", JSON.stringify(DIMENSION_CONFIG));
+        }
+
+        function refreshDimensionDropdown() {
+            const select = document.getElementById('curDimSelect');
+            select.innerHTML = DIMENSION_CONFIG.map(d => `<option value="${d.key}" ${d.key===currentDimension?'selected':''}>${d.name} (${d.key})</option>`).join('');
+            renderTableHeader();
+        }
+
+        function openDimensionManager() {
+            const container = document.getElementById('dimListContainer');
+            container.innerHTML = DIMENSION_CONFIG.map((d, index) => {
+                const isBase = ['category','collar','sleeve'].includes(d.key);
+                const eff = getEffectiveOptions(d.key);
+                return `<div class="dim-item-row">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <b>${d.name}</b> <span style="color:#64748b; font-size:11px;">[${d.key}]</span>
+                        </div>
+                        ${!isBase ? `<button class="btn btn-red" style="padding:2px 6px; font-size:11px;" onclick="removeCustomDimension(${index})">删除整个维度</button>` : '<span style="font-size:11px; color:#94a3b8;">系统核心</span>'}
+                    </div>
+                    <div class="dim-options-cloud">
+                        ${eff.map(opt => `<span class="dim-option-tag">
+                            ${opt} <span class="del-btn" onclick="removeSingleBaseOption('${d.key}', '${opt}')" title="删除该候选词">×</span>
+                        </span>`).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+            document.getElementById('dimModal').classList.add('show');
+        }
+
+        function closeDimensionManager() {
+            document.getElementById('dimModal').classList.remove('show');
+        }
+
+        function addCustomDimension() {
+            const key = document.getElementById('newDimKey').value.trim().toLowerCase();
+            const name = document.getElementById('newDimName').value.trim();
+            const optsStr = document.getElementById('newDimOptions').value.trim();
+            if (!key || !name) return alert("请填写英文标识和中文名称");
+            if (DIMENSION_CONFIG.some(d => d.key === key)) return alert("该标识已存在！");
+
+            const baseOptions = optsStr ? optsStr.split(/[,，]/).map(s=>s.trim()).filter(isValidTagOption) : [];
+            DIMENSION_CONFIG.push({ key, name, width: 90, baseOptions });
+            saveCustomDimensionsToStorage();
+            rebuildEditableMeta();
+            rebuildDatalists();
+            refreshDimensionDropdown();
+            renderTagsPalette();
+            openDimensionManager();
+            applyFilter();
+            document.getElementById('newDimKey').value = '';
+            document.getElementById('newDimName').value = '';
+            document.getElementById('newDimOptions').value = '';
+        }
+
+        function removeCustomDimension(index) {
+            if (!confirm(`确定删除维度 "${DIMENSION_CONFIG[index].name}" 吗？`)) return;
+            DIMENSION_CONFIG.splice(index, 1);
+            saveCustomDimensionsToStorage();
+            rebuildEditableMeta();
+            rebuildDatalists();
+            refreshDimensionDropdown();
+            renderTagsPalette();
+            openDimensionManager();
+            applyFilter();
+        }
+
+        function customAddTagValue() {
+            const val = prompt(`为【${currentDimension}】添加新的标签/选项：`);
+            if (!val || !val.trim()) return;
+            const clean = val.trim();
+            if (!isValidTagOption(clean)) return alert("标签不能是纯数字或空！");
+
+            const dimObj = DIMENSION_CONFIG.find(d => d.key === currentDimension);
+            if (dimObj) {
+                if (!dimObj.baseOptions.includes(clean)) {
+                    dimObj.baseOptions.unshift(clean);
+                    saveCustomDimensionsToStorage();
+                    rebuildDatalists();
+                    renderTagsPalette();
+                }
+            }
+
+            if (selectedIndices.size > 0) {
+                if (confirm(`是否同时将新标签【${clean}】赋予当前选中的 ${selectedIndices.size} 个商品？`)) {
+                    batchApplyTag(clean);
+                }
+            }
+        }
+
+        function setTableImgSize(size) {
+            const r = document.documentElement;
+            if (size === 'small') {
+                r.style.setProperty('--table-img-w', '48px');
+                r.style.setProperty('--table-img-h', '60px');
+            } else if (size === 'mid') {
+                r.style.setProperty('--table-img-w', '75px');
+                r.style.setProperty('--table-img-h', '92px');
+            } else if (size === 'large') {
+                r.style.setProperty('--table-img-w', '105px');
+                r.style.setProperty('--table-img-h', '130px');
+            }
+        }
+
+        /* ================= 4. 文件导入与解析 ================= */
+        function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+                processData(json);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData(raw) {
+            allData = raw.map((row, idx) => {
+                const title = String(row['商品标题'] || row['Title'] || row['title'] || "");
+                const title_cn = String(row['标题(翻译)'] || row['中文标题'] || row['Translated Title'] || row['title_cn'] || "");
+                const details = String(row['详细参数'] || row['Technical Details'] || "");
+                const desc = details + " " + String(row['产品卖点'] || row['Bullet Points'] || "");
+                let img = row['商品主图'] || row['Main Image URL'] || row['image'] || "";
+                img = img.replace(/\._AC_.*_\.jpg/, ".jpg").replace(/\._AC_.*_\.png/, ".png");
+
+                let monthly_sales = "";
+                const salesFields = ['月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+                for (let field of salesFields) {
+                    if (row[field] !== undefined && row[field] !== "") {
+                        let salesVal = row[field];
+                        if (typeof salesVal === 'string') {
+                            const match = salesVal.match(/(\d+)/);
+                            if (match) monthly_sales = parseInt(match[0]);
+                        } else {
+                            monthly_sales = Number(salesVal);
+                        }
+                        if (monthly_sales) break;
+                    }
+                }
+
+                let material = "";
+                const fabricField = details.match(/Fabric type:?\s*([^|]+)/i);
+                const materialField = details.match(/Material:?\s*([^|]+)/i);
+                if (fabricField) material = cleanMaterial(fabricField[1], false);
+                if (!material && materialField) material = cleanMaterial(materialField[1], false);
+                if (!material) material = cleanMaterial(desc, true);
+
+                let category = "";
+                const getCatFromText = (txt) => {
+                    if (!txt) return "";
+                    const t = String(txt).toLowerCase();
+                    for (let key of SORTED_CAT_KEYS) { if (t.includes(key)) return RAW_CAT_MAP[key]; }
+                    return "";
+                };
+                const typeText = row['product_type'] || row['feed_product_type'] || row['glance_view'] || row['sub_category'] || row['Product Group'] || row['商品类型'] || row['小类目'] || row['推荐节点'];
+                category = getCatFromText(typeText);
+                if (!category) {
+                    let catText = row['Category'] || row['category'] || row['breadcrumbs'] || row['类目'] || row['分类'] || row['类目路径'];
+                    if (catText) catText = String(catText).replace(/Clothing, Shoes & Jewelry/gi, "").replace(/Women/gi, "");
+                    category = getCatFromText(catText);
+                }
+                if (!category) category = getCatFromText(title);
+
+                const checkWord = (text, keyword) => {
+                    const safeKey = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    return new RegExp(`\\b${safeKey}\\b`, 'i').test(text);
+                };
+                const find = (dict) => {
+                    for (let k of Object.keys(dict)) { if (checkWord(title, k)) return dict[k]; }
+                    for (let k of Object.keys(dict)) { if (checkWord(desc, k)) return dict[k]; }
+                    return "";
+                };
+                const findMulti = (dict) => {
+                    let res = [];
+                    const fullText = title + " " + desc;
+                    for (let k of Object.keys(dict)) { if (checkWord(fullText, k) && !res.includes(dict[k])) res.push(dict[k]); }
+                    return res.join(",");
+                };
+
+                let collar = find(DICTS.collar);
+                let sleeve = find(DICTS.sleeve);
+                if (category && BOTTOM_CATS.includes(category)) { collar = "无"; sleeve = "无"; }
+
+                const item = {
+                    _id: idx,
+                    img: img,
+                    asin: row['ASIN'] || row['asin'] || "",
+                    monthly_sales: monthly_sales,
+                    category: category,
+                    collar: collar,
+                    sleeve: sleeve,
+                    fit: find(DICTS.fit),
+                    length: find(DICTS.length),
+                    pattern: find(DICTS.pattern) || "纯色",
+                    style: find(DICTS.style) || "休闲",
+                    fabric_visual: "",
+                    material: material,
+                    elements: findMulti(DICTS.elements),
+                    title: title,
+                    title_cn: title_cn,
+                    _raw: row
+                };
+
+                DIMENSION_CONFIG.forEach(d => {
+                    if (item[d.key] === undefined) {
+                        item[d.key] = row[d.name] || row[d.key] || "";
+                    }
+                });
+
+                return item;
+            });
+
+            selectedIndices.clear();
+            rebuildDatalists();
+            applyFilter();
+            autoSave();
+        }
+
+        /* ================= 5. 视图切换与表头构建 ================= */
+        function switchMainView(view) {
+            currentView = view;
+            document.getElementById('btnViewTable').classList.toggle('active', view === 'table');
+            document.getElementById('btnViewCard').classList.toggle('active', view === 'card');
+            document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
+            document.getElementById('cardView').style.display = view === 'card' ? 'block' : 'none';
+            document.getElementById('brushModeContainer').style.display = view === 'card' ? 'flex' : 'none';
+            document.getElementById('tableImgSizeControls').style.display = view === 'table' ? 'flex' : 'none';
+            renderView();
+        }
+
+        function renderTableHeader() {
+            const tr = document.getElementById('tableHeaderRow');
+            let html = `
+                <th style="width:36px; text-align:center;"><input type="checkbox" onchange="selectAllCurrent(this.checked)"></th>
+                <th style="width:90px; text-align:center;">商品图</th>
+                <th style="width:105px;">ASIN</th>
+                <th style="width:65px; text-align:center;">月销量</th>
+            `;
+            editableColsMeta.forEach(col => {
+                const isFocused = col.key === currentDimension;
+                html += `<th style="width:${col.width}px;" class="${isFocused ? 'focus-dim-header' : ''}">
+                    ${col.name} ${isFocused ? '★' : ''}
+                </th>`;
+            });
+            html += `<th style="min-width:220px;">商品标题 (自动换行)</th>`;
+            tr.innerHTML = html;
+        }
+
+        /* ================= 6. 快捷操作 & 质检抽检条 ================= */
+        function switchDimension(dimKey) {
+            currentDimension = dimKey;
+            inspectActiveTag = 'ALL';
+            renderTableHeader();
+            renderTagsPalette();
+            applyFilter();
+        }
+
+        function renderTagsPalette() {
+            const container = document.getElementById('tagsPalette');
+            if (!container) return; // 绝对安全防护
+            const options = getEffectiveOptions(currentDimension);
+            let html = '';
+            options.slice(0, 14).forEach((tag, idx) => {
+                const kbd = idx < 9 ? `<span class="kbd">${idx + 1}</span>` : '';
+                html += `<div class="tag-pill ${activeBrushTag === tag ? 'brush-active' : ''}" onclick="onTagPillClick('${tag}')">
+                    <span>${tag}</span>${kbd}
+                </div>`;
+            });
+            html += `<button class="btn btn-outline" style="color:#2563eb;border-color:#bfdbfe;background:#eff6ff;padding:2px 8px;font-size:11px;" onclick="customAddTagValue()">+ 自定义标签</button>`;
+            html += `<button class="btn btn-red" style="padding:2px 8px;font-size:11px;" onclick="batchApplyTag('')" title="清空选中项当前维度">清空[Del]</button>`;
+            container.innerHTML = html;
+        }
+
+        function updateInspectBar() {
+            const dimObj = DIMENSION_CONFIG.find(d => d.key === currentDimension);
+            document.getElementById('inspectDimName').innerText = dimObj ? dimObj.name : currentDimension;
+
+            const counts = {};
+            let missingCount = 0;
+            allData.forEach(item => {
+                const val = (item[currentDimension] || "").trim();
+                const isBottom = BOTTOM_CATS.includes(item.category);
+                const isCollarSleeveBottom = isBottom && (currentDimension === 'collar' || currentDimension === 'sleeve');
+
+                if (!val || val === "无" && !isCollarSleeveBottom) {
+                    missingCount++;
+                } else if (isValidTagOption(val)) {
+                    counts[val] = (counts[val] || 0) + 1;
+                }
+            });
+
+            const container = document.getElementById('inspectFilters');
+            let html = `<div class="filter-capsule ${inspectActiveTag === 'ALL' ? 'active' : ''}" onclick="setInspectFilter('ALL')">
+                全部 <span class="badge-count">${allData.length}</span>
+            </div>`;
+
+            html += `<div class="filter-capsule danger ${inspectActiveTag === '__MISSING__' ? 'active' : ''}" onclick="setInspectFilter('__MISSING__')">
+                🚨 待标注/缺漏 <span class="badge-count">${missingCount}</span>
+            </div>`;
+
+            Object.keys(counts).sort((a,b) => counts[b] - counts[a]).forEach(tag => {
+                html += `<div class="filter-capsule ${inspectActiveTag === tag ? 'active' : ''}" onclick="setInspectFilter('${tag}')">
+                    ${tag} <span class="badge-count">${counts[tag]}</span>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function setInspectFilter(tag) {
+            inspectActiveTag = tag;
+            applyFilter();
+        }
+
+        function toggleBrushMode(cb) {
+            if (!cb.checked) activeBrushTag = null;
+            else if (!activeBrushTag) {
+                const options = getEffectiveOptions(currentDimension);
+                if (options.length > 0) activeBrushTag = options[0];
+            }
+            renderTagsPalette();
+        }
+
+        function onTagPillClick(tag) {
+            const brushCb = document.getElementById('chkBrushMode');
+            if (currentView === 'card' && brushCb.checked) {
+                activeBrushTag = tag;
+                renderTagsPalette();
+            } else {
+                if (selectedIndices.size > 0) {
+                    batchApplyTag(tag);
+                } else {
+                    activeBrushTag = tag;
+                    if (currentView === 'card') brushCb.checked = true;
+                    renderTagsPalette();
+                }
+            }
+        }
+
+        /* ================= 7. 数据过滤与排序 ================= */
+        function applyFilter() {
+            const search = document.getElementById('txtSearch').value.trim().toLowerCase();
+
+            filteredData = allData.filter(item => {
+                if (inspectActiveTag === '__MISSING__' || inspectActiveTag === '待标注') {
+                    const val = (item[currentDimension] || "").trim();
+                    const isBottom = BOTTOM_CATS.includes(item.category);
+                    const isCollarSleeveBottom = isBottom && (currentDimension === 'collar' || currentDimension === 'sleeve');
+                    if (isCollarSleeveBottom) return false;
+                    if (val && val !== "无") return false;
+                } else if (inspectActiveTag !== 'ALL') {
+                    if ((item[currentDimension] || "").trim() !== inspectActiveTag) return false;
+                }
+
+                if (search) {
+                    const searchStr = `${item.asin} ${item.title} ${item.title_cn} ${item.category} ${item.material} ${item.elements}`.toLowerCase();
+                    if (!searchStr.includes(search)) return false;
+                }
+                return true;
+            });
+
+            currentPage = 1;
+            updateInspectBar();
+            renderView();
+        }
+
+        function applySort(orderType) {
+            if (orderType === 'sales-desc') {
+                filteredData.sort((a,b) => (b.monthly_sales || 0) - (a.monthly_sales || 0));
+            } else if (orderType === 'sales-asc') {
+                filteredData.sort((a,b) => (a.monthly_sales || 0) - (b.monthly_sales || 0));
+            }
+            renderView();
+        }
+
+        function renderView() {
+            if (currentView === 'table') renderTable();
+            else renderGrid();
+        }
+
+        /* ================= 8. 经典表格：自动换行与Excel极速键盘穿梭 ================= */
+        function renderTable() {
+            const total = filteredData.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageSlice = filteredData.slice(start, start + PAGE_SIZE);
+
+            updateFooterStatus(totalPages);
+
+            const tbody = document.getElementById('tableBody');
+            if (pageSlice.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="30" style="padding: 40px; text-align: center; color: #94a3b8;">暂无符合条件的产品</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = pageSlice.map((item, rowIdx) => {
+                const id = item._id;
+                const isSel = selectedIndices.has(id);
+
+                let cellInputsHtml = '';
+                editableColsMeta.forEach((col, colIdx) => {
+                    const val = item[col.key] || '';
+                    const listAttr = col.hasDatalist ? `list="dl_${col.key}"` : '';
+                    const isFocusCol = col.key === currentDimension;
+
+                    if (col.isTextarea) {
+                        cellInputsHtml += `<td class="${isFocusCol ? 'focus-dim-cell' : ''}">
+                            <textarea class="excel-cell-textarea"
+                                   data-row="${rowIdx}"
+                                   data-col="${colIdx}"
+                                   data-id="${id}"
+                                   data-field="${col.key}"
+                                   placeholder="(空)"
+                                   onfocus="this.select()"
+                                   oninput="handleCellInput(${id}, '${col.key}', this.value)"
+                                   onchange="handleCellChange(${id}, '${col.key}', this.value)"
+                                   onkeydown="handleExcelKeyDown(event, ${rowIdx}, ${colIdx})">${val}</textarea>
+                        </td>`;
+                    } else {
+                        cellInputsHtml += `<td class="${isFocusCol ? 'focus-dim-cell' : ''}">
+                            <input type="text"
+                                   class="excel-cell-input"
+                                   data-row="${rowIdx}"
+                                   data-col="${colIdx}"
+                                   data-id="${id}"
+                                   data-field="${col.key}"
+                                   value="${val.replace(/"/g, '&quot;')}"
+                                   ${listAttr}
+                                   placeholder="(空)"
+                                   onfocus="this.select()"
+                                   oninput="handleCellInput(${id}, '${col.key}', this.value)"
+                                   onchange="handleCellChange(${id}, '${col.key}', this.value)"
+                                   onkeydown="handleExcelKeyDown(event, ${rowIdx}, ${colIdx})">
+                        </td>`;
+                    }
+                });
+
+                return `<tr class="${isSel ? 'selected' : ''}" data-id="${id}" onclick="handleTableRowClick(${id}, event)" ondblclick="openModal(${id})">
+                    <td style="text-align:center;"><input type="checkbox" class="card-checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelect(${id})"></td>
+                    <td style="text-align:center;">
+                        <img src="${item.img || ''}" class="table-thumb" onmouseenter="showHoverPreview(event, '${item.img || ''}')" onmouseleave="hideHoverPreview()" onerror="this.src='https://via.placeholder.com/80x100?text=No+Img'">
+                    </td>
+                    <td><div style="font-family:monospace; font-weight:bold; color:var(--primary); padding:0 6px;">${item.asin}</div></td>
+                    <td style="text-align:center;"><b>${item.monthly_sales || '-'}</b></td>
+                    ${cellInputsHtml}
+                    <td><div class="table-title-cell" title="${item.title}">${item.title}</div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function handleCellInput(id, field, value) {
+            const item = allData.find(d => d._id === id);
+            if (item) {
+                item[field] = value;
+                autoSave();
+            }
+        }
+
+        function handleCellChange(id, field, value) {
+            const item = allData.find(d => d._id === id);
+            if (item) {
+                item[field] = value;
+                rebuildDatalists();
+                updateInspectBar();
+                if (field === currentDimension) renderTagsPalette();
+                autoSave();
+            }
+        }
+
+        function handleExcelKeyDown(event, r, c) {
+            const input = event.target;
+            const isTextarea = input.tagName === 'TEXTAREA';
+            const totalRows = Math.min(PAGE_SIZE, filteredData.length - (currentPage - 1) * PAGE_SIZE);
+            const totalCols = editableColsMeta.length;
+
+            if (event.key === 'Enter') {
+                if (isTextarea && event.shiftKey) {
+                    return;
+                }
+                event.preventDefault();
+                input.blur();
+                const nextRow = (isTextarea ? false : event.shiftKey) ? r - 1 : r + 1;
+                focusExcelCell(nextRow, c);
+                return;
+            }
+
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                input.blur();
+                if (event.shiftKey) {
+                    if (c > 0) focusExcelCell(r, c - 1);
+                    else if (r > 0) focusExcelCell(r - 1, totalCols - 1);
+                } else {
+                    if (c < totalCols - 1) focusExcelCell(r, c + 1);
+                    else if (r < totalRows - 1) focusExcelCell(r + 1, 0);
+                }
+                return;
+            }
+
+            if (event.key === 'ArrowUp' && !isTextarea) {
+                event.preventDefault();
+                focusExcelCell(r - 1, c);
+                return;
+            }
+
+            if (event.key === 'ArrowDown' && !isTextarea) {
+                event.preventDefault();
+                focusExcelCell(r + 1, c);
+                return;
+            }
+
+            if (event.key === 'ArrowLeft' && !isTextarea) {
+                if (input.selectionStart === 0 && input.selectionEnd === 0) {
+                    event.preventDefault();
+                    focusExcelCell(r, c - 1);
+                }
+                return;
+            }
+
+            if (event.key === 'ArrowRight' && !isTextarea) {
+                if (input.selectionStart === input.value.length) {
+                    event.preventDefault();
+                    focusExcelCell(r, c + 1);
+                }
+                return;
+            }
+        }
+
+        function focusExcelCell(r, c) {
+            const target = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+            if (target) {
+                target.focus();
+                target.select();
+                target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            }
+        }
+
+        function handleTableRowClick(id, event) {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
+            if (event.shiftKey && lastSelectedIndex !== null) {
+                handleShiftSelect(id);
+                return;
+            }
+            lastSelectedIndex = id;
+            toggleSelect(id);
+        }
+
+        /* ================= 9. 极速卡片视图：纯粹简洁的点击勾选 ================= */
+        function renderGrid() {
+            const total = filteredData.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageSlice = filteredData.slice(start, start + PAGE_SIZE);
+
+            updateFooterStatus(totalPages);
+
+            const grid = document.getElementById('cardGrid');
+            if (pageSlice.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #94a3b8;">暂无符合条件的产品</div>`;
+                return;
+            }
+
+            grid.innerHTML = pageSlice.map(item => {
+                const globalIndex = item._id;
+                const isSelected = selectedIndices.has(globalIndex);
+                const curVal = item[currentDimension];
+                const isBottom = BOTTOM_CATS.includes(item.category);
+                const isCollarSleeveBottom = isBottom && (currentDimension === 'collar' || currentDimension === 'sleeve');
+
+                let badgeCls = 'cur-tag-badge';
+                if (!curVal || curVal === "" || curVal === "无") {
+                    badgeCls += isCollarSleeveBottom ? ' active' : ' missing';
+                } else {
+                    badgeCls += ' active';
+                }
+
+                const displayTag = curVal || (isCollarSleeveBottom ? '下装免标' : '待标注');
+                const sales = item.monthly_sales ? `${item.monthly_sales}` : '';
+                const salesCls = item.monthly_sales >= 1000 ? 'high' : '';
+
+                const summary = `${item.category||'-'} · ${item.collar||'-'} · ${item.sleeve||'-'} · ${item.fit||'-'} · ${item.pattern||'-'} · ${item.style||'-'}`;
+
+                return `<div class="card ${isSelected ? 'selected' : ''}" data-id="${globalIndex}" onclick="handleCardClick(${globalIndex}, event)" ondblclick="openModal(${globalIndex})">
+                    <input type="checkbox" class="card-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelect(${globalIndex})">
+                    ${sales ? `<div class="sales-tag ${salesCls}">月售 ${sales}</div>` : ''}
+                    <div class="img-wrap">
+                        ${item.img ? `<img src="${item.img}" loading="lazy" onerror="this.style.display='none'">` : `<div class="no-img">无图片</div>`}
+                    </div>
+                    <div class="card-body">
+                        <div class="${badgeCls}" title="${displayTag}">${displayTag}</div>
+                        <div class="tags-summary" title="${summary}">${summary}</div>
+                        <div class="asin-title">${item.asin}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function handleCardClick(id, event) {
+            const brushCb = document.getElementById('chkBrushMode');
+
+            // 仅在明确开启画笔模式时直赋
+            if (brushCb.checked && activeBrushTag !== null) {
+                applyTagToItem(id, activeBrushTag);
+                return;
+            }
+
+            if (event.shiftKey && lastSelectedIndex !== null) {
+                handleShiftSelect(id);
+                return;
+            }
+
+            lastSelectedIndex = id;
+            toggleSelect(id);
+        }
+
+        function applyTagToItem(id, tag) {
+            const item = allData.find(d => d._id === id);
+            if (!item) return;
+            item[currentDimension] = tag;
+            rebuildDatalists();
+            renderView();
+            updateInspectBar();
+            autoSave();
+        }
+
+        /* ================= 10. 选择与批量赋标 ================= */
+        function toggleSelect(id, forceValue) {
+            if (forceValue === undefined) {
+                if (selectedIndices.has(id)) selectedIndices.delete(id);
+                else selectedIndices.add(id);
+            } else {
+                if (forceValue) selectedIndices.add(id);
+                else selectedIndices.delete(id);
+            }
+            updateRowOrCardUI(id);
+            document.getElementById('stSelected').innerText = selectedIndices.size;
+        }
+
+        function handleShiftSelect(targetId) {
+            const start = Math.min(lastSelectedIndex, targetId);
+            const end = Math.max(lastSelectedIndex, targetId);
+            for (let i = start; i <= end; i++) {
+                selectedIndices.add(i);
+                updateRowOrCardUI(i);
+            }
+            document.getElementById('stSelected').innerText = selectedIndices.size;
+        }
+
+        function updateRowOrCardUI(id) {
+            const isSel = selectedIndices.has(id);
+            if (currentView === 'card') {
+                const el = document.querySelector(`.card[data-id="${id}"]`);
+                if (el) {
+                    el.classList.toggle('selected', isSel);
+                    const cb = el.querySelector('.card-checkbox');
+                    if (cb) cb.checked = isSel;
+                }
+            } else {
+                const row = document.querySelector(`tr[data-id="${id}"]`);
+                if (row) {
+                    row.classList.toggle('selected', isSel);
+                    const cb = row.querySelector('.card-checkbox');
+                    if (cb) cb.checked = isSel;
+                }
+            }
+        }
+
+        function selectAllCurrent(selectAll) {
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const slice = filteredData.slice(start, start + PAGE_SIZE);
+            slice.forEach(item => {
+                if (selectAll) selectedIndices.add(item._id);
+                else selectedIndices.delete(item._id);
+                updateRowOrCardUI(item._id);
+            });
+            document.getElementById('stSelected').innerText = selectedIndices.size;
+        }
+
+        function batchApplyTag(tag) {
+            if (selectedIndices.size === 0) return alert("请先勾选需要打标的产品卡片或表格行！");
+            selectedIndices.forEach(id => {
+                const item = allData.find(d => d._id === id);
+                if (item) item[currentDimension] = tag;
+            });
+            rebuildDatalists();
+            selectedIndices.clear();
+            renderView();
+            updateInspectBar();
+            autoSave();
+        }
+
+        /* ================= 11. 全局快捷键与编辑弹窗 ================= */
+        function bindGlobalShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+                if (e.key >= '1' && e.key <= '9') {
+                    const idx = parseInt(e.key) - 1;
+                    const options = getEffectiveOptions(currentDimension);
+                    if (options[idx]) {
+                        e.preventDefault();
+                        batchApplyTag(options[idx]);
+                    }
+                }
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    batchApplyTag('');
+                }
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeDimensionManager();
+                    exitTourGuide();
+                    selectedIndices.clear();
+                    renderView();
+                }
+                if (document.getElementById('editModal').classList.contains('show')) {
+                    if (e.key === 'ArrowLeft') changeModalItem(-1);
+                    if (e.key === 'ArrowRight') changeModalItem(1);
+                }
+            });
+        }
+
+        function openModal(id) {
+            modalCurrentIndex = id;
+            const item = allData.find(d => d._id === id);
+            if (!item) return;
+
+            document.getElementById('modalImg').src = item.img || '';
+            document.getElementById('modalAsin').innerText = item.asin + (item.monthly_sales ? ` (月售: ${item.monthly_sales})` : '');
+            document.getElementById('modalTitle').innerHTML = `<b>EN:</b> ${item.title}<br><b>CN:</b> ${item.title_cn || '暂无'}`;
+            document.getElementById('modal_material').value = item.material || '';
+            document.getElementById('modal_elements').value = item.elements || '';
+
+            let html = '';
+            DIMENSION_CONFIG.forEach(dim => {
+                const val = item[dim.key] || '';
+                html += `<div class="form-row">
+                    <label>${dim.name} (${dim.key})</label>
+                    <input type="text" list="dl_${dim.key}" value="${val}" onchange="syncModalChange('${dim.key}', this.value)" placeholder="直接输入或下拉选择">
+                </div>`;
+            });
+            document.getElementById('modalForm').innerHTML = html;
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+            modalCurrentIndex = null;
+        }
+
+        function syncModalChange(field, value) {
+            if (modalCurrentIndex === null) return;
+            const item = allData.find(d => d._id === modalCurrentIndex);
+            if (item) {
+                item[field] = value;
+                rebuildDatalists();
+                renderView();
+                updateInspectBar();
+                autoSave();
+            }
+        }
+
+        function changeModalItem(delta) {
+            if (modalCurrentIndex === null) return;
+            const currFilteredIdx = filteredData.findIndex(d => d._id === modalCurrentIndex);
+            if (currFilteredIdx === -1) return;
+            const nextIdx = currFilteredIdx + delta;
+            if (nextIdx >= 0 && nextIdx < filteredData.length) {
+                openModal(filteredData[nextIdx]._id);
+            }
+        }
+
+        function initHoverPreview() {
+            window.addEventListener('mousemove', (e) => {
+                const p = document.getElementById('hoverPreview');
+                if (p.style.display === 'block') {
+                    p.style.left = (e.clientX + 15) + 'px';
+                    p.style.top = Math.min(e.clientY - 40, window.innerHeight - 380) + 'px';
+                }
+            });
+        }
+        function showHoverPreview(e, url) {
+            if (!url) return;
+            const p = document.getElementById('hoverPreview');
+            document.getElementById('hoverPreviewImg').src = url;
+            p.style.display = 'block';
+            p.style.left = (e.clientX + 15) + 'px';
+            p.style.top = Math.min(e.clientY - 40, window.innerHeight - 380) + 'px';
+        }
+        function hideHoverPreview() {
+            document.getElementById('hoverPreview').style.display = 'none';
+        }
+
+        function updateFooterStatus(totalPages) {
+            document.getElementById('stTotal').innerText = allData.length;
+            document.getElementById('stFiltered').innerText = filteredData.length;
+            document.getElementById('stSelected').innerText = selectedIndices.size;
+            document.getElementById('pgCur').innerText = currentPage;
+            document.getElementById('pgTotal').innerText = totalPages;
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+            currentPage += delta;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            renderView();
+            document.getElementById('tableView').scrollTop = 0;
+            document.getElementById('cardView').scrollTop = 0;
+        }
+
+        function changePageSize(size) {
+            PAGE_SIZE = parseInt(size);
+            currentPage = 1;
+            renderView();
+        }
+
+        /* ================= 12. 交互式新手教程系统 (已严谨对齐 ID，修复原报错) ================= */
+        let currentTourStep = 0;
+        const TOUR_STEPS = [
+            {
+                elementId: 'btnImport',
+                title: '📂 第一步：上传导入产品表格',
+                content: '点击此处导入卖家精灵或亚马逊导出的 .xlsx 或 .csv 表格。系统会自动识别主图、ASIN、月销量、标题以及已有参数，且自动保存在浏览器本地（刷新页面数据不丢失）。'
+            },
+            {
+                elementId: 'navViewSwitch',
+                title: '📊 第二步：双模式自由切换',
+                content: '<b>经典表格模式</b>：适合细致核对、录入多行材质与元素，支持像 Excel 一样键盘敲字、上下左右与回车穿梭。<br><b>极速卡片模式</b>：全景主图瀑布流，一眼横扫全场，适合键盘盲打快速打标。'
+            },
+            {
+                elementId: 'boxDimSelector',
+                title: '🎯 第三步：重点操作维度与高亮列',
+                content: '选择你当前要重点攻坚打标的维度（如“领型”或“袖型”）。表格中对应的该列会自动呈现<b>浅蓝高亮与焦点边框</b>，无论怎么滚动翻页，打标列始终清晰聚焦！'
+            },
+            {
+                elementId: 'tagsPalette',
+                title: '⚡ 第四步：常用候选词与一键扩充',
+                content: '这里列出了当前维度的常用标签。在极速卡片模式下可按键盘 <b>数字 1~9</b> 快速赋标；如果词不够，点击 <b>“+ 自定义标签”</b> 即可随心添加。'
+            },
+            {
+                elementId: 'boxInspectBar',
+                title: '🔍 第五步：标签质检抽检神器',
+                content: '<b>做完打标如何检查？</b> 点击这里已标好的分类胶囊（例如点击“圆领”），页面将瞬间只展示所有标为圆领的产品！横向对比一眼就能抓出错标款式；点击“🚨 待标注”可集中消灭漏标项。'
+            },
+            {
+                elementId: 'dataTable',
+                title: '⌨️ 第六步：Excel 式直接录入与智能净化',
+                content: '经典表格每个单元格都可直接敲键盘打字输入。按 <b>Enter</b> 自动保存并跳到下一行同列单元格；如果不小心打错了词，删掉或改成其他词后，<b>打错的词会自动从下拉菜单中彻底消失</b>，绝不留脏数据！'
+            },
+            {
+                elementId: 'btnExport',
+                title: '📥 第七步：一键导出带图完整表格',
+                content: '打标完毕后点击此处导出。系统会自动将所有新增的维度、修改后的材质与原表原始字段完整整合，并支持将高清缩略图直接嵌入到 Excel 单元格中！'
+            }
+        ];
+
+        function startTourGuide() {
+            currentTourStep = 0;
+            document.getElementById('tourSpotlight').classList.add('show');
+            renderTourStep();
+        }
+
+        function exitTourGuide() {
+            document.getElementById('tourSpotlight').classList.remove('show');
+        }
+
+        function changeTourStep(delta) {
+            currentTourStep += delta;
+            if (currentTourStep < 0) currentTourStep = 0;
+            if (currentTourStep >= TOUR_STEPS.length) {
+                exitTourGuide();
+                return;
+            }
+            renderTourStep();
+        }
+
+        function renderTourStep() {
+            const step = TOUR_STEPS[currentTourStep];
+            const target = document.getElementById(step.elementId);
+            const box = document.getElementById('tourHighlightBox');
+            const popover = document.getElementById('tourPopover');
+
+            document.getElementById('tourBadge').innerText = `步骤 ${currentTourStep + 1} / ${TOUR_STEPS.length}`;
+            document.getElementById('tourTitle').innerText = step.title;
+            document.getElementById('tourContent').innerHTML = step.content;
+
+            document.getElementById('tourPrevBtn').style.display = currentTourStep === 0 ? 'none' : 'block';
+            document.getElementById('tourNextBtn').innerText = currentTourStep === TOUR_STEPS.length - 1 ? '完成教程' : '下一步';
+
+            if (!target) return;
+
+            target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            const rect = target.getBoundingClientRect();
+
+            box.style.left = (rect.left - 4) + 'px';
+            box.style.top = (rect.top - 4) + 'px';
+            box.style.width = (rect.width + 8) + 'px';
+            box.style.height = (rect.height + 8) + 'px';
+
+            // 智能避障计算
+            let pTop = rect.bottom + 12;
+            let pLeft = rect.left;
+
+            if (pTop + 240 > window.innerHeight) {
+                pTop = Math.max(10, rect.top - 240);
+            }
+            if (pLeft + 350 > window.innerWidth) {
+                pLeft = Math.max(10, window.innerWidth - 360);
+            }
+
+            popover.style.top = pTop + 'px';
+            popover.style.left = pLeft + 'px';
+        }
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('tourSpotlight').classList.contains('show')) {
+                renderTourStep();
+            }
+        });
+
+        /* ================= 13. 导出功能 ================= */
+        function cancelExportProcess() {
+            isExportCancelled = true;
+            document.getElementById('exp-status').innerText = "正在取消...";
+        }
+
+        function urlToBase64(url) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = url;
+                const timer = setTimeout(() => resolve(null), 5000);
+                img.onload = () => {
+                    clearTimeout(timer);
+                    const c = document.createElement('canvas');
+                    c.width = img.width; c.height = img.height;
+                    c.getContext('2d').drawImage(img,0,0);
+                    resolve(c.toDataURL('image/jpeg', 0.6));
+                };
+                img.onerror = () => { clearTimeout(timer); resolve(null); };
+            });
+        }
+
+        async function exportData() {
+            const dataToExport = filteredData.length > 0 ? filteredData : allData;
+            if (dataToExport.length === 0) return alert("当前没有可导出的数据！");
+
+            let imgCount = 0;
+            dataToExport.forEach(item => { if (item.img && item.img.trim()) imgCount++; });
+
+            let needImages = false;
+            if (imgCount > 0) {
+                needImages = confirm(`检测到 ${imgCount} 张图片。\n\n是否需要将缩略图嵌入到 Excel 单元格中？\n\n【确定】= 导出包含缩略图 (较慢)\n【取消】= 仅导出完整文字 (极速秒出)`);
+            }
+
+            const mask = document.getElementById('export-mask');
+            const bar = document.getElementById('exp-bar');
+            const txt = document.getElementById('exp-status');
+
+            isExportCancelled = false;
+            mask.style.display = 'flex';
+
+            try {
+                txt.innerText = "正在构建多维度表格...";
+                bar.style.width = "0%";
+
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet('选品标签分析');
+
+                const baseHeaders = ['图片', 'ASIN', '月销量'];
+                const dimHeaders = DIMENSION_CONFIG.map(d => d.name);
+                const extraHeaders = ['元素', '材质(成分)', '中文标题', '英文标题'];
+
+                const rawKeys = [];
+                if (dataToExport[0] && dataToExport[0]._raw) {
+                    const skipList = ['商品主图', 'Main Image URL', 'image', 'ASIN', 'asin', '标题(翻译)', '中文标题', 'Title', 'title', '商品标题', '月销量', 'monthly_sales', 'sales', '月销量(预估)', '30天销量', '销量', 'Sales', 'Monthly Sales'];
+                    DIMENSION_CONFIG.forEach(d => skipList.push(d.name, d.key));
+                    Object.keys(dataToExport[0]._raw).forEach(k => {
+                        if (!skipList.includes(k)) rawKeys.push(k);
+                    });
+                }
+
+                const fullHeader = [...baseHeaders, ...dimHeaders, ...extraHeaders, ...rawKeys];
+                const hRow = ws.addRow(fullHeader);
+                hRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+
+                const imgTasks = [];
+
+                for (let i = 0; i < dataToExport.length; i++) {
+                    if (isExportCancelled) throw new Error("USER_CANCEL");
+                    const item = dataToExport[i];
+
+                    const rowValues = [
+                        '',
+                        item.asin,
+                        item.monthly_sales || 0
+                    ];
+
+                    DIMENSION_CONFIG.forEach(d => {
+                        rowValues.push(item[d.key] || '');
+                    });
+
+                    rowValues.push(
+                        item.elements || '',
+                        item.material || '',
+                        item.title_cn || '',
+                        item.title || ''
+                    );
+
+                    rawKeys.forEach(k => {
+                        let val = item._raw ? item._raw[k] : '';
+                        if (!isNaN(Number(val)) && val !== '') val = Number(val);
+                        rowValues.push(val);
+                    });
+
+                    const r = ws.addRow(rowValues);
+
+                    if (needImages && item.img) {
+                        r.height = 70;
+                        imgTasks.push({ url: item.img, idx: r.number });
+                    } else {
+                        r.height = 24;
+                    }
+                }
+
+                if (needImages && imgTasks.length > 0) {
+                    txt.innerText = `正在下载并插入图片 (共 ${imgTasks.length} 张)...`;
+                    const BATCH = 5;
+                    for (let i = 0; i < imgTasks.length; i += BATCH) {
+                        if (isExportCancelled) throw new Error("USER_CANCEL");
+                        const batch = imgTasks.slice(i, i + BATCH);
+                        await Promise.all(batch.map(async t => {
+                            try {
+                                const b64 = await urlToBase64(t.url);
+                                if (b64) {
+                                    const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+                                    ws.addImage(imgId, {
+                                        tl: { col: 0, row: t.idx - 1 },
+                                        br: { col: 1, row: t.idx },
+                                        editAs: 'oneCell'
+                                    });
+                                }
+                            } catch(e) {}
+                        }));
+                        const pct = Math.min(100, Math.round(((i + BATCH) / imgTasks.length) * 100));
+                        bar.style.width = `${pct}%`;
+                        txt.innerText = `下载图片中: ${Math.min(i + BATCH, imgTasks.length)} / ${imgTasks.length}`;
+                    }
+                }
+
+                if (isExportCancelled) throw new Error("USER_CANCEL");
+
+                txt.innerText = "生成 Excel 文件中...";
+                const buffer = await wb.xlsx.writeBuffer();
+                saveAs(new Blob([buffer]), `Amazon_Tagged_${needImages?'WithImg':'Text'}_${Date.now()}.xlsx`);
+
+            } catch (err) {
+                if (err.message === "USER_CANCEL") alert("❌ 导出已取消");
+                else alert("导出失败：" + err.message);
+            } finally {
+                mask.style.display = 'none';
+                bar.style.width = '0%';
+            }
+        }
+
+        async function exportImagesZip() {
+            const dataToExport = filteredData.length > 0 ? filteredData : allData;
+            if (dataToExport.length === 0) return alert("没有可导出的数据");
+
+            const zip = new JSZip();
+            const mask = document.getElementById('export-mask');
+            const bar = document.getElementById('exp-bar');
+            const txt = document.getElementById('exp-status');
+            mask.style.display = 'flex';
+            txt.innerText = "正在打包图片...";
+
+            const tasks = [];
+            dataToExport.forEach((item, i) => {
+                if (item.img) tasks.push({ url: item.img, name: `${item.asin || i+1}.jpg` });
+            });
+
+            if (tasks.length === 0) { mask.style.display = 'none'; return alert("无可下载图片"); }
+
+            const BATCH = 5; let count = 0;
+            for (let i = 0; i < tasks.length; i += BATCH) {
+                const batch = tasks.slice(i, i + BATCH);
+                await Promise.all(batch.map(async t => {
+                    try {
+                        const res = await fetch(t.url);
+                        if (res.ok) {
+                            const blob = await res.blob();
+                            zip.file(t.name, blob);
+                        }
+                    } catch(e){}
+                    count++;
+                }));
+                bar.style.width = `${Math.round((count / tasks.length) * 100)}%`;
+            }
+
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `Amazon_Images_${Date.now()}.zip`);
+            mask.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
