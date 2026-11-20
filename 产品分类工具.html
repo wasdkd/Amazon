@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通用数据/图片多维分类工具</title>
+
+<!-- 引入稳定、轻量的 XLSX 核心库 (带多 CDN 自动备灾容错) -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script>
+  if (typeof XLSX === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+  }
+</script>
+<script>
+  if (typeof XLSX === 'undefined') {
+    document.write('<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
+  }
+</script>
+
+<style>
+  :root{
+    --border:#d9d9d9; --bg:#f2f3f5; --panel:#fff; --blue:#2f5496;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;
+    font-size:13px;color:#222;background:var(--bg);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  button{font-family:inherit;}
+
+  /* ===== 顶部工具栏 ===== */
+  .toolbar{
+    position:relative;z-index:50;flex:0 0 auto;
+    background:#fff;border-bottom:1px solid var(--border);
+    padding:8px 12px;box-shadow:0 1px 4px rgba(0,0,0,.06);
+  }
+  .toolbar .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .toolbar .row+.row{margin-top:8px;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border);
+    background:#fff;border-radius:6px;cursor:pointer;font-size:13px;color:#333;transition:background .15s;}
+  .btn:hover{background:#f0f2f5;}
+  .btn-primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .btn-primary:hover{background:#27457f;}
+  .btn-green{background:#2e7d32;border-color:#2e7d32;color:#fff;}
+  .btn-green:hover{background:#256a28;}
+  .btn-warn{background:#b3541e;border-color:#b3541e;color:#fff;}
+  .btn-warn:hover{background:#95461a;}
+  .btn-dark{background:#1f2937;border-color:#1f2937;color:#fff;}
+  .btn-dark:hover{background:#374151;}
+  input[type=text], select{padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+  #search{width:240px;}
+  .stat{margin-left:auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:#555;}
+  .stat b{color:#111;font-size:14px;}
+  #status{color:var(--blue);font-size:12px;}
+  .hint{color:#888;font-size:12px;}
+
+  /* ===== 主内容 ===== */
+  .main{flex:1 1 auto;display:flex;min-height:0;}
+
+  /* ===== 左侧分组栏 ===== */
+  .sidebar{
+    flex:0 0 220px;background:var(--panel);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .side-head{padding:10px 12px 6px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid #eee;}
+  .side-head b{font-size:14px;}
+  .side-head .hint{color:#999;font-size:11px;}
+  .add-group{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid #eee;}
+  .add-group input{flex:1;min-width:0;padding:6px 8px;font-size:12px;}
+  .add-group button{flex:0 0 auto;padding:6px 10px;font-size:12px;}
+  .grp-list{flex:1 1 auto;overflow-y:auto;padding:8px;}
+  .grp{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:5px;
+    border:1px solid var(--border);border-radius:8px;cursor:pointer;background:#fff;
+    transition:background .12s, transform .12s, border-color .12s;user-select:none;
+  }
+  .grp:hover{background:#f5f7fb;border-color:#b9c6e0;}
+  .grp.active{background:#eaf0fb;border-color:var(--blue);}
+  .grp.drop-hover{background:#d9f2dc !important;border-color:#2e7d32 !important;transform:scale(1.03);}
+  .grp .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;border:1px solid rgba(0,0,0,.15);}
+  .grp .gname{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .grp .gcount{flex:0 0 auto;font-size:11px;color:#888;background:#eef0f3;border-radius:10px;padding:1px 7px;}
+  .grp .gact{flex:0 0 auto;display:flex;align-items:center;gap:2px;}
+  .grp .gdel{color:#c00;cursor:pointer;font-weight:bold;padding:0 3px;}
+  .grp .gdel:hover{color:#900;}
+  .grp .gedit{color:#999;cursor:pointer;padding:0 3px;font-size:12px;}
+  .grp .gedit:hover{color:var(--blue);}
+  .grp .rename-input{flex:1 1 auto;min-width:0;padding:2px 5px;font-size:12px;border:1px solid var(--blue);border-radius:4px;background:#fff;}
+
+  /* ===== 右侧网格区 ===== */
+  .grid-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;}
+  .grid-toolbar{
+    flex:0 0 auto;display:flex;gap:8px;align-items:center;padding:7px 12px;
+    background:#fafbfc;border-bottom:1px solid var(--border);flex-wrap:wrap;
+  }
+  .grid-toolbar .lbl{color:#666;}
+  .grid-scroll{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:12px;}
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;
+  }
+
+  /* ===== 卡片 ===== */
+  .card{
+    position:relative;background:#fff;border:1px solid var(--border);border-radius:8px;
+    overflow:hidden;cursor:pointer;user-select:none;display:flex;flex-direction:column;
+    transition:box-shadow .12s, transform .12s, border-color .12s;
+  }
+  .card:hover{box-shadow:0 3px 10px rgba(0,0,0,.12);transform:translateY(-2px);}
+  .card.selected{outline:3px solid var(--blue);outline-offset:-1px;box-shadow:0 0 0 3px rgba(47,84,150,.18);}
+  .card .chkbox{position:absolute;top:4px;left:4px;z-index:3;background:rgba(255,255,255,.92);
+    border-radius:4px;padding:1px 2px;}
+  .card .chkbox input{width:15px;height:15px;cursor:pointer;display:block;}
+  .imgwrap{position:relative;width:100%;aspect-ratio:3/4;background:#f3f4f6;overflow:hidden;}
+  .imgwrap.no-img-mode{display:none;}
+  .imgwrap img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+  .imgwrap .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:11px;}
+  .card .badge{
+    margin:6px 6px 0;padding:3px 6px;border-radius:4px;font-size:12px;font-weight:600;
+    color:#fff;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .card .badge.unset{background:#9aa0a6;}
+  .card .meta{font-size:11px;color:#666;margin:3px 6px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .card .meta.title{color:#111;font-weight:600;font-size:12px;}
+  .card .meta.sub2{color:#999;margin-bottom:6px;}
+  .card .mine-flag{position:absolute;top:4px;right:4px;z-index:3;background:#fff3cd;color:#8a6d00;
+    font-size:10px;border-radius:4px;padding:1px 4px;border:1px solid #e6d9a8;}
+
+  /* ===== 底部选择操作条 ===== */
+  .actionbar{
+    position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;
+    display:none;align-items:center;gap:10px;padding:10px 16px;background:#1f2937;color:#fff;
+    border-radius:30px;box-shadow:0 6px 22px rgba(0,0,0,.3);
+  }
+  .actionbar.show{display:flex;}
+  .actionbar .count{font-weight:600;white-space:nowrap;}
+  .actionbar select{padding:5px 8px;border-radius:6px;border:none;font-size:13px;max-width:180px;}
+  .actionbar .btn{padding:5px 12px;font-size:12px;border:none;}
+
+  /* ===== 分页 ===== */
+  .pagination{flex:0 0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    padding:8px 12px;background:#fff;border-top:1px solid var(--border);}
+  .pagination input{width:64px;}
+  .pagination .spacer{flex:1;}
+
+  /* ===== 遮罩/放大 ===== */
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;display:none;
+    align-items:center;justify-content:center;cursor:zoom-out;padding:30px;}
+  .lightbox.on{display:flex;}
+  .lb-inner{display:flex;gap:20px;align-items:flex-start;max-width:96vw;max-height:90vh;background:#242b35;border-radius:10px;padding:20px;cursor:default;}
+  .lightbox img{max-width:55vw;max-height:80vh;border-radius:6px;object-fit:contain;}
+  .lightbox .lb-info{color:#ddd;font-size:13px;line-height:1.7;max-width:35vw;overflow-y:auto;max-height:80vh;padding-right:10px;}
+  .lightbox .lb-info table{width:100%;border-collapse:collapse;margin-top:8px;}
+  .lightbox .lb-info td{padding:4px 6px;border-bottom:1px solid #374151;font-size:12px;vertical-align:top;}
+  .lightbox .lb-info td.k{color:#9ca3af;white-space:nowrap;width:30%;}
+  .lightbox .lb-info td.v{color:#fff;word-break:break-all;}
+  .lightbox .lb-info .lb-badge{display:inline-block;padding:2px 9px;border-radius:4px;color:#fff;font-size:13px;font-weight:600;}
+
+  /* ===== 字段映射配置弹窗 (Modal) ===== */
+  .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;}
+  .modal-mask.show{display:flex;}
+  .modal-box{background:#fff;border-radius:12px;width:520px;max-width:95vw;padding:22px;box-shadow:0 12px 30px rgba(0,0,0,.3);}
+  .modal-title{font-size:16px;font-weight:bold;margin-bottom:14px;color:#1e293b;display:flex;align-items:center;gap:6px;}
+  .modal-desc{font-size:12px;color:#64748b;margin-bottom:16px;line-height:1.5;}
+  .form-row{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+  .form-row label{font-weight:600;font-size:12px;color:#334155;}
+  .form-row select, .form-row input{width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-size:13px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+
+  /* 精致小巧的跟随拖拽浮窗 */
+  .drag-ghost{
+    position:fixed;z-index:9999;pointer-events:none;background:#1e293b;color:#38bdf8;
+    padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold;
+    box-shadow:0 6px 16px rgba(0,0,0,.35);border:1px solid #0284c7;white-space:nowrap;
+    transform:translate(-1000px,-1000px);
+  }
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#c4c9d0;border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:#a9afb8;}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="row">
+    <button class="btn-primary" id="btnUpload">📤 上传表格 (Excel/CSV)</button>
+    <button class="btn" id="btnOpenConfig">⚙ 更改列设置</button>
+    <button class="btn-green" id="btnExportXlsx">⬇ 导出 Excel</button>
+    <button class="btn-green" id="btnExportCsv">⬇ 导出 CSV</button>
+    <button class="btn-primary" id="btnExportHtml" style="background:#0984e3;border-color:#0984e3;">🌐 导出展示版 HTML</button>
+    <button class="btn" id="btnClear" title="清空浏览器里保存的数据并重新开始">🗑 清空缓存</button>
+    <button class="btn btn-dark" onclick="window.location.href='https://wasdkd.github.io/Amazon/AmazonDigitsPlatform'">🏠 返回平台</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+    <div class="stat">
+      <span>总数据 <b id="stTotal">0</b> 行</span>
+      <span>分类数 <b id="stGroupCount">0</b></span>
+      <span>已改动 <b id="stEdited">0</b></span>
+      <span>已选 <b id="stSelected">0</b></span>
+      <span>当前显示 <b id="stFiltered">0</b></span>
+      <span id="status"></span>
+    </div>
+  </div>
+  <div class="row">
+    <input type="text" id="search" placeholder="🔍 搜索任意字段内容…">
+    <label class="hint"><input type="checkbox" id="chkOnlyEdited" style="vertical-align:-2px;"> 只看已改</label>
+    <label class="hint"><input type="checkbox" id="chkOnlyView" style="vertical-align:-2px;"> 只看未改</label>
+    <span class="hint" style="color:#2563eb;font-weight:600;">💡 技巧：按住 Shift 点选可范围连选；卡片拖到左侧分类放开，分类后自动解除勾选。</span>
+  </div>
+</div>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="side-head">
+      <b>分类分组</b>
+      <span class="hint">点组名=只看该组；✎=改名；×=删除；拖卡片入组=分类</span>
+    </div>
+    <div class="add-group">
+      <input type="text" id="newGroupName" placeholder="新分类名称，回车添加">
+      <button class="btn" id="btnAddGroup">＋ 新建</button>
+    </div>
+    <div class="grp-list" id="grpList"></div>
+  </aside>
+
+  <div class="grid-wrap">
+    <div class="grid-toolbar">
+      <span class="lbl">每页 1000 · 第 <b id="pgCur">1</b>/<b id="pgTotal">1</b> 页　<span id="curFilterLabel"></span></span>
+      <button class="btn" id="btnSelAll">全选本页</button>
+      <button class="btn" id="btnSelNone">清空选择</button>
+      <button class="btn btn-warn" id="btnMoveUnset">选中→「未分类」</button>
+    </div>
+    <div class="grid-scroll" id="gridScroll">
+      <div class="grid" id="grid"></div>
+      <div id="empty" style="display:none;padding:60px 20px;text-align:center;color:#999;font-size:14px;">
+        暂无数据。点击上方「上传表格」载入文件并配置分类列；之后浏览器会自动保存所有分类进度，刷新不丢失。
+      </div>
+    </div>
+    <div class="pagination">
+      <button class="btn" id="btnPrev">‹ 上一页</button>
+      <button class="btn" id="btnNext">下一页 ›</button>
+      <span>跳转 <input type="text" id="pgJump" placeholder="页码"> <button class="btn" id="btnJump">Go</button></span>
+      <span class="spacer"></span>
+      <span class="hint">本页展示 <b id="pgCount">0</b> 条</span>
+    </div>
+  </div>
+</div>
+
+<!-- 底部操作浮动条 -->
+<div class="actionbar" id="actionbar">
+  <span class="count" id="selCount">已选 0 个</span>
+  <select id="assignGroup"><option value="">选择分组…</option></select>
+  <button class="btn btn-primary" id="btnAssign">移动到该组</button>
+  <button class="btn" id="btnCancelSel">取消</button>
+</div>
+
+<div class="drag-ghost" id="dragGhost"></div>
+
+<!-- 详情/大图弹窗 -->
+<div class="lightbox" id="lightbox">
+  <div class="lb-inner" onclick="event.stopPropagation()">
+    <img id="lightboxImg" src="">
+    <div class="lb-info" id="lightboxInfo"></div>
+  </div>
+</div>
+
+<!-- 字段选择与分类设置弹窗 (Modal) -->
+<div class="modal-mask" id="configModal">
+  <div class="modal-box">
+    <div class="modal-title">⚙️ 自定义数据列与分类设置</div>
+    <div class="modal-desc">已成功读取表格！请选择你希望用来分类的列以及卡片上展示的列信息：</div>
+
+    <div class="form-row">
+      <label>1. 目标分类列（改动将存入此列）</label>
+      <select id="cfgCategoryCol" onchange="toggleCustomNewColInput(this.value)"></select>
+      <input type="text" id="cfgNewColName" placeholder="输入新建的分类列名，例如：商品类型" style="display:none;margin-top:5px;">
+    </div>
+
+    <div class="form-row">
+      <label>2. 图片链接列（如没有可留空）</label>
+      <select id="cfgImageCol"></select>
+    </div>
+
+    <div class="form-row">
+      <label>3. 卡片主标题列（用于显眼标识，如 ASIN、标题或名称）</label>
+      <select id="cfgTitleCol"></select>
+    </div>
+
+    <div class="form-row">
+      <label>4. 辅助展示信息 1（可选，如颜色、规格）</label>
+      <select id="cfgSubCol1"></select>
+    </div>
+
+    <div class="form-row">
+      <label>5. 辅助展示信息 2（可选，如品类、价格、销量）</label>
+      <select id="cfgSubCol2"></select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="btnCancelConfig" onclick="closeConfigModal()">取消</button>
+      <button class="btn btn-primary" id="btnSaveConfig" onclick="applyConfigAndRender()">确认开始分类</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 全局配置与状态 ================= */
+const PAGE_SIZE = 1000;
+const PALETTE = ['#2f5496','#e67e22','#27ae60','#8e44ad','#d63031','#00b894','#0984e3','#d6336c','#fd79a8','#f39c12','#74b9ff','#a29bfe','#55efc4','#ff7675','#636e72','#00cec9','#b71540','#0a3d62','#16a085','#e74c3c'];
+
+let rows = [];
+let rawHeaders = [];
+let groups = [];
+let selected = new Set();
+let edited = new Set();
+let page = 1;
+let search = '';
+let onlyEdited = false;
+let onlyUnedited = false;
+let filterGroup = '';
+let editingGroup = null;
+
+// 记录上一次被点击的卡片索引（用于 Shift 区间连选）
+let lastSelectedRowIndex = null;
+
+let mappingConfig = {
+  categoryCol: '',
+  isNewCategoryCol: false,
+  imageCol: '',
+  titleCol: '',
+  subCol1: '',
+  subCol2: ''
+};
+
+function norm(v){ return (v==null)?'':String(v).trim(); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function colorForIndex(i){ return PALETTE[i % PALETTE.length]; }
+function groupOf(name){ return groups.find(g=>g.name===name); }
+function groupColor(name){ const g = groupOf(name); return g ? g.color : '#9aa0a6'; }
+
+function ensureGroup(name){
+  if(!name) return null;
+  const s = String(name).trim();
+  if(!groupOf(s)) groups.push({name:s, color:colorForIndex(groups.length)});
+  return groupOf(s);
+}
+
+/* ================= 模态框逻辑 (列映射配置) ================= */
+function openConfigModal(){
+  if(!rawHeaders.length){ alert('请先上传数据表格！'); return; }
+
+  const populate = (selId, includeEmpty=true, emptyText='(无 / 不使用)') => {
+    const sel = document.getElementById(selId);
+    let html = includeEmpty ? `<option value="">${emptyText}</option>` : '';
+    rawHeaders.forEach(h => {
+      html += `<option value="${escAttr(h)}">${escHtml(h)}</option>`;
+    });
+    sel.innerHTML = html;
+  };
+
+  const catSel = document.getElementById('cfgCategoryCol');
+  let catHtml = `<option value="__NEW_COL__">➕ [从0开始] 全新建一列进行分类...</option>`;
+  rawHeaders.forEach(h => {
+    catHtml += `<option value="${escAttr(h)}">写入现有列: ${escHtml(h)}</option>`;
+  });
+  catSel.innerHTML = catHtml;
+
+  populate('cfgImageCol', true, '(无图片列)');
+  populate('cfgTitleCol', false);
+  populate('cfgSubCol1', true, '(不展示)');
+  populate('cfgSubCol2', true, '(不展示)');
+
+  if(mappingConfig.categoryCol){
+    catSel.value = mappingConfig.isNewCategoryCol ? '__NEW_COL__' : mappingConfig.categoryCol;
+    if(mappingConfig.isNewCategoryCol){
+      document.getElementById('cfgNewColName').style.display = 'block';
+      document.getElementById('cfgNewColName').value = mappingConfig.categoryCol;
+    }
+  }
+  document.getElementById('cfgImageCol').value = mappingConfig.imageCol || '';
+  document.getElementById('cfgTitleCol').value = mappingConfig.titleCol || rawHeaders[0] || '';
+  document.getElementById('cfgSubCol1').value = mappingConfig.subCol1 || '';
+  document.getElementById('cfgSubCol2').value = mappingConfig.subCol2 || '';
+
+  document.getElementById('configModal').classList.add('show');
+}
+
+function closeConfigModal(){
+  document.getElementById('configModal').classList.remove('show');
+}
+
+function toggleCustomNewColInput(val){
+  const inp = document.getElementById('cfgNewColName');
+  if(val === '__NEW_COL__'){
+    inp.style.display = 'block';
+    if(!inp.value) inp.value = '分类结果';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+  }
+}
+
+function applyConfigAndRender(){
+  const catVal = document.getElementById('cfgCategoryCol').value;
+  if(catVal === '__NEW_COL__'){
+    const newName = document.getElementById('cfgNewColName').value.trim();
+    if(!newName){ alert('请输入新建分类列的名字！'); return; }
+    mappingConfig.categoryCol = newName;
+    mappingConfig.isNewCategoryCol = true;
+    rows.forEach(r => { if(r[newName] === undefined) r[newName] = ''; });
+  } else {
+    mappingConfig.categoryCol = catVal;
+    mappingConfig.isNewCategoryCol = false;
+  }
+
+  mappingConfig.imageCol = document.getElementById('cfgImageCol').value;
+  mappingConfig.titleCol = document.getElementById('cfgTitleCol').value;
+  mappingConfig.subCol1 = document.getElementById('cfgSubCol1').value;
+  mappingConfig.subCol2 = document.getElementById('cfgSubCol2').value;
+
+  closeConfigModal();
+  rebuildGroupsFromRows();
+  page = 1;
+  selected.clear();
+  lastSelectedRowIndex = null;
+  scheduleSave();
+  renderAll();
+  setStatus('已启用自定义列设置 ✓');
+}
+
+function autoGuessColumns(headers){
+  const findMatch = (patterns) => headers.find(h => patterns.some(p => h.toLowerCase().includes(p)));
+
+  const cat = findMatch(['类型', '分类', 'category', 'type', 'group', 'tag', '类别']);
+  if(cat){
+    mappingConfig.categoryCol = cat;
+    mappingConfig.isNewCategoryCol = false;
+  } else {
+    mappingConfig.categoryCol = '分类结果';
+    mappingConfig.isNewCategoryCol = true;
+    rows.forEach(r => { r['分类结果'] = ''; });
+  }
+
+  mappingConfig.imageCol = findMatch(['图片', 'image', 'img', 'pic', 'photo', '链接', 'url']) || '';
+  mappingConfig.titleCol = findMatch(['asin', '标题', 'title', 'name', '名称', 'sku', 'id', '编号']) || headers[0] || '';
+  mappingConfig.subCol1 = findMatch(['颜色', 'color', '规格', 'spec', '品类', '品牌', 'brand']) || '';
+  mappingConfig.subCol2 = findMatch(['销售额', '销量', 'sales', '价格', 'price', '数量']) || '';
+}
+
+/* ================= 分类分组管理 ================= */
+function rebuildGroupsFromRows(){
+  const cnt = {};
+  const cCol = mappingConfig.categoryCol;
+  rows.forEach(r => {
+    const t = norm(r[cCol]);
+    if(t) cnt[t] = (cnt[t] || 0) + 1;
+  });
+  const names = Object.keys(cnt).sort((a,b) => cnt[b] - cnt[a]);
+  groups = names.map((n, i) => ({name: n, color: colorForIndex(i)}));
+}
+
+function beginRename(name){
+  editingGroup = name;
+  renderSidebar();
+  const inp = document.querySelector('#grpList .rename-input');
+  if(inp){ inp.focus(); inp.select(); }
+}
+
+function renameGroup(oldName, newName){
+  newName = String(newName==null?'':newName).trim();
+  const g = groupOf(oldName);
+  if(!g){ editingGroup=null; return; }
+  if(!newName || newName===oldName){ editingGroup=null; renderSidebar(); return; }
+  if(groupOf(newName)){ alert('已存在同名分类「'+newName+'」'); beginRename(oldName); return; }
+  g.name = newName;
+
+  let changed = 0;
+  const cCol = mappingConfig.categoryCol;
+  rows.forEach(r => {
+    if(norm(r[cCol]) === oldName){
+      r[cCol] = newName;
+      edited.add(r._i);
+      changed++;
+    }
+  });
+  if(filterGroup === oldName) filterGroup = newName;
+  editingGroup = null;
+  scheduleSave();
+  renderAll();
+  setStatus('重命名「'+oldName+'」→「'+newName+'」（更新 '+changed+' 行）');
+}
+
+function deleteGroup(name){
+  const g = groupOf(name);
+  if(!g) return;
+  const cCol = mappingConfig.categoryCol;
+  const count = rows.filter(r => norm(r[cCol]) === name).length;
+  if(count > 0){
+    const msg = '分类「'+name+'」内有 '+count+' 条数据，删除分类后将归入「未分类」。确定删除？';
+    if(!confirm(msg)) return;
+    rows.forEach(r => {
+      if(norm(r[cCol]) === name){
+        r[cCol] = '';
+        edited.add(r._i);
+      }
+    });
+  }
+  groups = groups.filter(x => x.name !== name);
+  if(filterGroup === name) filterGroup = '';
+  editingGroup = null;
+  scheduleSave();
+  renderAll();
+  setStatus('已删除分类「'+name+'」');
+}
+
+function addGroupFromInput(){
+  const inp = document.getElementById('newGroupName');
+  const name = inp.value.trim();
+  if(!name){ alert('请输入分类名称'); return; }
+  if(groupOf(name)){ alert('该分类已存在'); return; }
+  ensureGroup(name);
+  inp.value = '';
+  renderSidebar();
+  if(selected.size){
+    assignTo(Array.from(selected), name);
+  }
+  scheduleSave();
+  setStatus('已新建分类「'+name+'」');
+}
+
+/* ================= 筛选与数据流 ================= */
+function getFiltered(){
+  let arr = rows;
+  const cCol = mappingConfig.categoryCol;
+  if(filterGroup === '__NONE__') arr = arr.filter(r => !norm(r[cCol]));
+  else if(filterGroup) arr = arr.filter(r => norm(r[cCol]) === filterGroup);
+
+  if(onlyEdited) arr = arr.filter(r => edited.has(r._i));
+  if(onlyUnedited) arr = arr.filter(r => !edited.has(r._i));
+
+  const q = search.trim().toLowerCase();
+  if(q){
+    arr = arr.filter(r => {
+      for(const k of rawHeaders){
+        if(norm(r[k]).toLowerCase().includes(q)) return true;
+      }
+      return false;
+    });
+  }
+  return arr;
+}
+
+/* ================= 渲染左侧分组栏 ================= */
+function renderSidebar(){
+  const list = document.getElementById('grpList');
+  const cm = {};
+  const cCol = mappingConfig.categoryCol;
+  rows.forEach(r => {
+    const t = norm(r[cCol]) || '__NONE__';
+    cm[t] = (cm[t] || 0) + 1;
+  });
+
+  let html = '';
+  html += grpRow('__ALL__', '全部', '', rows.length);
+  html += grpRow('__NONE__', '未分类', '#9aa0a6', cm['__NONE__'] || 0);
+  groups.forEach(g => {
+    html += grpRow(g.name, g.name, g.color, cm[g.name] || 0);
+  });
+  list.innerHTML = html;
+
+  const sel = document.getElementById('assignGroup');
+  let opts = '<option value="">选择分组…</option><option value="__NONE__">未分类</option>';
+  groups.forEach(g => { opts += `<option value="${escAttr(g.name)}">${escHtml(g.name)}</option>`; });
+  sel.innerHTML = opts;
+}
+
+function grpRow(gkey, label, color, count){
+  const filterActive = (filterGroup === gkey) ? ' active' : '';
+  const dot = (gkey === '__ALL__') ? '<span class="dot" style="background:linear-gradient(135deg,#ff7675,#74b9ff);"></span>'
+          : `<span class="dot" style="background:${color}"></span>`;
+  const isReal = (gkey !== '__ALL__' && gkey !== '__NONE__');
+
+  let nameHtml = '';
+  if(editingGroup === gkey){
+    nameHtml = `<input class="rename-input" data-oldname="${escAttr(gkey)}" value="${escAttr(label)}">`;
+  } else {
+    nameHtml = `<span class="gname">${escHtml(label)}</span>`;
+  }
+
+  let act = '';
+  if(isReal){
+    act = `<span class="gact">
+      <span class="gedit" data-gedit="${escAttr(label)}" title="重命名">✎</span>
+      <span class="gdel" data-gdel="${escAttr(label)}" title="删除分类">×</span>
+    </span>`;
+  }
+
+  return `<div class="grp${filterActive}" data-g="${escAttr(gkey)}" title="点击=只看该组；拖卡片到这里=分类">
+    ${dot}
+    ${nameHtml}
+    ${act}
+    <span class="gcount">${count}</span>
+  </div>`;
+}
+
+/* ================= 渲染卡片网格 ================= */
+function renderBody(){
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if(page > totalPages) page = totalPages;
+  if(page < 1) page = 1;
+  const start = (page - 1) * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+  const grid = document.getElementById('grid');
+  document.getElementById('empty').style.display = rows.length ? 'none' : 'block';
+
+  const cCol = mappingConfig.categoryCol;
+  const imgCol = mappingConfig.imageCol;
+  const titleCol = mappingConfig.titleCol;
+  const sub1Col = mappingConfig.subCol1;
+  const sub2Col = mappingConfig.subCol2;
+
+  let html = '';
+  for(const r of slice){
+    const idx = r._i;
+    const isSel = selected.has(idx) ? ' selected' : '';
+    const isChk = selected.has(idx) ? ' checked' : '';
+    const type = norm(r[cCol]);
+    const col = groupColor(type);
+    const badge = type ? escHtml(type) : '未分类';
+    const badgeCls = type ? '' : ' unset';
+    const mine = edited.has(idx) ? '<span class="mine-flag">已改</span>' : '';
+
+    let imgHtml = '';
+    if(imgCol){
+      const imgUrl = norm(r[imgCol]);
+      if(imgUrl){
+        imgHtml = `<div class="imgwrap"><img loading="lazy" draggable="false" src="${escAttr(imgUrl)}" onerror="this.parentElement.innerHTML='<div class=\\'noimg\\'>加载失败</div>';"></div>`;
+      } else {
+        imgHtml = `<div class="imgwrap"><div class="noimg">无图片</div></div>`;
+      }
+    } else {
+      imgHtml = `<div class="imgwrap no-img-mode"></div>`;
+    }
+
+    const titleVal = titleCol ? norm(r[titleCol]) : ('#' + (idx + 1));
+    const sub1Val = sub1Col ? norm(r[sub1Col]) : '';
+    const sub2Val = sub2Col ? norm(r[sub2Col]) : '';
+
+    html += `<div class="card${isSel}" data-i="${idx}" draggable="true" title="点击勾选 ｜ 按住Shift点击可连选 ｜ 双击查看全部字段信息">
+      <div class="chkbox"><input type="checkbox" class="chk" data-i="${idx}" ${isChk}></div>
+      ${mine}
+      ${imgHtml}
+      <div class="badge${badgeCls}" style="background:${col};">${badge}</div>
+      <div class="meta title" title="${escAttr(titleVal)}">${escHtml(titleVal)}</div>
+      ${sub1Val ? `<div class="meta" title="${escAttr(sub1Col+': '+sub1Val)}">${escHtml(sub1Val)}</div>` : ''}
+      ${sub2Val ? `<div class="meta sub2" title="${escAttr(sub2Col+': '+sub2Val)}">${escHtml(sub2Val)}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  document.getElementById('pgCur').textContent = page;
+  document.getElementById('pgTotal').textContent = totalPages;
+  document.getElementById('pgCount').textContent = slice.length;
+  document.getElementById('curFilterLabel').textContent =
+    (filterGroup==='__NONE__') ? '｜ 当前筛选：未分类' : (filterGroup ? ('｜ 当前筛选：' + escHtml(filterGroup)) : '｜ 当前筛选：全部');
+  updateStats();
+}
+
+function renderAll(){
+  renderSidebar();
+  renderBody();
+  updateStats();
+}
+
+function updateStats(){
+  document.getElementById('stTotal').textContent = rows.length;
+  document.getElementById('stGroupCount').textContent = groups.length;
+  document.getElementById('stEdited').textContent = edited.size;
+  document.getElementById('stSelected').textContent = selected.size;
+  document.getElementById('stFiltered').textContent = getFiltered().length;
+  updateActionBar();
+}
+
+/* ================= 多选与操作条 ================= */
+function updateActionBar(){
+  const bar = document.getElementById('actionbar');
+  const n = selected.size;
+  document.getElementById('selCount').textContent = '已选 ' + n + ' 项';
+  if(n > 0){ bar.classList.add('show'); } else { bar.classList.remove('show'); }
+}
+
+function toggleSelect(idx, force){
+  const v = (force===undefined) ? !selected.has(idx) : force;
+  if(v) selected.add(idx); else selected.delete(idx);
+  updateCardSelectedUI(idx, v);
+  updateStats();
+}
+
+function updateCardSelectedUI(idx, isSel){
+  const card = document.querySelector(`#grid .card[data-i="${idx}"]`);
+  if(card){
+    card.classList.toggle('selected', isSel);
+    const cb = card.querySelector('.chk');
+    if(cb && cb.checked !== isSel) cb.checked = isSel;
+  }
+}
+
+/* 核心需求 1：Shift + Click 范围区间连选 */
+function handleRangeSelect(targetIdx){
+  const filtered = getFiltered();
+  const startPos = filtered.findIndex(r => r._i === lastSelectedRowIndex);
+  const endPos = filtered.findIndex(r => r._i === targetIdx);
+
+  if(startPos === -1 || endPos === -1){
+    toggleSelect(targetIdx);
+    lastSelectedRowIndex = targetIdx;
+    return;
+  }
+
+  const min = Math.min(startPos, endPos);
+  const max = Math.max(startPos, endPos);
+
+  for(let k = min; k <= max; k++){
+    const i = filtered[k]._i;
+    selected.add(i);
+    updateCardSelectedUI(i, true);
+  }
+  updateStats();
+}
+
+/* 核心需求 2：分类后自动解除已改项的勾选状态 */
+function assignTo(indices, targetGroup){
+  if(!indices || !indices.length) return;
+  const target = (targetGroup === '__NONE__') ? '' : String(targetGroup).trim();
+  const cCol = mappingConfig.categoryCol;
+  let affected = 0;
+
+  indices.forEach(i => {
+    if(norm(rows[i][cCol]) !== target){
+      rows[i][cCol] = target;
+      edited.add(i);
+      affected++;
+    }
+    // 关键：自动取消勾选修改后的项！
+    selected.delete(i);
+  });
+
+  lastSelectedRowIndex = null;
+  if(target) ensureGroup(target);
+  scheduleSave();
+  renderAll();
+  setStatus(`已把 ${indices.length} 条数据归入「${target || '未分类'}」，并已自动取消勾选 ✓`);
+}
+
+/* 核心需求 3：无论 1 张还是多张，均使用精致不挡视线的小药丸胶囊 */
+function setDragImage(e){
+  const d = document.getElementById('dragGhost');
+  d.textContent = dragSet.length === 1 ? '📦 移动 1 个项目' : `📦 批量移动 ${dragSet.length} 个项目`;
+  d.style.transform = 'translate(-1000px,-1000px)';
+  try{
+    e.dataTransfer.setDragImage(d, 12, 12);
+  }catch(_){}
+  setTimeout(()=>{ d.style.transform='translate(-1000px,-1000px)'; },0);
+}
+
+/* ================= 详情与大图弹窗 (Lightbox) ================= */
+function zoomRow(idx){
+  const r = rows[idx];
+  if(!r) return;
+  const cCol = mappingConfig.categoryCol;
+  const imgCol = mappingConfig.imageCol;
+  const type = norm(r[cCol]);
+  const imgUrl = imgCol ? norm(r[imgCol]) : '';
+
+  const lbImg = document.getElementById('lightboxImg');
+  if(imgUrl){
+    lbImg.style.display = 'block';
+    lbImg.src = imgUrl;
+  } else {
+    lbImg.style.display = 'none';
+  }
+
+  let tableHtml = '<table>';
+  rawHeaders.forEach(h => {
+    tableHtml += `<tr><td class="k">${escHtml(h)}</td><td class="v">${escHtml(norm(r[h])) || '-'}</td></tr>`;
+  });
+  if(mappingConfig.isNewCategoryCol){
+    tableHtml += `<tr><td class="k">${escHtml(cCol)} (新建)</td><td class="v" style="color:#60a5fa;font-weight:bold;">${escHtml(norm(r[cCol])) || '-'}</td></tr>`;
+  }
+  tableHtml += '</table>';
+
+  document.getElementById('lightboxInfo').innerHTML = `
+    <div>
+      <span class="lb-badge" style="background:${groupColor(type)};">${escHtml(type || '未分类')}</span>
+      <span style="color:#9ca3af;font-size:12px;margin-left:8px;">第 ${idx + 1} 行数据</span>
+    </div>
+    ${tableHtml}
+  `;
+
+  document.getElementById('lightbox').classList.add('on');
+}
+
+/* ================= 文件上传处理 ================= */
+function handleFile(file){
+  if (typeof XLSX === 'undefined') {
+    alert('正在加载 XLSX 核心解析引擎，请稍候 1~2 秒后重试。');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type: 'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const js = XLSX.utils.sheet_to_json(ws, {defval: ''});
+      if(!js.length){ alert('表格内没有数据行！'); return; }
+
+      rawHeaders = Object.keys(js[0]);
+      rows = js.map((o, i) => {
+        const item = {_i: i};
+        rawHeaders.forEach(k => { item[k] = norm(o[k]); });
+        return item;
+      });
+
+      autoGuessColumns(rawHeaders);
+
+      const cCol = mappingConfig.categoryCol;
+      rows.forEach(r => { r._oldType = norm(r[cCol]); });
+
+      selected = new Set();
+      edited = new Set();
+      page = 1;
+      search = '';
+      filterGroup = '';
+      lastSelectedRowIndex = null;
+      document.getElementById('search').value = '';
+
+      openConfigModal();
+    }catch(err){
+      alert('解析文件失败：' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ================= 导出功能 ================= */
+function buildExportRows(){
+  const cCol = mappingConfig.categoryCol;
+  const headers = [...rawHeaders];
+  if(mappingConfig.isNewCategoryCol && !headers.includes(cCol)){
+    headers.push(cCol);
+  }
+  headers.push('修改前分类');
+  headers.push('已修改');
+
+  return rows.map(r => {
+    const obj = {};
+    rawHeaders.forEach(h => { obj[h] = r[h]; });
+    obj[cCol] = r[cCol];
+    obj['修改前分类'] = r._oldType || '';
+    obj['已修改'] = edited.has(r._i) ? '是' : '';
+    return obj;
+  });
+}
+
+function ts(){
+  const d = new Date();
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '_' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0');
+}
+
+function csvEscape(v){
+  v = String(v == null ? '' : v);
+  if(/[",\r\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+  return v;
+}
+
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type: mime});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ================= 事件绑定 ================= */
+function bindEvents(){
+  document.getElementById('btnUpload').onclick = () => document.getElementById('fileInput').click();
+  document.getElementById('fileInput').addEventListener('change', e => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+  document.getElementById('btnOpenConfig').onclick = openConfigModal;
+
+  document.getElementById('btnExportXlsx').onclick = () => {
+    if(!rows.length){ alert('没有可导出的数据！'); return; }
+    if(typeof XLSX === 'undefined'){ alert('XLSX 导出引擎未就绪'); return; }
+    const data = buildExportRows();
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '分类结果');
+    XLSX.writeFile(wb, `分类结果_${ts()}.xlsx`);
+  };
+
+  document.getElementById('btnExportCsv').onclick = () => {
+    if(!rows.length){ alert('没有可导出的数据！'); return; }
+    const data = buildExportRows();
+    const headers = Object.keys(data[0]);
+    const lines = [headers.join(',')];
+    data.forEach(r => { lines.push(headers.map(h => csvEscape(r[h])).join(',')); });
+    downloadBlob('\ufeff' + lines.join('\r\n'), `分类结果_${ts()}.csv`, 'text/csv;charset=utf-8');
+  };
+
+  document.getElementById('btnClear').onclick = async () => {
+    if(!confirm('确定要清空浏览器内保存的当前缓存并重新开始吗？')) return;
+    await idbClear();
+    rows = []; rawHeaders = []; groups = []; selected.clear(); edited.clear();
+    page = 1; search = ''; filterGroup = ''; lastSelectedRowIndex = null;
+    renderAll();
+    setStatus('已清空本地缓存');
+  };
+
+  document.getElementById('search').addEventListener('input', e => {
+    search = e.target.value;
+    page = 1;
+    lastSelectedRowIndex = null;
+    renderBody();
+  });
+
+  document.getElementById('chkOnlyEdited').addEventListener('change', e => {
+    onlyEdited = e.target.checked; if(onlyEdited) onlyUnedited = false;
+    document.getElementById('chkOnlyView').checked = false; page = 1; lastSelectedRowIndex = null; renderBody();
+  });
+  document.getElementById('chkOnlyView').addEventListener('change', e => {
+    onlyUnedited = e.target.checked; if(onlyUnedited) onlyEdited = false;
+    document.getElementById('chkOnlyEdited').checked = false; page = 1; lastSelectedRowIndex = null; renderBody();
+  });
+
+  document.getElementById('btnSelAll').onclick = () => {
+    const start = (page-1) * PAGE_SIZE;
+    getFiltered().slice(start, start + PAGE_SIZE).forEach(r => selected.add(r._i));
+    renderBody(); updateStats();
+  };
+  document.getElementById('btnSelNone').onclick = () => { selected.clear(); lastSelectedRowIndex = null; renderBody(); updateStats(); };
+  document.getElementById('btnMoveUnset').onclick = () => {
+    if(!selected.size){ alert('请先勾选卡片！'); return; }
+    assignTo(Array.from(selected), '__NONE__');
+  };
+
+  document.getElementById('btnPrev').onclick = () => { if(page > 1){ page--; lastSelectedRowIndex = null; renderBody(); } };
+  document.getElementById('btnNext').onclick = () => {
+    const tp = Math.max(1, Math.ceil(getFiltered().length / PAGE_SIZE));
+    if(page < tp){ page++; lastSelectedRowIndex = null; renderBody(); }
+  };
+  document.getElementById('btnJump').onclick = () => {
+    const v = parseInt(document.getElementById('pgJump').value, 10);
+    if(v >= 1){ page = v; lastSelectedRowIndex = null; renderBody(); }
+  };
+  document.getElementById('pgJump').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('btnJump').click(); });
+
+  document.getElementById('btnAddGroup').onclick = addGroupFromInput;
+  document.getElementById('newGroupName').addEventListener('keydown', e => { if(e.key === 'Enter') addGroupFromInput(); });
+
+  document.getElementById('btnAssign').onclick = () => {
+    const g = document.getElementById('assignGroup').value;
+    if(!selected.size){ alert('请先勾选需要移动的卡片！'); return; }
+    if(!g){ alert('请在下拉框中选择目标分组！'); return; }
+    assignTo(Array.from(selected), g);
+  };
+  document.getElementById('btnCancelSel').onclick = () => { selected.clear(); lastSelectedRowIndex = null; renderBody(); updateStats(); };
+  document.getElementById('lightbox').onclick = () => document.getElementById('lightbox').classList.remove('on');
+
+  // 左侧分组栏操作
+  const grpList = document.getElementById('grpList');
+  grpList.addEventListener('click', e => {
+    const del = e.target.closest('.gdel');
+    if(del){ deleteGroup(del.dataset.gdel); return; }
+    const ed = e.target.closest('.gedit');
+    if(ed){ beginRename(ed.dataset.gedit); return; }
+    if(e.target.closest('.rename-input')) return;
+    const grp = e.target.closest('.grp');
+    if(!grp) return;
+    const gk = grp.dataset.g;
+    filterGroup = (filterGroup === gk) ? '' : gk;
+    page = 1;
+    lastSelectedRowIndex = null;
+    renderAll();
+  });
+
+  grpList.addEventListener('dragover', e => {
+    const grp = e.target.closest('.grp');
+    if(grp){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; grp.classList.add('drop-hover'); }
+  });
+  grpList.addEventListener('dragleave', e => {
+    const grp = e.target.closest('.grp');
+    if(grp) grp.classList.remove('drop-hover');
+  });
+  grpList.addEventListener('drop', e => {
+    const grp = e.target.closest('.grp');
+    if(!grp) return;
+    e.preventDefault();
+    grp.classList.remove('drop-hover');
+    const gk = grp.dataset.g;
+    if(gk === '__ALL__') return;
+    const list = dragSet.length ? dragSet : [];
+    if(!list.length) return;
+    assignTo(list, gk);
+    dragSet = [];
+  });
+
+  grpList.addEventListener('keydown', e => {
+    if(e.target.classList.contains('rename-input')){
+      if(e.key === 'Enter'){ renameGroup(e.target.dataset.oldname, e.target.value); }
+      else if(e.key === 'Escape'){ editingGroup = null; renderSidebar(); }
+    }
+  });
+  grpList.addEventListener('focusout', e => {
+    if(e.target.classList.contains('rename-input')){
+      if(editingGroup === null) return;
+      renameGroup(e.target.dataset.oldname, e.target.value);
+    }
+  });
+
+  // 卡片点击勾选与 Shift 范围连选
+  const grid = document.getElementById('grid');
+  grid.addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    if(!card) return;
+    const idx = Number(card.dataset.i);
+
+    // 支持按住 Shift 范围连选
+    if(e.shiftKey && lastSelectedRowIndex !== null){
+      handleRangeSelect(idx);
+    } else {
+      lastSelectedRowIndex = idx;
+      toggleSelect(idx);
+    }
+  });
+
+  grid.addEventListener('change', e => {
+    if(e.target.classList.contains('chk')){
+      const card = e.target.closest('.card');
+      const idx = Number(card.dataset.i);
+      lastSelectedRowIndex = idx;
+      toggleSelect(idx, e.target.checked);
+    }
+  });
+
+  grid.addEventListener('dblclick', e => {
+    const card = e.target.closest('.card');
+    if(!card) return;
+    zoomRow(Number(card.dataset.i));
+  });
+
+  // 拖拽启动：无论 1 张还是多张均采用小框胶囊
+  grid.addEventListener('dragstart', e => {
+    const card = e.target.closest('.card');
+    if(!card) return;
+    const idx = Number(card.dataset.i);
+    dragSet = selected.has(idx) ? Array.from(selected) : [idx];
+    e.dataTransfer.setData('text/plain', JSON.stringify(dragSet));
+    e.dataTransfer.effectAllowed = 'move';
+    setDragImage(e);
+  });
+  grid.addEventListener('dragend', () => { dragSet = []; });
+}
+
+/* ================= IndexedDB 本地持久化缓存 ================= */
+const DB_NAME = 'universalClassifyDB_v3', STORE = 'store', DB_KEY = 'cacheData';
+function idbOpen(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = e => { e.target.result.createObjectStore(STORE); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbSet(val){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(val, DB_KEY);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const rq = tx.objectStore(STORE).get(DB_KEY);
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function idbClear(){
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  setStatus('保存中…');
+  saveTimer = setTimeout(async () => {
+    try{
+      await idbSet({
+        rows: rows,
+        rawHeaders: rawHeaders,
+        groups: groups,
+        edited: Array.from(edited),
+        mappingConfig: mappingConfig
+      });
+      setStatus('已自动保存 ✓');
+    }catch(e){ setStatus('自动保存失败: ' + e.message); }
+  }, 400);
+}
+function setStatus(s){ const el = document.getElementById('status'); if(el) el.textContent = s; }
+
+/* ================= 导出通用只读展示版 HTML ================= */
+document.getElementById('btnExportHtml').onclick = () => {
+  if (!rows.length) { alert('当前没有数据可导出'); return; }
+
+  const scriptEnd = '<' + '/script>';
+  const templateHtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分类结果展示看板 (共 ${rows.length} 条)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f4f6f8;color:#333;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  .header{flex:0 0 auto;background:#fff;padding:10px 16px;border-bottom:1px solid #d9d9d9;display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .title{font-size:16px;font-weight:bold;color:#2f5496;}
+  .stat{color:#666;margin-left:auto;}
+  .stat b{color:#111;font-size:14px;}
+  input{padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;}
+  .main{flex:1;display:flex;min-height:0;}
+  .sidebar{width:220px;background:#fff;border-right:1px solid #d9d9d9;display:flex;flex-direction:column;overflow-y:auto;padding:8px;}
+  .g-item{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px;border-radius:6px;cursor:pointer;user-select:none;}
+  .g-item:hover{background:#f0f3f8;}
+  .g-item.active{background:#eaf0fb;color:#2f5496;font-weight:bold;}
+  .g-dot{width:10px;height:10px;border-radius:50%;}
+  .g-count{margin-left:auto;font-size:11px;color:#888;background:#eee;padding:1px 6px;border-radius:10px;}
+  .content{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .grid-scroll{flex:1;overflow-y:auto;padding:12px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px;}
+  .card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer;transition:transform .1s;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.1);}
+  .imgwrap{width:100%;aspect-ratio:3/4;background:#eee;overflow:hidden;}
+  .imgwrap.no-img{display:none;}
+  .imgwrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .badge{margin:6px 6px 0;padding:3px 6px;border-radius:4px;font-size:12px;color:#fff;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .meta{font-size:11px;color:#666;margin:3px 6px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .meta.title{color:#111;font-weight:600;}
+  .meta.sub2{color:#999;margin-bottom:6px;}
+  .pagination{flex:0 0 auto;padding:8px 16px;background:#fff;border-top:1px solid #d9d9d9;display:flex;gap:8px;align-items:center;}
+  .btn{padding:5px 12px;border:1px solid #ccc;background:#fff;border-radius:4px;cursor:pointer;}
+  .btn:hover{background:#f5f5f5;}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:none;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;}
+  .lightbox.on{display:flex;}
+  .lb-inner{display:flex;gap:20px;align-items:flex-start;max-width:96vw;max-height:90vh;background:#242b35;border-radius:10px;padding:20px;cursor:default;}
+  .lb-inner img{max-width:55vw;max-height:80vh;border-radius:6px;object-fit:contain;}
+  .lb-info{color:#fff;font-size:13px;line-height:1.7;max-width:35vw;overflow-y:auto;max-height:80vh;padding-right:10px;}
+  .lb-info table{width:100%;border-collapse:collapse;margin-top:8px;}
+  .lb-info td{padding:4px 6px;border-bottom:1px solid #374151;font-size:12px;vertical-align:top;}
+  .lb-info td.k{color:#9ca3af;white-space:nowrap;width:30%;}
+  .lb-info td.v{color:#fff;word-break:break-all;}
+  .lb-badge{display:inline-block;padding:2px 9px;border-radius:4px;color:#fff;font-size:13px;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">📊 分类结果看板</div>
+  <input type="text" id="qSearch" placeholder="🔍 搜索字段内容..." style="width:240px;">
+  <div class="stat">总计：<b>${rows.length}</b> 条 | 当前显示：<b id="qFiltered">0</b> 条</div>
+</div>
+<div class="main">
+  <div class="sidebar" id="qGroupList"></div>
+  <div class="content">
+    <div class="grid-scroll"><div class="grid" id="qGrid"></div></div>
+    <div class="pagination">
+      <button class="btn" id="qPrev">‹ 上一页</button>
+      <span>第 <b id="qCur">1</b> / <b id="qTotal">1</b> 页</span>
+      <button class="btn" id="qNext">下一页 ›</button>
+      <span style="color:#888;font-size:12px;margin-left:auto;">提示：点击卡片可查看该行全部字段详情</span>
+    </div>
+  </div>
+</div>
+<div class="lightbox" id="qLightbox" onclick="this.classList.remove('on')">
+  <div class="lb-inner" onclick="event.stopPropagation()">
+    <img id="qLbImg">
+    <div class="lb-info" id="qLbInfo"></div>
+  </div>
+</div>
+<script>
+  const DATA = ${JSON.stringify(rows)};
+  const HEADERS = ${JSON.stringify(rawHeaders)};
+  const GROUPS = ${JSON.stringify(groups)};
+  const CFG = ${JSON.stringify(mappingConfig)};
+  const PAGE_SIZE = 500;
+  let page = 1, curFilter = '', searchStr = '';
+  const grpColorMap = {};
+  GROUPS.forEach(g => grpColorMap[g.name] = g.color);
+
+  function getFiltered() {
+    return DATA.filter(r => {
+      const type = (r[CFG.categoryCol] || '').trim();
+      if (curFilter === '__NONE__' && type) return false;
+      if (curFilter && curFilter !== '__ALL__' && curFilter !== '__NONE__' && type !== curFilter) return false;
+      if (!searchStr) return true;
+      const q = searchStr.toLowerCase();
+      for(const k of HEADERS) {
+        if(String(r[k]||'').toLowerCase().includes(q)) return true;
+      }
+      return false;
+    });
+  }
+
+  function renderSidebar() {
+    const counts = { '__ALL__': DATA.length, '__NONE__': 0 };
+    DATA.forEach(r => {
+      const t = (r[CFG.categoryCol] || '').trim();
+      if(t) counts[t] = (counts[t] || 0) + 1;
+      else counts['__NONE__']++;
+    });
+    let html = '<div class="g-item ' + (curFilter===''||curFilter==='__ALL__'?'active':'') + '" data-g="__ALL__"><span class="g-dot" style="background:#2f5496;"></span> 全部 <span class="g-count">' + counts['__ALL__'] + '</span></div>';
+    html += '<div class="g-item ' + (curFilter==='__NONE__'?'active':'') + '" data-g="__NONE__"><span class="g-dot" style="background:#9aa0a6;"></span> 未分类 <span class="g-count">' + (counts['__NONE__']||0) + '</span></div>';
+    GROUPS.forEach(g => {
+      html += '<div class="g-item ' + (curFilter===g.name?'active':'') + '" data-g="' + g.name + '"><span class="g-dot" style="background:' + g.color + ';"></span> ' + g.name + ' <span class="g-count">' + (counts[g.name]||0) + '</span></div>';
+    });
+    document.getElementById('qGroupList').innerHTML = html;
+  }
+
+  function renderGrid() {
+    const list = getFiltered();
+    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    if (page > totalPages) page = totalPages;
+    const slice = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    document.getElementById('qGrid').innerHTML = slice.map((r, i) => {
+      const idx = (page - 1) * PAGE_SIZE + i;
+      const type = (r[CFG.categoryCol] || '').trim();
+      const col = grpColorMap[type] || '#9aa0a6';
+      const badgeText = type || '未分类';
+      const imgUrl = CFG.imageCol ? (r[CFG.imageCol] || '') : '';
+      const titleVal = CFG.titleCol ? (r[CFG.titleCol] || '') : ('#' + (idx + 1));
+      const sub1Val = CFG.subCol1 ? (r[CFG.subCol1] || '') : '';
+      const sub2Val = CFG.subCol2 ? (r[CFG.subCol2] || '') : '';
+
+      return '<div class="card" onclick="zoomItem(' + idx + ')">' +
+        (CFG.imageCol ? ('<div class="imgwrap"><img loading="lazy" src="' + imgUrl + '" onerror="this.src=\\'\\';this.alt=\\'无图\\';"></div>') : '<div class="imgwrap no-img"></div>') +
+        '<div class="badge" style="background:' + col + '">' + badgeText + '</div>' +
+        '<div class="meta title">' + titleVal + '</div>' +
+        (sub1Val ? ('<div class="meta">' + sub1Val + '</div>') : '') +
+        (sub2Val ? ('<div class="meta sub2">' + sub2Val + '</div>') : '') +
+      '</div>';
+    }).join('');
+
+    document.getElementById('qCur').textContent = page;
+    document.getElementById('qTotal').textContent = totalPages;
+    document.getElementById('qFiltered').textContent = list.length;
+  }
+
+  window.zoomItem = function(idx) {
+    const list = getFiltered();
+    const r = list[idx];
+    if(!r) return;
+    const type = (r[CFG.categoryCol] || '').trim();
+    const imgUrl = CFG.imageCol ? (r[CFG.imageCol] || '') : '';
+    const lbImg = document.getElementById('qLbImg');
+
+    if(imgUrl){
+      lbImg.style.display = 'block';
+      lbImg.src = imgUrl;
+    } else {
+      lbImg.style.display = 'none';
+    }
+
+    let tbl = '<table>';
+    HEADERS.forEach(h => {
+      tbl += '<tr><td class="k">' + h + '</td><td class="v">' + (r[h] || '-') + '</td></tr>';
+    });
+    tbl += '</table>';
+
+    document.getElementById('qLbInfo').innerHTML =
+      '<div><span class="lb-badge" style="background:' + (grpColorMap[type]||'#9aa0a6') + '">' + (type || '未分类') + '</span></div>' +
+      tbl;
+    document.getElementById('qLightbox').classList.add('on');
+  };
+
+  document.getElementById('qGroupList').onclick = (e) => {
+    const item = e.target.closest('.g-item');
+    if (!item) return;
+    curFilter = item.dataset.g;
+    page = 1;
+    renderSidebar();
+    renderGrid();
+  };
+  document.getElementById('qSearch').oninput = (e) => { searchStr = e.target.value.trim(); page = 1; renderGrid(); };
+  document.getElementById('qPrev').onclick = () => { if (page > 1) { page--; renderGrid(); } };
+  document.getElementById('qNext').onclick = () => { page++; renderGrid(); };
+
+  renderSidebar();
+  renderGrid();
+` + scriptEnd + `
+</body>
+</html>`;
+
+  downloadBlob(templateHtml, `通用分类看板_${ts()}.html`, 'text/html;charset=utf-8');
+  setStatus('已生成轻量通用看板 HTML 文件');
+};
+
+/* ================= 系统初始化启动 ================= */
+(async function init(){
+  bindEvents();
+  try{
+    const saved = await idbGet();
+    if(saved && saved.rows && saved.rows.length){
+      rows = saved.rows;
+      rawHeaders = saved.rawHeaders || Object.keys(rows[0]).filter(k => !k.startsWith('_'));
+      groups = (saved.groups && saved.groups.length) ? saved.groups : [];
+      edited = new Set(saved.edited || []);
+      mappingConfig = saved.mappingConfig || mappingConfig;
+      if(!groups.length) rebuildGroupsFromRows();
+      setStatus(`已恢复上次进度：共 ${rows.length} 行数据，分类列为【${mappingConfig.categoryCol}】`);
+    } else {
+      setStatus('请上传 Excel/CSV 文件开始');
+    }
+  }catch(e){
+    setStatus('读取本地缓存失败: ' + e.message);
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
