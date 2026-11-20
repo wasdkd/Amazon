@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -50,6 +52,8 @@
   .btn-warn:hover{background:#95461a;}
   .btn-dark{background:#1f2937;border-color:#1f2937;color:#fff;}
   .btn-dark:hover{background:#374151;}
+  .btn-help{background:#6366f1;border-color:#6366f1;color:#fff;}
+  .btn-help:hover{background:#4f46e5;}
   input[type=text], select{padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
   #search{width:240px;}
   .stat{margin-left:auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:#555;}
@@ -158,10 +162,10 @@
   .lightbox .lb-info td.v{color:#fff;word-break:break-all;}
   .lightbox .lb-info .lb-badge{display:inline-block;padding:2px 9px;border-radius:4px;color:#fff;font-size:13px;font-weight:600;}
 
-  /* ===== 字段映射配置弹窗 (Modal) ===== */
+  /* ===== 弹窗通用样式 (Modal) ===== */
   .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;}
   .modal-mask.show{display:flex;}
-  .modal-box{background:#fff;border-radius:12px;width:520px;max-width:95vw;padding:22px;box-shadow:0 12px 30px rgba(0,0,0,.3);}
+  .modal-box{background:#fff;border-radius:12px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:22px;box-shadow:0 12px 30px rgba(0,0,0,.3);}
   .modal-title{font-size:16px;font-weight:bold;margin-bottom:14px;color:#1e293b;display:flex;align-items:center;gap:6px;}
   .modal-desc{font-size:12px;color:#64748b;margin-bottom:16px;line-height:1.5;}
   .form-row{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
@@ -169,7 +173,16 @@
   .form-row select, .form-row input{width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--border);font-size:13px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
 
-  /* 精致小巧的跟随拖拽浮窗 */
+  /* 教程说明内容样式 */
+  .help-step{display:flex;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;}
+  .help-step:last-child{border-bottom:none;margin-bottom:0;}
+  .help-num{flex:0 0 24px;height:24px;border-radius:50%;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;}
+  .help-body{flex:1;}
+  .help-title{font-size:13px;font-weight:bold;color:#1e293b;margin-bottom:3px;}
+  .help-text{font-size:12px;color:#64748b;line-height:1.6;}
+  .help-tag{display:inline-block;padding:1px 5px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;color:#1f2937;font-weight:bold;font-size:11px;}
+
+  /* 跟随拖拽浮窗 */
   .drag-ghost{
     position:fixed;z-index:9999;pointer-events:none;background:#1e293b;color:#38bdf8;
     padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold;
@@ -188,6 +201,7 @@
   <div class="row">
     <button class="btn-primary" id="btnUpload">📤 上传表格 (Excel/CSV)</button>
     <button class="btn" id="btnOpenConfig">⚙ 更改列设置</button>
+    <button class="btn btn-help" onclick="openHelpModal()">📖 使用教程</button>
     <button class="btn-green" id="btnExportXlsx">⬇ 导出 Excel</button>
     <button class="btn-green" id="btnExportCsv">⬇ 导出 CSV</button>
     <button class="btn-primary" id="btnExportHtml" style="background:#0984e3;border-color:#0984e3;">🌐 导出展示版 HTML</button>
@@ -304,6 +318,68 @@
   </div>
 </div>
 
+<!-- 使用教程弹窗 (Help Modal) -->
+<div class="modal-mask" id="helpModal" onclick="if(event.target===this) closeHelpModal()">
+  <div class="modal-box" style="width: 580px;">
+    <div class="modal-title" style="justify-content:space-between;">
+      <span>📖 通用分类工具 · 极速上手指南</span>
+      <span style="cursor:pointer;color:#94a3b8;font-size:18px;" onclick="closeHelpModal()">✕</span>
+    </div>
+
+    <div class="help-step">
+      <div class="help-num">1</div>
+      <div class="help-body">
+        <div class="help-title">导入任意表格与自定义列设置</div>
+        <div class="help-text">点击顶部 <span class="help-tag">📤 上传表格</span> 导入你的 Excel 或 CSV。系统会自动弹出配置框，你可以选择将分类结果写回现有列，也可以选择<b>「➕ 新建一列」</b>从0全新分类。卡片上的图片、主标题与辅助信息均可自由指定。</div>
+      </div>
+    </div>
+
+    <div class="help-step">
+      <div class="help-num">2</div>
+      <div class="help-body">
+        <div class="help-title">Shift 键范围连选（效率核心）</div>
+        <div class="help-text">在卡片网格中，先点击选中第 1 张卡片，接着<b>按住键盘 <span class="help-tag">Shift</span> 键点击另一张卡片</b>，两张卡片之间的全部产品将一次性批量勾选，无需一个个点选。</div>
+      </div>
+    </div>
+
+    <div class="help-step">
+      <div class="help-num">3</div>
+      <div class="help-body">
+        <div class="help-title">极速分类与自动取消勾选</div>
+        <div class="help-text">
+          • <b>拖拽分类</b>：直接鼠标拖动已选卡片（无论单张还是多张均显示小胶囊），拖到左侧对应的分类上松手即可归类。<br>
+          • <b>浮动栏分类</b>：选好卡片后，在底部浮动栏下拉选择分类，点击“移动到该组”。<br>
+          • <b>自动解选</b>：分类成功后，<b>已修改的卡片会自动取消勾选</b>，让你无缝开展下一轮。
+        </div>
+      </div>
+    </div>
+
+    <div class="help-step">
+      <div class="help-num">4</div>
+      <div class="help-body">
+        <div class="help-title">双击卡片查看完整所有字段</div>
+        <div class="help-text">鼠标<b>双击</b>任意卡片，即可呼出全屏详情，不仅能看大图，还能在右侧完整查阅该行表格包含的<b>所有原始字段与数据</b>。</div>
+      </div>
+    </div>
+
+    <div class="help-step">
+      <div class="help-num">5</div>
+      <div class="help-body">
+        <div class="help-title">自动存档与多格式无损导出</div>
+        <div class="help-text">
+          • <b>防丢失</b>：分类过程中系统实时保存在本地，随时刷新或关闭浏览器都不丢进度。<br>
+          • <b>导出 Excel/CSV</b>：100% 完整保留原表格所有字段，同时精准回写分类结果与“已修改”标记。<br>
+          • <b>展示版 HTML</b>：一键生成单文件轻量看板，发给同事双击就能直接浏览筛选。
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="closeHelpModal()">我知道了，开始使用</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ================= 全局配置与状态 ================= */
 const PAGE_SIZE = 1000;
@@ -345,6 +421,14 @@ function ensureGroup(name){
   const s = String(name).trim();
   if(!groupOf(s)) groups.push({name:s, color:colorForIndex(groups.length)});
   return groupOf(s);
+}
+
+/* ================= 教程弹窗 (Help Modal) ================= */
+function openHelpModal(){
+  document.getElementById('helpModal').classList.add('show');
+}
+function closeHelpModal(){
+  document.getElementById('helpModal').classList.remove('show');
 }
 
 /* ================= 模态框逻辑 (列映射配置) ================= */
@@ -709,7 +793,7 @@ function updateCardSelectedUI(idx, isSel){
   }
 }
 
-/* 核心需求 1：Shift + Click 范围区间连选 */
+/* Shift + Click 范围区间连选 */
 function handleRangeSelect(targetIdx){
   const filtered = getFiltered();
   const startPos = filtered.findIndex(r => r._i === lastSelectedRowIndex);
@@ -732,7 +816,7 @@ function handleRangeSelect(targetIdx){
   updateStats();
 }
 
-/* 核心需求 2：分类后自动解除已改项的勾选状态 */
+/* 分类后自动解除已改项的勾选状态 */
 function assignTo(indices, targetGroup){
   if(!indices || !indices.length) return;
   const target = (targetGroup === '__NONE__') ? '' : String(targetGroup).trim();
@@ -745,7 +829,6 @@ function assignTo(indices, targetGroup){
       edited.add(i);
       affected++;
     }
-    // 关键：自动取消勾选修改后的项！
     selected.delete(i);
   });
 
@@ -756,7 +839,7 @@ function assignTo(indices, targetGroup){
   setStatus(`已把 ${indices.length} 条数据归入「${target || '未分类'}」，并已自动取消勾选 ✓`);
 }
 
-/* 核心需求 3：无论 1 张还是多张，均使用精致不挡视线的小药丸胶囊 */
+/* 无论 1 张还是多张均采用小框胶囊 */
 function setDragImage(e){
   const d = document.getElementById('dragGhost');
   d.textContent = dragSet.length === 1 ? '📦 移动 1 个项目' : `📦 批量移动 ${dragSet.length} 个项目`;
@@ -1027,7 +1110,6 @@ function bindEvents(){
     if(!card) return;
     const idx = Number(card.dataset.i);
 
-    // 支持按住 Shift 范围连选
     if(e.shiftKey && lastSelectedRowIndex !== null){
       handleRangeSelect(idx);
     } else {
@@ -1051,7 +1133,7 @@ function bindEvents(){
     zoomRow(Number(card.dataset.i));
   });
 
-  // 拖拽启动：无论 1 张还是多张均采用小框胶囊
+  // 拖拽启动
   grid.addEventListener('dragstart', e => {
     const card = e.target.closest('.card');
     if(!card) return;
