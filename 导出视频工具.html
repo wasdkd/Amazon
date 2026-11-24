@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Vibe HTML 一键转 16:9 MP4（手机/电脑通用版）</title>
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #1b1538 0%, #0a0814 70%);
+    color: #eef2ff;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding: 20px 16px 60px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .card {
+    width: min(760px, 100%);
+    background: rgba(20, 17, 40, 0.88);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 22px 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+  }
+  h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: #9aa4c8; line-height: 1.5; margin-bottom: 14px; }
+  .env-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .env-ok { background: rgba(34, 160, 107, 0.18); color: #5ce0a8; border: 1px solid rgba(92,224,168,0.35); }
+  .env-warn { background: rgba(255, 209, 102, 0.16); color: #ffd166; border: 1px solid rgba(255,209,102,0.35); }
+
+  .drop-zone {
+    border: 2px dashed rgba(77, 168, 255, 0.45);
+    background: rgba(77, 168, 255, 0.06);
+    border-radius: 14px;
+    padding: 26px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 14px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #FFD166;
+    background: rgba(255, 209, 102, 0.09);
+  }
+  .drop-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .drop-hint { font-size: 12px; color: #9aa4c8; }
+
+  .file-info {
+    display: none;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  .file-info.show { display: block; }
+
+  .row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+  }
+  .field label {
+    display: block; font-size: 12px; color: #9aa4c8; margin-bottom: 5px;
+  }
+  .field select, .field input[type="file"] {
+    width: 100%; padding: 9px 10px; border-radius: 9px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: #100d24; color: #fff; font-size: 13px;
+  }
+
+  .btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(90deg, #FF5E7E, #FFD166);
+    color: #140f24;
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn-download {
+    display: none; margin-top: 12px;
+    background: #22a06b; color: #fff;
+  }
+  .btn-download.show { display: block; }
+
+  .progress-box { display: none; margin-top: 16px; }
+  .progress-box.show { display: block; }
+  .p-bar {
+    width: 100%; height: 10px; border-radius: 999px;
+    background: rgba(255,255,255,0.1); overflow: hidden; margin-bottom: 8px;
+  }
+  .p-fill {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg, #4DA8FF, #FFD166);
+    transition: width 0.1s linear;
+  }
+  .p-text { font-size: 12px; color: #cbd5f5; display: flex; justify-content: space-between; }
+
+  .preview-wrap {
+    margin-top: 16px; display: none;
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: #000;
+  }
+  .preview-wrap.show { display: block; }
+  .preview-wrap video { width: 100%; display: block; }
+
+  /* 隐藏的 1920x1080 离屏渲染容器 */
+  iframe#sandboxFrame {
+    position: fixed; left: -99999px; top: 0;
+    width: 1920px; height: 1080px; border: none;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🎬 Vibe HTML → 16:9 MP4 导出器</h1>
+  <div class="sub">无需安装 Python 或任何软件，上传符合规范的动画 HTML，直接在浏览器内合成 1920×1080 高清视频。</div>
+
+  <div id="envBadge" class="env-badge env-ok">检测运行环境中...</div>
+
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-title">📂 点击或拖入你的动画 HTML 文件（如 37%法则.html）</div>
+    <div class="drop-hint">支持手机相册/文件管理器选择 HTML · 全程本地运算不上传服务器</div>
+    <input type="file" id="htmlInput" accept=".html,.htm,text/html" hidden />
+  </div>
+
+  <div class="file-info" id="fileInfo"></div>
+
+  <div class="row">
+    <div class="field">
+      <label>导出帧率</label>
+      <select id="fpsSelect">
+        <option value="30" selected>30 fps（推荐 · 更快更稳）</option>
+        <option value="60">60 fps（极丝滑 · 耗时翻倍）</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>画质码率</label>
+      <select id="bitrateSelect">
+        <option value="6000000" selected>6 Mbps（1080p 标准高清）</option>
+        <option value="10000000">10 Mbps（高码率精品）</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>可选：自定义配音/BGM (mp3/wav)</label>
+      <input type="file" id="audioInput" accept="audio/*" />
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="exportBtn" disabled>🚀 开始导出 16:9 视频</button>
+  <button class="btn btn-download" id="downloadBtn">⬇️ 保存视频到设备</button>
+
+  <div class="progress-box" id="progressBox">
+    <div class="p-bar"><div class="p-fill" id="pFill"></div></div>
+    <div class="p-text">
+      <span id="pStatus">准备中...</span>
+      <span id="pPct">0%</span>
+    </div>
+  </div>
+
+  <div class="preview-wrap" id="previewWrap">
+    <video id="previewVideo" controls playsinline></video>
+  </div>
+</div>
+
+<iframe id="sandboxFrame"></iframe>
+
+<script>
+(() => {
+  'use strict';
+
+  const envBadge = document.getElementById('envBadge');
+  const dropZone = document.getElementById('dropZone');
+  const htmlInput = document.getElementById('htmlInput');
+  const audioInput = document.getElementById('audioInput');
+  const fileInfo = document.getElementById('fileInfo');
+  const exportBtn = document.getElementById('exportBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const progressBox = document.getElementById('progressBox');
+  const pFill = document.getElementById('pFill');
+  const pStatus = document.getElementById('pStatus');
+  const pPct = document.getElementById('pPct');
+  const previewWrap = document.getElementById('previewWrap');
+  const previewVideo = document.getElementById('previewVideo');
+  const frameEl = document.getElementById('sandboxFrame');
+
+  const hasWebCodecs = (typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined' && typeof Mp4Muxer !== 'undefined');
+  const hasAudioEnc = (typeof AudioEncoder !== 'undefined' && typeof AudioData !== 'undefined');
+
+  if (hasWebCodecs) {
+    envBadge.className = 'env-badge env-ok';
+    envBadge.textContent = hasAudioEnc
+      ? '⚡ 极速硬件导出就绪（WebCodecs H.264 + AAC 音轨）'
+      : '⚡ 硬件视频导出就绪（当前浏览器不支持 AAC 编码，将导出纯画面或兼容录制）';
+  } else {
+    envBadge.className = 'env-badge env-warn';
+    envBadge.textContent = window.isSecureContext
+      ? '⚠️ 当前浏览器不支持 WebCodecs，将使用实时兼容录制模式'
+      : '⚠️ 当前为本地 file:// 模式（非 HTTPS），将使用实时兼容录制模式（挂 HTTPS 链接可提速 5 倍）';
+  }
+
+  let loadedMeta = null;
+  let customAudioFile = null;
+  let lastBlobUrl = null;
+  let lastFileName = 'vibe_video.mp4';
+
+  function setProgress(pct, txt) {
+    pFill.style.width = Math.min(100, pct).toFixed(1) + '%';
+    pPct.textContent = Math.round(pct) + '%';
+    pStatus.textContent = txt;
+  }
+
+  dropZone.addEventListener('click', () => htmlInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleHtmlFile(e.dataTransfer.files[0]);
+  });
+  htmlInput.addEventListener('change', () => {
+    if (htmlInput.files[0]) handleHtmlFile(htmlInput.files[0]);
+  });
+  audioInput.addEventListener('change', () => {
+    customAudioFile = audioInput.files[0] || null;
+  });
+
+  async function handleHtmlFile(file) {
+    exportBtn.disabled = true;
+    fileInfo.className = 'file-info show';
+    fileInfo.innerHTML = `正在解析 <b>${file.name}</b> ...`;
+
+    const htmlText = await file.text();
+    frameEl.onload = () => {
+      try {
+        const win = frameEl.contentWindow;
+        const doc = frameEl.contentDocument;
+        doc.body.classList.add('hide-ui');
+        const ov = doc.getElementById('startOverlay');
+        if (ov) ov.style.display = 'none';
+        const ct = doc.getElementById('controls');
+        if (ct) ct.style.display = 'none';
+
+        const canvas = doc.getElementById('stage') || doc.querySelector('canvas');
+        if (!canvas) {
+          fileInfo.innerHTML = `❌ <b>${file.name}</b> 里没有找到 &lt;canvas&gt; 画布，请确认是 Canvas 动画版 HTML。`;
+          return;
+        }
+        if (typeof win.__seekTo !== 'function') {
+          fileInfo.innerHTML = `❌ <b>${file.name}</b> 缺少 <code>window.__seekTo(t)</code> 接口，无法精准抽帧。`;
+          return;
+        }
+        const duration = Number(win.__duration || 90);
+        win.__seekTo(0);
+
+        loadedMeta = {
+          name: file.name.replace(/\.(html?|htm)$/i, ''),
+          win, canvas, duration
+        };
+        lastFileName = loadedMeta.name + '.mp4';
+        fileInfo.innerHTML = `
+          ✅ 已加载：<b>${file.name}</b><br>
+          📐 分辨率：<b>${canvas.width} × ${canvas.height}</b> · 时长：<b>${duration.toFixed(1)} 秒</b>
+        `;
+        exportBtn.disabled = false;
+      } catch (err) {
+        fileInfo.innerHTML = `❌ 解析失败：${err.message}`;
+      }
+    };
+    frameEl.srcdoc = htmlText;
+  }
+
+  // 生成默认 120 BPM + 17.0s 重拍音轨 (44.1kHz 单声道 Float32)
+  function generateSynthPCM(duration, sr = 44100, climaxAt = 17.0) {
+    const n = Math.floor(duration * sr);
+    const audio = new Float32Array(n);
+    const chords = [196.0, 220.0, 246.94, 293.66];
+
+    for (let idx = 0; idx < Math.floor(duration / 2); idx++) {
+      const s0 = idx * 2 * sr;
+      const s1 = Math.min(n, (idx + 1) * 2 * sr);
+      const f = chords[idx % chords.length];
+      for (let i = s0; i < s1; i++) {
+        const lt = (i - s0) / sr;
+        const env = Math.min(1, lt / 0.05) * Math.exp(-lt * 1.4);
+        audio[i] += (Math.sin(2 * Math.PI * f * lt) * 0.14 + Math.sin(2 * Math.PI * f * 1.5 * lt) * 0.07) * env;
+      }
+    }
+    for (let b = 0; b < Math.floor(duration * 2); b++) {
+      if (b % 4 === 0) continue;
+      const s0 = Math.floor(b * 0.5 * sr);
+      const s1 = Math.min(n, s0 + Math.floor(0.06 * sr));
+      for (let i = s0; i < s1; i++) {
+        const lt = (i - s0) / sr;
+        audio[i] += Math.sin(2 * Math.PI * 880 * lt) * Math.exp(-lt * 65) * 0.03;
+      }
+    }
+    if (climaxAt < duration) {
+      const b0 = Math.floor(climaxAt * sr);
+      const b1 = Math.min(n, b0 + Math.floor(1.2 * sr));
+      let phase = 0;
+      for (let i = b0; i < b1; i++) {
+        const lt = (i - b0) / sr;
+        const freq = 135 * Math.exp(-lt * 2.2) + 34;
+        phase += 2 * Math.PI * freq / sr;
+        const boom = Math.sin(phase) * Math.exp(-lt * 3.0) * 0.45;
+        const chime = (Math.sin(2 * Math.PI * 587.33 * lt) + 0.6 * Math.sin(2 * Math.PI * 880 * lt)) * Math.exp(-lt * 4.5) * 0.18;
+        audio[i] += boom + chime;
+      }
+    }
+    const fadeN = Math.min(n, 3 * sr);
+    for (let i = 0; i < fadeN; i++) {
+      audio[n - fadeN + i] *= 1 - i / fadeN;
+    }
+    return audio;
+  }
+
+  async function preparePCM(duration) {
+    const sr = 44100;
+    if (!customAudioFile) return generateSynthPCM(duration, sr, 17.0);
+    const buf = await customAudioFile.arrayBuffer();
+    const tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await tmpCtx.decodeAudioData(buf);
+    await tmpCtx.close();
+
+    const off = new OfflineAudioContext(1, Math.ceil(duration * sr), sr);
+    const src = off.createBufferSource();
+    src.buffer = decoded;
+    src.connect(off.destination);
+    src.start(0);
+    const rendered = await off.startRendering();
+    return rendered.getChannelData(0);
+  }
+
+  async function findSupportedVideoCodec(w, h, fps, bitrate) {
+    const candidates = ['avc1.640028', 'avc1.4d0028', 'avc1.4d0034', 'avc1.42E01E'];
+    for (const codec of candidates) {
+      const res = await VideoEncoder.isConfigSupported({
+        codec, width: w, height: h, bitrate, framerate: fps,
+      });
+      if (res.supported) return codec;
+    }
+    return null;
+  }
+
+  async function exportWithWebCodecs(meta, fps, bitrate) {
+    const { win, canvas, duration } = meta;
+    const W = canvas.width, H = canvas.height;
+    const vCodec = await findSupportedVideoCodec(W, H, fps, bitrate);
+    if (!vCodec) throw new Error('设备不支持 H.264 硬件编码，将尝试兼容模式');
+
+    let useAudio = false;
+    if (hasAudioEnc) {
+      const aRes = await AudioEncoder.isConfigSupported({
+        codec: 'mp4a.40.2', numberOfChannels: 1, sampleRate: 44100, bitrate: 128000,
+      });
+      useAudio = !!aRes.supported;
+    }
+
+    const muxer = new Mp4Muxer.Muxer({
+      target: new Mp4Muxer.ArrayBufferTarget(),
+      video: { codec: 'avc', width: W, height: H },
+      audio: useAudio ? { codec: 'aac', numberOfChannels: 1, sampleRate: 44100 } : undefined,
+      fastStart: 'in-memory',
+    });
+
+    let encErr = null;
+    const videoEncoder = new VideoEncoder({
+      output: (chunk, m) => muxer.addVideoChunk(chunk, m),
+      error: e => { encErr = e; },
+    });
+    videoEncoder.configure({ codec: vCodec, width: W, height: H, bitrate, framerate: fps });
+
+    let audioEncoder = null;
+    if (useAudio) {
+      setProgress(2, '正在合成音轨...');
+      const pcm = await preparePCM(duration);
+      audioEncoder = new AudioEncoder({
+        output: (chunk, m) => muxer.addAudioChunk(chunk, m),
+        error: e => { encErr = e; },
+      });
+      audioEncoder.configure({ codec: 'mp4a.40.2', numberOfChannels: 1, sampleRate: 44100, bitrate: 128000 });
+
+      const chunkSize = 1024;
+      for (let offset = 0; offset < pcm.length; offset += chunkSize) {
+        const end = Math.min(pcm.length, offset + chunkSize);
+        const slice = pcm.subarray(offset, end);
+        const data = new AudioData({
+          format: 'f32',
+          sampleRate: 44100,
+          numberOfFrames: slice.length,
+          numberOfChannels: 1,
+          timestamp: Math.round((offset / 44100) * 1_000_000),
+          data: slice,
+        });
+        audioEncoder.encode(data);
+        data.close();
+      }
+    }
+
+    const totalFrames = Math.round(duration * fps);
+    const frameDurUs = Math.round(1_000_000 / fps);
+
+    for (let i = 0; i < totalFrames; i++) {
+      if (encErr) throw encErr;
+      while (videoEncoder.encodeQueueSize > 8) {
+        await new Promise(r => setTimeout(r, 4));
+      }
+      const t = i / fps;
+      win.__seekTo(t);
+      const frame = new VideoFrame(canvas, {
+        timestamp: Math.round(t * 1_000_000),
+        duration: frameDurUs,
+      });
+      videoEncoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
+      frame.close();
+
+      if (i % 5 === 0 || i === totalFrames - 1) {
+        setProgress(5 + (i + 1) / totalFrames * 92, `编码中：${i + 1} / ${totalFrames} 帧`);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    setProgress(98, '正在封装 MP4 文件...');
+    await videoEncoder.flush();
+    videoEncoder.close();
+    if (audioEncoder) {
+      await audioEncoder.flush();
+      audioEncoder.close();
+    }
+    muxer.finalize();
+    return {
+      blob: new Blob([muxer.target.buffer], { type: 'video/mp4' }),
+      ext: '.mp4',
+    };
+  }
+
+  // 兜底：MediaRecorder 实时录制（用于 file:// 或不支持 WebCodecs 的环境）
+  async function exportWithRecorder(meta, fps, bitrate) {
+    const { win, canvas, duration } = meta;
+    const stream = canvas.captureStream(fps);
+    const mimeList = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+    const mime = mimeList.find(m => MediaRecorder.isTypeSupported(m)) || '';
+    const ext = mime.includes('mp4') ? '.mp4' : '.webm';
+
+    const chunks = [];
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: bitrate } : {});
+    rec.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+
+    const done = new Promise(resolve => {
+      rec.onstop = () => resolve(new Blob(chunks, { type: mime || 'video/webm' }));
+    });
+
+    rec.start(250);
+    const t0 = performance.now();
+    await new Promise(resolve => {
+      function tick(now) {
+        const elapsed = (now - t0) / 1000;
+        if (elapsed >= duration) {
+          win.__seekTo(duration);
+          resolve();
+          return;
+        }
+        win.__seekTo(elapsed);
+        setProgress((elapsed / duration) * 96, `实时录制中（请勿切屏）：${elapsed.toFixed(1)}s / ${duration.toFixed(0)}s`);
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+
+    rec.stop();
+    const blob = await done;
+    return { blob, ext };
+  }
+
+  exportBtn.addEventListener('click', async () => {
+    if (!loadedMeta) return;
+    exportBtn.disabled = true;
+    downloadBtn.classList.remove('show');
+    previewWrap.classList.remove('show');
+    progressBox.classList.add('show');
+
+    const fps = Number(document.getElementById('fpsSelect').value);
+    const bitrate = Number(document.getElementById('bitrateSelect').value);
+
+    try {
+      let res;
+      if (hasWebCodecs) {
+        try {
+          res = await exportWithWebCodecs(loadedMeta, fps, bitrate);
+        } catch (err) {
+          console.warn('WebCodecs failed, fallback to MediaRecorder:', err);
+          res = await exportWithRecorder(loadedMeta, fps, bitrate);
+        }
+      } else {
+        res = await exportWithRecorder(loadedMeta, fps, bitrate);
+      }
+
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      lastBlobUrl = URL.createObjectURL(res.blob);
+      lastFileName = loadedMeta.name + res.ext;
+
+      previewVideo.src = lastBlobUrl;
+      previewWrap.classList.add('show');
+      downloadBtn.classList.add('show');
+      setProgress(100, `✅ 完成！文件大小 ${(res.blob.size / 1024 / 1024).toFixed(1)} MB`);
+
+      const a = document.createElement('a');
+      a.href = lastBlobUrl;
+      a.download = lastFileName;
+      a.click();
+    } catch (err) {
+      setProgress(0, '❌ 导出失败：' + err.message);
+      alert('导出失败：' + err.message);
+    } finally {
+      exportBtn.disabled = false;
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!lastBlobUrl) return;
+    const a = document.createElement('a');
+    a.href = lastBlobUrl;
+    a.download = lastFileName;
+    a.click();
+  });
+})();
+</script>
+</body>
+</html>
