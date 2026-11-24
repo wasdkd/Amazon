@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>人这一辈子，到底该拒绝多少人再结婚？｜Vibe 知识大赏</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #07050f;
+      color: #eae6f8;
+      font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #140f29 0%, #07050f 100%);
+    }
+
+    #canvas {
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      display: block;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+      background: #0F0C1D;
+    }
+
+    /* 开场遮罩：严格保留 #startOverlay */
+    #startOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: rgba(11, 8, 22, 0.88);
+      backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    #startOverlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 999px;
+      background: rgba(255, 209, 102, 0.12);
+      border: 1px solid rgba(255, 209, 102, 0.4);
+      color: #FFD166;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+    }
+
+    .overlay-title {
+      font-size: clamp(28px, 4vw, 54px);
+      font-weight: 800;
+      line-height: 1.25;
+      color: #ffffff;
+      margin-bottom: 16px;
+      text-shadow: 0 8px 32px rgba(255, 94, 126, 0.25);
+    }
+
+    .overlay-title span {
+      color: #FF5E7E;
+    }
+
+    .overlay-sub {
+      font-size: clamp(14px, 1.5vw, 19px);
+      color: #a9a1c7;
+      max-width: 680px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    #playStartBtn {
+      cursor: pointer;
+      border: 1px solid rgba(255, 209, 102, 0.65);
+      background: linear-gradient(135deg, #FF5E7E 0%, #D946EF 50%, #4DA8FF 100%);
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 16px 46px;
+      border-radius: 999px;
+      letter-spacing: 1.5px;
+      box-shadow: 0 12px 36px rgba(255, 94, 126, 0.35);
+      transition: opacity 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #playStartBtn:hover {
+      opacity: 0.92;
+      box-shadow: 0 14px 44px rgba(77, 168, 255, 0.45);
+    }
+
+    .overlay-meta {
+      margin-top: 22px;
+      font-size: 13px;
+      color: #7c7499;
+      letter-spacing: 0.8px;
+    }
+
+    /* 控制栏：严格保留 #controls */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      width: min(92vw, 980px);
+      background: rgba(15, 12, 29, 0.82);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      opacity: 0.92;
+      transition: opacity 0.25s ease;
+    }
+
+    #controls:hover {
+      opacity: 1;
+    }
+
+    .ctrl-btn {
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #eae6f8;
+      border-radius: 10px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 209, 102, 0.5);
+    }
+
+    #scrubberWrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    #scrubber {
+      width: 100%;
+      accent-color: #FFD166;
+      cursor: pointer;
+      height: 5px;
+    }
+
+    .scene-dots {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #8e87a8;
+    }
+
+    .scene-dot-btn {
+      cursor: pointer;
+      padding: 1px 4px;
+      border-radius: 4px;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .scene-dot-btn:hover {
+      color: #FFD166;
+      background: rgba(255, 209, 102, 0.12);
+    }
+
+    .scene-dot-btn.active {
+      color: #FFD166;
+      font-weight: 700;
+    }
+
+    #timeReadout {
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      color: #d6d0ec;
+      min-width: 96px;
+      text-align: right;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="canvas" width="1920" height="1080"></canvas>
+  </div>
+
+  <div id="startOverlay">
+    <div class="badge-pill">VIBE 知识大赏 · 90秒情感数学科普</div>
+    <h1 class="overlay-title">人这一辈子，到底该<span>拒绝多少人</span>再结婚？</h1>
+    <p class="overlay-sub">
+      早了怕草率将就，晚了怕孤独终老。1960 年数学家破解的「最优停止理论」，能否算准你一生的幸福概率？
+    </p>
+    <button id="playStartBtn" type="button">▶ 点击开启声画科普（90s）</button>
+    <div class="overlay-meta">1920×1080 16:9 矢量引擎 · 支持空格暂停 / 进度条拖拽 / 音效合成</div>
+  </div>
+
+  <div id="controls">
+    <button id="playPauseBtn" class="ctrl-btn" type="button">▶ 播放</button>
+    <button id="restartBtn" class="ctrl-btn" type="button">↺ 重播</button>
+    <div id="scrubberWrap">
+      <input id="scrubber" type="range" min="0" max="90" step="0.01" value="0" />
+      <div class="scene-dots" id="sceneDots"></div>
+    </div>
+    <div id="timeReadout">00:00 / 01:30</div>
+    <button id="muteBtn" class="ctrl-btn" type="button">🔊 音效</button>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // ============================================================
+      // 1. 核心常量与确定性工具函数（严禁任何非确定性随机调用）
+      // ============================================================
+      const WIDTH = 1920;
+      const HEIGHT = 1080;
+      const TOTAL_DURATION = 90.0;
+
+      const PALETTE = {
+        bgDeep: '#0F0C1D',
+        bgMid: '#181330',
+        panel: 'rgba(22, 17, 45, 0.86)',
+        coral: '#FF5E7E',
+        blue: '#4DA8FF',
+        gold: '#FFD166',
+        mint: '#3FE0B0',
+        lavender: '#B8A9FF',
+        textMain: '#F6F4FF',
+        textSub: '#A69EC4',
+        textMuted: '#6E668F'
+      };
+
+      const FONT_STACK = "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif";
+
+      const SCENES = [
+        { id: 1,  start: 0.0,  end: 6.0,  title: '爱情的终极悖论',     tagline: '怕草率将就，又怕错过真爱——人这一辈子，到底该拒绝多少人再结婚？' },
+        { id: 2,  start: 6.0,  end: 12.0, title: '单向不可逆的时间轴', tagline: '人生不是逛超市：时间单向不可逆，一旦说「再见」，那个人就永远离线' },
+        { id: 3,  start: 12.0, end: 18.5, title: '数学家的浪漫解法',   tagline: '面对无法回头的单向选择，概率论算出了最接近幸福的黄金分界线' },
+        { id: 4,  start: 18.5, end: 28.5, title: '第一阶段：建立标尺', tagline: '前 37% 统统只看不选——他们不是遗憾，而是帮你在心里立起「最高标尺」' },
+        { id: 5,  start: 28.5, end: 38.5, title: '第二阶段：超越即锁', tagline: '跨过 37% 线之后，只要遇到第一个超越标尺的人，别犹豫，立刻锁定！' },
+        { id: 6,  start: 38.5, end: 48.5, title: '为什么恰好是 37%？', tagline: '概率峰值落在 1/e ≈ 36.79%：太早是盲盒赌博，太晚只能被迫保底' },
+        { id: 7,  start: 48.5, end: 58.5, title: '反转：数学模型的裂缝', tagline: '致命漏洞：真爱有 37% 概率就在前 37% 被你亲手推开，且对方也会拒绝你' },
+        { id: 8,  start: 58.5, end: 68.5, title: '被忽略的隐性代价',   tagline: '盲目套用公式的代价：拒绝的人越多，共情能量越低，心动阈值却越来越高' },
+        { id: 9,  start: 68.5, end: 81.0, title: '现实破局：三步解法', tagline: '真正的破局：前 37% 用来认清自己，再用「及格满意线 + 双向磨合」替代满分' },
+        { id: 10, start: 81.0, end: 90.0, title: '算法与真心的和解',   tagline: '算法帮你淘汰盲目，真心帮你留住当下。如果能重来，你会停在第几个人？' }
+      ];
+
+      // 确定性 Mulberry32 PRNG
+      function createPRNG(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0;
+          a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      const rng = createPRNG(20261123);
+
+      // 预生成确定性背景粒子
+      const BG_PARTICLES = Array.from({ length: 72 }, (_, i) => ({
+        x: rng() * WIDTH,
+        y: rng() * HEIGHT,
+        r: 1.2 + rng() * 2.8,
+        speedX: (rng() - 0.5) * 14,
+        speedY: -6 - rng() * 14,
+        alpha: 0.14 + rng() * 0.36,
+        phase: rng() * Math.PI * 2,
+        color: i % 3 === 0 ? PALETTE.coral : (i % 3 === 1 ? PALETTE.blue : PALETTE.gold)
+      }));
+
+      // 预生成 17.0s 爆发碎片
+      const BURST_SHARDS = Array.from({ length: 56 }, (_, i) => {
+        const angle = (i / 56) * Math.PI * 2 + (rng() - 0.5) * 0.08;
+        return {
+          angle,
+          speed: 320 + rng() * 680,
+          size: 4 + rng() * 9,
+          rotSpeed: (rng() - 0.5) * 6,
+          color: i % 4 === 0 ? '#FFFFFF' : (i % 3 === 0 ? PALETTE.coral : (i % 2 === 0 ? PALETTE.gold : PALETTE.blue))
+        };
+      });
+
+      // 预生成 Scene 3 汇聚节点 (100个候选样本点)
+      const SWARM_NODES = Array.from({ length: 100 }, (_, i) => {
+        const angle = i * 2.39996; // 黄金角螺旋
+        const radius = 140 + Math.sqrt(i / 100) * 520;
+        return {
+          baseAngle: angle,
+          baseRadius: radius,
+          size: 5 + (i % 5) * 1.6,
+          color: i < 37 ? PALETTE.blue : (i === 37 ? PALETTE.gold : PALETTE.coral),
+          phase: rng() * Math.PI * 2
+        };
+      });
+
+      // 缓动与插值工具
+      function clamp(v, min, max) {
+        return v < min ? min : (v > max ? max : v);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function invLerp(a, b, v) {
+        return clamp((v - a) / (b - a), 0, 1);
+      }
+
+      function easeOutCubic(t) {
+        t = clamp(t, 0, 1);
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function easeInOutCubic(t) {
+        t = clamp(t, 0, 1);
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+
+      function easeOutBack(t) {
+        t = clamp(t, 0, 1);
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      }
+
+      // ============================================================
+      // 2. Canvas 绘图基础组件
+      // ============================================================
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      function drawRoundedRect(x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function drawText(text, x, y, opts = {}) {
+        const {
+          size = 32,
+          weight = '700',
+          color = PALETTE.textMain,
+          align = 'center',
+          baseline = 'middle',
+          alpha = 1,
+          glowColor = null,
+          glowBlur = 0,
+          maxWidth = undefined
+        } = opts;
+        ctx.save();
+        ctx.globalAlpha = clamp(alpha, 0, 1);
+        ctx.font = `${weight} ${size}px ${FONT_STACK}`;
+        ctx.fillStyle = color;
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        if (glowColor && glowBlur > 0) {
+          ctx.shadowColor = glowColor;
+          ctx.shadowBlur = glowBlur;
+        }
+        if (maxWidth !== undefined) {
+          ctx.fillText(text, x, y, maxWidth);
+        } else {
+          ctx.fillText(text, x, y);
+        }
+        ctx.restore();
+      }
+
+      function drawPill(x, y, w, h, fill, stroke, lineWidth = 1.5, radius = 999) {
+        ctx.save();
+        drawRoundedRect(x, y, w, h, radius);
+        if (fill) {
+          ctx.fillStyle = fill;
+          ctx.fill();
+        }
+        if (stroke) {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = lineWidth;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawPersonOrb(x, y, r, color, label, scoreText, alpha = 1, glow = 16) {
+        ctx.save();
+        ctx.globalAlpha = clamp(alpha, 0, 1);
+
+        // 外光晕
+        const grad = ctx.createRadialGradient(x, y, r * 0.15, x, y, r * 1.45);
+        grad.addColorStop(0, color + '55');
+        grad.addColorStop(1, color + '00');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 主球体
+        ctx.shadowColor = color;
+        ctx.shadowBlur = glow;
+        ctx.fillStyle = '#17122E';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 简笔人物剪影
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y - r * 0.22, r * 0.24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y + r * 0.38, r * 0.42, Math.PI, Math.PI * 2);
+        ctx.fill();
+
+        if (label) {
+          drawText(label, x, y + r + 24, { size: 20, weight: '600', color: PALETTE.textSub, alpha });
+        }
+        if (scoreText) {
+          drawPill(x - 36, y - r - 38, 72, 28, '#1B1536', color, 1.5, 14);
+          drawText(scoreText, x, y - r - 24, { size: 17, weight: '800', color: color, alpha });
+        }
+
+        ctx.restore();
+      }
+
+      function drawHeart(cx, cy, size, color, fillAlpha = 0.25, strokeWidth = 3) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        const s = size;
+        ctx.beginPath();
+        ctx.moveTo(0, s * 0.35);
+        ctx.bezierCurveTo(-s * 0.65, -s * 0.1, -s * 0.55, -s * 0.72, 0, -s * 0.3);
+        ctx.bezierCurveTo(s * 0.55, -s * 0.72, s * 0.65, -s * 0.1, 0, s * 0.35);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = fillAlpha;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = strokeWidth;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // ============================================================
+      // 3. 全局背景、顶部 HUD 与 0.9s 准时弹出底部 Tagline
+      // ============================================================
+      function drawBackdrop(t) {
+        // 深紫黑基底
+        const bgGrad = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+        bgGrad.addColorStop(0, '#0C0918');
+        bgGrad.addColorStop(0.5, '#130E26');
+        bgGrad.addColorStop(1, '#090713');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        // 缓慢呼吸的双色氛围光斑
+        const pulse = Math.sin(t * 0.45) * 40;
+        const glowL = ctx.createRadialGradient(340 + pulse, 240, 20, 340 + pulse, 240, 620);
+        glowL.addColorStop(0, 'rgba(255, 94, 126, 0.11)');
+        glowL.addColorStop(1, 'rgba(255, 94, 126, 0)');
+        ctx.fillStyle = glowL;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        const glowR = ctx.createRadialGradient(1580 - pulse, 840, 20, 1580 - pulse, 840, 650);
+        glowR.addColorStop(0, 'rgba(77, 168, 255, 0.11)');
+        glowR.addColorStop(1, 'rgba(77, 168, 255, 0)');
+        ctx.fillStyle = glowR;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        // 精细网格（低透明度，增加知识动画质感）
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
+        ctx.lineWidth = 1;
+        const gridStep = 80;
+        for (let gx = 0; gx <= WIDTH; gx += gridStep) {
+          ctx.beginPath();
+          ctx.moveTo(gx, 0);
+          ctx.lineTo(gx, HEIGHT);
+          ctx.stroke();
+        }
+        for (let gy = 0; gy <= HEIGHT; gy += gridStep) {
+          ctx.beginPath();
+          ctx.moveTo(0, gy);
+          ctx.lineTo(WIDTH, gy);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // 确定性漂浮粒子
+        ctx.save();
+        for (let i = 0; i < BG_PARTICLES.length; i++) {
+          const p = BG_PARTICLES[i];
+          const px = ((p.x + p.speedX * t) % WIDTH + WIDTH) % WIDTH;
+          const py = ((p.y + p.speedY * t) % HEIGHT + HEIGHT) % HEIGHT;
+          const twinkle = 0.65 + 0.35 * Math.sin(t * 1.8 + p.phase);
+          ctx.globalAlpha = p.alpha * twinkle;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(px, py, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawHUD(t, scene, localT) {
+        // 顶部极简栏
+        ctx.save();
+        // 左侧品牌与分镜标签
+        drawPill(56, 32, 236, 40, 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.14)', 1, 20);
+        drawText('VIBE 知识大赏', 174, 52, { size: 18, weight: '800', color: PALETTE.gold });
+
+        const sceneNumStr = String(scene.id).padStart(2, '0') + ' / 10';
+        drawPill(306, 32, 92, 40, 'rgba(77, 168, 255, 0.14)', 'rgba(77, 168, 255, 0.45)', 1, 20);
+        drawText(sceneNumStr, 352, 52, { size: 17, weight: '700', color: PALETTE.blue });
+
+        const titleAlpha = easeOutCubic(localT / 0.4);
+        drawText(scene.title, 418, 52, { size: 22, weight: '700', color: PALETTE.textMain, align: 'left', alpha: titleAlpha });
+
+        // 右侧计时器
+        const curSec = t.toFixed(1).padStart(4, '0');
+        drawText(`T = ${curSec}s / 90.0s`, WIDTH - 58, 52, {
+          size: 19, weight: '700', color: PALETTE.textSub, align: 'right'
+        });
+
+        // 顶部细进度条
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(0, 0, WIDTH, 4);
+        const progGrad = ctx.createLinearGradient(0, 0, WIDTH, 0);
+        progGrad.addColorStop(0, PALETTE.coral);
+        progGrad.addColorStop(0.5, PALETTE.gold);
+        progGrad.addColorStop(1, PALETTE.blue);
+        ctx.fillStyle = progGrad;
+        ctx.fillRect(0, 0, WIDTH * clamp(t / TOTAL_DURATION, 0, 1), 4);
+        ctx.restore();
+      }
+
+      // 底部 Tagline：严格在每个分镜开始后 0.9s 准时弹出！
+      function drawBottomTagline(scene, localT) {
+        const triggerTime = 0.9; // 严格落在 0.8~2.5s 规范内
+        if (localT < triggerTime) return;
+
+        const enterT = easeOutBack(clamp((localT - triggerTime) / 0.48, 0, 1));
+        const fadeOut = clamp((scene.end - scene.start - localT) / 0.25, 0, 1);
+        const alpha = clamp(enterT, 0, 1) * fadeOut;
+        const yOffset = (1 - enterT) * 28;
+
+        const barW = 1480;
+        const barH = 74;
+        const barX = (WIDTH - barW) / 2;
+        const barY = 934 + yOffset;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        // 背景胶囊
+        drawRoundedRect(barX, barY, barW, barH, 37);
+        const bgGrad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+        bgGrad.addColorStop(0, 'rgba(22, 16, 44, 0.92)');
+        bgGrad.addColorStop(0.5, 'rgba(30, 22, 58, 0.94)');
+        bgGrad.addColorStop(1, 'rgba(22, 16, 44, 0.92)');
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
+
+        const borderGrad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+        borderGrad.addColorStop(0, 'rgba(255, 94, 126, 0.55)');
+        borderGrad.addColorStop(0.5, 'rgba(255, 209, 102, 0.7)');
+        borderGrad.addColorStop(1, 'rgba(77, 168, 255, 0.55)');
+        ctx.strokeStyle = borderGrad;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 左侧亮点指示灯
+        ctx.fillStyle = PALETTE.gold;
+        ctx.shadowColor = PALETTE.gold;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(barX + 38, barY + barH / 2, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Tagline 文案
+        drawText(scene.tagline, WIDTH / 2 + 12, barY + barH / 2, {
+          size: 27,
+          weight: '700',
+          color: '#FFFFFF',
+          maxWidth: barW - 100
+        });
+        ctx.restore();
+      }
+
+      // ============================================================
+      // 4. 十大独立分镜渲染函数 renderScene1 ~ renderScene10
+      // ============================================================
+
+      // 分镜 1 (0.0 – 6.0s)：痛点开场，抛出现实矛盾
+      function renderScene1(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.7);
+        const swing = Math.sin(localT * 2.1);
+
+        // 中央主标题渐入
+        drawText('人这一辈子', 960, 200 - (1 - enter) * 20, {
+          size: 56, weight: '800', color: PALETTE.textSub, alpha: enter
+        });
+        drawText('到底该拒绝多少人再结婚？', 960, 286 - (1 - enter) * 20, {
+          size: 84, weight: '900', color: '#FFFFFF', alpha: enter,
+          glowColor: PALETTE.coral, glowBlur: 24
+        });
+
+        // 情绪天平 / 摆锤演示两难撕裂
+        const pivotX = 960;
+        const pivotY = 420;
+        const tilt = swing * 0.14;
+
+        ctx.save();
+        ctx.translate(pivotX, pivotY);
+        ctx.rotate(tilt);
+
+        // 横梁
+        const beamGrad = ctx.createLinearGradient(-440, 0, 440, 0);
+        beamGrad.addColorStop(0, PALETTE.coral);
+        beamGrad.addColorStop(0.5, PALETTE.gold);
+        beamGrad.addColorStop(1, PALETTE.blue);
+        ctx.strokeStyle = beamGrad;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(-440, 0);
+        ctx.lineTo(440, 0);
+        ctx.stroke();
+
+        // 支点中心球
+        ctx.fillStyle = PALETTE.gold;
+        ctx.beginPath();
+        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 左侧矛盾：答应太早
+        ctx.save();
+        ctx.translate(-420, 170);
+        ctx.rotate(-tilt);
+        drawRoundedRect(-210, -110, 420, 220, 26);
+        ctx.fillStyle = 'rgba(255, 94, 126, 0.14)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.coral;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        drawText('太早点头答应', 0, -45, { size: 34, weight: '800', color: PALETTE.coral });
+        drawText('样本太少 = 盲盒豪赌', 0, 10, { size: 24, weight: '600', color: PALETTE.textMain });
+        drawText('「万一更好的就在下一个呢？」', 0, 58, { size: 21, weight: '500', color: PALETTE.textSub });
+        ctx.restore();
+
+        // 右侧矛盾：拒绝太多
+        ctx.save();
+        ctx.translate(420, 170);
+        ctx.rotate(-tilt);
+        drawRoundedRect(-210, -110, 420, 220, 26);
+        ctx.fillStyle = 'rgba(77, 168, 255, 0.14)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.blue;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        drawText('一直拒绝观望', 0, -45, { size: 34, weight: '800', color: PALETTE.blue });
+        drawText('错过高峰 = 越挑越少', 0, 10, { size: 24, weight: '600', color: PALETTE.textMain });
+        drawText('「最后会不会只能被迫将就？」', 0, 58, { size: 21, weight: '500', color: PALETTE.textSub });
+        ctx.restore();
+
+        // 吊线
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-420, 0);
+        ctx.lineTo(-420, 60);
+        ctx.moveTo(420, 0);
+        ctx.lineTo(420, 60);
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 中央动态问号队列
+        const qCount = 7;
+        for (let i = 0; i < qCount; i++) {
+          const prog = ((localT * 0.35 + i / qCount) % 1);
+          const qx = lerp(650, 1270, prog);
+          const qy = 810 + Math.sin(prog * Math.PI * 2 + localT * 2) * 14;
+          const qAlpha = Math.sin(prog * Math.PI) * enter;
+          drawPersonOrb(qx, qy, 26, i % 2 === 0 ? PALETTE.coral : PALETTE.blue, '', '?', qAlpha, 10);
+        }
+      }
+
+      // 分镜 2 (6.0 – 12.0s)：单向不可逆的时间轴
+      function renderScene2(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.5);
+
+        drawText('为什么选伴侣比逛超市难一万倍？', 960, 170, {
+          size: 48, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+        drawText('因为感情满足一条残酷法则：单向时间 · 拒绝即永久失效', 960, 232, {
+          size: 27, weight: '600', color: PALETTE.gold, alpha: enter
+        });
+
+        // 主时间轴轨道
+        const trackY = 470;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(220, trackY);
+        ctx.lineTo(1680, trackY);
+        ctx.stroke();
+
+        // 流动箭头指示单向
+        for (let a = 0; a < 8; a++) {
+          const ax = 280 + ((a * 190 + localT * 140) % 1360);
+          ctx.strokeStyle = PALETTE.blue;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(ax - 12, trackY - 10);
+          ctx.lineTo(ax, trackY);
+          ctx.lineTo(ax - 12, trackY + 10);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // 决策闸门 ("当前你")
+        const gateX = 960;
+        drawRoundedRect(gateX - 110, trackY - 125, 220, 250, 24);
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 209, 102, 0.1)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.gold;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+        drawText('此刻的你', gateX, trackY - 90, { size: 24, weight: '800', color: PALETTE.gold });
+        drawText('只能向前看', gateX, trackY + 95, { size: 20, weight: '600', color: PALETTE.textSub });
+
+        // 正在通过的候选小球（左侧已拒绝坠落，右侧未知未来）
+        const candidates = [
+          { name: '第1位', score: '74分', offset: -2.4 },
+          { name: '第2位', score: '88分', offset: -1.3 },
+          { name: '第3位', score: '79分', offset: -0.2 },
+          { name: '第4位', score: '??',   offset: 0.9 },
+          { name: '第5位', score: '??',   offset: 2.0 }
+        ];
+
+        candidates.forEach((c, idx) => {
+          const pos = c.offset + localT * 0.42; // 随时间向右推进（或人向时间门走来）
+          // 我们让过去的人在左侧坠落，未来的人从右侧逼近门
+          const x = gateX - pos * 210;
+          if (x < 180 || x > 1740) return;
+
+          if (x < gateX - 80) {
+            // 已经被拒绝：下坠进入“不可回溯区”
+            const drop = clamp((gateX - 80 - x) / 420, 0, 1);
+            const cy = trackY + easeInOutCubic(drop) * 230;
+            const alpha = clamp(1 - drop * 0.55, 0.25, 1);
+            drawPersonOrb(x, cy, 36, '#6E668F', c.name, '✕ 已离线', alpha, 4);
+            // 如果分很高（88分），加一个遗憾提示
+            if (idx === 1) {
+              drawPill(x - 68, cy + 70, 136, 30, 'rgba(255,94,126,0.2)', PALETTE.coral, 1.5, 15);
+              drawText('88分 · 回不去了', x, cy + 85, { size: 15, weight: '700', color: PALETTE.coral });
+            }
+          } else {
+            // 右侧待定区
+            drawPersonOrb(x, trackY, 38, PALETTE.blue, c.name, c.score, 1, 14);
+          }
+        });
+
+        // 底部警示区：无法回头单向锁
+        drawRoundedRect(240, 690, 560, 150, 20);
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 94, 126, 0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 94, 126, 0.45)';
+        ctx.setLineDash([8, 6]);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+        drawText('🔒 不可回溯深渊 (No Recall)', 520, 735, { size: 24, weight: '800', color: PALETTE.coral });
+        drawText('拒绝后发现前任最好？抱歉，对方已结婚或退出赛道', 520, 785, { size: 20, weight: '500', color: PALETTE.textSub });
+
+        drawRoundedRect(1120, 690, 560, 150, 20);
+        ctx.save();
+        ctx.fillStyle = 'rgba(77, 168, 255, 0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(77, 168, 255, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+        drawText('⏳ 未知未来队列 (Unknown N)', 1400, 735, { size: 24, weight: '800', color: PALETTE.blue });
+        drawText('你永远不知道下一位是 99 分，还是连续三个 50 分', 1400, 785, { size: 20, weight: '500', color: PALETTE.textSub });
+      }
+
+      // 分镜 3 (12.0 – 18.5s)：前 5s 压缩蓄力 → t=17.0s 准时触发锚词爆发「37%法则」
+      function renderScene3(ctx, t, localT, dur) {
+        const cx = 960;
+        const cy = 490;
+        const bangTime = 17.0;
+        const isPostBang = t >= bangTime;
+
+        if (!isPostBang) {
+          // 12.0s - 17.0s (localT: 0.0 -> 5.0)：极致压缩蓄力
+          const charge = clamp(localT / 5.0, 0, 1);
+          const accel = Math.pow(charge, 2.2);
+
+          drawText('既然没有回头路，数学家在 1960 年算出了唯一的最优策略', cx, 168, {
+            size: 38, weight: '800', color: PALETTE.textMain, alpha: clamp(1 - (charge - 0.85) * 6, 0, 1)
+          });
+
+          // 向内坍缩的 100 个样本节点
+          for (let i = 0; i < SWARM_NODES.length; i++) {
+            const n = SWARM_NODES[i];
+            const spin = n.baseAngle + localT * (0.8 + accel * 4.5);
+            const rad = n.baseRadius * (1 - accel * 0.93);
+            const nx = cx + Math.cos(spin) * rad;
+            const ny = cy + Math.sin(spin) * rad;
+
+            ctx.save();
+            ctx.globalAlpha = 0.45 + 0.55 * charge;
+            ctx.fillStyle = n.color;
+            ctx.shadowColor = n.color;
+            ctx.shadowBlur = 10 * charge;
+            ctx.beginPath();
+            ctx.arc(nx, ny, n.size * (1 - accel * 0.45), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // 收缩的能量聚变环
+          for (let r = 0; r < 3; r++) {
+            const ringR = lerp(420 - r * 95, 18, accel);
+            ctx.save();
+            ctx.strokeStyle = r === 0 ? PALETTE.gold : (r === 1 ? PALETTE.coral : PALETTE.blue);
+            ctx.lineWidth = 2 + charge * 4;
+            ctx.globalAlpha = 0.35 + charge * 0.65;
+            ctx.beginPath();
+            ctx.arc(cx, cy, Math.max(8, ringR), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // 中心蓄力核 + 倒计时紧张条
+          const coreR = 26 + Math.sin(localT * 28) * 6 * charge + charge * 22;
+          const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreR * 2.5);
+          coreGrad.addColorStop(0, '#FFFFFF');
+          coreGrad.addColorStop(0.35, PALETTE.gold);
+          coreGrad.addColorStop(1, 'rgba(255, 94, 126, 0)');
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, coreR * 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          const remain = Math.max(0, 17.0 - t).toFixed(1);
+          drawText(`OPTIMAL STOPPING · ${remain}s`, cx, 780, {
+            size: 26, weight: '800', color: PALETTE.gold, alpha: 0.7 + 0.3 * Math.sin(localT * 14)
+          });
+
+        } else {
+          // t >= 17.0s：锚词重拍爆发！
+          const dt = t - bangTime; // 0.0 -> 1.5s
+
+          // 1. 冲击波双环
+          const wave1 = easeOutCubic(clamp(dt / 0.85, 0, 1));
+          const wave2 = easeOutCubic(clamp((dt - 0.08) / 0.95, 0, 1));
+          ctx.save();
+          if (wave1 < 1) {
+            ctx.strokeStyle = PALETTE.gold;
+            ctx.lineWidth = 14 * (1 - wave1);
+            ctx.globalAlpha = 1 - wave1;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 40 + wave1 * 980, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          if (wave2 < 1) {
+            ctx.strokeStyle = PALETTE.coral;
+            ctx.lineWidth = 10 * (1 - wave2);
+            ctx.globalAlpha = (1 - wave2) * 0.85;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 20 + wave2 * 860, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // 2. 确定性辐射碎片粒子
+          ctx.save();
+          for (let i = 0; i < BURST_SHARDS.length; i++) {
+            const s = BURST_SHARDS[i];
+            const dist = s.speed * easeOutCubic(clamp(dt / 1.3, 0, 1));
+            const sx = cx + Math.cos(s.angle) * dist;
+            const sy = cy + Math.sin(s.angle) * dist;
+            const alpha = clamp(1 - dt / 1.35, 0, 1);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(sx, sy, s.size * (1 - dt * 0.4), 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // 3. 爆裂白光闪耀衰减
+          if (dt < 0.35) {
+            ctx.save();
+            ctx.fillStyle = `rgba(255, 245, 210, ${(1 - dt / 0.35) * 0.42})`;
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            ctx.restore();
+          }
+
+          // 4. 巨型发光核心锚词「37%法则」
+          const popScale = lerp(0.55, 1.0, easeOutBack(clamp(dt / 0.38, 0, 1)));
+          ctx.save();
+          ctx.translate(cx, cy - 16);
+          ctx.scale(popScale, popScale);
+
+          // 背后强光晕
+          const heroGlow = ctx.createRadialGradient(0, 0, 10, 0, 0, 420);
+          heroGlow.addColorStop(0, 'rgba(255, 209, 102, 0.38)');
+          heroGlow.addColorStop(0.5, 'rgba(255, 94, 126, 0.16)');
+          heroGlow.addColorStop(1, 'rgba(255, 94, 126, 0)');
+          ctx.fillStyle = heroGlow;
+          ctx.beginPath();
+          ctx.arc(0, 0, 420, 0, Math.PI * 2);
+          ctx.fill();
+
+          drawText('37%法则', 0, 0, {
+            size: 184, weight: '900', color: '#FFFFFF',
+            glowColor: PALETTE.gold, glowBlur: 48
+          });
+          drawText('37%法则', 0, 0, {
+            size: 184, weight: '900', color: PALETTE.gold, alpha: 0.42
+          });
+          ctx.restore();
+
+          // 副标题亮出数学公式
+          const subAlpha = easeOutCubic(clamp((dt - 0.15) / 0.35, 0, 1));
+          drawPill(cx - 250, cy + 128, 500, 52, 'rgba(255, 209, 102, 0.15)', PALETTE.gold, 2, 26);
+          drawText('最优停止比例：1 / e ≈ 36.79%', cx, cy + 154, {
+            size: 26, weight: '800', color: PALETTE.gold, alpha: subAlpha
+          });
+        }
+      }
+
+      // 分镜 4 (18.5 – 28.5s)：第一阶段 · 前 37% 建立最高标尺
+      function renderScene4(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.5);
+
+        drawText('阶段 1：前 37% 为「样本校准期」——只看不选，全部拒绝', 960, 165, {
+          size: 42, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+        drawText('假设你一生会遇到 10 位合适候选人，前 4 位（约 37%）无论多好都先说「不」', 960, 224, {
+          size: 24, weight: '600', color: PALETTE.blue, alpha: enter
+        });
+
+        // 10 个候选位置卡片
+        const scores = [62, 85, 71, 79, 74, 81, 94, 68, 88, 76];
+        const startX = 210;
+        const stepX = 166;
+        const baseY = 740;
+        const maxH = 380;
+
+        // 37% 激光分界线（在第4个和第5个之间）
+        const dividerX = startX + 3.5 * stepX;
+        ctx.save();
+        ctx.fillStyle = 'rgba(77, 168, 255, 0.08)';
+        drawRoundedRect(startX - 72, 290, dividerX - (startX - 72) - 12, 530, 20);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(77, 168, 255, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 分界激光线
+        ctx.strokeStyle = PALETTE.gold;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.moveTo(dividerX, 280);
+        ctx.lineTo(dividerX, 825);
+        ctx.stroke();
+        ctx.restore();
+
+        drawPill(dividerX - 68, 260, 136, 36, '#1B1536', PALETTE.gold, 2, 18);
+        drawText('37% 黄金线', dividerX, 278, { size: 18, weight: '800', color: PALETTE.gold });
+
+        // 逐个激活前 4 个候选人并推高基准线
+        let activeBenchmark = 0;
+        const scanSpeed = 1.9; // 每 1.9s 扫描一个
+        const scannedCount = Math.min(4, Math.floor(localT / scanSpeed) + 1);
+
+        for (let i = 0; i < 10; i++) {
+          const cx = startX + i * stepX;
+          const isObs = i < 4;
+          const barH = (scores[i] / 100) * maxH;
+
+          // 柱状底槽
+          drawRoundedRect(cx - 42, baseY - maxH, 84, maxH, 14);
+          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+          ctx.fill();
+
+          if (isObs) {
+            const itemT = clamp((localT - i * scanSpeed) / 0.55, 0, 1);
+            const animH = barH * easeOutCubic(itemT);
+            if (itemT > 0) {
+              const isPeak = (i === 1); // 85分是前4个里最高分
+              const barColor = isPeak ? PALETTE.gold : PALETTE.blue;
+              drawRoundedRect(cx - 42, baseY - animH, 84, animH, 14);
+              ctx.fillStyle = isPeak ? 'rgba(255, 209, 102, 0.45)' : 'rgba(77, 168, 255, 0.35)';
+              ctx.fill();
+              ctx.strokeStyle = barColor;
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
+
+              drawText(`${scores[i]}分`, cx, baseY - animH - 24, {
+                size: 22, weight: '800', color: barColor, alpha: itemT
+              });
+
+              if (itemT > 0.7) {
+                drawPill(cx - 38, baseY + 18, 76, 30, 'rgba(255,94,126,0.18)', PALETTE.coral, 1.5, 15);
+                drawText('✕ 拒绝', cx, baseY + 33, { size: 16, weight: '800', color: PALETTE.coral });
+              }
+              if (scores[i] > activeBenchmark && itemT > 0.3) {
+                activeBenchmark = scores[i];
+              }
+            }
+          } else {
+            // 后 6 个处于未解锁状态
+            drawText('?', cx, baseY - 180, { size: 36, weight: '800', color: PALETTE.textMuted });
+          }
+
+          drawText(`#${i + 1}`, cx, baseY + 72, { size: 18, weight: '700', color: PALETTE.textSub });
+        }
+
+        // 动态升起的「最高标尺线」
+        if (activeBenchmark > 0) {
+          const benchY = baseY - (activeBenchmark / 100) * maxH;
+          const lineEnd = lerp(startX - 50, startX + 9 * stepX + 55, easeOutCubic(clamp((localT - 1.5) / 3.5, 0, 1)));
+          ctx.save();
+          ctx.strokeStyle = PALETTE.gold;
+          ctx.lineWidth = 4;
+          ctx.shadowColor = PALETTE.gold;
+          ctx.shadowBlur = 16;
+          ctx.beginPath();
+          ctx.moveTo(startX - 50, benchY);
+          ctx.lineTo(lineEnd, benchY);
+          ctx.stroke();
+          ctx.restore();
+
+          drawPill(1140, benchY - 46, 360, 40, '#1D173A', PALETTE.gold, 2, 20);
+          drawText(`📏 心理最高标尺 = ${activeBenchmark}分`, 1320, benchY - 26, {
+            size: 20, weight: '800', color: PALETTE.gold
+          });
+        }
+      }
+
+      // 分镜 5 (28.5 – 38.5s)：第二阶段 · 跨过 37% 后超越标尺即刻锁定
+      function renderScene5(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.45);
+
+        drawText('阶段 2：跨过 37% 后——遇到超越标尺的人，立刻锁定！', 960, 165, {
+          size: 42, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+        drawText('不再贪心比较后面的未知样本，只要比前任都好（> 85分），直接牵手', 960, 224, {
+          size: 24, weight: '600', color: PALETTE.gold, alpha: enter
+        });
+
+        const scores = [62, 85, 71, 79, 74, 81, 94, 68, 88, 76];
+        const startX = 210;
+        const stepX = 166;
+        const baseY = 740;
+        const maxH = 380;
+        const benchScore = 85;
+        const benchY = baseY - (benchScore / 100) * maxH;
+        const dividerX = startX + 3.5 * stepX;
+
+        // 左侧已封存观察区
+        ctx.save();
+        ctx.fillStyle = 'rgba(77, 168, 255, 0.05)';
+        drawRoundedRect(startX - 72, 290, dividerX - (startX - 72) - 12, 530, 20);
+        ctx.fill();
+        ctx.restore();
+
+        // 右侧行动锁定区
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 209, 102, 0.06)';
+        drawRoundedRect(dividerX + 12, 290, startX + 9 * stepX + 60 - dividerX, 530, 20);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 209, 102, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        // 37% 线
+        ctx.save();
+        ctx.strokeStyle = PALETTE.gold;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.moveTo(dividerX, 280);
+        ctx.lineTo(dividerX, 825);
+        ctx.stroke();
+        ctx.restore();
+
+        // 85分金色标尺贯穿全屏
+        ctx.save();
+        ctx.strokeStyle = PALETTE.gold;
+        ctx.lineWidth = 3.5;
+        ctx.shadowColor = PALETTE.gold;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(startX - 50, benchY);
+        ctx.lineTo(startX + 9 * stepX + 55, benchY);
+        ctx.stroke();
+        ctx.restore();
+        drawText('标尺 85分', startX - 65, benchY, { size: 18, weight: '800', color: PALETTE.gold, align: 'right' });
+
+        // 从 #5 开始逐一检验（localT: 0 -> 10s）
+        // #5 at 0.8s, #6 at 2.6s, #7 (94分!) at 4.6s
+        for (let i = 0; i < 10; i++) {
+          const cx = startX + i * stepX;
+          const barH = (scores[i] / 100) * maxH;
+
+          if (i < 4) {
+            drawRoundedRect(cx - 42, baseY - barH, 84, barH, 14);
+            ctx.fillStyle = i === 1 ? 'rgba(255, 209, 102, 0.25)' : 'rgba(77, 168, 255, 0.16)';
+            ctx.fill();
+            drawText(`${scores[i]}`, cx, baseY - barH - 22, { size: 20, weight: '700', color: PALETTE.textSub });
+          } else if (i <= 6) {
+            const revealTimes = { 4: 0.7, 5: 2.5, 6: 4.4 };
+            const rt = revealTimes[i];
+            const itemT = clamp((localT - rt) / 0.55, 0, 1);
+
+            drawRoundedRect(cx - 42, baseY - maxH, 84, maxH, 14);
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            ctx.fill();
+
+            if (itemT > 0) {
+              const animH = barH * easeOutCubic(itemT);
+              const isWinner = (i === 6);
+              const col = isWinner ? PALETTE.mint : PALETTE.coral;
+
+              drawRoundedRect(cx - 42, baseY - animH, 84, animH, 14);
+              ctx.fillStyle = isWinner ? 'rgba(63, 224, 176, 0.42)' : 'rgba(255, 94, 126, 0.25)';
+              ctx.fill();
+              ctx.strokeStyle = col;
+              ctx.lineWidth = isWinner ? 4 : 2;
+              ctx.stroke();
+
+              drawText(`${scores[i]}分`, cx, baseY - animH - 24, { size: 24, weight: '900', color: col });
+
+              if (!isWinner && itemT > 0.7) {
+                drawText('低于85 · 跳过', cx, baseY + 32, { size: 15, weight: '700', color: PALETTE.coral });
+              }
+
+              // 第 7 位（94分）触发锁定雷达与结婚弹窗！
+              if (isWinner && localT >= rt + 0.4) {
+                const lockT = easeOutBack(clamp((localT - (rt + 0.4)) / 0.5, 0, 1));
+                const pulseR = 62 + Math.sin(localT * 6) * 6;
+
+                ctx.save();
+                ctx.strokeStyle = PALETTE.mint;
+                ctx.lineWidth = 4;
+                ctx.shadowColor = PALETTE.mint;
+                ctx.shadowBlur = 22;
+                ctx.beginPath();
+                ctx.arc(cx, baseY - animH, pulseR * lockT, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+
+                drawPill(cx - 95, baseY + 16, 190, 42, PALETTE.mint, '#FFFFFF', 2, 21);
+                drawText('💍 超越标尺 · 锁定!', cx, baseY + 37, { size: 18, weight: '900', color: '#0B1B18' });
+              }
+            } else {
+              drawText('?', cx, baseY - 180, { size: 36, weight: '800', color: PALETTE.textMuted });
+            }
+          } else {
+            // #8, #9, #10 被跳过不再开启
+            drawRoundedRect(cx - 42, baseY - maxH, 84, maxH, 14);
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            ctx.fill();
+            const faded = localT > 5.0 ? 0.35 : 0.75;
+            drawText(localT > 5.0 ? '无需再看' : '?', cx, baseY - 180, {
+              size: localT > 5.0 ? 18 : 34, weight: '700', color: PALETTE.textMuted, alpha: faded
+            });
+          }
+
+          drawText(`#${i + 1}`, cx, baseY + 76, { size: 18, weight: '700', color: PALETTE.textSub });
+        }
+      }
+
+      // 分镜 6 (38.5 – 48.5s)：概率峰曲线 -(x * ln x)
+      function renderScene6(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.5);
+
+        drawText('为什么偏偏是 37%，而不是 10% 或 70%？', 960, 155, {
+          size: 46, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+        drawText('选中「全场最高分」的成功率公式：P(x) = -x · ln(x)', 960, 215, {
+          size: 26, weight: '700', color: PALETTE.blue, alpha: enter
+        });
+
+        // 坐标系参数
+        const ox = 320;
+        const oy = 790;
+        const chartW = 1280;
+        const chartH = 470;
+
+        // 坐标轴底板
+        drawRoundedRect(ox - 70, oy - chartH - 50, chartW + 140, chartH + 130, 28);
+        ctx.save();
+        ctx.fillStyle = 'rgba(20, 15, 42, 0.72)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        // 坐标轴线
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(ox, oy - chartH);
+        ctx.lineTo(ox, oy);
+        ctx.lineTo(ox + chartW, oy);
+        ctx.stroke();
+
+        // X轴刻度
+        [0, 10, 20, 37, 50, 70, 90, 100].forEach(pct => {
+          const px = ox + (pct / 100) * chartW;
+          const isOpt = pct === 37;
+          drawText(`${pct}%`, px, oy + 32, {
+            size: isOpt ? 22 : 18,
+            weight: isOpt ? '900' : '600',
+            color: isOpt ? PALETTE.gold : PALETTE.textSub
+          });
+        });
+        drawText('拒绝比例 (k / N)', ox + chartW / 2, oy + 66, { size: 20, weight: '700', color: PALETTE.textSub });
+        drawText('选中挚爱概率 P', ox - 15, oy - chartH - 22, { size: 20, weight: '700', color: PALETTE.textSub, align: 'left' });
+        ctx.restore();
+
+        // 绘制概率曲线（前 3.2s 从左到右流畅展开）
+        const drawProg = easeInOutCubic(clamp(localT / 3.2, 0, 1));
+        const maxX = Math.max(0.01, drawProg);
+
+        ctx.save();
+        const curveGrad = ctx.createLinearGradient(ox, oy, ox + chartW, oy - chartH);
+        curveGrad.addColorStop(0, PALETTE.coral);
+        curveGrad.addColorStop(0.37, PALETTE.gold);
+        curveGrad.addColorStop(1, PALETTE.blue);
+
+        ctx.beginPath();
+        ctx.moveTo(ox, oy);
+        const steps = 160;
+        for (let i = 1; i <= steps; i++) {
+          const x = (i / steps) * maxX;
+          const p = x <= 0.001 ? 0 : -x * Math.log(x); // 峰值 1/e ≈ 0.3679
+          const px = ox + x * chartW;
+          const py = oy - (p / 0.42) * chartH; // 0.42 为纵轴上限，让峰值落在约 88% 高度
+          ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = curveGrad;
+        ctx.lineWidth = 6;
+        ctx.shadowColor = PALETTE.gold;
+        ctx.shadowBlur = 16;
+        ctx.stroke();
+
+        // 曲线下方填充渐变
+        const endPx = ox + maxX * chartW;
+        ctx.lineTo(endPx, oy);
+        ctx.closePath();
+        const fillGrad = ctx.createLinearGradient(0, oy - chartH, 0, oy);
+        fillGrad.addColorStop(0, 'rgba(255, 209, 102, 0.25)');
+        fillGrad.addColorStop(1, 'rgba(77, 168, 255, 0.02)');
+        ctx.fillStyle = fillGrad;
+        ctx.shadowBlur = 0;
+        ctx.fill();
+        ctx.restore();
+
+        // 三个关键对比点标注
+        const milestones = [
+          { x: 0.10, time: 1.2, col: PALETTE.coral, title: '拒绝 10% (太急)', desc: '命中率仅 23%，几乎靠蒙' },
+          { x: 0.368, time: 2.2, col: PALETTE.gold,  title: '峰值 36.8% (1/e)', desc: '最高命中率 36.8% · 黄金平衡' },
+          { x: 0.80, time: 3.4, col: PALETTE.blue,  title: '拒绝 80% (太挑)', desc: '跌到 18%，大概率保底选最后1人' }
+        ];
+
+        milestones.forEach(m => {
+          if (localT < m.time) return;
+          const mAlpha = easeOutBack(clamp((localT - m.time) / 0.45, 0, 1));
+          const p = -m.x * Math.log(m.x);
+          const mx = ox + m.x * chartW;
+          const my = oy - (p / 0.42) * chartH;
+
+          // 垂直虚线
+          ctx.save();
+          ctx.globalAlpha = mAlpha;
+          ctx.strokeStyle = m.col;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 6]);
+          ctx.beginPath();
+          ctx.moveTo(mx, oy);
+          ctx.lineTo(mx, my);
+          ctx.stroke();
+
+          // 节点圆
+          ctx.fillStyle = m.col;
+          ctx.shadowColor = m.col;
+          ctx.shadowBlur = 18;
+          ctx.beginPath();
+          ctx.arc(mx, my, m.x === 0.368 ? 11 : 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // 标签卡片
+          const cardY = m.x === 0.368 ? my - 88 : my - 78;
+          const cardX = mx - 135;
+          drawPill(cardX, cardY, 270, 62, '#171230', m.col, 2, 16);
+          drawText(m.title, mx, cardY + 21, { size: 18, weight: '800', color: m.col, alpha: mAlpha });
+          drawText(m.desc, mx, cardY + 45, { size: 14, weight: '600', color: PALETTE.textMain, alpha: mAlpha });
+        });
+      }
+
+      // 分镜 7 (48.5 – 58.5s)：核心反转 · 现实中的隐藏陷阱
+      function renderScene7(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.45);
+
+        // 警告顶标
+        drawPill(780, 120, 360, 44, 'rgba(255, 94, 126, 0.18)', PALETTE.coral, 2, 22);
+        drawText('⚠ 反转警告 · 数学也会骗人', 960, 142, { size: 22, weight: '900', color: PALETTE.coral, alpha: enter });
+
+        drawText('把「37%法则」直接照搬进爱情，会撞上两个现实漏洞', 960, 212, {
+          size: 40, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+
+        // 左侧面板：漏洞 1 - 真爱就在前 37%
+        const leftAlpha = easeOutCubic(clamp((localT - 0.5) / 0.5, 0, 1));
+        ctx.save();
+        ctx.globalAlpha = leftAlpha;
+        drawRoundedRect(130, 285, 780, 560, 28);
+        ctx.fillStyle = 'rgba(255, 94, 126, 0.08)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.coral;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+
+        drawText('漏洞 1：亲手推开「真命挚爱」', 520, 345, { size: 32, weight: '800', color: PALETTE.coral, alpha: leftAlpha });
+        drawText('37% 的成功率，意味着有高达 63% 的失败风险', 520, 392, { size: 22, weight: '600', color: PALETTE.textSub, alpha: leftAlpha });
+
+        // 演示：前 37% 里的 99 分走掉，后面只剩普通人
+        const slideOut = easeInOutCubic(clamp((localT - 1.5) / 3.0, 0, 1));
+        drawPersonOrb(360 - slideOut * 140, 560, 56, PALETTE.gold, '前37%遇见的TA', '99分 真爱', leftAlpha * (1 - slideOut * 0.5), 24);
+        drawText('被公式强行拒绝 ✕', 360, 695, { size: 22, weight: '800', color: PALETTE.coral, alpha: leftAlpha });
+
+        drawPersonOrb(700, 560, 48, '#6E668F', '最后被迫保底', '61分 将就', leftAlpha, 8);
+        drawText('后面全不如TA，孤独终老或委屈将就', 520, 778, { size: 22, weight: '600', color: PALETTE.textMain, alpha: leftAlpha });
+
+        // 右侧面板：漏洞 2 - 双向选择而非单向面试
+        const rightAlpha = easeOutCubic(clamp((localT - 2.2) / 0.5, 0, 1));
+        ctx.save();
+        ctx.globalAlpha = rightAlpha;
+        drawRoundedRect(1010, 285, 780, 560, 28);
+        ctx.fillStyle = 'rgba(77, 168, 255, 0.08)';
+        ctx.fill();
+        ctx.strokeStyle = PALETTE.blue;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+
+        drawText('漏洞 2：恋爱不是「单向挑选秘书」', 1400, 345, { size: 32, weight: '800', color: PALETTE.blue, alpha: rightAlpha });
+        drawText('你觉得 TA 超越了你的标尺，但 TA 也有自己的标尺！', 1400, 392, { size: 22, weight: '600', color: PALETTE.textSub, alpha: rightAlpha });
+
+        // 双向箭头碰撞反弹
+        const collide = Math.sin(clamp(localT - 2.8, 0, 10) * 2.5) * 18;
+        drawPersonOrb(1200 + Math.max(0, collide), 560, 52, PALETTE.blue, '你（终于锁定）', '选定TA!', rightAlpha, 16);
+        drawPersonOrb(1600 - Math.max(0, collide), 560, 52, PALETTE.coral, '95分心动对象', '也在用37%!', rightAlpha, 16);
+
+        drawPill(1265, 465, 270, 50, '#1B1436', PALETTE.coral, 2, 25);
+        drawText('“抱歉，你也在我前37%里”', 1400, 490, { size: 19, weight: '800', color: PALETTE.coral, alpha: rightAlpha });
+        drawText('数学假设「求婚必答应」，现实中并不成立', 1400, 778, { size: 22, weight: '600', color: PALETTE.textMain, alpha: rightAlpha });
+      }
+
+      // 分镜 8 (58.5 – 68.5s)：消耗代价 · 共情能量衰减与比较陷阱
+      function renderScene8(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.45);
+        const drain = easeInOutCubic(clamp((localT - 0.8) / 7.2, 0, 1));
+
+        drawText('更隐蔽的代价：样本越多，心越难动', 960, 165, {
+          size: 46, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+        drawText('每一次投入、权衡与礼貌退场，都在悄悄改写你的心理系统', 960, 224, {
+          size: 25, weight: '600', color: PALETTE.textSub, alpha: enter
+        });
+
+        // 左列：三大能量消耗条
+        const cardX = 160;
+        const cardW = 760;
+        drawRoundedRect(cardX, 290, cardW, 540, 26);
+        ctx.save();
+        ctx.fillStyle = 'rgba(22, 17, 45, 0.84)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        const gauges = [
+          {
+            label: '1. 共情与心动能量 (Empathy Battery)',
+            val: Math.round(lerp(95, 18, drain)),
+            unit: '%',
+            col: drain > 0.6 ? PALETTE.coral : PALETTE.mint,
+            y: 365
+          },
+          {
+            label: '2. 理想伴侣期望阈值 (Comparison Bias)',
+            val: Math.round(lerp(72, 98, drain)),
+            unit: '分',
+            col: PALETTE.gold,
+            y: 525
+          },
+          {
+            label: '3. 容错与磨合耐心 (Patience)',
+            val: Math.round(lerp(90, 22, drain)),
+            unit: '%',
+            col: PALETTE.blue,
+            y: 685
+          }
+        ];
+
+        gauges.forEach(g => {
+          drawText(g.label, cardX + 48, g.y, { size: 24, weight: '700', color: PALETTE.textMain, align: 'left' });
+          drawText(`${g.val}${g.unit}`, cardX + cardW - 48, g.y, { size: 30, weight: '900', color: g.col, align: 'right' });
+
+          // 进度槽
+          drawRoundedRect(cardX + 48, g.y + 32, cardW - 96, 34, 17);
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fill();
+
+          const fillW = Math.max(34, (cardW - 96) * (g.val / 100));
+          drawRoundedRect(cardX + 48, g.y + 32, fillW, 34, 17);
+          ctx.fillStyle = g.col;
+          ctx.fill();
+        });
+
+        // 右列：拼接怪陷阱 + 心动钝化波形
+        const rightX = 990;
+        const rightW = 770;
+        drawRoundedRect(rightX, 290, rightW, 540, 26);
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 94, 126, 0.07)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 94, 126, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        drawText('⚠ 比较陷阱：拼凑出的「完美幻影」', rightX + rightW / 2, 348, {
+          size: 28, weight: '800', color: PALETTE.coral
+        });
+
+        const parts = [
+          { t: '前任A的颜值', col: PALETTE.coral, x: rightX + 170, y: 445 },
+          { t: '前任B的温柔', col: PALETTE.blue,  x: rightX + 590, y: 445 },
+          { t: '前任C的家境', col: PALETTE.gold,  x: rightX + 380, y: 530 }
+        ];
+        parts.forEach(p => {
+          drawPill(p.x - 115, p.y - 24, 230, 48, '#1B1536', p.col, 2, 24);
+          drawText(p.t, p.x, p.y, { size: 20, weight: '700', color: p.col });
+        });
+
+        drawText('拒绝得越多，越容易拿活生生的普通人，去对比不存在的完美拼图', rightX + rightW / 2, 608, {
+          size: 20, weight: '600', color: PALETTE.textSub
+        });
+
+        // 逐渐拉平的心动波形
+        ctx.save();
+        const waveX = rightX + 70;
+        const waveW = rightW - 140;
+        const waveY = 720;
+        ctx.strokeStyle = PALETTE.coral;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        for (let i = 0; i <= 140; i++) {
+          const p = i / 140;
+          const amp = lerp(52, 5, clamp(p * 0.7 + drain * 0.5, 0, 1));
+          const wy = waveY + Math.sin(p * 26 - localT * 4) * amp;
+          const wx = waveX + p * waveW;
+          if (i === 0) ctx.moveTo(wx, wy);
+          else ctx.lineTo(wx, wy);
+        }
+        ctx.stroke();
+        ctx.restore();
+        drawText('心动振幅逐渐归零 → 情感麻木', rightX + rightW / 2, 792, {
+          size: 20, weight: '700', color: PALETTE.coral
+        });
+      }
+
+      // 分镜 9 (68.5 – 81.0s)：破局方法 · 从挑人到懂己，从最高分到满意解
+      function renderScene9(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.5);
+
+        drawPill(780, 118, 360, 42, 'rgba(63, 224, 176, 0.16)', PALETTE.mint, 2, 21);
+        drawText('💡 幸福破局指南 · 3步解法', 960, 139, { size: 22, weight: '800', color: PALETTE.mint, alpha: enter });
+
+        drawText('既然生活不是纯数学题，怎么用好「37%」这把钥匙？', 960, 206, {
+          size: 40, weight: '800', color: '#FFFFFF', alpha: enter
+        });
+
+        // 三张大卡片依次展开
+        const cards = [
+          {
+            delay: 0.4,
+            x: 130,
+            col: PALETTE.blue,
+            step: 'STEP 01',
+            title: '把前 37% 用在「懂自己」',
+            desc1: '它不一定是 4 次失败的恋爱，',
+            desc2: '也可以是阅读、独处与深度社交。',
+            highlight: '核心：搞清自己的核心底线！'
+          },
+          {
+            delay: 2.2,
+            x: 700,
+            col: PALETTE.gold,
+            step: 'STEP 02',
+            title: '用「满意解」替代「最高分」',
+            desc1: '经济学诺奖得主西蒙提出 Satisficing：',
+            desc2: '只要跨过 80 分幸福及格带即可。',
+            highlight: '核心：足够好，远胜于找最好！'
+          },
+          {
+            delay: 4.0,
+            x: 1270,
+            col: PALETTE.mint,
+            step: 'STEP 03',
+            title: '从「挑成品」到「双向共建」',
+            desc1: '满分伴侣不是在人海里筛出来的，',
+            desc2: '而是两个 80 分的人共同打磨出来的。',
+            highlight: '核心：80 + 80 → 99 分的默契！'
+          }
+        ];
+
+        cards.forEach((c, idx) => {
+          const cT = easeOutBack(clamp((localT - c.delay) / 0.6, 0, 1));
+          if (cT <= 0) return;
+          const cy = 280 + (1 - cT) * 35;
+
+          ctx.save();
+          ctx.globalAlpha = clamp(cT, 0, 1);
+          drawRoundedRect(c.x, cy, 520, 560, 28);
+          ctx.fillStyle = 'rgba(22, 17, 45, 0.9)';
+          ctx.fill();
+          ctx.strokeStyle = c.col;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.restore();
+
+          const cx = c.x + 260;
+          drawPill(cx - 75, cy + 36, 150, 36, c.col + '25', c.col, 1.5, 18);
+          drawText(c.step, cx, cy + 54, { size: 18, weight: '900', color: c.col, alpha: cT });
+
+          drawText(c.title, cx, cy + 118, { size: 28, weight: '800', color: '#FFFFFF', alpha: cT });
+
+          // 专属小插画区 (cy + 165 到 cy + 355)
+          const iconY = cy + 265;
+          if (idx === 0) {
+            // 镜子自省双环
+            drawPersonOrb(cx, iconY, 44, PALETTE.blue, '', '自省', cT, 16);
+            ctx.save();
+            ctx.globalAlpha = cT;
+            ctx.strokeStyle = PALETTE.blue;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.arc(cx, iconY, 82 + Math.sin(localT * 2) * 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          } else if (idx === 1) {
+            // 满意区间带（>=80分）
+            ctx.save();
+            ctx.globalAlpha = cT;
+            drawRoundedRect(cx - 170, iconY - 58, 340, 82, 16);
+            ctx.fillStyle = 'rgba(255, 209, 102, 0.22)';
+            ctx.fill();
+            ctx.strokeStyle = PALETTE.gold;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+            drawText('幸福满意区 ≥ 80分', cx, iconY - 17, { size: 22, weight: '800', color: PALETTE.gold });
+            drawText('不再死磕唯一的 100 分', cx, iconY + 52, { size: 18, weight: '600', color: PALETTE.textSub });
+            ctx.restore();
+          } else {
+            // 无穷大双向磨合共振
+            const shift = Math.sin(localT * 2.4) * 10;
+            drawPersonOrb(cx - 65 + shift, iconY, 38, PALETTE.coral, '', '80分', cT, 14);
+            drawPersonOrb(cx + 65 - shift, iconY, 38, PALETTE.blue, '', '80分', cT, 14);
+            drawHeart(cx, iconY - 45, 34, PALETTE.mint, 0.35, 3);
+          }
+
+          drawText(c.desc1, cx, cy + 398, { size: 21, weight: '500', color: PALETTE.textSub, alpha: cT });
+          drawText(c.desc2, cx, cy + 432, { size: 21, weight: '500', color: PALETTE.textSub, alpha: cT });
+
+          drawPill(cx - 195, cy + 476, 390, 48, c.col + '22', c.col, 1.5, 24);
+          drawText(c.highlight, cx, cy + 500, { size: 20, weight: '800', color: c.col, alpha: cT });
+        });
+      }
+
+      // 分镜 10 (81.0 – 90.0s)：金句升华 + 互动提问收尾
+      function renderScene10(ctx, t, localT, dur) {
+        const enter = easeOutCubic(localT / 0.7);
+        const merge = easeInOutCubic(clamp((localT - 0.5) / 2.2, 0, 1));
+
+        // 两个光环缓缓交融于星辰中央
+        const cx = 960;
+        const cy = 345;
+        const sep = lerp(120, 42, merge);
+
+        ctx.save();
+        ctx.globalAlpha = enter;
+        // 珊瑚红与冰雾蓝交叠出温暖金色光芒
+        const glowMix = ctx.createRadialGradient(cx, cy, 10, cx, cy, 260);
+        glowMix.addColorStop(0, 'rgba(255, 209, 102, 0.28)');
+        glowMix.addColorStop(1, 'rgba(255, 209, 102, 0)');
+        ctx.fillStyle = glowMix;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 260, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = PALETTE.coral;
+        ctx.lineWidth = 5;
+        ctx.shadowColor = PALETTE.coral;
+        ctx.shadowBlur = 22;
+        ctx.beginPath();
+        ctx.arc(cx - sep, cy, 68, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = PALETTE.blue;
+        ctx.shadowColor = PALETTE.blue;
+        ctx.beginPath();
+        ctx.arc(cx + sep, cy, 68, 0, Math.PI * 2);
+        ctx.stroke();
+
+        drawHeart(cx, cy + 6, 46, PALETTE.gold, 0.35 + 0.2 * Math.sin(localT * 3), 3.5);
+        ctx.restore();
+
+        // 金句升华
+        const q1 = easeOutCubic(clamp((localT - 0.6) / 0.6, 0, 1));
+        const q2 = easeOutCubic(clamp((localT - 1.3) / 0.6, 0, 1));
+        drawText('算法帮你淘汰盲目', 960, 515 - (1 - q1) * 16, {
+          size: 56, weight: '800', color: PALETTE.blue, alpha: q1
+        });
+        drawText('真心帮你留住当下', 960, 595 - (1 - q2) * 16, {
+          size: 64, weight: '900', color: PALETTE.gold, alpha: q2,
+          glowColor: PALETTE.gold, glowBlur: 24
+        });
+
+        // 互动提问卡
+        const askT = easeOutBack(clamp((localT - 2.1) / 0.6, 0, 1));
+        if (askT > 0) {
+          ctx.save();
+          ctx.globalAlpha = clamp(askT, 0, 1);
+          drawRoundedRect(380, 685, 1160, 150, 28);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 209, 102, 0.55)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+
+          drawText('💬 评论区聊聊：', 960, 732, { size: 24, weight: '800', color: PALETTE.coral, alpha: askT });
+          drawText('你现在处于人生「37%」的哪一程？如果遇见足够好的人，你会立刻停下吗？', 960, 785, {
+            size: 27, weight: '700', color: '#FFFFFF', alpha: askT
+          });
+        }
+      }
+
+      const SCENE_RENDERERS = [
+        renderScene1, renderScene2, renderScene3, renderScene4, renderScene5,
+        renderScene6, renderScene7, renderScene8, renderScene9, renderScene10
+      ];
+
+      // ============================================================
+      // 5. 主帧渲染管线（纯函数：只依赖 t，确保 seekTo 逐帧完全精准）
+      // ============================================================
+      function getSceneAt(t) {
+        for (let i = 0; i < SCENES.length; i++) {
+          if (t < SCENES[i].end || i === SCENES.length - 1) {
+            return SCENES[i];
+          }
+        }
+        return SCENES[0];
+      }
+
+      function renderFrame(rawT) {
+        const t = clamp(rawT, 0, TOTAL_DURATION);
+        const scene = getSceneAt(t);
+        const localT = Math.max(0, t - scene.start);
+        const sceneDur = scene.end - scene.start;
+
+        // 重置变换矩阵
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        // 17.0s 锚词爆发微震动（确定性衰减正弦波，无任何随机调用）
+        ctx.save();
+        if (t >= 17.0 && t < 17.65) {
+          const dt = t - 17.0;
+          const decay = Math.exp(-dt * 6.8);
+          const shakeX = Math.sin(dt * 72) * 16 * decay;
+          const shakeY = Math.cos(dt * 58) * 12 * decay;
+          ctx.translate(shakeX, shakeY);
+        }
+
+        // 1. 深色氛围背景
+        drawBackdrop(t);
+
+        // 2. 分镜转场淡入淡出包络（17.0s所在分镜3不淡出，保持硬切冲击）
+        const fadeIn = scene.id === 1 ? 1 : clamp(localT / 0.28, 0, 1);
+        const fadeOut = scene.id === 10 ? 1 : clamp((sceneDur - localT) / 0.22, 0, 1);
+        ctx.save();
+        ctx.globalAlpha = Math.min(fadeIn, fadeOut);
+        SCENE_RENDERERS[scene.id - 1](ctx, t, localT, sceneDur);
+        ctx.restore();
+
+        // 3. 顶部 HUD & 0.9s 准时弹出底部 Tagline
+        drawHUD(t, scene, localT);
+        drawBottomTagline(scene, localT);
+
+        ctx.restore();
+      }
+
+      // ============================================================
+      // 6. Web Audio API 合成节拍与 17.0s 重低音爆发音效
+      // ============================================================
+      class SoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+          this.lastBeatIdx = -1;
+          this.lastSceneId = -1;
+          this.bangPlayed = false;
+        }
+
+        init() {
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                this.ctx = new AudioCtx();
+              }
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume();
+            }
+          } catch (e) {
+            // 无声环境安全降级
+          }
+        }
+
+        reset(t) {
+          this.lastBeatIdx = Math.floor(t * 2) - 1;
+          this.lastSceneId = getSceneAt(t).id;
+          this.bangPlayed = t >= 17.05;
+        }
+
+        playTone(freq, dur, type = 'sine', vol = 0.08, endFreq = null) {
+          if (this.muted || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            if (endFreq !== null) {
+              osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + dur);
+            }
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur + 0.02);
+          } catch (e) {}
+        }
+
+        play17sExplosion() {
+          if (this.muted || !this.ctx) return;
+          try {
+            // 1. 重低音 Sub-Bass Drop
+            this.playTone(110, 0.9, 'sine', 0.36, 32);
+            this.playTone(65, 0.75, 'triangle', 0.24, 28);
+            // 2. 晶体和弦高光
+            this.playTone(523.25, 0.85, 'sine', 0.11);
+            this.playTone(659.25, 0.85, 'sine', 0.09);
+            this.playTone(783.99, 1.05, 'triangle', 0.08);
+          } catch (e) {}
+        }
+
+        update(t, isPlaying) {
+          if (!isPlaying || this.muted || !this.ctx) return;
+
+          // 17.0s 重拍爆发精确触发
+          if (!this.bangPlayed && t >= 17.0 && t < 17.4) {
+            this.bangPlayed = true;
+            this.play17sExplosion();
+          }
+
+          // 分镜切换清脆提示音
+          const scene = getSceneAt(t);
+          if (scene.id !== this.lastSceneId) {
+            this.lastSceneId = scene.id;
+            if (scene.id !== 3) {
+              this.playTone(440 + scene.id * 22, 0.22, 'sine', 0.06);
+            }
+          }
+
+          // 0.5s 节奏脉冲（12s~17s 蓄力期加速升高音调）
+          const beatIdx = Math.floor(t * 2);
+          if (beatIdx !== this.lastBeatIdx) {
+            this.lastBeatIdx = beatIdx;
+            if (t >= 12.0 && t < 16.95) {
+              const charge = (t - 12.0) / 5.0;
+              this.playTone(220 + charge * 440, 0.09, 'triangle', 0.05 + charge * 0.06);
+            } else if (beatIdx % 2 === 0) {
+              this.playTone(130, 0.07, 'sine', 0.035, 80);
+            } else {
+              this.playTone(260, 0.04, 'sine', 0.02);
+            }
+          }
+        }
+      }
+
+      const sound = new SoundEngine();
+
+      // ============================================================
+      // 7. 播放控制与全局导出接口
+      // ============================================================
+      const startOverlay = document.getElementById('startOverlay');
+      const playStartBtn = document.getElementById('playStartBtn');
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const restartBtn = document.getElementById('restartBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const scrubber = document.getElementById('scrubber');
+      const timeReadout = document.getElementById('timeReadout');
+      const sceneDotsContainer = document.getElementById('sceneDots');
+
+      let currentTime = 0.0;
+      let isPlaying = false;
+      let lastRafTs = null;
+
+      function formatTime(sec) {
+        const s = Math.floor(clamp(sec, 0, TOTAL_DURATION));
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+      }
+
+      // 构建 10 分镜快捷跳转标签
+      const dotEls = SCENES.map(sc => {
+        const el = document.createElement('span');
+        el.className = 'scene-dot-btn';
+        el.textContent = `S${sc.id}`;
+        el.title = `${sc.title} (${sc.start}s)`;
+        el.addEventListener('click', () => {
+          sound.init();
+          window.__seekTo(sc.start);
+          sound.reset(sc.start);
+        });
+        sceneDotsContainer.appendChild(el);
+        return el;
+      });
+
+      function syncUI(t) {
+        scrubber.value = t.toFixed(2);
+        timeReadout.textContent = `${formatTime(t)} / ${formatTime(TOTAL_DURATION)}`;
+        const activeId = getSceneAt(t).id;
+        for (let i = 0; i < dotEls.length; i++) {
+          dotEls[i].classList.toggle('active', i + 1 === activeId);
+        }
+      }
+
+      function setPlaying(next) {
+        isPlaying = next;
+        playPauseBtn.textContent = isPlaying ? '⏸ 暂停' : '▶ 播放';
+        lastRafTs = null;
+      }
+
+      function rafLoop(ts) {
+        if (isPlaying) {
+          if (lastRafTs === null) lastRafTs = ts;
+          const dt = Math.min(0.1, (ts - lastRafTs) / 1000);
+          lastRafTs = ts;
+          currentTime += dt;
+          if (currentTime >= TOTAL_DURATION) {
+            currentTime = TOTAL_DURATION;
+            setPlaying(false);
+          }
+          renderFrame(currentTime);
+          syncUI(currentTime);
+          sound.update(currentTime, isPlaying);
+        }
+        requestAnimationFrame(rafLoop);
+      }
+
+      // 暴露 MP4 逐帧导出必须接口
+      window.__duration = TOTAL_DURATION;
+      window.__seekTo = (t) => {
+        const target = clamp(Number(t) || 0, 0, TOTAL_DURATION);
+        currentTime = target;
+        renderFrame(currentTime);
+        syncUI(currentTime);
+      };
+
+      // 交互绑定
+      playStartBtn.addEventListener('click', () => {
+        sound.init();
+        startOverlay.classList.add('hidden');
+        if (currentTime >= TOTAL_DURATION - 0.05) {
+          currentTime = 0;
+        }
+        sound.reset(currentTime);
+        setPlaying(true);
+      });
+
+      playPauseBtn.addEventListener('click', () => {
+        sound.init();
+        startOverlay.classList.add('hidden');
+        if (!isPlaying && currentTime >= TOTAL_DURATION - 0.05) {
+          currentTime = 0;
+        }
+        sound.reset(currentTime);
+        setPlaying(!isPlaying);
+      });
+
+      restartBtn.addEventListener('click', () => {
+        sound.init();
+        startOverlay.classList.add('hidden');
+        currentTime = 0;
+        sound.reset(0);
+        renderFrame(0);
+        syncUI(0);
+        setPlaying(true);
+      });
+
+      muteBtn.addEventListener('click', () => {
+        sound.init();
+        sound.muted = !sound.muted;
+        muteBtn.textContent = sound.muted ? '🔇 静音' : '🔊 音效';
+      });
+
+      scrubber.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        window.__seekTo(val);
+        sound.reset(val);
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          sound.init();
+          startOverlay.classList.add('hidden');
+          sound.reset(currentTime);
+          setPlaying(!isPlaying);
+        } else if (e.code === 'ArrowRight') {
+          window.__seekTo(currentTime + 2);
+          sound.reset(currentTime);
+        } else if (e.code === 'ArrowLeft') {
+          window.__seekTo(currentTime - 2);
+          sound.reset(currentTime);
+        }
+      });
+
+      // 初始化渲染第 0 秒首帧并启动 RAF 循环
+      window.__seekTo(0);
+      requestAnimationFrame(rafLoop);
+    })();
+  </script>
+</body>
+</html>

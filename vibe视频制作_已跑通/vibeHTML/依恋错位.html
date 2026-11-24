@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>为什么两个人明明相爱，却总陷入“你追我逃”？ | Vibe 知识大赏 90s</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #06040c;
+    color: #f4f6ff;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  .stage-wrap {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  canvas#stage {
+    width: min(100vw, calc(100vh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
+    display: block;
+    background: #0F0C1D;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+    cursor: pointer;
+  }
+
+  /* 中心大播放遮罩（未开始时显示） */
+  .start-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10, 8, 22, 0.45);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.35s ease;
+    z-index: 20;
+  }
+  .start-overlay.hidden { opacity: 0; pointer-events: none; }
+  .play-big {
+    width: 88px; height: 88px; border-radius: 50%;
+    border: 2px solid rgba(255, 209, 102, 0.75);
+    background: rgba(255, 94, 126, 0.18);
+    color: #fff; font-size: 30px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 40px rgba(255, 94, 126, 0.35);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .play-big:hover { transform: scale(1.08); background: rgba(255, 94, 126, 0.35); }
+  .start-hint {
+    margin-top: 16px; font-size: 14px; color: rgba(255,255,255,0.78);
+    letter-spacing: 1px;
+  }
+
+  /* 底部控制栏（可按 H 隐藏，方便录屏） */
+  .controls {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    width: min(1100px, 94vw);
+    background: rgba(18, 15, 36, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 10px 16px 12px;
+    z-index: 30;
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  body.hide-ui .controls {
+    opacity: 0; pointer-events: none; transform: translate(-50%, 24px);
+  }
+  .progress-row {
+    position: relative; height: 18px;
+    display: flex; align-items: center; cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .track {
+    width: 100%; height: 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.14); position: relative; overflow: visible;
+  }
+  .track-fill {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #FF5E7E, #FFD166, #4DA8FF);
+    pointer-events: none;
+  }
+  .climax-pin {
+    position: absolute; top: -5px; width: 3px; height: 16px;
+    background: #FFD166; border-radius: 2px;
+    box-shadow: 0 0 8px #FFD166; pointer-events: none;
+  }
+  .climax-pin::after {
+    content: '17s爆发'; position: absolute; top: -16px; left: -18px;
+    font-size: 10px; color: #FFD166; white-space: nowrap; font-weight: 700;
+  }
+  .scene-tick {
+    position: absolute; top: 0; width: 1px; height: 6px;
+    background: rgba(255,255,255,0.35); pointer-events: none;
+  }
+  .ctrl-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .cbtn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: #eef2ff; border-radius: 7px; padding: 5px 11px;
+    font-size: 12px; cursor: pointer; transition: background 0.15s;
+  }
+  .cbtn:hover { background: rgba(255,255,255,0.18); }
+  .cbtn.active { background: #4DA8FF; border-color: #4DA8FF; color: #090714; font-weight: 700; }
+  .time-txt {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; color: #b7c2e0; margin: 0 6px;
+  }
+  .scene-pills {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto;
+  }
+  .spill {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: #b7c2e0; border-radius: 5px; padding: 3px 7px; font-size: 11px; cursor: pointer;
+  }
+  .spill:hover { background: rgba(255,255,255,0.16); color: #fff; }
+  .spill.now { background: #FF5E7E; border-color: #FF5E7E; color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="stage-wrap">
+  <canvas id="stage" width="1920" height="1080"></canvas>
+
+  <div class="start-overlay" id="startOverlay">
+    <button class="play-big" id="bigPlayBtn" title="播放">▶</button>
+    <div class="start-hint">点击播放 90s Vibe 科普动画（带 17s 节拍音效 · 按 H 可隐藏控制栏录屏）</div>
+  </div>
+</div>
+
+<div class="controls" id="controls">
+  <div class="progress-row" id="progressBar">
+    <div class="track" id="track">
+      <div class="track-fill" id="trackFill"></div>
+      <div class="climax-pin" style="left: 18.888%;"></div>
+    </div>
+  </div>
+  <div class="ctrl-row">
+    <button class="cbtn" id="playBtn">▶ 播放</button>
+    <button class="cbtn" id="replayBtn">↺ 重播</button>
+    <button class="cbtn active" id="muteBtn">🔊 音效开</button>
+    <span class="time-txt" id="timeTxt">00.0s / 90.0s</span>
+    <div class="scene-pills" id="scenePills"></div>
+    <button class="cbtn" id="hideUiBtn" title="快捷键 H">隐藏控制栏 (H)</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ==========================================================
+  // 1. 常量、调色板与 10 个模块化分镜配置（总时长 90.0s）
+  // ==========================================================
+  const W = 1920, H = 1080, CX = 960, CY = 480;
+  const DURATION = 90.0;
+  const CLIMAX_AT = 17.0; // 第17秒精确重拍爆发锚词
+
+  const PALETTE = {
+    bgTop: '#0F0C1D',
+    bgBot: '#090714',
+    red: '#FF5E7E',      // 焦虑方（追）
+    redSoft: 'rgba(255, 94, 126, 0.25)',
+    blue: '#4DA8FF',     // 回避方（逃）
+    blueSoft: 'rgba(77, 168, 255, 0.25)',
+    gold: '#FFD166',     // 锚词 / 共振信号灯
+    white: '#F5F7FF',
+    muted: '#9AA4C8',
+    grid: 'rgba(255, 255, 255, 0.035)',
+  };
+
+  const SCENES = [
+    { id: 1,  start: 0.0,  end: 6.0,  label: '痛点开场',   tagline: '为什么越在乎，反而越把对方推远？' },
+    { id: 2,  start: 6.0,  end: 12.0, label: '加速拉扯',   tagline: '你追得越紧，对方的安全警报就响得越急' },
+    { id: 3,  start: 12.0, end: 18.5, label: '17s爆发',    tagline: '当两种截然相反的本能迎面相撞——' },
+    { id: 4,  start: 18.5, end: 28.0, label: '焦虑型',     tagline: '焦虑型依恋：安全感阈值极高，把“沉默”误读成“抛弃”' },
+    { id: 5,  start: 28.0, end: 37.5, label: '回避型',     tagline: '回避型依恋：承压阈值极低，把“追问”感知为“窒息控制”' },
+    { id: 6,  start: 37.5, end: 48.0, label: '追逃闭环',   tagline: '你追我逃不是偶然，是一套越转越快的正反馈死循环' },
+    { id: 7,  start: 48.0, end: 59.0, label: '核心反转',   tagline: '其实你们要的都是安全感，只是“充电接口”刚好相反' },
+    { id: 8,  start: 59.0, end: 68.5, label: '消耗代价',   tagline: '如果不懂彼此的开关，再深的爱也会在反相抵消中耗竭' },
+    { id: 9,  start: 68.5, end: 81.0, label: '破局双法',   tagline: '破局法则：追方留出 15% 缓冲带，逃方亮起“报备信号灯”' },
+    { id: 10, start: 81.0, end: 90.0, label: '升华收尾',   tagline: '你是追的那颗球，还是逃的那颗球？转给那个 Ta 看看' },
+  ];
+
+  // ==========================================================
+  // 2. 确定性工具函数（无 Math.random，保证逐帧可复现）
+  // ==========================================================
+  const clamp01 = v => v < 0 ? 0 : (v > 1 ? 1 : v);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const easeOutCubic = t => 1 - Math.pow(1 - clamp01(t), 3);
+  const easeInCubic = t => Math.pow(clamp01(t), 3);
+  const easeInOutCubic = t => {
+    t = clamp01(t);
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+  const easeOutBack = t => {
+    t = clamp01(t);
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  };
+  function hash01(n) {
+    const x = Math.sin(n * 127.1 + 311.7) * 43758.5453123;
+    return x - Math.floor(x);
+  }
+
+  // 预生成确定性星空粒子
+  const STARS = Array.from({ length: 85 }, (_, i) => ({
+    x: hash01(i * 3 + 1) * W,
+    y: hash01(i * 3 + 2) * H,
+    r: 0.8 + hash01(i * 3 + 3) * 2.0,
+    speed: 6 + hash01(i * 5 + 4) * 18,
+    alpha: 0.12 + hash01(i * 7 + 5) * 0.35,
+    hue: i % 5 === 0 ? PALETTE.red : (i % 7 === 0 ? PALETTE.blue : '#FFFFFF'),
+  }));
+
+  // ==========================================================
+  // 3. Canvas 绘图基础组件
+  // ==========================================================
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+
+  function drawGlowBall(x, y, radius, color, label, opts = {}) {
+    const pulse = opts.pulse || 0;
+    const alpha = opts.alpha !== undefined ? opts.alpha : 1;
+    const r = radius * (1 + pulse * 0.06);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // 外层光晕
+    const glow = ctx.createRadialGradient(x, y, r * 0.2, x, y, r * 2.4);
+    glow.addColorStop(0, color + '55');
+    glow.addColorStop(0.55, color + '18');
+    glow.addColorStop(1, color + '00');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 球体渐变
+    const body = ctx.createRadialGradient(x - r * 0.28, y - r * 0.28, r * 0.1, x, y, r);
+    body.addColorStop(0, '#FFFFFF');
+    body.addColorStop(0.28, color);
+    body.addColorStop(1, color + 'CC');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 描边
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    if (label) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `700 ${Math.round(r * 0.38)}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, y + r + 32);
+    }
+    ctx.restore();
+  }
+
+  function drawTitle(mainText, subText, alpha = 1, y = 148) {
+    if (alpha <= 0.01) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (subText) {
+      ctx.fillStyle = PALETTE.gold;
+      ctx.font = '600 22px "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.fillText(subText, CX, y - 48);
+    }
+
+    ctx.fillStyle = PALETTE.white;
+    ctx.font = '800 50px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(mainText, CX, y);
+    ctx.restore();
+  }
+
+  function drawPill(text, x, y, bgColor, textColor = '#fff', fontSize = 24, alpha = 1) {
+    if (alpha <= 0.01) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `700 ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+    const tw = ctx.measureText(text).width;
+    const pw = tw + 36, ph = fontSize + 22;
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    ctx.roundRect(x - pw / 2, y - ph / 2, pw, ph, ph / 2);
+    ctx.fill();
+    ctx.fillStyle = textColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y + 1);
+    ctx.restore();
+  }
+
+  function drawArrow(x1, y1, x2, y2, color, lw = 4, alpha = 1) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    const head = 14;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(ang - 0.45), y2 - head * Math.sin(ang - 0.45));
+    ctx.lineTo(x2 - head * Math.cos(ang + 0.45), y2 - head * Math.sin(ang + 0.45));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBackground(t, shakeX = 0, shakeY = 0) {
+    const bg = ctx.createRadialGradient(CX, CY, 120, CX, CY, 1150);
+    bg.addColorStop(0, '#191334');
+    bg.addColorStop(0.65, PALETTE.bgTop);
+    bg.addColorStop(1, PALETTE.bgBot);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // 极简工程网格
+    ctx.strokeStyle = PALETTE.grid;
+    ctx.lineWidth = 1;
+    const step = 96;
+    for (let x = 0; x <= W; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y <= H; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // 确定性漂浮粒子
+    for (const s of STARS) {
+      const sy = (s.y - t * s.speed + H * 10) % H;
+      ctx.globalAlpha = s.alpha * (0.7 + 0.3 * Math.sin(t * 2 + s.x));
+      ctx.fillStyle = s.hue;
+      ctx.beginPath();
+      ctx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawChrome(t, scene, localT) {
+    // 左上角分镜标牌
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.roundRect(68, 46, 232, 38, 19);
+    ctx.fill();
+    ctx.fillStyle = PALETTE.gold;
+    ctx.font = '700 17px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`SCENE ${String(scene.id).padStart(2, '0')} / 10`, 88, 66);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '600 17px "PingFang SC", sans-serif';
+    ctx.fillText(scene.label, 212, 66);
+
+    // 右上角极简进度点
+    for (let i = 0; i < 10; i++) {
+      const px = W - 268 + i * 20;
+      const active = (i + 1) === scene.id;
+      const done = (i + 1) < scene.id;
+      ctx.fillStyle = active ? PALETTE.gold : (done ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)');
+      ctx.beginPath();
+      ctx.roundRect(px, 61, active ? 14 : 8, 8, 4);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 底部 Tagline：每个 scene 开始后 0.9s（满足 0.8~2.5s 内出现！）
+    const tagIn = easeOutCubic((localT - 0.9) / 0.55);
+    const dur = scene.end - scene.start;
+    const tagOut = 1 - easeInCubic((localT - (dur - 0.4)) / 0.4);
+    const tagAlpha = clamp01(tagIn * tagOut);
+    if (tagAlpha > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = tagAlpha;
+      const slideY = (1 - tagIn) * 16;
+      ctx.font = '700 32px "PingFang SC", "Microsoft YaHei", sans-serif';
+      const tw = ctx.measureText(scene.tagline).width;
+      const bw = Math.min(1680, tw + 84);
+      const bh = 68;
+      const by = 928 + slideY;
+
+      ctx.fillStyle = 'rgba(14, 11, 28, 0.84)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(CX - bw / 2, by - bh / 2, bw, bh, 34);
+      ctx.fill();
+      ctx.stroke();
+
+      // 左侧金色小竖条
+      ctx.fillStyle = PALETTE.gold;
+      ctx.beginPath();
+      ctx.roundRect(CX - bw / 2 + 22, by - 12, 5, 24, 3);
+      ctx.fill();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(scene.tagline, CX + 6, by + 1);
+      ctx.restore();
+    }
+  }
+
+  // ==========================================================
+  // 4. 10 个模块化分镜绘制函数
+  // ==========================================================
+
+  // Scene 1 (0–6s): 痛点开场
+  function renderScene1(t, lt, dur) {
+    const enter = easeOutCubic(lt / 0.6);
+    drawTitle('同样一句“晚安”', 'RELATIONSHIP PARADOX', enter);
+
+    const push = easeInOutCubic(clamp01((lt - 1.4) / 4.2));
+    const rx = lerp(560, 610, push);
+    const bx = lerp(1240, 1460, push);
+    const y = 505;
+
+    // 距离虚线
+    ctx.save();
+    ctx.setLineDash([10, 10]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(rx + 60, y); ctx.lineTo(bx - 60, y); ctx.stroke();
+    ctx.restore();
+    drawPill(`距离 ${Math.round(lerp(18, 86, push))} cm`, (rx + bx) / 2, y - 55, 'rgba(255,255,255,0.09)', PALETTE.muted, 20, enter);
+
+    // 红球发出10道试探涟漪与小信号点
+    for (let i = 0; i < 10; i++) {
+      const p = ((lt * 1.4 - i * 0.28) % 2.4) / 2.4;
+      if (p > 0 && p < 1 && lt > 0.6 + i * 0.12) {
+        const sx = lerp(rx + 65, bx - 70, p);
+        ctx.save();
+        ctx.globalAlpha = (1 - p) * 0.85;
+        ctx.fillStyle = PALETTE.red;
+        ctx.beginPath();
+        ctx.arc(sx, y + Math.sin(p * 8 + i) * 14, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    drawGlowBall(rx, y, 62, PALETTE.red, '你（发出10次试探）', { pulse: Math.sin(lt * 6) * 0.5 + 0.5, alpha: enter });
+    drawGlowBall(bx, y, 58, PALETTE.blue, 'Ta（悄悄退后半格）', { alpha: enter });
+  }
+
+  // Scene 2 (6–12s): 加速拉扯
+  function renderScene2(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('速度失衡的心理拉扯', 'CHASE & WITHDRAW', enter);
+
+    const p = easeInOutCubic(clamp01((lt - 0.5) / 5.0));
+    const rx = lerp(380, 930, p);
+    const bx = lerp(960, 1540, p);
+    const y = 500;
+
+    // 红球残影
+    for (let k = 1; k <= 5; k++) {
+      const gp = Math.max(0, p - k * 0.045);
+      const gx = lerp(380, 930, gp);
+      drawGlowBall(gx, y, 56 - k * 4, PALETTE.red, '', { alpha: (0.28 - k * 0.045) * enter });
+    }
+    // 蓝球警戒波纹
+    if (lt > 1.2) {
+      const rp = ((lt - 1.2) * 1.5) % 1;
+      ctx.save();
+      ctx.globalAlpha = (1 - rp) * 0.7;
+      ctx.strokeStyle = PALETTE.blue;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(bx, y, 64 + rp * 95, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    drawGlowBall(rx, y, 60, PALETTE.red, '追逐方', { pulse: Math.sin(lt * 8) * 0.6, alpha: enter });
+    drawGlowBall(bx, y, 58, PALETTE.blue, '警戒撤退', { alpha: enter });
+
+    // 速度条对比
+    const barY = 710;
+    const drawSpeedBar = (x, label, ratio, color) => {
+      ctx.save();
+      ctx.globalAlpha = enter;
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath(); ctx.roundRect(x - 180, barY, 360, 18, 9); ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.roundRect(x - 180, barY, 360 * ratio, 18, 9); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '600 20px "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, barY - 18);
+      ctx.restore();
+    };
+    drawSpeedBar(560, `追逐迫切度 ${Math.round(lerp(45, 96, p))}%`, lerp(0.45, 0.96, p), PALETTE.red);
+    drawSpeedBar(1360, `逃离警报值 ${Math.round(lerp(35, 99, p))}%`, lerp(0.35, 0.99, p), PALETTE.blue);
+  }
+
+  // Scene 3 (12–18.5s): 悬念压缩 -> 第 17.0s 精确重拍爆发「依恋错位」
+  function renderScene3(t, lt) {
+    const preBoom = t < CLIMAX_AT;
+
+    if (preBoom) {
+      const p = easeInCubic((t - 12.0) / (CLIMAX_AT - 12.0)); // 0 -> 1 at 17.0s
+      drawTitle('两条相反本能迎面撞上', `压缩临界点 ${Math.round(lerp(60, 99, p))}%`, 1 - p * 0.4);
+
+      const dist = lerp(420, 48, p);
+      const vib = p > 0.6 ? Math.sin(t * 55) * (p - 0.6) * 18 : 0;
+      const rx = CX - dist + vib;
+      const bx = CX + dist - vib;
+
+      // 中心收缩准星圆环
+      ctx.save();
+      ctx.strokeStyle = PALETTE.gold;
+      ctx.globalAlpha = 0.25 + p * 0.7;
+      ctx.lineWidth = 2 + p * 4;
+      ctx.beginPath();
+      ctx.arc(CX, CY, lerp(440, 82, p), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      drawGlowBall(rx, CY, lerp(64, 48, p), PALETTE.red, '需要连接');
+      drawGlowBall(bx, CY, lerp(64, 48, p), PALETTE.blue, '需要空间');
+    } else {
+      // ======= 17.00s 精确重拍大爆发 =======
+      const bt = t - CLIMAX_AT; // 0 .. 1.5s
+      const pop = easeOutBack(clamp01(bt / 0.32));
+
+      // 闪光脉冲背景
+      if (bt < 0.45) {
+        ctx.save();
+        ctx.globalAlpha = (1 - bt / 0.45) * 0.42;
+        ctx.fillStyle = PALETTE.gold;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+
+      // 双层冲击波圆环
+      for (let rIdx = 0; rIdx < 3; rIdx++) {
+        const rp = clamp01((bt - rIdx * 0.06) / 1.1);
+        ctx.save();
+        ctx.globalAlpha = (1 - rp) * 0.85;
+        ctx.strokeStyle = [PALETTE.gold, PALETTE.red, PALETTE.blue][rIdx];
+        ctx.lineWidth = 10 * (1 - rp) + 2;
+        ctx.beginPath();
+        ctx.arc(CX, CY, 60 + easeOutCubic(rp) * (580 + rIdx * 130), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 放射线
+      ctx.save();
+      ctx.strokeStyle = PALETTE.gold;
+      for (let i = 0; i < 16; i++) {
+        const ang = (i / 16) * Math.PI * 2;
+        const r1 = 180 + easeOutCubic(clamp01(bt / 0.8)) * 320;
+        const r2 = r1 + 90 * (1 - clamp01(bt / 1.1));
+        ctx.globalAlpha = (1 - clamp01(bt / 1.2)) * 0.7;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(CX + Math.cos(ang) * r1, CY + Math.sin(ang) * r1);
+        ctx.lineTo(CX + Math.cos(ang) * r2, CY + Math.sin(ang) * r2);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 核心锚词「依恋错位」巨型重击排版
+      ctx.save();
+      ctx.translate(CX, CY - 10);
+      ctx.scale(pop, pop);
+
+      ctx.shadowColor = 'rgba(255, 209, 102, 0.75)';
+      ctx.shadowBlur = 46;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 144px "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('依恋错位', 0, 0);
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = PALETTE.gold;
+      ctx.font = '700 28px ui-monospace, monospace';
+      ctx.fillText('ATTACHMENT MISMATCH · 核心症结', 0, 108);
+      ctx.restore();
+    }
+  }
+
+  // Scene 4 (18.5–28.0s): 拆解红球（焦虑型）
+  function renderScene4(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('拆解①：焦虑型依恋（追方）', 'ANXIOUS ATTACHMENT', enter);
+
+    const pulse = Math.sin(lt * 7) * 0.5 + 0.5;
+    drawGlowBall(450, 485, 86, PALETTE.red, '内心信号放大器', { pulse, alpha: enter });
+
+    // 右侧焦虑心电波形图
+    const gx = 720, gy = 310, gw = 920, gh = 340;
+    ctx.save();
+    ctx.globalAlpha = enter;
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(gx, gy, gw, gh, 18); ctx.fill(); ctx.stroke();
+
+    // 安全阈值线
+    const thY = gy + 125;
+    ctx.setLineDash([8, 8]);
+    ctx.strokeStyle = PALETTE.gold;
+    ctx.beginPath(); ctx.moveTo(gx + 24, thY); ctx.lineTo(gx + gw - 24, thY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = PALETTE.gold;
+    ctx.font = '600 18px "PingFang SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('安全感警戒线（对方稍微沉默即跌破）', gx + 32, thY - 16);
+
+    // 动态焦虑波形
+    ctx.strokeStyle = PALETTE.red;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let x = 0; x <= gw - 60; x += 6) {
+      const px = gx + 30 + x;
+      const wave = Math.sin(x * 0.045 - lt * 5) * (42 + 45 * Math.sin(lt * 1.3 + x * 0.01));
+      const spike = (Math.sin(x * 0.02 - lt * 2.2) > 0.78) ? -82 : 0;
+      const py = gy + 215 + wave * 0.55 + spike;
+      if (x === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    if (lt > 2.2) {
+      drawPill('大脑自动脑补：“Ta 晚回消息 = 不爱我了！”', 1180, 710, 'rgba(255, 94, 126, 0.22)', '#FFB3C2', 24, easeOutCubic((lt - 2.2) / 0.5));
+    }
+  }
+
+  // Scene 5 (28.0–37.5s): 拆解蓝球（回避型）
+  function renderScene5(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('拆解②：回避型依恋（逃方）', 'AVOIDANT ATTACHMENT', enter);
+
+    const bx = 1360, by = 490;
+    const pressure = clamp01((lt - 0.6) / 4.2);
+
+    // 左侧飞来的追问箭头/光弹
+    for (let i = 0; i < 6; i++) {
+      const p = ((lt * 1.1 - i * 0.35) % 1.8) / 1.8;
+      if (lt > 0.4 && p > 0) {
+        const ax = lerp(320, bx - 145, p);
+        const ay = by + (i - 2.5) * 38;
+        drawArrow(ax - 70, ay, ax, ay, PALETTE.red, 4, (1 - Math.max(0, p - 0.7) * 3) * enter);
+      }
+    }
+    drawPill('密集追问 / 情绪需求', 470, 320, 'rgba(255, 94, 126, 0.18)', PALETTE.red, 22, enter);
+
+    drawGlowBall(bx, by, 84, PALETTE.blue, '自我防御机制', { alpha: enter });
+
+    // 六边形保护壳在压力>0.55时闭合
+    const shieldA = easeOutCubic((pressure - 0.45) / 0.3);
+    if (shieldA > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = shieldA;
+      ctx.strokeStyle = PALETTE.blue;
+      ctx.fillStyle = 'rgba(77, 168, 255, 0.12)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      const sr = 148;
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        const px = bx + Math.cos(ang) * sr;
+        const py = by + Math.sin(ang) * sr;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      drawPill('触发保护壳：冻结情绪 / 逃离独处', bx, 700, 'rgba(77, 168, 255, 0.2)', '#B8DEFF', 22, shieldA);
+    }
+
+    // 承压进度条
+    ctx.save();
+    ctx.globalAlpha = enter;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath(); ctx.roundRect(300, 650, 560, 22, 11); ctx.fill();
+    ctx.fillStyle = pressure > 0.65 ? PALETTE.red : PALETTE.blue;
+    ctx.beginPath(); ctx.roundRect(300, 650, 560 * pressure, 22, 11); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '600 20px "PingFang SC", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`心理承压负荷：${Math.round(pressure * 100)}%（阈值极低）`, 300, 628);
+    ctx.restore();
+  }
+
+  // Scene 6 (37.5–48.0s): 双人正反馈死循环
+  function renderScene6(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('越转越快的追逃死循环', 'POSITIVE FEEDBACK LOOP', enter);
+
+    const loopR = 235;
+    const speed = 1.1 + lt * 0.14;
+    const angR = lt * speed - Math.PI / 2;
+    const angB = angR + Math.PI * 0.42;
+
+    // 轨道圆环
+    ctx.save();
+    ctx.globalAlpha = enter;
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(CX, CY + 20, loopR, 0, Math.PI * 2); ctx.stroke();
+
+    // 动态旋转弧线
+    ctx.strokeStyle = PALETTE.gold;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(CX, CY + 20, loopR, angR, angR + 0.9);
+    ctx.stroke();
+    ctx.restore();
+
+    const nodes = [
+      { ang: -Math.PI / 2, txt: '① 红球靠近索取连接', col: PALETTE.red, dx: 0, dy: -62 },
+      { ang: 0,            txt: '② 蓝球过载立刻后撤', col: PALETTE.blue, dx: 225, dy: 0 },
+      { ang: Math.PI / 2,  txt: '③ 红球恐慌被抛弃感爆表', col: PALETTE.red, dx: 0, dy: 65 },
+      { ang: Math.PI,      txt: '④ 加速追问再次逼近', col: PALETTE.gold, dx: -225, dy: 0 },
+    ];
+    for (const nd of nodes) {
+      const nx = CX + Math.cos(nd.ang) * loopR;
+      const ny = CY + 20 + Math.sin(nd.ang) * loopR;
+      ctx.save();
+      ctx.globalAlpha = enter;
+      ctx.fillStyle = nd.col;
+      ctx.beginPath(); ctx.arc(nx, ny, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      drawPill(nd.txt, nx + nd.dx, ny + nd.dy, 'rgba(20, 17, 42, 0.9)', '#fff', 21, enter);
+    }
+
+    drawGlowBall(CX + Math.cos(angR) * loopR, CY + 20 + Math.sin(angR) * loopR, 34, PALETTE.red, '', { alpha: enter });
+    drawGlowBall(CX + Math.cos(angB) * loopR, CY + 20 + Math.sin(angB) * loopR, 34, PALETTE.blue, '', { alpha: enter });
+
+    ctx.save();
+    ctx.globalAlpha = enter;
+    ctx.fillStyle = PALETTE.white;
+    ctx.font = '800 34px "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('恶性闭环', CX, CY + 12);
+    ctx.fillStyle = PALETTE.muted;
+    ctx.font = '600 18px "PingFang SC", sans-serif';
+    ctx.fillText('没有坏人，只有失控的循环', CX, CY + 48);
+    ctx.restore();
+  }
+
+  // Scene 7 (48.0–59.0s): 核心反转 — 同一个内核「安全感」
+  function renderScene7(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('被误解的真相：其实内核完全一样', 'THE HIDDEN CORE', enter);
+
+    const open = easeOutCubic(clamp01((lt - 1.2) / 1.5));
+    const drawCoreSphere = (cx, color, title, sub, dir) => {
+      // 外壳上下裂开露出金色内核
+      ctx.save();
+      ctx.globalAlpha = enter;
+      const sep = open * 52;
+
+      // 金色内核
+      const g = ctx.createRadialGradient(cx, CY, 10, cx, CY, 110);
+      g.addColorStop(0, '#FFF5D6');
+      g.addColorStop(0.5, PALETTE.gold + 'AA');
+      g.addColorStop(1, PALETTE.gold + '00');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, CY, 110, 0, Math.PI * 2); ctx.fill();
+
+      ctx.strokeStyle = PALETTE.gold;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, CY, 74, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 32px "PingFang SC", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('安全感', cx, CY);
+
+      // 半球壳
+      ctx.fillStyle = color + '44';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(cx, CY - sep, 112, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, CY + sep, 112, 0, Math.PI); ctx.stroke();
+
+      // 充电方向箭头
+      const flowP = (lt * 0.9) % 1;
+      for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2 + Math.PI / 4;
+        const rStart = dir > 0 ? lerp(225, 130, flowP) : lerp(130, 225, flowP);
+        const rEnd = dir > 0 ? rStart - 28 : rStart + 28;
+        drawArrow(
+          cx + Math.cos(ang) * rStart, CY + Math.sin(ang) * rStart,
+          cx + Math.cos(ang) * rEnd, CY + Math.sin(ang) * rEnd,
+          color, 3, enter * (1 - flowP * 0.5)
+        );
+      }
+
+      drawPill(title, cx, 710, color + '33', '#fff', 24, enter);
+      ctx.fillStyle = PALETTE.muted;
+      ctx.font = '600 20px "PingFang SC", sans-serif';
+      ctx.fillText(sub, cx, 756);
+      ctx.restore();
+    };
+
+    drawCoreSphere(580, PALETTE.red, '红球：靠「向内连接」充电', '靠近 · 倾诉 · 确认被爱', 1);
+    drawCoreSphere(1340, PALETTE.blue, '蓝球：靠「独自空间」回血', '独处 · 消化 · 恢复电量', -1);
+
+    // 中间等号
+    ctx.save();
+    ctx.globalAlpha = open;
+    ctx.fillStyle = PALETTE.gold;
+    ctx.font = '800 64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('=', CX, CY);
+    ctx.restore();
+  }
+
+  // Scene 8 (59.0–68.5s): 消耗代价 — 反相抵消
+  function renderScene8(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('硬碰硬的代价：互相抵消耗竭', 'DESTRUCTIVE INTERFERENCE', enter);
+
+    const drain = easeInOutCubic(clamp01((lt - 0.8) / 7.2));
+    const amp = lerp(115, 18, drain);
+
+    // 中心基准线
+    ctx.save();
+    ctx.globalAlpha = enter;
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(260, CY); ctx.lineTo(1660, CY); ctx.stroke();
+
+    const drawWave = (color, phase) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      for (let x = 260; x <= 1660; x += 8) {
+        const env = Math.sin(((x - 260) / 1400) * Math.PI);
+        const y = CY + Math.sin(x * 0.018 - lt * 4.5 + phase) * amp * env;
+        if (x === 260) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+    drawWave(PALETTE.red, 0);
+    drawWave(PALETTE.blue, Math.PI); // 完全反相！
+
+    // 底部关系电量条跌落
+    const energy = Math.max(0.08, 1 - drain * 0.9);
+    const barW = 780;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath(); ctx.roundRect(CX - barW / 2, 680, barW, 26, 13); ctx.fill();
+    ctx.fillStyle = energy < 0.35 ? PALETTE.red : PALETTE.gold;
+    ctx.beginPath(); ctx.roundRect(CX - barW / 2, 680, barW * energy, 26, 13); ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 22px "PingFang SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`亲密关系剩余电量：${Math.round(energy * 100)}%`, CX, 654);
+    ctx.restore();
+  }
+
+  // Scene 9 (68.5–81.0s): 破局双法则 -> 同频共振
+  function renderScene9(t, lt) {
+    const enter = easeOutCubic(lt / 0.5);
+    drawTitle('打破死循环的两个小动作', 'SYNCHRONIZATION', enter);
+
+    const step1 = easeOutCubic(clamp01((lt - 0.6) / 2.2));
+    const step2 = easeOutCubic(clamp01((lt - 3.6) / 2.2));
+    const sync  = easeInOutCubic(clamp01((lt - 6.6) / 3.5));
+
+    const rx = lerp(520, 790, sync);
+    const bx = lerp(1400, 1130, sync);
+    const y = 470 + Math.sin(lt * 3) * (sync * 18);
+
+    // 法则一：红球主动退半步，周围出现柔和15%缓冲环
+    if (step1 > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = step1 * 0.7;
+      ctx.setLineDash([8, 8]);
+      ctx.strokeStyle = PALETTE.red;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(rx, y, 118, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      drawPill('① 追方：留出 15% 缓冲带（暂停连环追问）', 520, 690, 'rgba(255, 94, 126, 0.2)', '#FFC2CE', 21, step1);
+    }
+
+    // 法则二：蓝球退缩前先点亮金色“报备信号灯”
+    if (step2 > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = step2;
+      const beaconR = 16 + Math.sin(lt * 6) * 3;
+      const bg = ctx.createRadialGradient(bx, y - 92, 2, bx, y - 92, 42);
+      bg.addColorStop(0, PALETTE.gold);
+      bg.addColorStop(1, 'rgba(255,209,102,0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(bx, y - 92, 42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = PALETTE.gold;
+      ctx.beginPath(); ctx.arc(bx, y - 92, beaconR, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      drawPill('“我在，只是充会电”', bx, y - 135, 'rgba(255, 209, 102, 0.22)', PALETTE.gold, 20, step2);
+      drawPill('② 逃方：撤退前亮起报备信号灯', 1390, 690, 'rgba(77, 168, 255, 0.2)', '#BFE0FF', 21, step2);
+    }
+
+    // 同频共振金色双星光环
+    if (sync > 0.1) {
+      ctx.save();
+      ctx.globalAlpha = sync * 0.65;
+      ctx.strokeStyle = PALETTE.gold;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(CX, y, 290, 145, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+
+    drawGlowBall(rx, y, 66, PALETTE.red, '安心等待', { alpha: enter });
+    drawGlowBall(bx, y, 66, PALETTE.blue, '安全回归', { alpha: enter });
+  }
+
+  // Scene 10 (81.0–90.0s): 升华收尾
+  function renderScene10(t, lt) {
+    const enter = easeOutCubic(lt / 0.7);
+    const orbit = lt * 0.6;
+    const rx = CX - 95 + Math.cos(orbit) * 14;
+    const bx = CX + 95 - Math.cos(orbit) * 14;
+    const by = 335 + Math.sin(orbit) * 10;
+
+    // 温暖金色外光环
+    ctx.save();
+    ctx.globalAlpha = enter * 0.7;
+    const halo = ctx.createRadialGradient(CX, by, 40, CX, by, 300);
+    halo.addColorStop(0, 'rgba(255, 209, 102, 0.28)');
+    halo.addColorStop(1, 'rgba(255, 209, 102, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(CX, by, 300, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    drawGlowBall(rx, by, 68, PALETTE.red, '', { pulse: Math.sin(lt * 3) * 0.3, alpha: enter });
+    drawGlowBall(bx, by, 68, PALETTE.blue, '', { pulse: Math.sin(lt * 3 + 1) * 0.3, alpha: enter });
+
+    ctx.save();
+    ctx.globalAlpha = enter;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 54px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('真正的相爱，不是把对方变成自己', CX, 560);
+
+    ctx.fillStyle = PALETTE.gold;
+    ctx.font = '700 42px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText('而是看懂彼此心里的开关', CX, 638);
+    ctx.restore();
+  }
+
+  const SCENE_RENDERERS = [
+    renderScene1, renderScene2, renderScene3, renderScene4, renderScene5,
+    renderScene6, renderScene7, renderScene8, renderScene9, renderScene10,
+  ];
+
+  // ==========================================================
+  // 5. Web Audio API 合成配乐 & 17s 重拍音效引擎
+  // ==========================================================
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+      this.lastBeat = -1;
+      this.lastScene = -1;
+      this.boomPlayed = false;
+    }
+    ensure() {
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) this.ctx = new AC();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+    resetForSeek(t) {
+      this.lastBeat = Math.floor(t * 2);
+      const s = getScene(t);
+      this.lastScene = s.id;
+      this.boomPlayed = t >= CLIMAX_AT + 0.05;
+    }
+    tone(freq, dur, type = 'sine', vol = 0.06, slideTo = null) {
+      if (this.muted || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + dur);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + dur + 0.02);
+    }
+    update(t, playing) {
+      if (!playing || this.muted || !this.ctx) return;
+      const fadeOut = t > 87 ? Math.max(0.05, (90 - t) / 3) : 1;
+
+      // 120 BPM 柔和节奏点
+      const beatIdx = Math.floor(t * 2);
+      if (beatIdx !== this.lastBeat) {
+        this.lastBeat = beatIdx;
+        const chord = [196.0, 220.0, 246.94, 293.66]; // G3 A3 B3 D4
+        if (beatIdx % 4 === 0) {
+          const root = chord[Math.floor(beatIdx / 4) % chord.length];
+          this.tone(root, 1.4, 'triangle', 0.04 * fadeOut);
+          this.tone(root * 1.5, 1.1, 'sine', 0.022 * fadeOut);
+        } else if (beatIdx % 2 === 1) {
+          this.tone(880, 0.05, 'sine', 0.012 * fadeOut);
+        }
+      }
+
+      // 分镜切换轻提示
+      const sc = getScene(t);
+      if (sc.id !== this.lastScene) {
+        this.lastScene = sc.id;
+        if (sc.id !== 3) this.tone(523.25, 0.25, 'sine', 0.03 * fadeOut);
+      }
+
+      // 第 17.0s 精确重拍爆发低音冲击！
+      if (!this.boomPlayed && t >= CLIMAX_AT && t < CLIMAX_AT + 0.3) {
+        this.boomPlayed = true;
+        this.tone(130.81, 0.85, 'sawtooth', 0.12, 36);
+        this.tone(587.33, 0.7, 'triangle', 0.07);
+        this.tone(880.0, 0.6, 'sine', 0.05);
+      }
+    }
+  }
+
+  // ==========================================================
+  // 6. 主播放循环与交互控制
+  // ==========================================================
+  const sound = new SoundEngine();
+  let currentTime = 0;
+  let isPlaying = false;
+  let lastPerf = 0;
+
+  function getScene(t) {
+    for (const s of SCENES) {
+      if (t >= s.start && t < s.end) return s;
+    }
+    return SCENES[SCENES.length - 1];
+  }
+
+  function renderFrame(t) {
+    t = Math.max(0, Math.min(DURATION, t));
+    const scene = getScene(t);
+    const localT = t - scene.start;
+    const dur = scene.end - scene.start;
+
+    // 17.0s 爆发瞬间的微震动
+    let shakeX = 0, shakeY = 0;
+    if (t >= CLIMAX_AT && t < CLIMAX_AT + 0.35) {
+      const k = 1 - (t - CLIMAX_AT) / 0.35;
+      shakeX = Math.sin(t * 140) * 14 * k;
+      shakeY = Math.cos(t * 170) * 10 * k;
+    }
+
+    drawBackground(t, shakeX, shakeY);
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+    // 分镜淡入转场
+    const sceneFade = scene.id === 1 ? 1 : clamp01(localT / 0.28);
+    ctx.globalAlpha = sceneFade;
+    SCENE_RENDERERS[scene.id - 1](t, localT, dur);
+    ctx.restore();
+
+    drawChrome(t, scene, localT);
+    syncUI(t, scene.id);
+  }
+
+  // 供外部工具/录制精确跳转
+  window.__duration = DURATION;
+  window.__seekTo = (t) => {
+    currentTime = Math.max(0, Math.min(DURATION, t));
+    sound.resetForSeek(currentTime);
+    renderFrame(currentTime);
+  };
+
+  // UI 绑定
+  const startOverlay = document.getElementById('startOverlay');
+  const playBtn = document.getElementById('playBtn');
+  const bigPlayBtn = document.getElementById('bigPlayBtn');
+  const replayBtn = document.getElementById('replayBtn');
+  const muteBtn = document.getElementById('muteBtn');
+  const hideUiBtn = document.getElementById('hideUiBtn');
+  const timeTxt = document.getElementById('timeTxt');
+  const trackFill = document.getElementById('trackFill');
+  const progressBar = document.getElementById('progressBar');
+  const track = document.getElementById('track');
+  const scenePills = document.getElementById('scenePills');
+
+  // 生成分镜刻度与快捷跳转按钮
+  SCENES.forEach(sc => {
+    if (sc.id > 1) {
+      const tick = document.createElement('div');
+      tick.className = 'scene-tick';
+      tick.style.left = (sc.start / DURATION * 100) + '%';
+      track.appendChild(tick);
+    }
+    const pill = document.createElement('button');
+    pill.className = 'spill';
+    pill.textContent = `S${sc.id}`;
+    pill.title = `${sc.label} (${sc.start}s)`;
+    pill.dataset.sid = sc.id;
+    pill.addEventListener('click', () => {
+      window.__seekTo(sc.start + 0.01);
+      if (!isPlaying) togglePlay(true);
+    });
+    scenePills.appendChild(pill);
+  });
+
+  function syncUI(t, sid) {
+    trackFill.style.width = (t / DURATION * 100).toFixed(3) + '%';
+    timeTxt.textContent = `${t.toFixed(1).padStart(4, '0')}s / ${DURATION.toFixed(1)}s`;
+    playBtn.textContent = isPlaying ? '⏸ 暂停' : '▶ 播放';
+    scenePills.querySelectorAll('.spill').forEach(p => {
+      p.classList.toggle('now', Number(p.dataset.sid) === sid);
+    });
+  }
+
+  function togglePlay(forcePlay = null) {
+    const next = forcePlay !== null ? forcePlay : !isPlaying;
+    if (next) {
+      sound.ensure();
+      if (currentTime >= DURATION - 0.05) {
+        currentTime = 0;
+        sound.resetForSeek(0);
+      }
+      isPlaying = true;
+      lastPerf = performance.now();
+      startOverlay.classList.add('hidden');
+    } else {
+      isPlaying = false;
+    }
+    syncUI(currentTime, getScene(currentTime).id);
+  }
+
+  bigPlayBtn.addEventListener('click', () => togglePlay(true));
+  playBtn.addEventListener('click', () => togglePlay());
+  canvas.addEventListener('click', () => togglePlay());
+  replayBtn.addEventListener('click', () => {
+    window.__seekTo(0);
+    togglePlay(true);
+  });
+  muteBtn.addEventListener('click', () => {
+    sound.muted = !sound.muted;
+    muteBtn.textContent = sound.muted ? '🔇 静音' : '🔊 音效开';
+    muteBtn.classList.toggle('active', !sound.muted);
+  });
+  hideUiBtn.addEventListener('click', () => document.body.classList.toggle('hide-ui'));
+
+  progressBar.addEventListener('click', e => {
+    const rect = track.getBoundingClientRect();
+    const ratio = clamp01((e.clientX - rect.left) / rect.width);
+    window.__seekTo(ratio * DURATION);
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    else if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('hide-ui');
+    else if (e.code === 'ArrowRight') window.__seekTo(currentTime + 3);
+    else if (e.code === 'ArrowLeft') window.__seekTo(currentTime - 3);
+  });
+
+  function loop(now) {
+    if (isPlaying) {
+      const dt = Math.min(0.1, (now - lastPerf) / 1000);
+      lastPerf = now;
+      currentTime += dt;
+      if (currentTime >= DURATION) {
+        currentTime = DURATION;
+        isPlaying = false;
+      }
+      sound.update(currentTime, isPlaying);
+    }
+    renderFrame(currentTime);
+    requestAnimationFrame(loop);
+  }
+
+  // 初始渲染封面帧（先停在 0.8s 好看构图位置，点击播放后从 0s 开始）
+  sound.resetForSeek(0);
+  renderFrame(0);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

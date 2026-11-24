@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>为什么对方越冷淡，你反而越上头？| Vibe 知识大赏</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;background:#06040C;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #stage{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 45%, #12102a 0%, #06040C 70%);
+  }
+  #cv{
+    display:block;background:#0F0C1D;
+    box-shadow:0 0 100px rgba(255,94,126,.18), 0 0 240px rgba(77,168,255,.10);
+  }
+  /* ---------- 控制栏 ---------- */
+  #controls{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    display:flex;align-items:center;gap:14px;
+    padding:14px 22px calc(14px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg,rgba(6,4,12,0) 0%,rgba(6,4,12,.88) 55%);
+    opacity:0;transform:translateY(100%);transition:opacity .45s ease,transform .45s ease;
+  }
+  #controls.show{opacity:1;transform:translateY(0);}
+  #playBtn{
+    flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,209,102,.45);
+    background:rgba(255,209,102,.10);color:#FFD166;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:.25s;
+    font-family:inherit;
+  }
+  #playBtn:hover{background:rgba(255,209,102,.22);box-shadow:0 0 18px rgba(255,209,102,.35);}
+  #seek{
+    flex:1 1 auto;-webkit-appearance:none;appearance:none;height:5px;border-radius:99px;
+    background:linear-gradient(90deg,#FF5E7E,#FFD166);outline:none;cursor:pointer;
+  }
+  #seek::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#fff;box-shadow:0 0 12px rgba(255,209,102,.9);cursor:pointer;
+  }
+  #seek::-moz-range-thumb{width:15px;height:15px;border:none;border-radius:50%;background:#fff;}
+  #timeLbl{
+    flex:0 0 auto;font-size:13px;letter-spacing:.5px;color:#9C93BE;
+    font-variant-numeric:tabular-nums;min-width:104px;text-align:right;
+  }
+  /* ---------- 开场遮罩 ---------- */
+  #startOverlay{
+    position:fixed;inset:0;z-index:40;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 42%, #1a1236 0%, #0a0716 62%, #050309 100%);
+    transition:opacity .6s ease,visibility .6s ease;
+  }
+  #startOverlay.hide{opacity:0;visibility:hidden;pointer-events:none;}
+  .ov-box{text-align:center;padding:0 28px;max-width:880px;}
+  .ov-eyebrow{
+    font-size:14px;letter-spacing:6px;color:#FFD166;opacity:.85;
+    margin-bottom:26px;text-transform:uppercase;
+  }
+  .ov-title{
+    font-size:clamp(26px,4.4vw,58px);line-height:1.32;font-weight:800;
+    background:linear-gradient(120deg,#FFFFFF 8%,#FFD166 48%,#FF5E7E 92%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    letter-spacing:2px;
+  }
+  .ov-sub{
+    margin-top:22px;font-size:clamp(12px,1.4vw,16px);color:#8A82A8;letter-spacing:3px;
+  }
+  #startBtn{
+    margin-top:42px;padding:16px 54px;border-radius:99px;cursor:pointer;
+    font-size:17px;font-weight:700;letter-spacing:3px;font-family:inherit;color:#150C22;
+    background:linear-gradient(100deg,#FFD166,#FF5E7E);border:none;
+    box-shadow:0 8px 40px rgba(255,94,126,.42);transition:transform .25s,box-shadow .25s;
+  }
+  #startBtn:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 14px 54px rgba(255,94,126,.6);}
+  .ov-hint{margin-top:26px;font-size:12px;color:#5E5780;letter-spacing:2px;}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="cv" width="1920" height="1080"></canvas>
+</div>
+
+<div id="controls">
+  <button id="playBtn" title="播放 / 暂停">▶</button>
+  <input id="seek" type="range" min="0" max="90" step="0.01" value="0">
+  <span id="timeLbl">0.0 / 90.0</span>
+</div>
+
+<div id="startOverlay">
+  <div class="ov-box">
+    <div class="ov-eyebrow">Vibe 知识大赏</div>
+    <div class="ov-title">为什么对方越冷淡<br>你反而越上头？</div>
+    <div class="ov-sub">90 秒 · 一次关于「间歇强化」的认知拆解</div>
+    <button id="startBtn">▶ 开始播放</button>
+    <div class="ov-hint">建议佩戴耳机 · 17 秒处有重拍</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   0. 基础常量与工具
+   ========================================================= */
+const W = 1920, H = 1080;
+const FONT = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif';
+
+const C = {
+  bg    : '#0F0C1D',
+  coral : '#FF5E7E',
+  blue  : '#4DA8FF',
+  gold  : '#FFD166',
+  white : '#F6F2FF',
+  dim   : '#8A82A8'
+};
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const lerp  = (a,b,t)=> a + (b-a)*t;
+const easeOutCubic   = t => 1 - Math.pow(1-t,3);
+const easeInOutCubic = t => t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+const easeOutBack    = t => { const c1=1.70158, c3=c1+1; return 1 + c3*Math.pow(t-1,3) + c1*Math.pow(t-1,2); };
+
+/* 确定性伪随机（禁止 Math.random） */
+function rand(i){
+  const x = Math.sin(i*127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+function noise1(i){
+  const x = Math.sin(i*12.9898 + 78.233) * 43758.5453;
+  return (x - Math.floor(x)) * 2 - 1;
+}
+
+function roundRect(x,y,w,h,r){
+  r = Math.min(r, Math.abs(w)/2, Math.abs(h)/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x,   y+h, r);
+  ctx.arcTo(x,   y+h, x,   y,   r);
+  ctx.arcTo(x,   y,   x+w, y,   r);
+  ctx.closePath();
+}
+
+function setFont(size, weight){
+  ctx.font = (weight||700) + ' ' + size + 'px ' + FONT;
+}
+
+function drawText(str, x, y, size, color, alpha, opts){
+  opts = opts || {};
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.font = (opts.weight||700) + ' ' + size + 'px ' + FONT;
+  ctx.textAlign = opts.align || 'left';
+  ctx.textBaseline = opts.baseline || 'middle';
+  if(opts.glow){ ctx.shadowColor = color; ctx.shadowBlur = opts.glow; }
+  ctx.fillText(str, x, y);
+  ctx.restore();
+}
+
+/* =========================================================
+   1. 背景
+   ========================================================= */
+function bg(t){
+  const g = ctx.createRadialGradient(W*0.5, H*0.42, 60, W*0.5, H*0.5, 1280);
+  g.addColorStop(0,   '#1C1438');
+  g.addColorStop(0.52,'#120D26');
+  g.addColorStop(1,   '#07050E');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+
+  /* 缓慢漂移的辉光球 */
+  const orbs = [
+    {x:290,  y:300, r:560, c:'rgba(255,94,126,0.085)', sp:0.29, ph:0.0},
+    {x:1640, y:800, r:640, c:'rgba(77,168,255,0.075)', sp:0.21, ph:1.7},
+    {x:980,  y:1080,r:480, c:'rgba(255,209,102,0.05)', sp:0.16, ph:3.1}
+  ];
+  for(let i=0;i<orbs.length;i++){
+    const o = orbs[i];
+    const ox = Math.sin(t*o.sp + o.ph) * 130;
+    const oy = Math.cos(t*o.sp*0.68 + o.ph) * 95;
+    const gg = ctx.createRadialGradient(o.x+ox, o.y+oy, 0, o.x+ox, o.y+oy, o.r);
+    gg.addColorStop(0, o.c);
+    gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  /* 极细网格纹理 */
+  ctx.save();
+  ctx.globalAlpha = 0.035;
+  ctx.strokeStyle = '#9C8FFF';
+  ctx.lineWidth = 1;
+  const off = (t*8) % 80;
+  for(let x=-80; x<W+80; x+=80){
+    ctx.beginPath(); ctx.moveTo(x+off, 0); ctx.lineTo(x+off, H); ctx.stroke();
+  }
+  for(let y=-80; y<H+80; y+=80){
+    ctx.beginPath(); ctx.moveTo(0, y+off); ctx.lineTo(W, y+off); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function vignette(){
+  const g = ctx.createRadialGradient(W*0.5, H*0.5, 460, W*0.5, H*0.5, 1120);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.58)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+}
+
+/* =========================================================
+   2. 底部 Tagline（每个分镜开始后 0.9s 准时弹出）
+   ========================================================= */
+function tagline(lt, text, color){
+  const D = 0.9;
+  if(lt < D) return;
+  const a = clamp((lt - D) / 0.38, 0, 1);
+  const e = 1 - Math.pow(1 - a, 3);
+  if(a <= 0) return;
+
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.translate(960, 1010);
+  const sc = lerp(0.82, 1, easeOutBack(clamp((lt - D)/0.5, 0, 1)));
+  ctx.scale(sc, sc);
+
+  setFont(30, 600);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const w = ctx.measureText(text).width + 68;
+
+  roundRect(-w/2, -29, w, 58, 29);
+  ctx.fillStyle = 'rgba(255,255,255,0.055)';
+  ctx.fill();
+  ctx.strokeStyle = color + '70';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  /* 左侧小光点 */
+  ctx.beginPath();
+  ctx.arc(-w/2 + 24, 0, 4.5, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 16;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 14;
+  setFont(30, 600);
+  ctx.fillText(text, 10, 2);
+  ctx.restore();
+}
+
+/* =========================================================
+   3. 通用绘制件
+   ========================================================= */
+function drawOrb(x, y, r, color, glowPower){
+  glowPower = glowPower || 0;
+  const g = ctx.createRadialGradient(x - r*0.32, y - r*0.36, r*0.06, x, y, r);
+  g.addColorStop(0,    '#FFFFFF');
+  g.addColorStop(0.28, color);
+  g.addColorStop(1,    'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fillStyle = g;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 46 + glowPower*46;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+/* =========================================================
+   4. 场景 1 —— 痛点开场（0 – 6s）
+   ========================================================= */
+function scene1(lt, t){
+  bg(t);
+  tagline(lt, '越冷淡 · 越上头', C.coral);
+
+  const a = easeOutCubic(clamp(lt/0.6, 0, 1));
+  const px = 330, pw = 430, ph = 720;
+  const py = 168 + (1-a)*60;
+
+  /* 手机机身 */
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.shadowColor = 'rgba(255,94,126,0.42)';
+  ctx.shadowBlur = 76;
+  roundRect(px, py, pw, ph, 52);
+  ctx.fillStyle = '#181130';
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = a;
+  roundRect(px, py, pw, ph, 52);
+  ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+
+  /* 屏幕 */
+  ctx.save();
+  ctx.globalAlpha = a;
+  roundRect(px+15, py+15, pw-30, ph-30, 40);
+  ctx.fillStyle = '#0B0716';
+  ctx.fill();
+  ctx.restore();
+
+  /* 刘海 */
+  ctx.save();
+  ctx.globalAlpha = a;
+  roundRect(px + pw/2 - 56, py + 34, 112, 26, 13);
+  ctx.fillStyle = '#241B42';
+  ctx.fill();
+  ctx.restore();
+
+  /* 发出的气泡 */
+  const bA = clamp((lt - 0.35)/0.42, 0, 1);
+  if(bA > 0){
+    const bw = 244, bh = 78;
+    const bx = px + pw - 15 - 48 - bw;
+    const by = py + 180 + (1-easeOutCubic(bA))*22;
+    ctx.save();
+    ctx.globalAlpha = a * bA;
+    roundRect(bx, by, bw, bh, 26);
+    const gg = ctx.createLinearGradient(bx, by, bx+bw, by+bh);
+    gg.addColorStop(0, '#FF8AA0');
+    gg.addColorStop(1, '#FF5E7E');
+    ctx.fillStyle = gg;
+    ctx.shadowColor = 'rgba(255,94,126,0.65)';
+    ctx.shadowBlur = 34;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#FFFFFF';
+    setFont(34, 600);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('在吗？', bx + 30, by + bh/2 + 2);
+    ctx.restore();
+  }
+
+  /* 已读 · 3 小时前 */
+  const rA = clamp((lt - 1.25)/0.42, 0, 1);
+  if(rA > 0){
+    ctx.save();
+    ctx.globalAlpha = a * rA;
+    ctx.fillStyle = '#6E648E';
+    setFont(24, 500);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('已读 · 3 小时前', px + pw - 48, py + 300);
+    ctx.restore();
+  }
+
+  /* 心跳波形 */
+  if(lt > 1.6){
+    const wA = clamp((lt - 1.6)/0.8, 0, 1);
+    const x0 = px + 48, x1 = px + pw - 48, wy = py + ph - 190;
+    ctx.save();
+    ctx.globalAlpha = a * wA;
+    ctx.beginPath();
+    for(let i=0;i<=150;i++){
+      const p = i/150;
+      const x = lerp(x0, x1, p);
+      const freq = 5 + lt*4.2;
+      const amp  = 26 * Math.sin(p*Math.PI) * (0.55 + 0.45*Math.sin(lt*2.4));
+      const y = wy + Math.sin(p*Math.PI*freq - lt*6.2) * amp;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = C.coral;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = C.coral;
+    ctx.shadowBlur = 22;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 右侧文字 */
+  const tx = 1000;
+  const s1 = clamp((lt - 0.55)/0.5, 0, 1);
+  const s2 = clamp((lt - 1.15)/0.5, 0, 1);
+  const s3 = clamp((lt - 1.95)/0.5, 0, 1);
+  const s4 = clamp((lt - 2.70)/0.5, 0, 1);
+
+  if(s1 > 0) drawText('你发了消息', tx, 376 + (1-s1)*24, 52, C.white, s1*0.95, {weight:600});
+  if(s2 > 0) drawText('他看了，没回', tx, 466 + (1-s2)*24, 52, C.white, s2*0.95, {weight:600});
+  if(s3 > 0) drawText('可你的心跳', tx, 616 + (1-s3)*26, 64, C.white, s3, {weight:700});
+  if(s4 > 0){
+    const e = easeOutBack(clamp((lt - 2.7)/0.62, 0, 1));
+    ctx.save();
+    ctx.globalAlpha = s4;
+    ctx.translate(tx, 722);
+    ctx.scale(lerp(0.86, 1, e), lerp(0.86, 1, e));
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    setFont(96, 800);
+    const gg = ctx.createLinearGradient(0, -48, 0, 48);
+    gg.addColorStop(0, '#FFFFFF');
+    gg.addColorStop(0.5, C.gold);
+    gg.addColorStop(1, C.coral);
+    ctx.fillStyle = gg;
+    ctx.shadowColor = C.coral;
+    ctx.shadowBlur = 42;
+    ctx.fillText('越来越快', 0, 0);
+    ctx.restore();
+  }
+}
+
+/* =========================================================
+   5. 场景 2 —— 动态拉扯（6 – 12s）
+   ========================================================= */
+function scene2(lt, t){
+  bg(t);
+  tagline(lt, '距离 × 不确定 = 渴望', C.blue);
+
+  const p = easeInOutCubic(clamp(lt/4.6, 0, 1));
+
+  const x1 = lerp(770, 900, p);     /* 你 */
+  const x2 = lerp(1150, 1570, p);   /* 他 */
+  const r1 = lerp(70, 114, p);
+  const r2 = lerp(70, 44, p);
+  const yc = 580;
+
+  /* 顶部标题 */
+  const tA = clamp((lt-0.35)/0.6, 0, 1);
+  if(tA > 0){
+    drawText('你追一步，他退两步', 960, 268 + (1-tA)*22, 56, C.white, tA*0.92,
+      {align:'center', weight:700});
+  }
+
+  /* 连接虚线 */
+  ctx.save();
+  ctx.setLineDash([13, 15]);
+  ctx.lineDashOffset = -lt*70;
+  ctx.beginPath();
+  ctx.moveTo(x1 + r1, yc);
+  ctx.lineTo(x2 - r2, yc);
+  ctx.strokeStyle = 'rgba(255,255,255,0.17)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+
+  /* 脉冲点 */
+  const gapA = x1 + r1, gapB = x2 - r2;
+  if(gapB > gapA){
+    for(let k=0;k<5;k++){
+      const pr = ((lt*0.85 + k/5) % 1);
+      const x = lerp(gapA, gapB, pr);
+      const al = Math.sin(pr*Math.PI) * 0.9;
+      ctx.beginPath();
+      ctx.arc(x, yc, 5 + pr*4, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,209,102,' + al + ')';
+      ctx.shadowColor = C.gold;
+      ctx.shadowBlur = 20;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  /* 你 */
+  const pulse1 = 0.5 + 0.5*Math.sin(lt*5.2);
+  drawOrb(x1, yc, r1, C.coral, pulse1*p);
+  ctx.save();
+  ctx.globalAlpha = 0.95;
+  setFont(40, 700);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.coral;
+  ctx.shadowColor = C.coral;
+  ctx.shadowBlur = 18;
+  ctx.fillText('你', x1, yc + r1 + 56);
+  ctx.restore();
+
+  /* 他 */
+  drawOrb(x2, yc, r2, C.blue, (1-p)*0.6);
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  setFont(40, 700);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.blue;
+  ctx.shadowColor = C.blue;
+  ctx.shadowBlur = 18;
+  ctx.fillText('他', x2, yc + r2 + 56);
+  ctx.restore();
+
+  /* 距离数值 */
+  const distTxt = Math.round(lerp(280, 940, p));
+  ctx.save();
+  ctx.globalAlpha = 0.42 + 0.3*p;
+  setFont(26, 500);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.dim;
+  ctx.fillText('心理距离  ' + distTxt, 960, 880);
+  ctx.restore();
+
+  /* 底部说明 */
+  const bA = clamp((lt - 2.2)/0.7, 0, 1);
+  if(bA > 0){
+    drawText('他越退，你越追；越追不上，越停不下来', 960, 954, 34, C.gold, bA*0.88,
+      {align:'center', weight:600});
+  }
+}
+
+/* =========================================================
+   6. 场景 3 —— 蓄力 + 17.0s 锚词重拍爆发（12 – 18.5s）
+   ========================================================= */
+function scene3(lt, t){
+  bg(t);
+  tagline(lt, '蓄力 · 临界点', C.gold);
+
+  const CHARGE = 5.0;   /* 局部 5.0s == 全局 17.0s */
+
+  /* ---------------- 蓄力阶段 ---------------- */
+  if(lt < CHARGE){
+    const p  = clamp(lt / CHARGE, 0, 1);
+    const sp = Math.pow(p, 2.3);
+
+    /* 屏幕震动逐渐增强 */
+    const amp = sp * 11;
+    const fx = (rand(Math.floor(lt*62)) - 0.5) * amp;
+    const fy = (rand(Math.floor(lt*62) + 77) - 0.5) * amp;
+
+    ctx.save();
+    ctx.translate(fx, fy);
+
+    /* 收缩的同心圆 */
+    for(let i=0;i<4;i++){
+      const ph = clamp((p - i*0.16)/0.72, 0, 1);
+      if(ph <= 0) continue;
+      const r = lerp(780, 62, easeInOutCubic(ph));
+      ctx.beginPath();
+      ctx.arc(960, 540, r, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,94,126,' + (0.34*(1-ph) + 0.035) + ')';
+      ctx.lineWidth = 2 + 5*(1-ph);
+      ctx.stroke();
+    }
+
+    /* 中心能量核 */
+    const gr = ctx.createRadialGradient(960, 540, 0, 960, 540, 60 + 340*sp);
+    gr.addColorStop(0,   'rgba(255,209,102,' + (0.7*sp) + ')');
+    gr.addColorStop(0.45,'rgba(255,94,126,'  + (0.3*sp) + ')');
+    gr.addColorStop(1,   'rgba(255,94,126,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(0,0,W,H);
+
+    /* 向心汇聚的粒子（确定性） */
+    for(let i=0;i<120;i++){
+      const ang = rand(i*3 + 1) * Math.PI*2;
+      const spd = 0.55 + rand(i + 300) * 0.95;
+      const pr  = ((p*spd*1.65 + rand(i + 600)) % 1);
+      const rad = lerp(1020, 38, pr);
+      const x = 960 + Math.cos(ang + pr*1.9) * rad;
+      const y = 540 + Math.sin(ang + pr*1.9) * rad * 0.62;
+      const al = (1 - pr) * 0.85 * (0.4 + 0.6*p);
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5 + rand(i+900)*3.6, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,209,102,' + al + ')';
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    /* 中心亮点 */
+    ctx.beginPath();
+    ctx.arc(960, 540, 5 + 16*sp, 0, Math.PI*2);
+    ctx.fillStyle = '#FFD166';
+    ctx.shadowColor = '#FFD166';
+    ctx.shadowBlur = 60 * sp;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    /* 蓄力提示文字 */
+    if(p > 0.55){
+      const ha = clamp((p - 0.55)/0.3, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = ha * 0.6;
+      setFont(26, 500);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = C.dim;
+      ctx.fillText('注 意 力 正 在 收 缩', 960, 940);
+      ctx.restore();
+    }
+    return;
+  }
+
+  /* ---------------- 爆发阶段 ---------------- */
+  const bt = lt - CHARGE;
+
+  /* 白闪 */
+  const fl = clamp(1 - bt/0.42, 0, 1);
+  if(fl > 0){
+    ctx.fillStyle = 'rgba(255,255,255,' + (fl*0.88) + ')';
+    ctx.fillRect(0,0,W,H);
+  }
+
+  /* 强震 */
+  const sa = Math.max(0, 1 - bt/0.65) * 26;
+  ctx.save();
+  ctx.translate(
+    (rand(Math.floor(lt*84)) - 0.5) * sa,
+    (rand(Math.floor(lt*84) + 31) - 0.5) * sa
+  );
+
+  /* 冲击波环 */
+  for(let i=0;i<4;i++){
+    const sp = clamp((bt - i*0.11)/1.15, 0, 1);
+    if(sp <= 0 || sp >= 1) continue;
+    const r = lerp(80, 1520, easeOutCubic(sp));
+    ctx.beginPath();
+    ctx.arc(960, 540, r, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,209,102,' + ((1-sp)*0.75) + ')';
+    ctx.lineWidth = lerp(42, 1, sp);
+    ctx.stroke();
+  }
+
+  /* 持续光晕 */
+  const pulse = 0.5 + 0.5*Math.sin(bt*6.4);
+  const gr = ctx.createRadialGradient(960, 540, 0, 960, 540, 580);
+  gr.addColorStop(0, 'rgba(255,94,126,' + (0.34 + 0.16*pulse) + ')');
+  gr.addColorStop(1, 'rgba(255,94,126,0)');
+  ctx.fillStyle = gr;
+  ctx.fillRect(0,0,W,H);
+
+  /* 巨型锚词 */
+  const pop = clamp((bt - 0.02)/0.52, 0, 1);
+  const sc  = lerp(2.85, 1, easeOutBack(pop));
+  const al  = clamp(pop*1.6, 0, 1);
+
+  ctx.save();
+  ctx.translate(960, 512);
+  ctx.scale(sc, sc);
+  ctx.globalAlpha = al;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  setFont(196, 900);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = 'rgba(255,94,126,0.92)';
+  ctx.shadowColor = C.coral;
+  ctx.shadowBlur = 70;
+  ctx.strokeText('间歇强化', 0, 0);
+  ctx.shadowBlur = 0;
+
+  const tg = ctx.createLinearGradient(0, -105, 0, 105);
+  tg.addColorStop(0,    '#FFFFFF');
+  tg.addColorStop(0.44, '#FFD166');
+  tg.addColorStop(1,    '#FF5E7E');
+  ctx.fillStyle = tg;
+  ctx.fillText('间歇强化', 0, 0);
+  ctx.restore();
+
+  /* 英文副标 */
+  const sub = clamp((bt - 0.5)/0.5, 0, 1);
+  if(sub > 0){
+    ctx.save();
+    ctx.globalAlpha = sub * 0.9;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    setFont(36, 500);
+    ctx.fillStyle = C.gold;
+    ctx.shadowColor = C.gold;
+    ctx.shadowBlur = 20;
+    ctx.fillText('Intermittent  Reinforcement', 960, 682);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+/* =========================================================
+   7. 场景 4 —— 多巴胺不确定性（18.5 – 27s）
+   ========================================================= */
+function scene4(lt, t){
+  bg(t);
+  tagline(lt, '多巴胺 · 奖励预测误差', C.gold);
+
+  /* 标题 */
+  const hA = clamp((lt - 0.3)/0.6, 0, 1);
+  if(hA > 0){
+    drawText('两种奖赏，两条曲线', 960, 268 + (1-hA)*20, 52, C.white, hA*0.95,
+      {align:'center', weight:700});
+  }
+
+  const cx0 = 300, cx1 = 1620, cy0 = 372, cy1 = 796;
+  const prog = clamp((lt - 0.6)/5.4, 0, 1);
+
+  /* 网格 */
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.075)';
+  ctx.lineWidth = 1.5;
+  for(let i=0;i<=4;i++){
+    const y = lerp(cy0, cy1, i/4);
+    ctx.beginPath(); ctx.moveTo(cx0, y); ctx.lineTo(cx1, y); ctx.stroke();
+  }
+  for(let i=0;i<=6;i++){
+    const x = lerp(cx0, cx1, i/6);
+    ctx.beginPath(); ctx.moveTo(x, cy0); ctx.lineTo(x, cy1); ctx.stroke();
+  }
+  /* 坐标轴 */
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx0, cy1); ctx.lineTo(cx1, cy1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0, cy1); ctx.stroke();
+  ctx.restore();
+
+  /* 轴标签 */
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  setFont(24, 500);
+  ctx.fillStyle = C.dim;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('多巴胺反应', cx0 - 6, cy0 - 34);
+  ctx.textAlign = 'right';
+  ctx.fillText('时间 →', cx1, cy1 + 34);
+  ctx.restore();
+
+  /* 曲线函数 */
+  function stableY(p){
+    return 0.30 + Math.sin(p*9.4)*0.05;
+  }
+  function unstableY(p){
+    let v = 0.25;
+    for(let i=0;i<13;i++){
+      const c = (i + 0.5)/13;
+      const h = 0.28 + rand(i*7 + 3)*0.62;
+      v += Math.exp(-Math.pow((p - c)/0.038, 2)) * h;
+    }
+    return Math.min(v, 0.97);
+  }
+
+  function drawCurve(fn, color, lw, glow){
+    ctx.save();
+    ctx.beginPath();
+    const N = 220;
+    let started = false;
+    for(let i=0;i<=N;i++){
+      const p = (i/N) * prog;
+      const x = lerp(cx0, cx1, p);
+      const y = lerp(cy1, cy0, fn(p));
+      if(!started){ ctx.moveTo(x,y); started = true; }
+      else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = glow;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawCurve(stableY,   C.blue,  4, 16);
+  drawCurve(unstableY, C.coral, 5, 28);
+
+  /* 曲线末端光点 */
+  if(prog > 0.02){
+    const xE = lerp(cx0, cx1, prog);
+    const yS = lerp(cy1, cy0, stableY(prog));
+    const yU = lerp(cy1, cy0, unstableY(prog));
+
+    ctx.beginPath(); ctx.arc(xE, yS, 7, 0, Math.PI*2);
+    ctx.fillStyle = C.blue; ctx.shadowColor = C.blue; ctx.shadowBlur = 22;
+    ctx.fill(); ctx.shadowBlur = 0;
+
+    const pu = 0.5 + 0.5*Math.sin(lt*7);
+    ctx.beginPath(); ctx.arc(xE, yU, 8 + pu*4, 0, Math.PI*2);
+    ctx.fillStyle = C.coral; ctx.shadowColor = C.coral; ctx.shadowBlur = 30;
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
+
+  /* 图例 */
+  const lA = clamp((lt - 3.4)/0.7, 0, 1);
+  if(lA > 0){
+    ctx.save();
+    ctx.globalAlpha = lA;
+
+    ctx.beginPath(); ctx.arc(600, 872, 8, 0, Math.PI*2);
+    ctx.fillStyle = C.blue; ctx.fill();
+    setFont(30, 600);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#BBD4F5';
+    ctx.fillText('可预测奖赏 → 平静、习惯化', 628, 873);
+
+    ctx.beginPath(); ctx.arc(1120, 872, 8, 0, Math.PI*2);
+    ctx.fillStyle = C.coral; ctx.fill();
+    ctx.fillStyle = '#FFB9C6';
+    ctx.fillText('不可预测奖赏 → 疯狂、上头', 1148, 873);
+    ctx.restore();
+  }
+
+  /* 金句 */
+  const qA = clamp((lt - 4.6)/0.7, 0, 1);
+  if(qA > 0){
+    drawText('大脑奖励的不是「得到」，而是「可能得到」', 960, 946, 38, C.gold, qA*0.92,
+      {align:'center', weight:700, glow:16});
+  }
+}
+
+/* =========================================================
+   8. 场景 5 —— 可变奖励（27 – 36s）
+   ========================================================= */
+function scene5(lt, t){
+  bg(t);
+  tagline(lt, '可变奖励 · 最难戒', C.coral);
+
+  const hA = clamp((lt - 0.25)/0.6, 0, 1);
+  if(hA > 0){
+    drawText('同样的动作，不同的回报', 960, 238 + (1-hA)*20, 50, C.white, hA*0.95,
+      {align:'center', weight:700});
+  }
+
+  const panels = [
+    {x:250,  color:C.blue,  title:'固定奖励', sub:'按 5 次 → 必得 1 次', rate:0.44, shake:0, delay:0.5},
+    {x:1020, color:C.coral, title:'随机奖励', sub:'随机回应 → 停不下来', rate:0.96, shake:1, delay:1.1}
+  ];
+
+  const globalP = clamp((lt - 1.0)/6.6, 0, 1);
+
+  for(let pi=0; pi<panels.length; pi++){
+    const P = panels[pi];
+    const w = 650, h = 470, y = 318;
+
+    const ap = clamp((lt - P.delay)/0.65, 0, 1);
+    if(ap <= 0) continue;
+
+    ctx.save();
+    ctx.globalAlpha = ap;
+    ctx.translate(0, (1 - easeOutCubic(ap)) * 30);
+
+    /* 卡片 */
+    roundRect(P.x, y, w, h, 28);
+    ctx.fillStyle = 'rgba(255,255,255,0.038)';
+    ctx.fill();
+    ctx.strokeStyle = P.color + '3A';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    /* 顶部色条 */
+    roundRect(P.x + 26, y + 28, 54, 8, 4);
+    ctx.fillStyle = P.color;
+    ctx.shadowColor = P.color;
+    ctx.shadowBlur = 16;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    /* 标题 */
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    setFont(46, 800);
+    ctx.fillStyle = P.color;
+    ctx.fillText(P.title, P.x + 26, y + 92);
+
+    /* 副标题 */
+    setFont(26, 500);
+    ctx.fillStyle = 'rgba(200,193,230,0.65)';
+    ctx.fillText(P.sub, P.x + 26, y + 146);
+
+    /* 进度条背景 */
+    const bx = P.x + 26, by = y + 210, bw = w - 52, bh = 88;
+    roundRect(bx, by, bw, bh, 18);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    /* 进度条填充 */
+    let fill = Math.min(1, globalP * P.rate * 1.12);
+    if(P.shake){
+      fill += (rand(Math.floor(lt*15)) - 0.5) * 0.055;
+      fill = clamp(fill, 0, 1);
+    }
+
+    if(fill > 0.004){
+      ctx.save();
+      roundRect(bx, by, bw, bh, 18);
+      ctx.clip();
+      const gg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+      gg.addColorStop(0, P.color + 'AA');
+      gg.addColorStop(1, P.color);
+      ctx.fillStyle = gg;
+      ctx.shadowColor = P.color;
+      ctx.shadowBlur = P.shake ? 34 : 16;
+      ctx.fillRect(bx, by, bw * fill, bh);
+      ctx.restore();
+    }
+
+    /* 百分比 */
+    setFont(64, 800);
+    ctx.fillStyle = P.color;
+    ctx.shadowColor = P.color;
+    ctx.shadowBlur = 22;
+    ctx.fillText(Math.round(fill*100) + '%', bx + 4, y + 372);
+    ctx.shadowBlur = 0;
+
+    setFont(24, 500);
+    ctx.fillStyle = 'rgba(200,193,230,0.55)';
+    ctx.textAlign = 'right';
+    ctx.fillText('持续投入度', bx + bw, y + 372);
+
+    ctx.restore();
+  }
+
+  /* 底部结论 */
+  const bA = clamp((lt - 4.8)/0.8, 0, 1);
+  if(bA > 0){
+    drawText('不确定的奖赏，会制造最高的反应率', 960, 926, 38, C.gold, bA*0.92,
+      {align:'center', weight:700, glow:14});
+  }
+}
+
+/* =========================================================
+   9. 场景 6 —— 依恋错位（36 – 45s）
+   ========================================================= */
+function scene6(lt, t){
+  bg(t);
+  tagline(lt, '依恋错位 · 追逐循环', C.blue);
+
+  const hA = clamp((lt - 0.3)/0.6, 0, 1);
+  if(hA > 0){
+    drawText('他退，你追', 960, 258 + (1-hA)*20, 56, C.white, hA*0.95,
+      {align:'center', weight:800});
+  }
+
+  const a  = lt * 0.85;
+  const x1 = 960 + Math.sin(a) * 275;
+  const x2 = x1 + 430;
+  const yc = 580;
+  const r1 = 82, r2 = 66;
+
+  /* 轨迹提示 */
+  ctx.save();
+  ctx.globalAlpha = 0.09;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(960 - 275, yc);
+  ctx.lineTo(960 + 275 + 430, yc);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 追逐弧线 */
+  const chaseAlpha = 0.35 + 0.35*Math.sin(lt*4.2);
+  ctx.save();
+  ctx.globalAlpha = chaseAlpha;
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 12]);
+  ctx.lineDashOffset = -lt * 90;
+  ctx.beginPath();
+  ctx.moveTo(x1 + r1 + 12, yc - 20);
+  ctx.quadraticCurveTo((x1 + x2)/2, yc - 96, x2 - r2 - 12, yc - 20);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 箭头尖 */
+  ctx.save();
+  ctx.globalAlpha = chaseAlpha;
+  ctx.fillStyle = C.gold;
+  ctx.beginPath();
+  ctx.moveTo(x2 - r2 - 12, yc - 20);
+  ctx.lineTo(x2 - r2 - 34, yc - 34);
+  ctx.lineTo(x2 - r2 - 30, yc - 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  /* 你 */
+  const pulse1 = 0.5 + 0.5*Math.sin(lt*5.6);
+  drawOrb(x1, yc, r1 + pulse1*4, C.coral, pulse1);
+  ctx.save();
+  setFont(40, 700);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.coral;
+  ctx.shadowColor = C.coral;
+  ctx.shadowBlur = 18;
+  ctx.fillText('你', x1, yc + r1 + 62);
+  ctx.restore();
+
+  /* 他 */
+  drawOrb(x2, yc, r2, C.blue, 0.25);
+  ctx.save();
+  setFont(40, 700);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.blue;
+  ctx.shadowColor = C.blue;
+  ctx.shadowBlur = 18;
+  ctx.fillText('他', x2, yc + r2 + 62);
+  ctx.restore();
+
+  /* 焦虑值条 */
+  const anx = clamp((lt - 1.0)/6.2, 0, 1);
+  const barX = 400, barY = 862, barW = 1120, barH = 34;
+
+  ctx.save();
+  setFont(28, 600);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(200,193,230,0.62)';
+  ctx.fillText('焦虑值', barX, barY - 34);
+
+  roundRect(barX, barY, barW, barH, 17);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  if(anx > 0.004){
+    ctx.save();
+    roundRect(barX, barY, barW, barH, 17);
+    ctx.clip();
+    const gg = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+    gg.addColorStop(0, C.gold);
+    gg.addColorStop(1, C.coral);
+    ctx.fillStyle = gg;
+    ctx.shadowColor = C.coral;
+    ctx.shadowBlur = 26;
+    ctx.fillRect(barX, barY, barW * anx, barH);
+    ctx.restore();
+  }
+
+  ctx.textAlign = 'right';
+  setFont(28, 700);
+  ctx.fillStyle = C.coral;
+  ctx.fillText(Math.round(anx*100) + '%', barX + barW, barY - 34);
+  ctx.restore();
+}
+
+/* =========================================================
+   10. 场景 7 —— 沉没成本能量条（45 – 55s）
+   ========================================================= */
+function scene7(lt, t){
+  bg(t);
+  tagline(lt, '沉没成本 · 情绪投资', C.gold);
+
+  const hA = clamp((lt - 0.3)/0.6, 0, 1);
+  if(hA > 0){
+    drawText('你在关系里的总投入', 960, 330 + (1-hA)*20, 56, C.white, hA*0.95,
+      {align:'center', weight:800});
+  }
+
+  const segs = ['注意力', '时间', '情绪波动', '自我怀疑', '机会成本'];
+  const p = clamp((lt - 0.7)/7.6, 0, 1);
+
+  const x0 = 220, x1 = 1700, y = 520, h = 104;
+  const gap = 12;
+  const segW = (x1 - x0 - gap*(segs.length-1)) / segs.length;
+
+  for(let i=0;i<segs.length;i++){
+    const sx = x0 + i*(segW + gap);
+
+    /* 底槽 */
+    roundRect(sx, y, segW, h, 18);
+    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    /* 填充 */
+    const lp = clamp((p - i*0.185)/0.185, 0, 1);
+    if(lp > 0.004){
+      ctx.save();
+      roundRect(sx, y, segW, h, 18);
+      ctx.clip();
+      const gg = ctx.createLinearGradient(sx, 0, sx + segW, 0);
+      gg.addColorStop(0,   C.blue);
+      gg.addColorStop(0.5, C.coral);
+      gg.addColorStop(1,   C.gold);
+      ctx.fillStyle = gg;
+      ctx.globalAlpha = 0.9;
+      ctx.shadowColor = C.coral;
+      ctx.shadowBlur = 26;
+      ctx.fillRect(sx, y, segW * lp, h);
+      ctx.restore();
+    }
+
+    /* 序号 */
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.65*lp;
+    setFont(24, 700);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = lp > 0.5 ? 'rgba(15,12,29,0.8)' : 'rgba(200,193,230,0.5)';
+    ctx.fillText(String(i+1).padStart(2,'0'), sx + segW/2, y + 32);
+    ctx.restore();
+
+    /* 标签 */
+    ctx.save();
+    ctx.globalAlpha = 0.45 + 0.55*lp;
+    setFont(32, 700);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = lp > 0.5 ? C.white : C.dim;
+    if(lp > 0.5){ ctx.shadowColor = C.white; ctx.shadowBlur = 14; }
+    ctx.fillText(segs[i], sx + segW/2, y + h + 52);
+    ctx.restore();
+  }
+
+  /* 总进度 */
+  const totA = clamp((lt - 1.2)/0.6, 0, 1);
+  if(totA > 0){
+    drawText('投入度  ' + Math.round(p*100) + '%', 960, 442, 40, C.gold, totA*0.9,
+      {align:'center', weight:700, glow:14});
+  }
+
+  /* 结论 */
+  const bA = clamp((lt - 6.6)/0.9, 0, 1);
+  if(bA > 0){
+    drawText('沉没成本越高，越难抽身离开', 960, 800, 40, C.coral, bA*0.95,
+      {align:'center', weight:700, glow:18});
+  }
+}
+
+/* =========================================================
+   11. 场景 8 —— 闭环图（55 – 68.5s）
+   ========================================================= */
+function scene8(lt, t){
+  bg(t);
+  tagline(lt, '闭环 · 越锁越死', C.coral);
+
+  const hA = clamp((lt - 0.3)/0.6, 0, 1);
+  if(hA > 0){
+    drawText('一个完美的闭环', 960, 138 + (1-hA)*18, 48, C.white, hA*0.9,
+      {align:'center', weight:800});
+  }
+
+  const cx = 960, cy = 570, R = 262;
+  const nodes = [
+    {ang:-Math.PI/2, label:'他冷淡', color:C.blue,  sub:'冷'},
+    {ang:0,          label:'你焦虑', color:C.coral, sub:'焦'},
+    {ang:Math.PI/2,  label:'你加码', color:C.gold,  sub:'加'},
+    {ang:Math.PI,    label:'他回应', color:C.gold,  sub:'诱'}
+  ];
+
+  const appear = clamp((lt - 0.35)/1.0, 0, 1);
+
+  /* 环线 */
+  ctx.save();
+  ctx.globalAlpha = appear * 0.32;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI*2);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 12]);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 流动光点 */
+  if(appear > 0.6){
+    const pulseAng = -Math.PI/2 + lt * 1.35;
+    for(let k=0;k<3;k++){
+      const ang = pulseAng - k*0.42;
+      const al = (1 - k*0.3) * 0.9;
+      const px = cx + Math.cos(ang)*R;
+      const py = cy + Math.sin(ang)*R;
+      ctx.beginPath();
+      ctx.arc(px, py, 9 - k*2, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,209,102,' + al + ')';
+      ctx.shadowColor = C.gold;
+      ctx.shadowBlur = 26;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  /* 节点 */
+  for(let i=0;i<nodes.length;i++){
+    const N = nodes[i];
+    const na = clamp((lt - 0.45 - i*0.28)/0.55, 0, 1);
+    if(na <= 0) continue;
+    const e = easeOutBack(na);
+    const nx = cx + Math.cos(N.ang) * R;
+    const ny = cy + Math.sin(N.ang) * R;
+    const rad = 94 * e;
+
+    /* 外发光 */
+    const g = ctx.createRadialGradient(nx, ny, rad*0.2, nx, ny, rad*1.7);
+    g.addColorStop(0, N.color + '42');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath();
+    ctx.arc(nx, ny, rad*1.7, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    /* 圆 */
+    ctx.beginPath();
+    ctx.arc(nx, ny, rad, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(18,13,38,0.94)';
+    ctx.fill();
+    ctx.strokeStyle = N.color;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = N.color;
+    ctx.shadowBlur = 24;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    /* 文字 */
+    ctx.save();
+    ctx.globalAlpha = na;
+    setFont(34 * e, 800);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = N.color;
+    ctx.fillText(N.label, nx, ny + 2);
+    ctx.restore();
+  }
+
+  /* 中心文字 */
+  const cA = clamp((lt - 3.0)/0.8, 0, 1);
+  if(cA > 0){
+    ctx.save();
+    ctx.globalAlpha = cA * 0.85;
+    setFont(38, 700);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.dim;
+    ctx.fillText('越努力', cx, cy - 26);
+    ctx.fillText('越锁死', cx, cy + 28);
+    ctx.restore();
+  }
+
+  /* 底部文字 */
+  const bA = clamp((lt - 6.5)/0.9, 0, 1);
+  if(bA > 0){
+    drawText('每一次「回应」，都在加固这个环', 960, 946, 38, C.coral, bA*0.92,
+      {align:'center', weight:700, glow:16});
+  }
+}
+
+/* =========================================================
+   12. 场景 9 —— 破局三步（68.5 – 81s）
+   ========================================================= */
+function scene9(lt, t){
+  bg(t);
+  tagline(lt, '破局 · 把能量还给自己', C.gold);
+
+  const hA = clamp((lt - 0.25)/0.6, 0, 1);
+  if(hA > 0){
+    drawText('三步，把能量收回来', 960, 258 + (1-hA)*20, 54, C.white, hA*0.95,
+      {align:'center', weight:800});
+  }
+
+  const steps = [
+    {n:'01', title:'看见', desc:'识别「间歇强化」',    color:C.blue,  delay:0.9},
+    {n:'02', title:'撤回', desc:'把注意力收回自己',    color:C.coral, delay:2.4},
+    {n:'03', title:'重建', desc:'给自己稳定的奖赏',    color:C.gold,  delay:3.9}
+  ];
+
+  const cw = 440, ch = 400, gapC = 70;
+  const totalW = cw*3 + gapC*2;
+  const startX = (W - totalW)/2;
+  const cy0 = 400;
+
+  for(let i=0;i<steps.length;i++){
+    const S = steps[i];
+    const a = clamp((lt - S.delay)/0.65, 0, 1);
+    if(a <= 0) continue;
+
+    const e = easeOutBack(a);
+    const x = startX + i*(cw + gapC);
+    const y = cy0 + (1 - easeOutCubic(a))*44;
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(x + cw/2, y + ch/2);
+    ctx.scale(lerp(0.92, 1, e), lerp(0.92, 1, e));
+    ctx.translate(-(x + cw/2), -(y + ch/2));
+
+    /* 卡片 */
+    roundRect(x, y, cw, ch, 30);
+    ctx.fillStyle = 'rgba(255,255,255,0.042)';
+    ctx.fill();
+    ctx.strokeStyle = S.color + '45';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    /* 顶部光条 */
+    roundRect(x + 34, y + 36, 56, 8, 4);
+    ctx.fillStyle = S.color;
+    ctx.shadowColor = S.color;
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    /* 编号 */
+    setFont(30, 700);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = S.color + 'AA';
+    ctx.fillText(S.n, x + 34, y + 92);
+
+    /* 大标题 */
+    setFont(76, 800);
+    ctx.fillStyle = S.color;
+    ctx.shadowColor = S.color;
+    ctx.shadowBlur = 30;
+    ctx.fillText(S.title, x + 34, y + 196);
+    ctx.shadowBlur = 0;
+
+    /* 描述 */
+    setFont(30, 500);
+    ctx.fillStyle = 'rgba(210,203,238,0.72)';
+    ctx.fillText(S.desc, x + 34, y + 292);
+
+    /* 装饰圆 */
+    ctx.beginPath();
+    ctx.arc(x + cw - 62, y + ch - 58, 26, 0, Math.PI*2);
+    ctx.strokeStyle = S.color + '55';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  /* 底部总结 */
+  const bA = clamp((lt - 6.6)/0.9, 0, 1);
+  if(bA > 0){
+    drawText('奖赏一旦变得可控，执念就会松手', 960, 936, 38, C.gold, bA*0.92,
+      {align:'center', weight:700, glow:16});
+  }
+}
+
+/* =========================================================
+   13. 场景 10 —— 金句收尾（81 – 90s）
+   ========================================================= */
+function scene10(lt, t){
+  bg(t);
+  tagline(lt, 'Vibe 知识大赏', C.gold);
+
+  /* 中心柔光 */
+  const pulse = 0.5 + 0.5*Math.sin(lt*2.2);
+  const gr = ctx.createRadialGradient(960, 520, 0, 960, 520, 760);
+  gr.addColorStop(0, 'rgba(255,94,126,' + (0.10 + 0.06*pulse) + ')');
+  gr.addColorStop(1, 'rgba(255,94,126,0)');
+  ctx.fillStyle = gr;
+  ctx.fillRect(0,0,W,H);
+
+  /* 第一句 */
+  const a1 = clamp((lt - 0.35)/0.7, 0, 1);
+  if(a1 > 0){
+    const e = easeOutCubic(a1);
+    ctx.save();
+    ctx.globalAlpha = a1;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    setFont(76, 700);
+    ctx.fillStyle = C.white;
+    ctx.fillText('你不是上瘾于他', 960, 388 + (1-e)*26);
+    ctx.restore();
+  }
+
+  /* 第二句 */
+  const a2 = clamp((lt - 1.35)/0.75, 0, 1);
+  if(a2 > 0){
+    const e = easeOutBack(clamp((lt - 1.35)/0.85, 0, 1));
+    ctx.save();
+    ctx.globalAlpha = a2;
+    ctx.translate(960, 512);
+    ctx.scale(lerp(0.88, 1, e), lerp(0.88, 1, e));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    setFont(102, 900);
+    const tg = ctx.createLinearGradient(0, -54, 0, 54);
+    tg.addColorStop(0,    '#FFFFFF');
+    tg.addColorStop(0.45, '#FFD166');
+    tg.addColorStop(1,    '#FF5E7E');
+    ctx.fillStyle = tg;
+    ctx.shadowColor = C.coral;
+    ctx.shadowBlur = 46;
+    ctx.fillText('你是上瘾于「不确定」', 0, 0);
+    ctx.restore();
+  }
+
+  /* 分隔线 */
+  const lA = clamp((lt - 3.0)/0.6, 0, 1);
+  if(lA > 0){
+    ctx.save();
+    ctx.globalAlpha = lA * 0.5;
+    const lg = ctx.createLinearGradient(660, 0, 1260, 0);
+    lg.addColorStop(0, 'rgba(255,209,102,0)');
+    lg.addColorStop(0.5, 'rgba(255,209,102,0.9)');
+    lg.addColorStop(1, 'rgba(255,209,102,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(660, 638, 600, 2);
+    ctx.restore();
+  }
+
+  /* 提问 */
+  const a3 = clamp((lt - 3.4)/0.7, 0, 1);
+  if(a3 > 0){
+    drawText('下一次心动，问问自己——', 960, 712, 40, 'rgba(214,207,242,0.78)', a3*0.95,
+      {align:'center', weight:500});
+  }
+
+  const a4 = clamp((lt - 4.4)/0.7, 0, 1);
+  if(a4 > 0){
+    const e = easeOutBack(clamp((lt - 4.4)/0.85, 0, 1));
+    ctx.save();
+    ctx.globalAlpha = a4;
+    ctx.translate(960, 800);
+    ctx.scale(lerp(0.9, 1, e), lerp(0.9, 1, e));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    setFont(58, 800);
+    ctx.fillStyle = C.gold;
+    ctx.shadowColor = C.gold;
+    ctx.shadowBlur = 32;
+    ctx.fillText('这是喜欢，还是赌徒的心跳？', 0, 0);
+    ctx.restore();
+  }
+
+  /* 标志 */
+  const a5 = clamp((lt - 6.4)/0.8, 0, 1);
+  if(a5 > 0){
+    ctx.save();
+    ctx.globalAlpha = a5 * 0.72;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    setFont(28, 600);
+    ctx.fillStyle = C.dim;
+    ctx.fillText('VIBE 知识大赏  ·  关注不迷路', 960, 900);
+    ctx.restore();
+  }
+}
+
+/* =========================================================
+   14. 时间轴与渲染调度
+   ========================================================= */
+const SCENES = [
+  {s:0,    e:6,    fn:scene1},
+  {s:6,    e:12,   fn:scene2},
+  {s:12,   e:18.5, fn:scene3},
+  {s:18.5, e:27,   fn:scene4},
+  {s:27,   e:36,   fn:scene5},
+  {s:36,   e:45,   fn:scene6},
+  {s:45,   e:55,   fn:scene7},
+  {s:55,   e:68.5, fn:scene8},
+  {s:68.5, e:81,   fn:scene9},
+  {s:81,   e:90,   fn:scene10}
+];
+
+const TOTAL = 90.0;
+
+function render(time){
+  const t = clamp(time, 0, TOTAL);
+
+  let sc = SCENES[SCENES.length - 1];
+  for(let i=0;i<SCENES.length;i++){
+    const S = SCENES[i];
+    if(t >= S.s && t < S.e){ sc = S; break; }
+  }
+  const lt = t - sc.s;
+
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+  sc.fn(lt, t);
+  vignette();
+  ctx.restore();
+}
+
+/* =========================================================
+   15. 音频（Web Audio API 合成节拍 + 17s 重低音）
+   ========================================================= */
+let actx = null;
+let lastBeat = -1;
+let prevT = -1;
+let audioReady = false;
+
+function initAudio(){
+  if(audioReady) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    actx = new AC();
+    audioReady = true;
+  }catch(e){ audioReady = false; }
+}
+
+function kick(vol){
+  if(!actx) return;
+  const now = actx.currentTime;
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(150, now);
+  o.frequency.exponentialRampToValueAtTime(44, now + 0.13);
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+  o.connect(g); g.connect(actx.destination);
+  o.start(now); o.stop(now + 0.22);
+}
+
+function hat(vol){
+  if(!actx) return;
+  const now = actx.currentTime;
+  const len = Math.floor(actx.sampleRate * 0.055);
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++){
+    d[i] = noise1(i) * Math.pow(1 - i/len, 3);
+  }
+  const src = actx.createBufferSource();
+  src.buffer = buf;
+  const f = actx.createBiquadFilter();
+  f.type = 'highpass';
+  f.frequency.value = 5200;
+  const g = actx.createGain();
+  g.gain.value = vol;
+  src.connect(f); f.connect(g); g.connect(actx.destination);
+  src.start(now);
+}
+
+function boom(){
+  if(!actx) return;
+  const now = actx.currentTime;
+
+  /* 超低频冲击 */
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(130, now);
+  o.frequency.exponentialRampToValueAtTime(26, now + 0.85);
+  g.gain.setValueAtTime(0.95, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 1.35);
+  o.connect(g); g.connect(actx.destination);
+  o.start(now); o.stop(now + 1.4);
+
+  /* 噪声爆裂 */
+  const len = Math.floor(actx.sampleRate * 0.55);
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<len;i++){
+    d[i] = noise1(i + 1337) * Math.pow(1 - i/len, 3.2);
+  }
+  const src = actx.createBufferSource();
+  src.buffer = buf;
+  const f = actx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(2600, now);
+  f.frequency.exponentialRampToValueAtTime(400, now + 0.5);
+  const ng = actx.createGain();
+  ng.gain.value = 0.30;
+  src.connect(f); f.connect(ng); ng.connect(actx.destination);
+  src.start(now);
+}
+
+function audioTick(t){
+  if(!actx) return;
+
+  /* 每 0.5s 一拍 */
+  const b = Math.floor(t * 2);
+  if(b !== lastBeat){
+    lastBeat = b;
+    if(b % 2 === 0) kick(0.30);
+    else hat(0.10);
+  }
+
+  /* 17.0s 重拍 */
+  if(prevT >= 0 && prevT < 17.0 && t >= 17.0){
+    boom();
+  }
+  prevT = t;
+}
+
+/* =========================================================
+   16. 播放控制
+   ========================================================= */
+const startOverlay = document.getElementById('startOverlay');
+const startBtn     = document.getElementById('startBtn');
+const controls     = document.getElementById('controls');
+const playBtn      = document.getElementById('playBtn');
+const seekEl       = document.getElementById('seek');
+const timeLbl      = document.getElementById('timeLbl');
+
+let playing  = false;
+let curT     = 0;
+let t0       = 0;
+
+function updateUI(){
+  if(seekEl) seekEl.value = curT;
+  if(timeLbl) timeLbl.textContent = curT.toFixed(1) + ' / 90.0';
+}
+
+function setPlayIcon(){
+  playBtn.textContent = playing ? '❚❚' : '▶';
+}
+
+function play(){
+  if(curT >= TOTAL - 0.001) curT = 0;
+  playing = true;
+  t0 = performance.now() - curT * 1000;
+  prevT = -1;
+  lastBeat = -1;
+  setPlayIcon();
+  if(actx && actx.state === 'suspended') actx.resume();
+}
+
+function pause(){
+  playing = false;
+  setPlayIcon();
+}
+
+function loop(now){
+  if(playing){
+    curT = (now - t0) / 1000;
+    if(curT >= TOTAL){
+      curT = TOTAL;
+      playing = false;
+      setPlayIcon();
+    } else {
+      audioTick(curT);
+    }
+    updateUI();
+  }
+  render(curT);
+  requestAnimationFrame(loop);
+}
+
+/* 开始按钮 */
+startBtn.addEventListener('click', function(){
+  initAudio();
+  if(actx && actx.state === 'suspended') actx.resume();
+  startOverlay.classList.add('hide');
+  controls.classList.add('show');
+  curT = 0;
+  play();
+});
+
+/* 播放 / 暂停 */
+playBtn.addEventListener('click', function(){
+  initAudio();
+  if(playing) pause();
+  else play();
+});
+
+/* 拖动进度条 */
+seekEl.addEventListener('input', function(e){
+  curT = clamp(parseFloat(e.target.value), 0, TOTAL);
+  if(playing){
+    t0 = performance.now() - curT * 1000;
+  }
+  prevT = -1;
+  lastBeat = -1;
+  render(curT);
+  updateUI();
+});
+
+/* 空格键 */
+window.addEventListener('keydown', function(e){
+  if(e.code === 'Space'){
+    e.preventDefault();
+    if(startOverlay && !startOverlay.classList.contains('hide')){
+      startBtn.click();
+    } else {
+      if(playing) pause(); else play();
+    }
+  }
+});
+
+/* 自适应缩放 */
+function fit(){
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  cv.style.width  = (W * s) + 'px';
+  cv.style.height = (H * s) + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+/* =========================================================
+   17. 逐帧导出接口（render_mp4.py 依赖）
+   ========================================================= */
+window.__duration = TOTAL;
+
+window.__seekTo = function(t){
+  curT = clamp(Number(t) || 0, 0, TOTAL);
+  playing = false;
+  setPlayIcon();
+  /* 同步立即重绘 */
+  render(curT);
+  updateUI();
+};
+
+window.__renderAt = window.__seekTo;
+
+/* 隐藏控制栏 / 遮罩的辅助（导出脚本可直接调用） */
+window.__hideUI = function(){
+  if(controls) controls.classList.remove('show');
+  if(controls) controls.style.display = 'none';
+  if(startOverlay) startOverlay.classList.add('hide');
+  if(startOverlay) startOverlay.style.display = 'none';
+};
+
+/* =========================================================
+   18. 启动
+   ========================================================= */
+render(0);
+updateUI();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
