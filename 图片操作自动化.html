@@ -1,15 +1,15 @@
+
 <!DOCTYPE html>
+
 <html lang="zh-CN">
- <head>
-  <meta charset="utf-8"/>
+<head>
+<meta charset="utf-8"/>
     <script src="https://wasdkd.github.io/Amazon/auth.js"></script>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>
-   操作自动化
-  </title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-  <style>
-   * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>操作自动化</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
             body {
                 font-family: 'Noto Sans SC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 line-height: 1.6;
@@ -19,91 +19,183 @@
             .container {
                 max-width: 100%;
                 margin: 0;
-                padding: 0px;
+                padding: 0;
             }
             header {
-                text-align: center;
                 background: linear-gradient(135deg, #232f3e, #37475a);
                 color: white;
-                padding: 1px 0;
-                margin-bottom: 1px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                padding: 5px 14px;
+                margin-bottom: 2px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            }
+            /* 使用 minmax(0, 1fr) 严格约束左右等宽，不让内容撑开挤压居中标题 */
+            .header-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+                align-items: center;
+                gap: 12px;
+            }
+            /* 左侧视频区：强制单行不换行 */
+            .header-videos-left {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 6px;
+                justify-content: flex-start;
+                overflow: hidden;
+                min-width: 0;
+            }
+            /* 右侧区域：左侧放溢出的视频按钮，最右固定放管理按钮 */
+            .header-right {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                min-width: 0;
+            }
+            .header-videos-right {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 6px;
+                justify-content: flex-start;
+                flex: 1;
+                min-width: 0;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+            .header-videos-right::-webkit-scrollbar {
+                display: none;
+            }
+
+            .video-entry-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 2px 9px;
+                background: rgba(255, 255, 255, 0.12);
+                color: #fff;
+                border: 1px solid rgba(255, 153, 0, 0.65);
+                border-radius: 5px;
+                font-size: 12.5px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-decoration: none;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .video-entry-btn:hover {
+                background: #ff9900;
+                color: #111;
+                border-color: #ff9900;
+                transform: translateY(-1px);
+            }
+            .header-center {
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
             }
             h5 {
                 text-align: center;
-                font-size: 1.8rem;
+                font-size: 1.55rem;
                 font-weight: 700;
                 letter-spacing: 0.5px;
+                line-height: 1.2;
+                margin-bottom: 3px;
             }
+            .header-actions {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+            .back-btn {
+                padding: 2px 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #007BFF;
+                color: white;
+                font-size: 13.5px;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: background-color 0.25s ease;
+            }
+            .back-btn:hover { background-color: #0062cc; }
+            .mgr-open-btn {
+                padding: 4px 10px;
+                border: 1px solid rgba(255,255,255,0.28);
+                border-radius: 6px;
+                background: rgba(0,0,0,0.25);
+                color: #fff;
+                font-size: 12.5px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                transition: all 0.25s ease;
+                white-space: nowrap;
+                flex-shrink: 0;
+                margin-left: auto;
+            }
+            .mgr-open-btn:hover {
+                background: rgba(255,255,255,0.18);
+            }
+            .mgr-open-btn.verified {
+                border-color: #28a745;
+                background: rgba(40, 167, 69, 0.25);
+            }
+
+            /* 紧凑化工具导航栏，确保 12 个按钮在一行展示 */
             .nav-bar {
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 10px;
-                padding: 5px;
+                gap: 5px;
+                padding: 4px 6px;
                 background: white;
                 margin-bottom: 2px;
                 border-radius: 10px;
                 box-shadow: 0 3px 10px rgba(0,0,0,0.05);
                 position: sticky;
-                top: 10px;
+                top: 0;
                 z-index: 100;
             }
             .nav-btn {
-                padding: 1px 1px;
+                padding: 2px 5px;
                 background: #f0c14b;
                 color: #111;
                 border: none;
                 border-radius: 6px;
                 cursor: pointer;
                 font-weight: 600;
-                transition: all 0.3s ease;
+                transition: all 0.25s ease;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                font-size: 1.05rem;
-                min-width: 10px;
+                font-size: 0.94rem;
+                white-space: nowrap;
             }
             .nav-btn:hover {
                 background: #e7a908;
-                transform: translateY(-3px);
+                transform: translateY(-2px);
                 box-shadow: 0 5px 12px rgba(0,0,0,0.15);
             }
             .nav-btn.active {
                 background: linear-gradient(to right, #ff416c 0%, #ff4b2b 100%);
+                color: #fff;
                 box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
                 transform: none;
             }
             .visualization-section {
-                margin-bottom: 50px;
+                margin-bottom: 30px;
                 background: white;
                 border-radius: 12px;
                 box-shadow: 0 7px 20px rgba(0,0,0,0.08);
                 overflow: hidden;
                 border: 1px solid #e9ecef;
                 display: none;
-            }
-            .section-header {
-                padding: 2px 2px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #e9ecef;
-            }
-            .section-title {
-                color: #232f3e;
-                font-size: 1.2rem;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            }
-            .section-title .index {
-                background: #ff9900;
-                color: white;
-                width: 26px;
-                height: 26px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                font-size: 1.2rem;
             }
             .iframe-container {
                 width: 100%;
@@ -118,130 +210,213 @@
                 display: block;
             }
 
-            .stats {
-                display: flex;
+            /* 弹窗管理样式 */
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.58);
+                backdrop-filter: blur(2px);
+                z-index: 9999;
+                display: none;
+                align-items: center;
                 justify-content: center;
-                gap: 30px;
-                margin-top: 15px;
-                flex-wrap: wrap;
+                padding: 16px;
             }
-            .stat-box {
-                background: white;
-                padding: 15px 25px;
+            .modal-overlay.show { display: flex; }
+            .modal-card {
+                background: #fff;
+                width: 100%;
+                max-width: 780px;
+                max-height: 90vh;
+                border-radius: 12px;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                color: #212529;
+            }
+            .modal-header {
+                background: #232f3e;
+                color: #fff;
+                padding: 14px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .modal-header h3 { font-size: 1.1rem; font-weight: 600; }
+            .modal-close {
+                background: none;
+                border: none;
+                color: #ccc;
+                font-size: 22px;
+                cursor: pointer;
+                line-height: 1;
+            }
+            .modal-close:hover { color: #fff; }
+            .modal-body {
+                padding: 18px 20px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .panel-box {
+                border: 1px solid #e2e8f0;
                 border-radius: 8px;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.05);
-                min-width: 200px;
+                padding: 14px;
+                background: #f8fafc;
             }
-            .stat-value {
-                font-size: 1.8rem;
+            .panel-title {
+                font-size: 0.95rem;
                 font-weight: 700;
-                color: #ff9900;
-                margin-top: 5px;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: #1e293b;
             }
+            .status-pill {
+                font-size: 12px;
+                padding: 2px 10px;
+                border-radius: 999px;
+                font-weight: 600;
+            }
+            .status-pill.unverified { background: #fee2e2; color: #b91c1c; }
+            .status-pill.verified { background: #dcfce7; color: #15803d; }
+
+            .form-row {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .form-input {
+                flex: 1;
+                min-width: 180px;
+                padding: 7px 10px;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                font-size: 13.5px;
+                outline: none;
+            }
+            .form-input:focus { border-color: #2563eb; }
+            .btn {
+                padding: 7px 14px;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: opacity 0.2s;
+                white-space: nowrap;
+            }
+            .btn:hover { opacity: 0.9; }
+            .btn-primary { background: #2563eb; color: #fff; }
+            .btn-success { background: #16a34a; color: #fff; }
+            .btn-warning { background: #f59e0b; color: #111; }
+            .btn-danger { background: #dc2626; color: #fff; }
+            .btn-secondary { background: #64748b; color: #fff; }
+            .btn-sm { padding: 4px 8px; font-size: 12px; }
+
+            .video-list-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                background: #fff;
+            }
+            .video-list-table th, .video-list-table td {
+                border-bottom: 1px solid #e2e8f0;
+                padding: 8px 6px;
+                text-align: left;
+                vertical-align: middle;
+            }
+            .video-list-table th { background: #f1f5f9; color: #475569; }
+            .url-preview {
+                max-width: 220px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                display: inline-block;
+                color: #2563eb;
+                font-size: 12px;
+            }
+            .hint-text { font-size: 12px; color: #64748b; margin-top: 6px; }
+
+            /* Toast 提示 */
+            .toast-container {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10001;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .toast-item {
+                padding: 10px 16px;
+                border-radius: 8px;
+                color: #fff;
+                font-size: 14px;
+                font-weight: 500;
+                box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+                animation: fadeInRight 0.25s ease;
+            }
+            .toast-info { background: #2563eb; }
+            .toast-success { background: #16a34a; }
+            .toast-error { background: #dc2626; }
+            .toast-warn { background: #d97706; }
+            @keyframes fadeInRight {
+                from { opacity: 0; transform: translateX(20px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+
             @media (max-width: 768px) {
-                .nav-bar { padding: 12px; }
-                .nav-btn {
-                    width: 100%;
-                    padding: 14px;
-                    min-width: auto;
+                .header-grid {
+                    grid-template-columns: 1fr;
+                    gap: 8px;
                 }
-                .iframe-container {
-                    height: 700px;
+                .header-videos-left, .header-right {
+                    justify-content: center;
                 }
-                .stats {
-                    gap: 15px;
-                }
-                .stat-box {
-                    min-width: 45%;
-                    padding: 12px;
-                }
+                .nav-bar { padding: 10px; }
+                .nav-btn { width: 100%; padding: 10px; }
+                .iframe-container { height: 700px; }
             }
-  </style>
- </head>
- <body>
-  <header>
-   <div class="container">
-    <h5>
-     操作自动化
-    </h5>
-    <a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform">
-     <button style="
-        padding: 1px 8px;
-        margin-right: 10px;
-        border: none;
-        border-radius: 6px;
-        background-color: #007BFF;
-        color: white;
-        font-size: 15px;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        transition: background-color 0.3s ease, transform 0.2s ease;
-    ">
-      返回平台
-     </button>
-    </a>
-    <!-- <a href="https://wasdkd.github.io/Amazon/卖家精灵导出数据--换高清图和补充缺失图">
-    <button style="
-        padding: 1px 8px;
-        margin-right: 10px;
-        border: none;
-        border-radius: 6px;
-        background-color: #007BFF;
-        color: white;
-        font-size: 15px;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        transition: background-color 0.3s ease, transform 0.2s ease;
-    "
-    >卖家精灵导出数据--换高清图和补充缺失图教程</button>
-</a> -->
-   </div>
-  </header>
-  <div class="container">
-   <div class="nav-bar" id="navBar">
-    <!-- 导航按钮将通过JS动态添加 -->
-    <button class="nav-btn" onclick="navigateToReport(0)">
-     1. A 图片下载&amp;插入excel表
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(1)">
-     2. B 导出excel表图片
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(2)">
-     3. C Excel数据合并
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(3)">
-     4. D 数据提取 分组统计
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(4)">
-     5. E 数据批量分组
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(5)">
-     6. F 筛选爆品
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(6)">
-     7. G 创建 修改excel表
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(7)">
-     8. H 创建文件夹
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(8)">
-     9. I 数据透视表
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(9)">
-     10. J 修改图片名称
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(10)">
-     11. K 文件提取
-    </button>
-    <button class="nav-btn" onclick="navigateToReport(11)">
-     12. L 数据工具
-    </button>
-   </div>
-   <div id="visualizationsContainer">
-    <!-- 可视化内容将在这里插入 -->
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+        </style>
+</head>
+<body>
+<header>
+<div class="header-grid">
+<!-- 左侧：优先单行展示的视频教程按钮区 -->
+<div class="header-videos-left" id="headerVideoLeft">
+<span style="font-size:12px; color:#cbd5e1; white-space:nowrap;">正在加载视频教程...</span>
+</div>
+<!-- 中间：主标题与返回按钮 -->
+<div class="header-center">
+<h5>操作自动化</h5>
+<div class="header-actions">
+<a href="https://wasdkd.github.io/Amazon/AmazonDigitsPlatform">
+<button class="back-btn">返回平台</button>
+</a>
+</div>
+</div>
+<!-- 右侧：左侧放满后溢出的视频按钮接续展示在这里，最右侧固定管理入口 -->
+<div class="header-right">
+<div class="header-videos-right" id="headerVideoRight"></div>
+<button class="mgr-open-btn" id="openVideoMgrBtn" onclick="openVideoModal()">
+<span id="headerLockIcon">🔒</span>
+<span>视频教程管理</span>
+</button>
+</div>
+</div>
+</header>
+<div class="container">
+<div class="nav-bar" id="navBar">
+<!-- 导航按钮将由Python生成 -->
+<button class="nav-btn" onclick="navigateToReport(0)">1. A 图片下载&amp;插入excel表</button><button class="nav-btn" onclick="navigateToReport(1)">2. B 导出excel表图片</button><button class="nav-btn" onclick="navigateToReport(2)">3. C Excel数据合并</button><button class="nav-btn" onclick="navigateToReport(3)">4. D 数据提取 分组统计</button><button class="nav-btn" onclick="navigateToReport(4)">5. E 数据批量分组</button><button class="nav-btn" onclick="navigateToReport(5)">6. F 筛选爆品</button><button class="nav-btn" onclick="navigateToReport(6)">7. G 创建 修改excel表</button><button class="nav-btn" onclick="navigateToReport(7)">8. H 创建文件夹</button><button class="nav-btn" onclick="navigateToReport(8)">9. I 数据透视表</button><button class="nav-btn" onclick="navigateToReport(9)">10. J 修改图片名称</button><button class="nav-btn" onclick="navigateToReport(10)">11. K 文件提取</button><button class="nav-btn" onclick="navigateToReport(11)">12. L 数据工具</button></div>
+<div id="visualizationsContainer">
+<!-- 可视化iframe将由Python生成 -->
+<div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -2245,13 +2420,7 @@
 &lt;!--        });--&gt;
 &lt;!--    &lt;/script&gt;--&gt;
 &lt;!--&lt;/body&gt;--&gt;
-&lt;!--&lt;/html&gt;--&gt;">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;!--&lt;/html&gt;--&gt;"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -2774,13 +2943,7 @@
         }
     &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!--&lt;!DOCTYPE html&gt;--&gt;
+&lt;/html&gt;"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!--&lt;!DOCTYPE html&gt;--&gt;
 &lt;!--&lt;html lang=&quot;zh-CN&quot;&gt;--&gt;
 &lt;!--&lt;head&gt;--&gt;
 &lt;!--  &lt;meta charset=&quot;UTF-8&quot; /&gt;--&gt;
@@ -4860,13 +5023,7 @@
   &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -7255,13 +7412,7 @@
 &lt;!--&lt;/script&gt;--&gt;
 
 &lt;!--&lt;/body&gt;--&gt;
-&lt;!--&lt;/html&gt;--&gt;">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;!--&lt;/html&gt;--&gt;"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -8136,13 +8287,7 @@ B07Z987654&quot;&gt;&lt;/textarea&gt;
 
 
 
-">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
 &lt;meta charset=&quot;UTF-8&quot; /&gt;
@@ -12890,13 +13035,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 
 
-">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="
 &lt;!--&amp;lt;!&amp;ndash;写一个前端代码，实现批量创建excel表的功能，还可以批量修改excel表的名称，可以在网页直接操作，也可以上传excel表进行创建或修改名称。需要有一个获取excel表的名称的功能，--&gt;
 &lt;!--前台上传包含excel表的文件夹，获取excel表名称，打印到页面，可以复制，一行一个表名，有导出为excel表功能&amp;ndash;&amp;gt;--&gt;
 
@@ -16032,13 +16171,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -16797,13 +16930,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
         updatePreview();
     &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;/html&gt;"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -17757,13 +17884,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
         }
     &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="
+&lt;/html&gt;"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="
 &lt;!--写前端代码，我上传一个大文件夹，里面都是图片文件，可以批量修改图片名字的功能，1、修改图片后缀前面的功能：首先获取图片名称，放到一个表格，
 用户根据这个表格，添加要修改的新图片名称，再修改图片名称。2、修改图片后缀：获取图片，提取到后缀，用户可选择要修改的后缀(比如.jpg)。1和2功能筛选按钮分别实现--&gt;
 
@@ -18856,13 +18977,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
         });
     &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;/html&gt;"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
   &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -20675,13 +20790,7 @@ old
 &lt;!--&lt;/body&gt;--&gt;
 &lt;!--&lt;/html&gt;--&gt;
 
-">
-      </iframe>
-     </div>
-    </div>
-    <div class="visualization-section">
-     <div class="iframe-container">
-      <iframe srcdoc="&lt;!DOCTYPE html&gt;
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
     &lt;meta charset=&quot;UTF-8&quot;&gt;
@@ -20926,21 +21035,726 @@ old
         }
     &lt;/script&gt;
 &lt;/body&gt;
-&lt;/html&gt;">
-      </iframe>
-     </div>
-    </div>
-   </div>
-  </div>
-  <script>
-   // 导航到指定报告
+&lt;/html&gt;"></iframe></div></div></div>
+</div>
+<!-- 视频教程管理弹窗 -->
+<div class="modal-overlay" id="videoMgrModal">
+<div class="modal-card">
+<div class="modal-header">
+<h3>🎬 GitHub 视频教程管理（仓库：wasdkd/Amazon/视频存储）</h3>
+<button class="modal-close" onclick="closeVideoModal()">×</button>
+</div>
+<div class="modal-body">
+<!-- 1. Token 验证区 -->
+<div class="panel-box">
+<div class="panel-title">
+<span>1. 身份验证（GitHub Token）</span>
+<span class="status-pill unverified" id="authStatusPill">🔒 未验证（只读模式）</span>
+</div>
+<div class="form-row">
+<input class="form-input" id="ghTokenInput" placeholder="输入拥有 repo 写入权限的 GitHub Token (ghp_... / github_pat_...)" type="password"/>
+<button class="btn btn-primary" onclick="verifyToken()">验证 Token</button>
+<button class="btn btn-secondary" onclick="clearToken()">退出验证</button>
+</div>
+<div class="hint-text">
+<label style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+<input id="rememberTokenChk" type="checkbox"/> 记住 Token 在本地浏览器（仅保存在当前设备 localStorage）
+                            </label>
+<span style="margin-left:10px;">| 首次验证若不存在 <code>videos.json</code> 将自动创建。</span>
+</div>
+</div>
+<!-- 2. 新增/上传视频区 -->
+<div class="panel-box">
+<div class="panel-title">
+<span>2. 添加视频教程（需先验证）</span>
+<button class="btn btn-warning btn-sm" onclick="scanRepoVideos()">🔍 扫描仓库已有视频</button>
+</div>
+<!-- 方式A：直接上传本地视频 -->
+<div style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed #cbd5e1;">
+<div style="font-size:12.5px; font-weight:600; margin-bottom:6px; color:#334155;">方式 A：直接上传本地视频文件到 GitHub「视频存储」</div>
+<div class="form-row">
+<input class="form-input" id="uploadVideoTitle" placeholder="按钮显示标题（如：1. 图片处理教程）" type="text"/>
+<input accept="video/*" class="form-input" id="uploadVideoFile" style="padding:4px;" type="file"/>
+<button class="btn btn-success" onclick="uploadVideoToGitHub()">上传并添加</button>
+</div>
+<div class="hint-text">提示：浏览器直传建议视频小于 25MB；若视频较大，请手动传到 GitHub 后点击右上角「扫描仓库已有视频」或使用下方方式 B。</div>
+</div>
+<!-- 方式B：添加视频链接 -->
+<div>
+<div style="font-size:12.5px; font-weight:600; margin-bottom:6px; color:#334155;">方式 B：通过视频链接添加（支持 GitHub 视频 / B站 / 网盘等外链）</div>
+<div class="form-row">
+<input class="form-input" id="linkVideoTitle" placeholder="按钮显示标题" type="text"/>
+<input class="form-input" id="linkVideoUrl" placeholder="视频 URL 链接（https://...）" type="text"/>
+<button class="btn btn-primary" onclick="addVideoLink()">添加链接</button>
+</div>
+</div>
+</div>
+<!-- 3. 已配置视频列表 -->
+<div class="panel-box">
+<div class="panel-title">
+<span>3. 当前视频列表（表头实时同步）</span>
+<button class="btn btn-secondary btn-sm" onclick="loadVideosFromGitHub(true)">🔄 刷新列表</button>
+</div>
+<div style="overflow-x:auto;">
+<table class="video-list-table">
+<thead>
+<tr>
+<th style="width:45px;">序号</th>
+<th>按钮标题</th>
+<th>视频链接</th>
+<th style="width:190px;">操作</th>
+</tr>
+</thead>
+<tbody id="mgrVideoTableBody">
+<tr><td colspan="4" style="text-align:center; color:#64748b;">加载中...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Toast 提示容器 -->
+<div class="toast-container" id="toastContainer"></div>
+<script>
+            // ================= GitHub 配置 =================
+            const GH_CFG = {
+                owner: 'wasdkd',
+                repo: 'Amazon',
+                branch: 'main',
+                folder: '视频存储',
+                configFile: 'videos.json'
+            };
+
+            let videoList = [];
+            let configSha = null;
+            let currentToken = '';
+            let isVerified = false;
+            let editingIndex = -1;
+
+            // ================= 工具函数 =================
+            function showToast(msg, type = 'info') {
+                const container = document.getElementById('toastContainer');
+                const div = document.createElement('div');
+                div.className = `toast-item toast-${type}`;
+                div.textContent = msg;
+                container.appendChild(div);
+                setTimeout(() => {
+                    div.style.opacity = '0';
+                    div.style.transition = 'opacity 0.3s';
+                    setTimeout(() => div.remove(), 300);
+                }, 3200);
+            }
+
+            function escapeHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function utf8ToBase64(str) {
+                const bytes = new TextEncoder().encode(str);
+                let binary = '';
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary);
+            }
+
+            function base64ToUtf8(base64) {
+                const binary = atob(base64.replace(/\s/g, ''));
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return new TextDecoder('utf-8').decode(bytes);
+            }
+
+            function getConfigApiUrl() {
+                return `https://api.github.com/repos/${GH_CFG.owner}/${GH_CFG.repo}/contents/${encodeURIComponent(GH_CFG.folder)}/${encodeURIComponent(GH_CFG.configFile)}`;
+            }
+
+            function getPagesBaseUrl() {
+                return `https://${GH_CFG.owner}.github.io/${GH_CFG.repo}/${encodeURIComponent(GH_CFG.folder)}`;
+            }
+
+            function getAuthHeaders() {
+                const headers = {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                };
+                if (currentToken) {
+                    headers['Authorization'] = `token ${currentToken}`;
+                }
+                return headers;
+            }
+
+            function requireVerified() {
+                if (!isVerified || !currentToken) {
+                    showToast('未验证！请先输入有效的 GitHub Token 并点击「验证 Token」后再操作。', 'error');
+                    return false;
+                }
+                return true;
+            }
+
+            // ================= 视频读取与表头左右自动接续渲染 =================
+            async function loadVideosFromGitHub(showNotice = false) {
+                const leftContainer = document.getElementById('headerVideoLeft');
+                try {
+                    let loaded = false;
+                    const apiUrl = `${getConfigApiUrl()}?ref=${GH_CFG.branch}&t=${Date.now()}`;
+                    const headers = currentToken
+                        ? { 'Authorization': `token ${currentToken}`, 'Accept': 'application/vnd.github.v3+json' }
+                        : { 'Accept': 'application/vnd.github.v3+json' };
+
+                    const res = await fetch(apiUrl, { headers });
+                    if (res.ok) {
+                        const data = await res.json();
+                        configSha = data.sha;
+                        const text = base64ToUtf8(data.content || '');
+                        videoList = JSON.parse(text || '[]');
+                        loaded = true;
+                    } else if (res.status === 404) {
+                        configSha = null;
+                        videoList = [];
+                        loaded = true;
+                    } else {
+                        const pagesRes = await fetch(`${getPagesBaseUrl()}/${GH_CFG.configFile}?t=${Date.now()}`);
+                        if (pagesRes.ok) {
+                            videoList = await pagesRes.json();
+                            loaded = true;
+                        }
+                    }
+
+                    if (!loaded) {
+                        videoList = [];
+                    }
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    if (showNotice) showToast('视频列表已刷新', 'success');
+                } catch (err) {
+                    console.error('加载视频列表失败:', err);
+                    leftContainer.innerHTML = '<span style="font-size:12px; color:#fca5a5; white-space:nowrap;">视频加载失败</span>';
+                    renderManagerTable();
+                }
+            }
+
+            // 核心优化：左边单行排满后，自动接续到标题右边单行展示
+            function renderHeaderVideos() {
+                const leftContainer = document.getElementById('headerVideoLeft');
+                const rightContainer = document.getElementById('headerVideoRight');
+                leftContainer.innerHTML = '';
+                rightContainer.innerHTML = '';
+
+                if (!Array.isArray(videoList) || videoList.length === 0) {
+                    leftContainer.innerHTML = '<span style="font-size:12px; color:#94a3b8; white-space:nowrap;">暂无视频教程（右侧可管理添加）</span>';
+                    return;
+                }
+
+                let leftFull = false;
+                videoList.forEach((video) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'video-entry-btn';
+                    btn.title = `点击新页面观看：${video.title}`;
+                    btn.innerHTML = `<span>▶</span><span>${escapeHtml(video.title)}</span>`;
+                    btn.onclick = () => openVideoPage(video);
+
+                    if (!leftFull) {
+                        leftContainer.appendChild(btn);
+                        // 如果加入后导致左侧内容宽度超出可视宽度，说明左侧单行已满，立即移至标题右侧
+                        if (leftContainer.clientWidth > 0 && leftContainer.scrollWidth > leftContainer.clientWidth + 1) {
+                            leftContainer.removeChild(btn);
+                            leftFull = true;
+                            rightContainer.appendChild(btn);
+                        }
+                    } else {
+                        rightContainer.appendChild(btn);
+                    }
+                });
+            }
+
+            // 窗口缩放或字体加载完成时，动态重算左右分布
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (videoList.length > 0) renderHeaderVideos();
+                }, 120);
+            });
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(() => {
+                    if (videoList.length > 0) renderHeaderVideos();
+                });
+            }
+            // 右侧视频较多时支持鼠标滚轮横向滚动
+            document.getElementById('headerVideoRight').addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    e.currentTarget.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+
+            function openVideoPage(video) {
+                const url = (video.url || '').trim();
+                if (!url) {
+                    showToast('该教程尚未配置有效链接', 'warn');
+                    return;
+                }
+                const isDirectVideo = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url);
+                if (isDirectVideo) {
+                    const win = window.open('', '_blank');
+                    if (!win) {
+                        showToast('浏览器拦截了新窗口，请允许弹窗后重试', 'warn');
+                        return;
+                    }
+                    const safeTitle = escapeHtml(video.title);
+                    const safeUrl = escapeHtml(url);
+                    win.document.write(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${safeTitle} - 视频教程</title>
+<style>
+  body { margin:0; background:#0f172a; color:#f8fafc; font-family:'Noto Sans SC', sans-serif; display:flex; flex-direction:column; min-height:100vh; }
+  header { padding:14px 24px; background:#1e293b; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.4); }
+  h2 { font-size:18px; margin:0; font-weight:600; }
+  a.dl { color:#38bdf8; text-decoration:none; font-size:14px; border:1px solid #38bdf8; padding:4px 12px; border-radius:6px; }
+  a.dl:hover { background:#38bdf8; color:#0f172a; }
+  main { flex:1; display:flex; align-items:center; justify-content:center; padding:20px; }
+  video { max-width:95vw; max-height:82vh; border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,0.6); background:#000; outline:none; }
+</style>
+</head>
+<body>
+  <header>
+    <h2>🎬 ${safeTitle}</h2>
+    <a class="dl" href="${safeUrl}" target="_blank" download>下载/原链接打开</a>
+  </header>
+  <main>
+    <video src="${safeUrl}" controls autoplay playsinline></video>
+  </main>
+</body>
+</html>`);
+                    win.document.close();
+                } else {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                }
+            }
+
+            // ================= Token 验证与首次初始化 =================
+            async function verifyToken(silent = false) {
+                const inputToken = document.getElementById('ghTokenInput').value.trim();
+                if (!inputToken) {
+                    if (!silent) showToast('请先输入 GitHub Token', 'warn');
+                    return;
+                }
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${GH_CFG.owner}/${GH_CFG.repo}`, {
+                        headers: {
+                            'Authorization': `token ${inputToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    if (!res.ok) {
+                        throw new Error('Token 无效或无权访问该仓库');
+                    }
+                    const repoInfo = await res.json();
+                    if (!repoInfo.permissions || !repoInfo.permissions.push) {
+                        throw new Error('该 Token 只有只读权限，缺少仓库写入(push)权限');
+                    }
+
+                    currentToken = inputToken;
+                    isVerified = true;
+
+                    if (document.getElementById('rememberTokenChk').checked) {
+                        localStorage.setItem('gh_amazon_video_token', currentToken);
+                    }
+                    updateAuthUI();
+
+                    const cfgRes = await fetch(`${getConfigApiUrl()}?ref=${GH_CFG.branch}&t=${Date.now()}`, {
+                        headers: {
+                            'Authorization': `token ${currentToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    if (cfgRes.status === 404) {
+                        videoList = [];
+                        configSha = null;
+                        await saveConfigToGitHub('首次验证自动创建 videos.json');
+                        if (!silent) showToast('验证成功！已自动在「视频存储」创建 videos.json', 'success');
+                    } else if (cfgRes.ok) {
+                        const data = await cfgRes.json();
+                        configSha = data.sha;
+                        videoList = JSON.parse(base64ToUtf8(data.content || '') || '[]');
+                        if (!silent) showToast('Token 验证成功！已解锁全部管理操作', 'success');
+                    }
+
+                    renderHeaderVideos();
+                    renderManagerTable();
+                } catch (err) {
+                    isVerified = false;
+                    currentToken = '';
+                    updateAuthUI();
+                    if (!silent) showToast(`验证失败：${err.message}`, 'error');
+                }
+            }
+
+            function clearToken() {
+                isVerified = false;
+                currentToken = '';
+                editingIndex = -1;
+                document.getElementById('ghTokenInput').value = '';
+                localStorage.removeItem('gh_amazon_video_token');
+                updateAuthUI();
+                renderManagerTable();
+                showToast('已退出验证，恢复只读锁定状态', 'info');
+            }
+
+            function updateAuthUI() {
+                const pill = document.getElementById('authStatusPill');
+                const hdrBtn = document.getElementById('openVideoMgrBtn');
+                const hdrIcon = document.getElementById('headerLockIcon');
+                if (isVerified) {
+                    pill.className = 'status-pill verified';
+                    pill.textContent = '🔓 已验证（可管理）';
+                    hdrBtn.classList.add('verified');
+                    hdrIcon.textContent = '🔓';
+                } else {
+                    pill.className = 'status-pill unverified';
+                    pill.textContent = '🔒 未验证（只读模式）';
+                    hdrBtn.classList.remove('verified');
+                    hdrIcon.textContent = '🔒';
+                }
+            }
+
+            // ================= GitHub 写入操作 =================
+            async function saveConfigToGitHub(commitMsg) {
+                const body = {
+                    message: commitMsg || '更新视频教程配置 videos.json',
+                    content: utf8ToBase64(JSON.stringify(videoList, null, 2)),
+                    branch: GH_CFG.branch
+                };
+                if (configSha) {
+                    body.sha = configSha;
+                }
+                const res = await fetch(getConfigApiUrl(), {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `保存失败 (${res.status})`);
+                }
+                const data = await res.json();
+                configSha = data.content.sha;
+            }
+
+            async function uploadVideoToGitHub() {
+                if (!requireVerified()) return;
+
+                const titleInput = document.getElementById('uploadVideoTitle');
+                const fileInput = document.getElementById('uploadVideoFile');
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    showToast('请先选择要上传的视频文件', 'warn');
+                    return;
+                }
+                if (file.size > 50 * 1024 * 1024) {
+                    showToast('文件超过 50MB，浏览器直传易失败，请手动上传至 GitHub 后用「扫描仓库」添加', 'error');
+                    return;
+                }
+
+                const title = titleInput.value.trim() || file.name.replace(/\.[^.]+$/, '');
+                const fileName = file.name;
+                const fileApiUrl = `https://api.github.com/repos/${GH_CFG.owner}/${GH_CFG.repo}/contents/${encodeURIComponent(GH_CFG.folder)}/${encodeURIComponent(fileName)}`;
+
+                showToast('正在读取并上传视频到 GitHub，请勿关闭页面...', 'info');
+
+                try {
+                    const base64Content = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+
+                    let existingSha = null;
+                    const checkRes = await fetch(`${fileApiUrl}?ref=${GH_CFG.branch}`, { headers: getAuthHeaders() });
+                    if (checkRes.ok) {
+                        const checkData = await checkRes.json();
+                        existingSha = checkData.sha;
+                    }
+
+                    const putBody = {
+                        message: `上传视频教程: ${fileName}`,
+                        content: base64Content,
+                        branch: GH_CFG.branch
+                    };
+                    if (existingSha) putBody.sha = existingSha;
+
+                    const putRes = await fetch(fileApiUrl, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(putBody)
+                    });
+                    if (!putRes.ok) {
+                        const err = await putRes.json().catch(() => ({}));
+                        throw new Error(err.message || `上传失败 (${putRes.status})`);
+                    }
+
+                    const videoUrl = `${getPagesBaseUrl()}/${encodeURIComponent(fileName)}`;
+                    videoList.push({
+                        id: String(Date.now()),
+                        title: title,
+                        url: videoUrl,
+                        filePath: `${GH_CFG.folder}/${fileName}`,
+                        updatedAt: new Date().toLocaleString('zh-CN')
+                    });
+
+                    await saveConfigToGitHub(`添加视频教程条目: ${title}`);
+                    titleInput.value = '';
+                    fileInput.value = '';
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    showToast('上传并添加成功！（GitHub Pages 约 30 秒同步生效）', 'success');
+                } catch (err) {
+                    showToast(`上传失败：${err.message}`, 'error');
+                }
+            }
+
+            async function addVideoLink() {
+                if (!requireVerified()) return;
+
+                const titleEl = document.getElementById('linkVideoTitle');
+                const urlEl = document.getElementById('linkVideoUrl');
+                const title = titleEl.value.trim();
+                const url = urlEl.value.trim();
+
+                if (!title || !url) {
+                    showToast('请填写完整的视频标题和链接', 'warn');
+                    return;
+                }
+
+                try {
+                    videoList.push({
+                        id: String(Date.now()),
+                        title: title,
+                        url: url,
+                        updatedAt: new Date().toLocaleString('zh-CN')
+                    });
+                    await saveConfigToGitHub(`添加视频链接: ${title}`);
+                    titleEl.value = '';
+                    urlEl.value = '';
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    showToast('添加视频链接成功！', 'success');
+                } catch (err) {
+                    videoList.pop();
+                    showToast(`保存失败：${err.message}`, 'error');
+                }
+            }
+
+            async function scanRepoVideos() {
+                if (!requireVerified()) return;
+                try {
+                    const folderUrl = `https://api.github.com/repos/${GH_CFG.owner}/${GH_CFG.repo}/contents/${encodeURIComponent(GH_CFG.folder)}?ref=${GH_CFG.branch}&t=${Date.now()}`;
+                    const res = await fetch(folderUrl, { headers: getAuthHeaders() });
+                    if (!res.ok) throw new Error(`扫描失败 (${res.status})`);
+                    const files = await res.json();
+                    const videoExts = /\.(mp4|webm|ogg|mov|m4v)$/i;
+                    const existingPaths = new Set(videoList.map(v => v.filePath).filter(Boolean));
+                    const existingUrls = new Set(videoList.map(v => v.url));
+
+                    let addedCount = 0;
+                    files.forEach(f => {
+                        if (f.type === 'file' && videoExts.test(f.name)) {
+                            const pageUrl = `${getPagesBaseUrl()}/${encodeURIComponent(f.name)}`;
+                            if (!existingPaths.has(f.path) && !existingUrls.has(pageUrl)) {
+                                videoList.push({
+                                    id: String(Date.now() + addedCount),
+                                    title: f.name.replace(/\.[^.]+$/, ''),
+                                    url: pageUrl,
+                                    filePath: f.path,
+                                    updatedAt: new Date().toLocaleString('zh-CN')
+                                });
+                                addedCount++;
+                            }
+                        }
+                    });
+
+                    if (addedCount === 0) {
+                        showToast('「视频存储」目录下没有未导入的新视频文件', 'info');
+                        return;
+                    }
+                    await saveConfigToGitHub(`扫描导入 ${addedCount} 个视频教程`);
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    showToast(`成功扫描并导入 ${addedCount} 个视频！`, 'success');
+                } catch (err) {
+                    showToast(`扫描出错：${err.message}`, 'error');
+                }
+            }
+
+            // ================= 表格渲染与编辑/删除/排序 =================
+            function renderManagerTable() {
+                const tbody = document.getElementById('mgrVideoTableBody');
+                if (!videoList || videoList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b; padding:16px;">暂无视频教程</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+                videoList.forEach((item, idx) => {
+                    const tr = document.createElement('tr');
+                    if (editingIndex === idx) {
+                        tr.innerHTML = `
+                            <td>${idx + 1}</td>
+                            <td><input type="text" class="form-input" id="editTitle_${idx}" value="${escapeHtml(item.title)}" style="min-width:120px;"></td>
+                            <td><input type="text" class="form-input" id="editUrl_${idx}" value="${escapeHtml(item.url)}" style="min-width:160px;"></td>
+                            <td>
+                                <button class="btn btn-success btn-sm" onclick="saveEditVideo(${idx})">保存</button>
+                                <button class="btn btn-secondary btn-sm" onclick="cancelEditVideo()">取消</button>
+                            </td>
+                        `;
+                    } else {
+                        tr.innerHTML = `
+                            <td>${idx + 1}</td>
+                            <td style="font-weight:600;">${escapeHtml(item.title)}</td>
+                            <td><a class="url-preview" href="${escapeHtml(item.url)}" target="_blank" title="${escapeHtml(item.url)}">${escapeHtml(item.url)}</a></td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm" onclick="moveVideo(${idx}, -1)" title="上移">↑</button>
+                                <button class="btn btn-secondary btn-sm" onclick="moveVideo(${idx}, 1)" title="下移">↓</button>
+                                <button class="btn btn-primary btn-sm" onclick="startEditVideo(${idx})">编辑</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteVideo(${idx})">删除</button>
+                            </td>
+                        `;
+                    }
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function startEditVideo(idx) {
+                if (!requireVerified()) return;
+                editingIndex = idx;
+                renderManagerTable();
+            }
+
+            function cancelEditVideo() {
+                editingIndex = -1;
+                renderManagerTable();
+            }
+
+            async function saveEditVideo(idx) {
+                if (!requireVerified()) return;
+                const newTitle = document.getElementById(`editTitle_${idx}`).value.trim();
+                const newUrl = document.getElementById(`editUrl_${idx}`).value.trim();
+                if (!newTitle || !newUrl) {
+                    showToast('标题和链接不能为空', 'warn');
+                    return;
+                }
+                const backup = { ...videoList[idx] };
+                videoList[idx] = {
+                    ...videoList[idx],
+                    title: newTitle,
+                    url: newUrl,
+                    updatedAt: new Date().toLocaleString('zh-CN')
+                };
+                try {
+                    await saveConfigToGitHub(`更新视频教程: ${newTitle}`);
+                    editingIndex = -1;
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    showToast('更新成功！', 'success');
+                } catch (err) {
+                    videoList[idx] = backup;
+                    showToast(`更新失败：${err.message}`, 'error');
+                }
+            }
+
+            async function moveVideo(idx, direction) {
+                if (!requireVerified()) return;
+                const targetIdx = idx + direction;
+                if (targetIdx < 0 || targetIdx >= videoList.length) return;
+                const temp = videoList[idx];
+                videoList[idx] = videoList[targetIdx];
+                videoList[targetIdx] = temp;
+                try {
+                    await saveConfigToGitHub('调整视频教程排序');
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    showToast('排序已更新', 'success');
+                } catch (err) {
+                    videoList[targetIdx] = videoList[idx];
+                    videoList[idx] = temp;
+                    showToast(`排序保存失败：${err.message}`, 'error');
+                }
+            }
+
+            async function deleteVideo(idx) {
+                if (!requireVerified()) return;
+                const target = videoList[idx];
+                if (!confirm(`确定要删除视频教程「${target.title}」吗？`)) return;
+
+                let deleteSourceFile = false;
+                if (target.filePath) {
+                    deleteSourceFile = confirm(`检测到该教程关联仓库文件（${target.filePath}），是否一并从 GitHub「视频存储」中物理删除该视频文件？\n\n点击「确定」同时删除原视频文件；点击「取消」仅从列表移除。`);
+                }
+
+                try {
+                    if (deleteSourceFile && target.filePath) {
+                        const encodedPath = target.filePath.split('/').map(encodeURIComponent).join('/');
+                        const fileApi = `https://api.github.com/repos/${GH_CFG.owner}/${GH_CFG.repo}/contents/${encodedPath}`;
+                        const checkRes = await fetch(`${fileApi}?ref=${GH_CFG.branch}`, { headers: getAuthHeaders() });
+                        if (checkRes.ok) {
+                            const fileInfo = await checkRes.json();
+                            await fetch(fileApi, {
+                                method: 'DELETE',
+                                headers: getAuthHeaders(),
+                                body: JSON.stringify({
+                                    message: `删除视频文件: ${target.filePath}`,
+                                    sha: fileInfo.sha,
+                                    branch: GH_CFG.branch
+                                })
+                            });
+                        }
+                    }
+
+                    videoList.splice(idx, 1);
+                    await saveConfigToGitHub(`删除视频教程: ${target.title}`);
+                    renderHeaderVideos();
+                    renderManagerTable();
+                    showToast('删除成功！', 'success');
+                } catch (err) {
+                    showToast(`删除失败：${err.message}`, 'error');
+                    loadVideosFromGitHub();
+                }
+            }
+
+            // ================= 弹窗开关 =================
+            function openVideoModal() {
+                document.getElementById('videoMgrModal').classList.add('show');
+                renderManagerTable();
+            }
+            function closeVideoModal() {
+                document.getElementById('videoMgrModal').classList.remove('show');
+                editingIndex = -1;
+            }
+            document.getElementById('videoMgrModal').addEventListener('click', (e) => {
+                if (e.target.id === 'videoMgrModal') closeVideoModal();
+            });
+
+            // ================= 报告导航逻辑 =================
             function navigateToReport(index) {
                 const sections = document.querySelectorAll('.visualization-section');
+                if (index < 0 || index >= sections.length) index = 0;
                 sections.forEach((section, i) => {
                     section.style.display = i === index ? 'block' : 'none';
                 });
 
-                // 更新按钮状态
                 document.querySelectorAll('.nav-btn').forEach((btn, i) => {
                     if (i === index) {
                         btn.classList.add('active');
@@ -20949,53 +21763,31 @@ old
                         btn.classList.remove('active');
                     }
                 });
-
-                // 更新URL hash
                 window.location.hash = `#report-${index + 1}`;
             }
 
-            // 页面加载时显示第一个报告
-            document.addEventListener('DOMContentLoaded', () => {
-                // 从URL hash获取报告索引
+            document.addEventListener('DOMContentLoaded', async () => {
                 const hash = window.location.hash;
                 let initialIndex = 0;
-
                 if (hash.startsWith('#report-')) {
-                    const reportNum = parseInt(hash.replace('#report-', ''));
+                    const reportNum = parseInt(hash.replace('#report-', ''), 10);
                     if (!isNaN(reportNum) && reportNum > 0) {
                         initialIndex = reportNum - 1;
                     }
                 }
-
-
-                // 显示报告
                 if (document.querySelectorAll('.visualization-section').length > 0) {
                     navigateToReport(initialIndex);
                 }
 
-                // 显示当前日期
-                const now = new Date();
-                document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const savedToken = localStorage.getItem('gh_amazon_video_token');
+                if (savedToken) {
+                    document.getElementById('ghTokenInput').value = savedToken;
+                    document.getElementById('rememberTokenChk').checked = true;
+                    await verifyToken(true);
+                }
 
-                // 显示最后更新时间
-                document.getElementById('lastUpdate').textContent = now.toLocaleDateString('zh-CN', {
-                    month: 'short',
-                    day: 'numeric'
-                });
-
-                // 显示报告数量
-                const reportCount = document.querySelectorAll('.visualization-section').length;
-                document.getElementById('reportCount').textContent = reportCount;
-
-                // 显示图表总数（估算）
-                document.getElementById('totalCharts').textContent = reportCount * 3;
+                await loadVideosFromGitHub();
             });
-  </script>
- </body>
+        </script>
+</body>
 </html>
