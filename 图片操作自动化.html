@@ -8287,7 +8287,22 @@ B07Z987654&quot;&gt;&lt;/textarea&gt;
 
 
 
-"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!--非常抱歉！从你截图一眼就能看出原因：--&gt;
+
+&lt;!--我在 exportStandaloneHtml() 函数里写了一句中文注释：--&gt;
+
+&lt;!--// 3. 安全序列化 JSON（转义 &lt; &gt; 防止 &lt;/script&gt; 截断）--&gt;
+
+&lt;!--HTML 解析器只要在 &lt;script&gt; 标签内部扫到字面量 &lt;/script&gt;（哪怕是在 JS 注释里），就会立刻强行把 &lt;script&gt;--&gt;
+&lt;!--标签提前闭合，导致后面的 JS 代码直接显示在页面上并报 Uncaught SyntaxError: Unexpected end of input。--&gt;
+
+&lt;!--最快修复方法（只改 1 行）--&gt;
+
+&lt;!--在你的文件里搜索 防止 &lt;/script&gt; 截断，把注释里的 &lt;/script&gt; 删掉或改成 闭合标签 即可正常使用！--&gt;
+
+&lt;!--或者直接复制下面这份已彻底修复并检查过的完整代码覆盖保存：--&gt;
+
+&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;zh-CN&quot;&gt;
 &lt;head&gt;
 &lt;meta charset=&quot;UTF-8&quot; /&gt;
@@ -8360,6 +8375,8 @@ body{
 .drop:hover{border-color:var(--primary);background:var(--primary-soft);}
 .drop.dragover{border-color:var(--primary);background:#e8f0ff;box-shadow:0 0 0 4px rgba(79,124,255,.14);}
 .drop.done{border-style:solid;border-color:#b7e6d0;background:#f6fdfa;}
+.drop.readonly{cursor:default;border-style:solid;border-color:#b7e6d0;background:#f6fdfa;}
+.drop.readonly:hover{border-color:#b7e6d0;background:#f6fdfa;}
 .drop-title{font-weight:600;font-size:13.5px;color:#1e293b;margin-bottom:5px;}
 .drop-sub{font-size:12px;color:var(--muted);word-break:break-all;line-height:1.6;}
 .drop-hint{position:absolute;right:14px;top:14px;font-size:11px;color:#9fb0c9;}
@@ -8466,11 +8483,18 @@ body{
 .btn:disabled{opacity:.45;cursor:not-allowed;}
 .btn.primary{background:linear-gradient(135deg,#5b8bff,#4f7cff);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(79,124,255,.28);}
 .btn.primary:hover{filter:brightness(1.05);}
+.btn.export-html{background:linear-gradient(135deg,#10b981,#059669);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(16,185,129,.25);}
+.btn.export-html:hover{filter:brightness(1.05);}
 .btn.hot{background:linear-gradient(135deg,#ff8a5c,#ff6b35);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(255,107,53,.25);}
 .btn.hot.active{background:linear-gradient(135deg,#ff6b35,#e85520);box-shadow:0 0 0 3px rgba(255,107,53,.18);}
 .btn.danger{background:#fff;border-color:#fca5a5;color:#dc2626;}
 .btn.danger:hover{background:#fef2f2;border-color:#f87171;}
 .btn-sm{padding:4px 9px;font-size:11.5px;border-radius:7px;}
+.btn.metric-active{
+  background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;
+  box-shadow:0 2px 6px rgba(79,124,255,.25);
+}
+.btn.metric-active:hover{background:var(--primary);color:#fff;filter:brightness(1.04);}
 
 .seg{display:flex;border:1px solid #dbe3ef;border-radius:10px;overflow:hidden;background:#fff;}
 .seg button{
@@ -8781,13 +8805,13 @@ body{
     &lt;/div&gt;
   &lt;/div&gt;
 
-  &lt;div class=&quot;panel&quot;&gt;
+  &lt;div class=&quot;panel&quot; id=&quot;panelStep1&quot;&gt;
     &lt;div class=&quot;panel-head&quot;&gt;
-      &lt;div class=&quot;panel-title&quot;&gt;第一步 · 上传数据文件（支持拖拽 · 自动持久化记忆）&lt;/div&gt;
+      &lt;div class=&quot;panel-title&quot; id=&quot;panel1Title&quot;&gt;第一步 · 上传数据文件（支持拖拽 · 自动持久化记忆）&lt;/div&gt;
       &lt;button class=&quot;btn danger btn-sm&quot; id=&quot;btnClearDataTop&quot; title=&quot;清除保存在浏览器中的数据&quot;&gt;🗑️ 清空已存数据&lt;/button&gt;
     &lt;/div&gt;
 
-    &lt;div class=&quot;upload-row&quot;&gt;
+    &lt;div class=&quot;upload-row&quot; id=&quot;uploadRow&quot;&gt;
       &lt;!-- ① 当前商品数据 --&gt;
       &lt;label class=&quot;drop&quot; id=&quot;dropCur&quot;&gt;
         &lt;input type=&quot;file&quot; id=&quot;fileCurrent&quot; accept=&quot;.xlsx,.xls,.csv&quot; hidden&gt;
@@ -8797,7 +8821,7 @@ body{
       &lt;/label&gt;
 
       &lt;!-- ② 历史数据与子表关键字设置 --&gt;
-      &lt;div&gt;
+      &lt;div id=&quot;histColWrap&quot;&gt;
         &lt;label class=&quot;drop&quot; id=&quot;dropHist&quot;&gt;
           &lt;input type=&quot;file&quot; id=&quot;fileHistory&quot; accept=&quot;.xlsx,.xls,.csv&quot; multiple hidden&gt;
           &lt;div class=&quot;drop-hint&quot;&gt;支持多选 / 拖拽多个文件&lt;/div&gt;
@@ -8806,8 +8830,8 @@ body{
         &lt;/label&gt;
 
         &lt;!-- 历史子表设置卡片 --&gt;
-        &lt;div class=&quot;sheet-cfg-box&quot;&gt;
-          &lt;div class=&quot;sheet-cfg-title&quot;&gt;
+        &lt;div class=&quot;sheet-cfg-box&quot; id=&quot;sheetCfgBox&quot;&gt;
+          &lt;div class=&quot;sheet-cfg-title&quot; id=&quot;sheetCfgTitle&quot;&gt;
             &lt;span&gt;📑 提取子表指标（精准单选 · 彻底排除子体）：&lt;/span&gt;
             &lt;span id=&quot;detectedSheetsHint&quot; style=&quot;font-size:11px; color:#64748b;&quot;&gt;支持手动输入或点选下方子表&lt;/span&gt;
           &lt;/div&gt;
@@ -8816,11 +8840,11 @@ body{
           &lt;div class=&quot;sheet-quick-bar&quot;&gt;
             &lt;span style=&quot;font-size:11.5px;color:var(--muted);font-weight:600;&quot;&gt;快速切换指标：&lt;/span&gt;
             &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月销量')&quot; id=&quot;btnQuickSales&quot;&gt;🔥 历史销量&lt;/button&gt;
-            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月销售额')&quot; id=&quot;btnQuickRevenue&quot;&gt;💰 历史销售额&lt;/button&gt;
+            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm metric-active&quot; onclick=&quot;quickSelectKeyword('历史月销售额')&quot; id=&quot;btnQuickRevenue&quot;&gt;💰 历史销售额&lt;/button&gt;
             &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月价格')&quot; id=&quot;btnQuickPrice&quot;&gt;🏷️ 历史月价格&lt;/button&gt;
           &lt;/div&gt;
 
-          &lt;div class=&quot;sheet-input-row&quot;&gt;
+          &lt;div class=&quot;sheet-input-row&quot; id=&quot;sheetInputRow&quot;&gt;
             &lt;input type=&quot;text&quot; id=&quot;histSheetKeyword&quot; class=&quot;sheet-input&quot; value=&quot;历史月销售额&quot; placeholder=&quot;输入要提取合并的子表名称...&quot;&gt;
             &lt;button class=&quot;btn btn-sm primary&quot; id=&quot;btnReMergeHist&quot; type=&quot;button&quot; style=&quot;padding:6px 14px;&quot;&gt;应用合并&lt;/button&gt;
           &lt;/div&gt;
@@ -8830,7 +8854,7 @@ body{
       &lt;/div&gt;
     &lt;/div&gt;
 
-    &lt;div class=&quot;hint&quot;&gt;
+    &lt;div class=&quot;hint&quot; id=&quot;panel1Hint&quot;&gt;
       &lt;span&gt;&lt;b&gt;说明：&lt;/b&gt;两份文件通过 &lt;b&gt;ASIN&lt;/b&gt; 关联，分析结果及历史数据已启用 &lt;b&gt;IndexedDB 浏览器长期记忆&lt;/b&gt;，刷新页面依然保留。&lt;/span&gt;
       &lt;span style=&quot;color:#059669;font-weight:600;&quot;&gt;💾 数据本地安全存储&lt;/span&gt;
     &lt;/div&gt;
@@ -8877,6 +8901,9 @@ body{
       &lt;input type=&quot;text&quot; class=&quot;search&quot; id=&quot;searchBox&quot; placeholder=&quot;搜索 ASIN / 标题 / 品牌…&quot;&gt;
       &lt;button class=&quot;btn&quot; id=&quot;btnReset&quot;&gt;重置参数&lt;/button&gt;
       &lt;button class=&quot;btn danger&quot; id=&quot;btnClearData&quot;&gt;🗑️ 清空数据&lt;/button&gt;
+
+      &lt;!-- 导出独立分享版 HTML --&gt;
+      &lt;button class=&quot;btn export-html&quot; id=&quot;btnExportHtml&quot; title=&quot;导出为独立HTML网页发给别人，内置当前所有数据与三大历史指标切换，不可上传&quot;&gt;🌐 导出 HTML&lt;/button&gt;
 
       &lt;!-- 导出面板 --&gt;
       &lt;div class=&quot;export-wrap&quot;&gt;
@@ -8995,6 +9022,8 @@ const DB_NAME = 'AmazonHotFinderDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'dataset';
 
+let IS_SNAPSHOT_MODE = false;
+
 const dbHelper = {
   db: null,
   async open(){
@@ -9066,6 +9095,7 @@ function parseMonthHeader(header){
 }
 
 const PAGE_SIZE = 100;
+const STANDARD_METRICS = ['历史月销量', '历史月销售额', '历史月价格'];
 
 const state = {
   curFileName: '',
@@ -9078,6 +9108,7 @@ const state = {
   histColRawNames: {},
   histMap: {},
   histRawBooks: [],
+  histMetricsBundle: {},
   detectedSheetNames: [],
   merged: [],
   filtered: [],
@@ -9148,6 +9179,7 @@ function tsName(){
 }
 function toast(msg){
   const el = $('toast');
+  if (!el) return;
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(el._t);
@@ -9179,6 +9211,22 @@ function getMetricShortName(){
   return title;
 }
 
+function updateQuickMetricButtons(keyword){
+  const kw = (keyword || '').trim();
+  const btnSales = $('btnQuickSales');
+  const btnRev = $('btnQuickRevenue');
+  const btnPrice = $('btnQuickPrice');
+  if (!btnSales || !btnRev || !btnPrice) return;
+  [btnSales, btnRev, btnPrice].forEach(b =&gt; b.classList.remove('metric-active'));
+  if (kw.includes('销售额') || kw.includes('金额')){
+    btnRev.classList.add('metric-active');
+  } else if (kw.includes('价格') || kw.includes('售价')){
+    btnPrice.classList.add('metric-active');
+  } else if (kw.includes('销量')){
+    btnSales.classList.add('metric-active');
+  }
+}
+
 /* =========================================================
  *  并发执行器
  * ========================================================= */
@@ -9199,21 +9247,30 @@ async function mapLimit(items, limit, fn, onProgress){
 }
 
 /* =========================================================
- *  持久化存储逻辑
+ *  持久化存储逻辑（导出快照模式下自动禁用）
  * ========================================================= */
 async function saveAllToStorage(){
+  if (IS_SNAPSHOT_MODE) return;
   try{
     const cfg = getConfig();
+    const sanitizedRows = state.curRows.map(row =&gt; {
+      const obj = {};
+      for (const k in row){
+        const val = row[k];
+        obj[k] = (val instanceof Date) ? fmtDate(val) : val;
+      }
+      return obj;
+    });
     const payload = {
       curFileName: state.curFileName,
       curHeaders: state.curHeaders,
-      curRows: state.curRows,
+      curRows: sanitizedRows,
       histFileName: state.histFileName,
-      histHeaders: state.histHeaders,
-      histRows: state.histRows,
       histMonthCols: state.histMonthCols,
       histColRawNames: state.histColRawNames,
       histMap: state.histMap,
+      histRowCount: state.histRows ? state.histRows.length : 0,
+      histMetricsBundle: state.histMetricsBundle || {},
       histSheetKeyword: ($('histSheetKeyword').value || '').trim(),
       config: cfg
     };
@@ -9224,6 +9281,7 @@ async function saveAllToStorage(){
 }
 
 async function restoreFromStorage(){
+  if (IS_SNAPSHOT_MODE) return;
   try{
     const cached = await dbHelper.get('main_session');
     if (!cached) return;
@@ -9249,17 +9307,34 @@ async function restoreFromStorage(){
       $('curName').innerHTML = '✅ ' + esc(state.curFileName) + '（已自动恢复 ' + state.curRows.length + ' 条）';
     }
 
-    if (cached.histRows &amp;&amp; cached.histRows.length){
+    if (cached.histMetricsBundle &amp;&amp; Object.keys(cached.histMetricsBundle).length){
+      state.histMetricsBundle = cached.histMetricsBundle;
+    } else if (cached.histMap &amp;&amp; Object.keys(cached.histMap).length){
+      const kw = ($('histSheetKeyword').value || '').trim() || '历史月销售额';
+      state.histMetricsBundle = {
+        [kw]: {
+          keyword: kw,
+          sheetName: kw,
+          matchedCount: 1,
+          rowCount: cached.histRowCount || 0,
+          months: cached.histMonthCols || [],
+          colRawNames: cached.histColRawNames || {},
+          map: cached.histMap
+        }
+      };
+    }
+
+    if ((cached.histMap &amp;&amp; Object.keys(cached.histMap).length) || Object.keys(state.histMetricsBundle).length){
       state.histFileName = cached.histFileName || '历史数据.xlsx';
-      state.histHeaders = cached.histHeaders || [];
-      state.histRows = cached.histRows || [];
       state.histMonthCols = cached.histMonthCols || [];
       state.histColRawNames = cached.histColRawNames || {};
       state.histMap = cached.histMap || {};
+      const rowCnt = cached.histRowCount || (cached.histRows ? cached.histRows.length : 0);
       $('dropHist').classList.add('done');
-      $('histName').innerHTML = '✅ ' + esc(state.histFileName) + '（已自动恢复 ' + state.histRows.length + ' 条 · ' + state.histMonthCols.length + ' 个月份）';
+      $('histName').innerHTML = '✅ ' + esc(state.histFileName) + '（已自动恢复 ' + (rowCnt ? rowCnt + ' 条 · ' : '') + state.histMonthCols.length + ' 个月份）';
     }
 
+    updateQuickMetricButtons($('histSheetKeyword').value);
     updateExportLabelHint();
 
     if (state.curRows.length){
@@ -9272,6 +9347,7 @@ async function restoreFromStorage(){
 }
 
 async function clearAllData(){
+  if (IS_SNAPSHOT_MODE) return;
   if (!confirm('确定要清空已记忆的商品和历史数据吗？\n清空后页面将被重置，需要重新上传。')) return;
   try{
     await dbHelper.clear();
@@ -9285,6 +9361,7 @@ async function clearAllData(){
     state.histColRawNames = {};
     state.histMap = {};
     state.histRawBooks = [];
+    state.histMetricsBundle = {};
     state.detectedSheetNames = [];
     state.merged = [];
     state.filtered = [];
@@ -9410,7 +9487,7 @@ function sheetToTable(ws){
 }
 
 async function handleCurrentFile(f){
-  if (!f) return;
+  if (IS_SNAPSHOT_MODE || !f) return;
   try{
     const wb = await readWorkbook(f);
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -9430,13 +9507,14 @@ async function handleCurrentFile(f){
 }
 
 /* =========================================================
- *  历史数据子表匹配逻辑（核心防翻倍：单文件唯一单选 + 产品/子体彻底互斥）
+ *  历史数据子表匹配与多指标打包提取
  * ========================================================= */
 async function handleHistoryFiles(fileList){
+  if (IS_SNAPSHOT_MODE) return;
   const files = Array.from(fileList || []).filter(f =&gt; /\.(xlsx|xls|csv)$/i.test(f.name));
   if (!files.length) return;
 
-  toast(`正在解析 ${files.length} 个历史数据文件...`);
+  toast(`正在解析 ${files.length} 个历史数据文件及多指标子表...`);
   try{
     const rawBooks = [];
     const allSheetNamesSet = new Set();
@@ -9447,6 +9525,9 @@ async function handleHistoryFiles(fileList){
     }
     state.histRawBooks = rawBooks;
     state.detectedSheetNames = Array.from(allSheetNamesSet);
+    state.histMetricsBundle = {};
+
+    ensureStandardMetricsBundled();
 
     renderDetectedSheetChips();
     processHistoryMerge();
@@ -9456,23 +9537,6 @@ async function handleHistoryFiles(fileList){
   }
 }
 
-// 快速切换常用子表
-window.quickSelectKeyword = function(keyword){
-  $('histSheetKeyword').value = keyword;
-  renderDetectedSheetChips();
-  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
-    processHistoryMerge();
-  } else {
-    updateExportLabelHint();
-    saveAllToStorage();
-    toast(`已设定关键字「${keyword}」，上传历史文件后将精准匹配该子表`);
-  }
-};
-
-/**
- * 核心匹配函数：严格限制每个文件只匹配最多 1 个最精准的 Sheet！
- * 且「产品级」与「子体级」彻底排他互斥，防止翻倍！
- */
 function findBestSheetForWorkbook(sheetNames, keyword){
   if (!sheetNames || !sheetNames.length) return null;
   const kw = (keyword || '').trim().toLowerCase();
@@ -9480,11 +9544,9 @@ function findBestSheetForWorkbook(sheetNames, keyword){
 
   const wantsSub = kw.includes('子体') || kw.includes('变体');
 
-  // 1. 最高优先级：完全精准匹配（大小写无关）
   const exact = sheetNames.find(sn =&gt; sn.trim().toLowerCase() === kw);
   if (exact) return exact;
 
-  // 2. 候选过滤：如果不想要子体，坚决剔除任何含“子体/变体”的 Sheet
   let candidates = sheetNames;
   if (!wantsSub){
     candidates = sheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体'));
@@ -9493,11 +9555,9 @@ function findBestSheetForWorkbook(sheetNames, keyword){
   }
   if (!candidates.length) candidates = sheetNames;
 
-  // 3. 次高优先级：包含关键词
   const included = candidates.find(sn =&gt; sn.toLowerCase().includes(kw));
   if (included) return included;
 
-  // 4. 语义别名特征词精准保底（单选最符合的 1 个）
   let fallback = null;
   if (kw.includes('销售额') || kw.includes('金额')){
     fallback = candidates.find(sn =&gt; sn.includes('销售额') || sn.includes('金额'));
@@ -9510,7 +9570,157 @@ function findBestSheetForWorkbook(sheetNames, keyword){
   return fallback || null;
 }
 
-// 渲染检测到的子表标签（精准单选高亮，绝不多亮）
+function extractMetricFromBooks(keyword, rawBooks){
+  if (!rawBooks || !rawBooks.length) return null;
+  let matchedCount = 0;
+  const allRows = [];
+  const monthColsSet = new Set();
+  const allHeadersSet = new Set();
+  const rawColNameMap = {};
+  let sampleSheetName = '';
+
+  rawBooks.forEach(item =&gt; {
+    const wb = item.wb;
+    const names = wb.SheetNames || [];
+    const targetName = findBestSheetForWorkbook(names, keyword);
+    if (targetName &amp;&amp; wb.Sheets[targetName]){
+      matchedCount++;
+      sampleSheetName = targetName;
+      const t = sheetToTable(wb.Sheets[targetName]);
+      t.headers.forEach(h =&gt; {
+        allHeadersSet.add(h);
+        const parsed = parseMonthHeader(h);
+        if (parsed){
+          monthColsSet.add(parsed.normalized);
+          rawColNameMap[parsed.normalized] = parsed.rawHeader;
+        }
+      });
+      allRows.push(...t.rows);
+    }
+  });
+
+  if (!matchedCount) return null;
+
+  const months = Array.from(monthColsSet).sort((a, b) =&gt; (a &lt; b ? 1 : -1));
+  const isPrice = keyword.includes('价格') || keyword.includes('售价');
+  const map = {};
+
+  allRows.forEach(o =&gt; {
+    const asin = String(o['ASIN'] || '').trim().toUpperCase();
+    if (!asin) return;
+    if (!map[asin]) map[asin] = {};
+    months.forEach(normMonth =&gt; {
+      const rawHeader = rawColNameMap[normMonth] || normMonth;
+      const v = toNum(o[rawHeader] !== undefined ? o[rawHeader] : o[normMonth]);
+      if (v){
+        if (isPrice){
+          map[asin][normMonth] = v;
+        } else {
+          map[asin][normMonth] = (map[asin][normMonth] || 0) + v;
+        }
+      }
+    });
+  });
+
+  return {
+    keyword,
+    sheetName: sampleSheetName || keyword,
+    matchedCount,
+    rowCount: allRows.length,
+    headers: Array.from(allHeadersSet),
+    months,
+    colRawNames: rawColNameMap,
+    map
+  };
+}
+
+function ensureStandardMetricsBundled(){
+  if (!state.histRawBooks || !state.histRawBooks.length) return;
+  const curKw = ($('histSheetKeyword').value || '').trim();
+  const targets = [...STANDARD_METRICS];
+  if (curKw &amp;&amp; !targets.includes(curKw)) targets.push(curKw);
+
+  targets.forEach(kw =&gt; {
+    if (!state.histMetricsBundle[kw]){
+      const extracted = extractMetricFromBooks(kw, state.histRawBooks);
+      if (extracted){
+        state.histMetricsBundle[kw] = extracted;
+      }
+    }
+  });
+}
+
+function findMetricInBundle(keyword){
+  const bundle = state.histMetricsBundle || {};
+  if (bundle[keyword]) return bundle[keyword];
+  const kw = (keyword || '').trim().toLowerCase();
+  const keys = Object.keys(bundle);
+  for (const k of keys){
+    const m = bundle[k];
+    if (!m) continue;
+    if (k.toLowerCase() === kw || (m.sheetName &amp;&amp; m.sheetName.toLowerCase() === kw)) return m;
+  }
+  if (kw.includes('销售额') || kw.includes('金额')){
+    const hit = keys.find(k =&gt; k.includes('销售额') || k.includes('金额'));
+    if (hit) return bundle[hit];
+  } else if (kw.includes('价格') || kw.includes('售价')){
+    const hit = keys.find(k =&gt; k.includes('价格') || k.includes('售价'));
+    if (hit) return bundle[hit];
+  } else if (kw.includes('销量')){
+    const hit = keys.find(k =&gt; k.includes('销量') &amp;&amp; !k.includes('销售额'));
+    if (hit) return bundle[hit];
+  }
+  return null;
+}
+
+function applyMetricFromBundle(keyword, silent = false){
+  const metric = findMetricInBundle(keyword);
+  if (!metric){
+    if (!silent) toast(`当前数据中未找到「${keyword}」对应子表`);
+    return false;
+  }
+  $('histSheetKeyword').value = keyword;
+  state.histMonthCols = metric.months || [];
+  state.histColRawNames = metric.colRawNames || {};
+  state.histMap = metric.map || {};
+  updateQuickMetricButtons(keyword);
+  updateExportLabelHint();
+
+  const summaryEl = $('snapshotSummaryText');
+  if (IS_SNAPSHOT_MODE &amp;&amp; summaryEl){
+    summaryEl.innerHTML = `✅ 当前商品：&lt;b&gt;${esc(state.curFileName)}&lt;/b&gt;（${state.curRows.length} 条）&lt;br&gt;✅ 历史指标：&lt;b&gt;${esc(metric.sheetName || keyword)}&lt;/b&gt;（${state.histMonthCols.length} 个月份列）`;
+  } else if (!IS_SNAPSHOT_MODE) {
+    $('histName').innerHTML = `✅ ${esc(state.histFileName)}（当前展示「${esc(metric.sheetName || keyword)}」· ${metric.rowCount || ''} 条记录 · ${state.histMonthCols.length} 个月份列）`;
+  }
+
+  computeAll();
+  if (!silent) toast(`✅ 已切换至「${metric.sheetName || keyword}」`);
+  if (!IS_SNAPSHOT_MODE) saveAllToStorage();
+  return true;
+}
+
+window.quickSelectKeyword = function(keyword){
+  const prevKw = ($('histSheetKeyword').value || '').trim();
+  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
+    $('histSheetKeyword').value = keyword;
+    updateQuickMetricButtons(keyword);
+    renderDetectedSheetChips();
+    processHistoryMerge();
+  } else if (state.histMetricsBundle &amp;&amp; Object.keys(state.histMetricsBundle).length){
+    const ok = applyMetricFromBundle(keyword);
+    if (!ok) {
+      $('histSheetKeyword').value = prevKw;
+      updateQuickMetricButtons(prevKw);
+    }
+  } else {
+    $('histSheetKeyword').value = keyword;
+    updateQuickMetricButtons(keyword);
+    updateExportLabelHint();
+    saveAllToStorage();
+    toast(`已设定关键字「${keyword}」，上传历史文件后将精准匹配该子表`);
+  }
+};
+
 function renderDetectedSheetChips(){
   const area = $('sheetChipsArea');
   if (!state.detectedSheetNames || !state.detectedSheetNames.length){
@@ -9522,7 +9732,6 @@ function renderDetectedSheetChips(){
 
   let html = `&lt;span style=&quot;font-size:11px;color:#64748b;line-height:22px;&quot;&gt;检测到子表(点击填入)：&lt;/span&gt;`;
   state.detectedSheetNames.forEach(sn =&gt; {
-    // 精准高亮判断：只高亮当前选中的唯一个子表，或者最佳命中的子表
     const isAct = (curKey === sn) || (!sn.includes('子体') &amp;&amp; curKey &amp;&amp; sn.includes(curKey) &amp;&amp; !curKey.includes('子体'));
     html += `&lt;span class=&quot;sheet-chip ${isAct ? 'active' : ''}&quot; onclick=&quot;selectSheetChip('${esc(sn)}')&quot;&gt;${esc(sn)}&lt;/span&gt;`;
   });
@@ -9532,6 +9741,7 @@ function renderDetectedSheetChips(){
 
 window.selectSheetChip = function(sheetName){
   $('histSheetKeyword').value = sheetName;
+  updateQuickMetricButtons(sheetName);
   renderDetectedSheetChips();
   processHistoryMerge();
 };
@@ -9551,59 +9761,22 @@ function processHistoryMerge(){
   if (!state.histRawBooks || !state.histRawBooks.length) return;
 
   const keyword = ($('histSheetKeyword').value || '').trim();
-  let matchedSheetCount = 0;
-  const allRows = [];
-  const monthColsSet = new Set();
-  const allHeadersSet = new Set();
-  const rawColNameMap = {};
-  let targetSheetSampleName = '';
+  const extracted = extractMetricFromBooks(keyword, state.histRawBooks);
 
-  state.histRawBooks.forEach(item =&gt; {
-    const wb = item.wb;
-    const names = wb.SheetNames || [];
-
-    // 关键改变：每个工作簿只允许提取 1 个最精准的 Sheet！
-    const targetName = findBestSheetForWorkbook(names, keyword);
-
-    if (targetName &amp;&amp; wb.Sheets[targetName]){
-      matchedSheetCount++;
-      targetSheetSampleName = targetName;
-      const ws = wb.Sheets[targetName];
-      const t = sheetToTable(ws);
-
-      t.headers.forEach(h =&gt; {
-        allHeadersSet.add(h);
-        const parsed = parseMonthHeader(h);
-        if (parsed){
-          monthColsSet.add(parsed.normalized);
-          rawColNameMap[parsed.normalized] = parsed.rawHeader;
-        }
-      });
-      allRows.push(...t.rows);
-    }
-  });
-
-  state.histHeaders = Array.from(allHeadersSet);
-  state.histRows = allRows;
-  state.histMonthCols = Array.from(monthColsSet).sort((a, b) =&gt; (a &lt; b ? 1 : -1));
-  state.histColRawNames = rawColNameMap;
-
-  // ASIN 数据映射
-  const map = {};
-  allRows.forEach(o =&gt; {
-    const asin = String(o['ASIN'] || '').trim().toUpperCase();
-    if (!asin) return;
-    if (!map[asin]) map[asin] = {};
-
-    state.histMonthCols.forEach(normMonth =&gt; {
-      const rawHeader = rawColNameMap[normMonth] || normMonth;
-      const v = toNum(o[rawHeader] !== undefined ? o[rawHeader] : o[normMonth]);
-      if (v){
-        map[asin][normMonth] = (map[asin][normMonth] || 0) + v;
-      }
-    });
-  });
-  state.histMap = map;
+  if (extracted){
+    state.histMetricsBundle[keyword] = extracted;
+    state.histHeaders = extracted.headers;
+    state.histRows = new Array(extracted.rowCount);
+    state.histMonthCols = extracted.months;
+    state.histColRawNames = extracted.colRawNames;
+    state.histMap = extracted.map;
+  } else {
+    state.histHeaders = [];
+    state.histRows = [];
+    state.histMonthCols = [];
+    state.histColRawNames = {};
+    state.histMap = {};
+  }
 
   const filesLabel = state.histRawBooks.length &gt; 1
     ? `${state.histRawBooks.length} 个文件`
@@ -9611,65 +9784,47 @@ function processHistoryMerge(){
 
   state.histFileName = filesLabel;
 
-  const displayTitle = targetSheetSampleName || getMetricDisplayTitle();
-  $('dropHist').classList.add('done');
-  $('histName').innerHTML = `✅ ${esc(filesLabel)}（合并 ${matchedSheetCount} 个「${displayTitle}」子表 · 共 ${allRows.length} 条记录 · ${state.histMonthCols.length} 个月份列）`;
+  const matchedSheetCount = extracted ? extracted.matchedCount : 0;
+  const rowCount = extracted ? extracted.rowCount : 0;
+  const displayTitle = (extracted &amp;&amp; extracted.sheetName) || getMetricDisplayTitle();
 
+  $('dropHist').classList.add('done');
+  $('histName').innerHTML = `✅ ${esc(filesLabel)}（合并 ${matchedSheetCount} 个「${esc(displayTitle)}」子表 · 共 ${rowCount} 条记录 · ${state.histMonthCols.length} 个月份列）`;
+
+  updateQuickMetricButtons(keyword);
   updateExportLabelHint();
   renderDetectedSheetChips();
-  toast(`✅ 成功合并 ${matchedSheetCount} 个子表（每个文件唯一单选，已剔除子体表）`);
+  toast(`✅ 成功合并 ${matchedSheetCount} 个「${displayTitle}」子表（已隔离子体防重）`);
   computeAll();
   saveAllToStorage();
 }
 
-// 针对多子表一次性全量提取（用于合并全部历史指标导出，默认只取产品级表）
 function extractAllDetectedMetrics(){
   const result = [];
-  if (!state.histRawBooks || !state.histRawBooks.length) return result;
-
-  // 只提取产品维度的常用子表，防止混入子体
-  const targetSheets = state.detectedSheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体') &amp;&amp; sn.toLowerCase() !== 'notes');
-
-  targetSheets.forEach(sn =&gt; {
-    let sheetRows = [];
-    let monthSet = new Set();
-    let localRawMap = {};
-
-    state.histRawBooks.forEach(item =&gt; {
-      if (item.wb.Sheets[sn]){
-        const t = sheetToTable(item.wb.Sheets[sn]);
-        t.headers.forEach(h =&gt; {
-          const p = parseMonthHeader(h);
-          if (p){
-            monthSet.add(p.normalized);
-            localRawMap[p.normalized] = p.rawHeader;
-          }
-        });
-        sheetRows.push(...t.rows);
+  if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
+    const targetSheets = state.detectedSheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体') &amp;&amp; sn.toLowerCase() !== 'notes');
+    targetSheets.forEach(sn =&gt; {
+      const m = extractMetricFromBooks(sn, state.histRawBooks);
+      if (m &amp;&amp; m.months.length &gt; 0){
+        result.push({ sheetName: m.sheetName, months: m.months, map: m.map, rawMap: m.colRawNames });
       }
     });
+    return result;
+  }
 
-    if (monthSet.size &gt; 0){
-      const months = Array.from(monthSet).sort((a,b) =&gt; (a &lt; b ? 1 : -1));
-      const map = {};
-      sheetRows.forEach(o =&gt; {
-        const asin = String(o['ASIN'] || '').trim().toUpperCase();
-        if (!asin) return;
-        if (!map[asin]) map[asin] = {};
-        months.forEach(m =&gt; {
-          const rawCol = localRawMap[m] || m;
-          const v = toNum(o[rawCol] !== undefined ? o[rawCol] : o[m]);
-          if (v) map[asin][m] = (map[asin][m] || 0) + v;
-        });
-      });
-      result.push({ sheetName: sn, months, map, rawMap: localRawMap });
-    }
+  const seen = new Set();
+  Object.values(state.histMetricsBundle || {}).forEach(m =&gt; {
+    if (!m || !m.months || !m.months.length) return;
+    const sName = m.sheetName || m.keyword;
+    if (seen.has(sName)) return;
+    seen.add(sName);
+    result.push({ sheetName: sName, months: m.months, map: m.map, rawMap: m.colRawNames || {} });
   });
-
   return result;
 }
 
 $('btnReMergeHist').addEventListener('click', () =&gt; {
+  if (IS_SNAPSHOT_MODE) return;
   if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
     renderDetectedSheetChips();
     processHistoryMerge();
@@ -9679,9 +9834,14 @@ $('btnReMergeHist').addEventListener('click', () =&gt; {
 });
 
 $('histSheetKeyword').addEventListener('change', () =&gt; {
+  if (IS_SNAPSHOT_MODE) return;
+  const kw = $('histSheetKeyword').value;
+  updateQuickMetricButtons(kw);
   renderDetectedSheetChips();
   if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
     processHistoryMerge();
+  } else if (state.histMetricsBundle &amp;&amp; Object.keys(state.histMetricsBundle).length){
+    applyMetricFromBundle(kw);
   } else {
     updateExportLabelHint();
     saveAllToStorage();
@@ -9694,18 +9854,21 @@ $('fileHistory').addEventListener('change', e =&gt; handleHistoryFiles(e.target.
 function bindDrop(dropEl, inputEl, handler, isMulti = false){
   ['dragenter','dragover'].forEach(ev =&gt; {
     dropEl.addEventListener(ev, e =&gt; {
+      if (IS_SNAPSHOT_MODE) return;
       e.preventDefault(); e.stopPropagation();
       dropEl.classList.add('dragover');
     });
   });
   ['dragleave','drop'].forEach(ev =&gt; {
     dropEl.addEventListener(ev, e =&gt; {
+      if (IS_SNAPSHOT_MODE) return;
       e.preventDefault(); e.stopPropagation();
       if (ev === 'dragleave' &amp;&amp; dropEl.contains(e.relatedTarget)) return;
       dropEl.classList.remove('dragover');
     });
   });
   dropEl.addEventListener('drop', e =&gt; {
+    if (IS_SNAPSHOT_MODE) return;
     const files = e.dataTransfer &amp;&amp; e.dataTransfer.files;
     if (files &amp;&amp; files.length){
       inputEl.files = files;
@@ -10390,6 +10553,242 @@ $('btnReset').addEventListener('click', () =&gt; {
   }));
 
 /* =========================================================
+ *  导出独立分享版 HTML 功能
+ * ========================================================= */
+async function exportStandaloneHtml(){
+  if (!state.curRows.length){
+    toast('请先上传「当前商品数据」文件后再导出 HTML');
+    return;
+  }
+  const btn = $('btnExportHtml');
+  btn.disabled = true;
+
+  try {
+    // 1. 仅保留当前商品 ASIN 对应的历史数据，大幅精简导出的 HTML 文件体积
+    const curAsinSet = new Set(
+      state.curRows.map(r =&gt; String(pick(r, ['ASIN']) || '').trim().toUpperCase()).filter(Boolean)
+    );
+
+    const sanitizedRows = state.curRows.map(row =&gt; {
+      const obj = {};
+      for (const k in row){
+        const val = row[k];
+        obj[k] = (val instanceof Date) ? fmtDate(val) : val;
+      }
+      return obj;
+    });
+
+    if (state.histRawBooks &amp;&amp; state.histRawBooks.length){
+      ensureStandardMetricsBundled();
+    }
+
+    const exportedBundle = {};
+    Object.keys(state.histMetricsBundle || {}).forEach(k =&gt; {
+      const m = state.histMetricsBundle[k];
+      if (!m) return;
+      const filteredMap = {};
+      curAsinSet.forEach(asin =&gt; {
+        if (m.map &amp;&amp; m.map[asin]){
+          filteredMap[asin] = m.map[asin];
+        }
+      });
+      exportedBundle[k] = {
+        keyword: m.keyword,
+        sheetName: m.sheetName,
+        matchedCount: m.matchedCount,
+        rowCount: m.rowCount,
+        months: m.months,
+        colRawNames: m.colRawNames,
+        map: filteredMap
+      };
+    });
+
+    const snapshotPayload = {
+      exportedAt: new Date().toLocaleString('zh-CN'),
+      curFileName: state.curFileName,
+      curHeaders: state.curHeaders,
+      curRows: sanitizedRows,
+      histFileName: state.histFileName,
+      activeKeyword: ($('histSheetKeyword').value || '').trim() || '历史月销售额',
+      histMetricsBundle: exportedBundle,
+      config: getConfig(),
+      uiState: {
+        onlyHot: state.onlyHot,
+        gradeFilter: state.gradeFilter,
+        keyword: state.keyword
+      }
+    };
+
+    // 2. 克隆当前页面结构并清空动态渲染节点
+    const clone = document.documentElement.cloneNode(true);
+    const q = sel =&gt; clone.querySelector(sel);
+
+    if (q('#listArea')) q('#listArea').innerHTML = '';
+    if (q('#pagerArea')) q('#pagerArea').innerHTML = '';
+    if (q('#stats')) q('#stats').innerHTML = '';
+    if (q('#toast')) { q('#toast').className = 'toast'; q('#toast').textContent = ''; }
+    if (q('#chartTooltip')) q('#chartTooltip').style.display = 'none';
+    if (q('#progressFloat')) q('#progressFloat').setAttribute('hidden', '');
+    if (q('#exportMenu')) q('#exportMenu').setAttribute('hidden', '');
+    ['#imgModal', '#chartModal'].forEach(id =&gt; {
+      const el = q(id);
+      if (el) el.classList.remove('show');
+    });
+    if (q('body')) q('body').style.overflow = '';
+
+    const oldSnap = q('#snapshotDataScript');
+    if (oldSnap) oldSnap.remove();
+
+    ['cfgNewDays','cfgNewSales','cfgOldSales12','cfgOldSalesYear','cfgRecentMonths','cfgYear','histSheetKeyword','searchBox'].forEach(id =&gt; {
+      const origEl = $(id);
+      const cloneEl = q('#' + id);
+      if (origEl &amp;&amp; cloneEl) cloneEl.setAttribute('value', origEl.value);
+    });
+
+    // 3. 安全序列化 JSON（转义尖括号，防止闭合标签截断）
+    const safeJson = JSON.stringify(snapshotPayload)
+      .replace(/&lt;/g, '\\u003c')
+      .replace(/&gt;/g, '\\u003e')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
+
+    const snapScript = document.createElement('script');
+    snapScript.id = 'snapshotDataScript';
+    snapScript.textContent = `window.__SNAPSHOT_DATA__ = ${safeJson};`;
+
+    const cloneHead = q('head');
+    if (cloneHead) {
+      cloneHead.appendChild(snapScript);
+    } else {
+      clone.insertBefore(snapScript, clone.firstChild);
+    }
+
+    const htmlContent = '&lt;!DOCTYPE html&gt;\n' + clone.outerHTML;
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `爆品筛选_分享版_${sanitizedRows.length}条_${tsName()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() =&gt; URL.revokeObjectURL(url), 4000);
+
+    toast(`✅ 已导出分享版 HTML（内置 ${sanitizedRows.length} 条商品及可切换历史指标）`);
+  } catch (err) {
+    console.error('导出 HTML 失败:', err);
+    alert('导出 HTML 失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$('btnExportHtml').addEventListener('click', exportStandaloneHtml);
+
+/* =========================================================
+ *  分享版 HTML 快照初始化（只读锁定上传，保留全部筛选/切换/放大图表）
+ * ========================================================= */
+function initFromSnapshot(snap){
+  IS_SNAPSHOT_MODE = true;
+
+  ['btnClearDataTop', 'btnClearData', 'btnExportHtml', 'btnReMergeHist', 'sheetInputRow', 'sheetChipsArea', 'detectedSheetsHint'].forEach(id =&gt; {
+    const el = $(id);
+    if (el) el.style.display = 'none';
+  });
+
+  const panel1Title = $('panel1Title');
+  if (panel1Title) panel1Title.textContent = '第一步 · 内嵌数据概览（只读分享版 · 不支持上传）';
+
+  const dropCur = $('dropCur');
+  if (dropCur){
+    dropCur.outerHTML = `
+      &lt;div class=&quot;drop readonly&quot;&gt;
+        &lt;div class=&quot;drop-hint&quot; style=&quot;color:#059669;font-weight:600;&quot;&gt;🔒 只读快照（禁止上传）&lt;/div&gt;
+        &lt;div class=&quot;drop-title&quot;&gt;📦 已内置商品与历史数据（打开即看）&lt;/div&gt;
+        &lt;div class=&quot;drop-sub&quot; id=&quot;snapshotSummaryText&quot;&gt;正在加载内置数据...&lt;/div&gt;
+      &lt;/div&gt;
+    `;
+  }
+
+  const dropHist = $('dropHist');
+  if (dropHist) dropHist.remove();
+
+  const sheetCfgBox = $('sheetCfgBox');
+  if (sheetCfgBox) sheetCfgBox.style.marginTop = '0';
+
+  const sheetCfgTitle = $('sheetCfgTitle');
+  if (sheetCfgTitle){
+    const span = sheetCfgTitle.querySelector('span');
+    if (span) span.textContent = '📑 切换历史指标视图（点击即时重算并更新走势图）：';
+  }
+
+  const panel1Hint = $('panel1Hint');
+  if (panel1Hint){
+    panel1Hint.innerHTML = `
+      &lt;span&gt;&lt;b&gt;说明：&lt;/b&gt;此 HTML 为分享只读版，数据已内置在文件中（生成时间：&lt;b&gt;${esc(snap.exportedAt || '')}&lt;/b&gt;），不支持上传或清空，可正常筛选、调参、切换历史指标、放大查看折线图及导出 Excel。&lt;/span&gt;
+      &lt;span style=&quot;color:#2563eb;font-weight:600;&quot;&gt;🔒 只读分享模式&lt;/span&gt;
+    `;
+  }
+
+  if (snap.config){
+    if (snap.config.newDays !== undefined) $('cfgNewDays').value = snap.config.newDays;
+    if (snap.config.newSales !== undefined) $('cfgNewSales').value = snap.config.newSales;
+    if (snap.config.oldSales12 !== undefined) $('cfgOldSales12').value = snap.config.oldSales12;
+    if (snap.config.oldSalesYear !== undefined) $('cfgOldSalesYear').value = snap.config.oldSalesYear;
+    if (snap.config.recentMonths !== undefined) $('cfgRecentMonths').value = snap.config.recentMonths;
+    if (snap.config.year !== undefined) $('cfgYear').value = snap.config.year;
+  }
+
+  state.curFileName = snap.curFileName || '内置商品数据.xlsx';
+  state.curHeaders = snap.curHeaders || [];
+  state.curRows = snap.curRows || [];
+  state.histFileName = snap.histFileName || '内置历史数据.xlsx';
+  state.histMetricsBundle = snap.histMetricsBundle || {};
+
+  if (snap.uiState){
+    state.onlyHot = !!snap.uiState.onlyHot;
+    const b = $('btnOnlyHot');
+    b.classList.toggle('active', state.onlyHot);
+    b.textContent = state.onlyHot ? '🔥 只看爆品（已开启）' : '🔥 只看爆品';
+
+    state.gradeFilter = snap.uiState.gradeFilter || 'all';
+    [...$('segGrade').children].forEach(x =&gt; x.classList.toggle('active', x.dataset.grade === state.gradeFilter));
+
+    state.keyword = snap.uiState.keyword || '';
+    $('searchBox').value = state.keyword;
+  }
+
+  const bundleKeys = Object.keys(state.histMetricsBundle);
+  const quickBar = document.querySelector('.sheet-quick-bar');
+  if (quickBar &amp;&amp; bundleKeys.length){
+    bundleKeys.forEach(k =&gt; {
+      if (!STANDARD_METRICS.includes(k)){
+        const extraBtn = document.createElement('button');
+        extraBtn.type = 'button';
+        extraBtn.className = 'btn btn-sm';
+        extraBtn.textContent = '📊 ' + k;
+        extraBtn.onclick = () =&gt; quickSelectKeyword(k);
+        quickBar.appendChild(extraBtn);
+      }
+    });
+  }
+
+  const targetKw = snap.activeKeyword || bundleKeys[0] || '历史月销售额';
+  const applied = applyMetricFromBundle(targetKw, true);
+  if (!applied){
+    if (bundleKeys.length){
+      applyMetricFromBundle(bundleKeys[0], true);
+    } else {
+      const summaryEl = $('snapshotSummaryText');
+      if (summaryEl){
+        summaryEl.innerHTML = `✅ 当前商品：&lt;b&gt;${esc(state.curFileName)}&lt;/b&gt;（${state.curRows.length} 条）&lt;br&gt;ℹ️ 未附带历史数据`;
+      }
+      computeAll();
+    }
+  }
+}
+
+/* =========================================================
  *  导出 Excel
  * ========================================================= */
 const exportMenu = $('exportMenu');
@@ -10508,18 +10907,15 @@ async function doExport(withImages){
     headerRow.font = { bold: true, size: 10.5, color: { argb:'FF1F2937' } };
     headerRow.alignment = { vertical:'middle', horizontal:'center' };
 
-    // 1. 图片列
     ws.getColumn(1).width = withImages ? 17 : 12;
     headerRow.getCell(1).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF1F5F9' } };
 
-    // 2. 原商品列
     baseHeaders.forEach((h, i) =&gt; {
       const colIdx = i + 2;
       headerRow.getCell(colIdx).fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFEEF3FF' } };
       ws.getColumn(colIdx).width = Math.min(Math.max(String(h).length + 4, 10), 38);
     });
 
-    // 3. 爆品标记列
     const extraStart = baseHeaders.length + 2;
     extraHeaders.forEach((h, i) =&gt; {
       const colIdx = extraStart + i;
@@ -10529,7 +10925,6 @@ async function doExport(withImages){
       ws.getColumn(colIdx).width = 15;
     });
 
-    // 4. 历史月份明细列
     const histStart = extraStart + extraHeaders.length;
     histExportCols.forEach((col, i) =&gt; {
       const colIdx = histStart + i;
@@ -10539,7 +10934,6 @@ async function doExport(withImages){
       ws.getColumn(colIdx).width = Math.max(col.header.length + 3, 14);
     });
 
-    // 填充数据行
     const rowsMeta = [];
     rowsData.forEach(p =&gt; {
       const rowVals = baseHeaders.map(h =&gt; {
@@ -10655,8 +11049,12 @@ async function doExport(withImages){
  *  初始化
  * ========================================================= */
 window.addEventListener('DOMContentLoaded', () =&gt; {
-  render();
-  restoreFromStorage();
+  if (window.__SNAPSHOT_DATA__) {
+    initFromSnapshot(window.__SNAPSHOT_DATA__);
+  } else {
+    render();
+    restoreFromStorage();
+  }
 });
 &lt;/script&gt;
 &lt;/body&gt;
@@ -11155,7 +11553,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      &lt;span&gt;新品：上架天数 &lt;b&gt;≤ 365 天&lt;/b&gt;&lt;/span&gt;--&gt;
 &lt;!--      &lt;span&gt;爆品（新品）：近 12 月销量 &lt;b&gt;≥ 10,000&lt;/b&gt;&lt;/span&gt;--&gt;
 &lt;!--      &lt;span&gt;爆品（老品）：近 12 月销量 &lt;b&gt;≥ 30,000&lt;/b&gt; 或 25 年全年 &lt;b&gt;≥ 30,000&lt;/b&gt;&lt;/span&gt;--&gt;
-&lt;!--      &lt;span&gt;全面支持 &lt;b&gt;2026-11($)&lt;/b&gt; 等带货币符号格式 · 导出自动附带已选历史数据&lt;/span&gt;--&gt;
+&lt;!--      &lt;span&gt;&lt;b&gt;已升级子表隔离防重&lt;/b&gt;：产品表与子体表完全互斥，数据绝不翻倍&lt;/span&gt;--&gt;
 &lt;!--    &lt;/div&gt;--&gt;
 &lt;!--  &lt;/div&gt;--&gt;
 
@@ -11183,23 +11581,23 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--          &lt;div class=&quot;drop-sub&quot; id=&quot;histName&quot;&gt;点击或拖拽上传历史数据文件&lt;/div&gt;--&gt;
 &lt;!--        &lt;/label&gt;--&gt;
 
-&lt;!--        &amp;lt;!&amp;ndash; 历史子表设置卡片：可在页面随意修改 + 快捷按钮 + 记忆 + 一键点击子表标签 &amp;ndash;&amp;gt;--&gt;
+&lt;!--        &amp;lt;!&amp;ndash; 历史子表设置卡片 &amp;ndash;&amp;gt;--&gt;
 &lt;!--        &lt;div class=&quot;sheet-cfg-box&quot;&gt;--&gt;
 &lt;!--          &lt;div class=&quot;sheet-cfg-title&quot;&gt;--&gt;
-&lt;!--            &lt;span&gt;📑 提取子表指标（可一键切换 · 导出自动跟随）：&lt;/span&gt;--&gt;
+&lt;!--            &lt;span&gt;📑 提取子表指标（精准单选 · 彻底排除子体）：&lt;/span&gt;--&gt;
 &lt;!--            &lt;span id=&quot;detectedSheetsHint&quot; style=&quot;font-size:11px; color:#64748b;&quot;&gt;支持手动输入或点选下方子表&lt;/span&gt;--&gt;
 &lt;!--          &lt;/div&gt;--&gt;
 
-&lt;!--          &amp;lt;!&amp;ndash; 常用快捷切换按钮（智能宽容度匹配） &amp;ndash;&amp;gt;--&gt;
+&lt;!--          &amp;lt;!&amp;ndash; 常用快捷切换按钮（默认锁定产品级，严格排除子体） &amp;ndash;&amp;gt;--&gt;
 &lt;!--          &lt;div class=&quot;sheet-quick-bar&quot;&gt;--&gt;
 &lt;!--            &lt;span style=&quot;font-size:11.5px;color:var(&amp;#45;&amp;#45;muted);font-weight:600;&quot;&gt;快速切换指标：&lt;/span&gt;--&gt;
-&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('销量')&quot; id=&quot;btnQuickSales&quot;&gt;🔥 历史销量&lt;/button&gt;--&gt;
-&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('销售额')&quot; id=&quot;btnQuickRevenue&quot;&gt;💰 历史销售额&lt;/button&gt;--&gt;
-&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('价格')&quot; id=&quot;btnQuickPrice&quot;&gt;🏷️ 历史月价格&lt;/button&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月销量')&quot; id=&quot;btnQuickSales&quot;&gt;🔥 历史销量&lt;/button&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月销售额')&quot; id=&quot;btnQuickRevenue&quot;&gt;💰 历史销售额&lt;/button&gt;--&gt;
+&lt;!--            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm&quot; onclick=&quot;quickSelectKeyword('历史月价格')&quot; id=&quot;btnQuickPrice&quot;&gt;🏷️ 历史月价格&lt;/button&gt;--&gt;
 &lt;!--          &lt;/div&gt;--&gt;
 
 &lt;!--          &lt;div class=&quot;sheet-input-row&quot;&gt;--&gt;
-&lt;!--            &lt;input type=&quot;text&quot; id=&quot;histSheetKeyword&quot; class=&quot;sheet-input&quot; value=&quot;销量&quot; placeholder=&quot;输入要提取合并的子表名称关键字(如: 销量 / 销售额 / 价格)...&quot;&gt;--&gt;
+&lt;!--            &lt;input type=&quot;text&quot; id=&quot;histSheetKeyword&quot; class=&quot;sheet-input&quot; value=&quot;历史月销售额&quot; placeholder=&quot;输入要提取合并的子表名称...&quot;&gt;--&gt;
 &lt;!--            &lt;button class=&quot;btn btn-sm primary&quot; id=&quot;btnReMergeHist&quot; type=&quot;button&quot; style=&quot;padding:6px 14px;&quot;&gt;应用合并&lt;/button&gt;--&gt;
 &lt;!--          &lt;/div&gt;--&gt;
 &lt;!--          &amp;lt;!&amp;ndash; 智能扫描出的子表名标签区 &amp;ndash;&amp;gt;--&gt;
@@ -11256,7 +11654,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--      &lt;button class=&quot;btn&quot; id=&quot;btnReset&quot;&gt;重置参数&lt;/button&gt;--&gt;
 &lt;!--      &lt;button class=&quot;btn danger&quot; id=&quot;btnClearData&quot;&gt;🗑️ 清空数据&lt;/button&gt;--&gt;
 
-&lt;!--      &amp;lt;!&amp;ndash; 优化后的导出面板 &amp;ndash;&amp;gt;--&gt;
+&lt;!--      &amp;lt;!&amp;ndash; 导出面板 &amp;ndash;&amp;gt;--&gt;
 &lt;!--      &lt;div class=&quot;export-wrap&quot;&gt;--&gt;
 &lt;!--        &lt;button class=&quot;btn primary&quot; id=&quot;btnExportMenu&quot;&gt;⬇ 导出 Excel ▾&lt;/button&gt;--&gt;
 &lt;!--        &lt;div class=&quot;export-menu&quot; id=&quot;exportMenu&quot; hidden onclick=&quot;event.stopPropagation()&quot;&gt;--&gt;
@@ -11276,7 +11674,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--                  &lt;input type=&quot;radio&quot; name=&quot;exportHistMode&quot; value=&quot;current&quot; checked&gt;--&gt;
 &lt;!--                  &lt;span id=&quot;exportCurMetricLabel&quot;&gt;当前选定指标&lt;/span&gt;--&gt;
 &lt;!--                &lt;/label&gt;--&gt;
-&lt;!--                &lt;label class=&quot;radio-lbl&quot; title=&quot;一次性合并导出历史文件中检测到的所有子表（如销量+销售额+月价格）&quot;&gt;--&gt;
+&lt;!--                &lt;label class=&quot;radio-lbl&quot; title=&quot;一次性合并导出历史文件中检测到的所有产品级子表（销量+销售额+月价格）&quot;&gt;--&gt;
 &lt;!--                  &lt;input type=&quot;radio&quot; name=&quot;exportHistMode&quot; value=&quot;all&quot;&gt;--&gt;
 &lt;!--                  &lt;span&gt;合并全部历史指标&lt;/span&gt;--&gt;
 &lt;!--                &lt;/label&gt;--&gt;
@@ -11425,22 +11823,19 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--};--&gt;
 
 &lt;!--/* =========================================================--&gt;
-&lt;!-- *  智能表头月份解析函数（核心修复：兼容 2026-11($)、2026-11 等）--&gt;
+&lt;!-- *  智能表头月份解析函数（支持 2026-11($)、2026-11 等）--&gt;
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--function parseMonthHeader(header){--&gt;
 &lt;!--  if (header === null || header === undefined) return null;--&gt;
 &lt;!--  const s = String(header).trim();--&gt;
-&lt;!--  // 支持: 2026-11, 2026-11($), 2026-11 ($), 2026-11（$）, 2026/11($), 2026-11(￥), 2026-11(USD) 等--&gt;
 &lt;!--  const m = s.match(/^(\d{4})[-\/\.](\d{1,2})(?:\s*[\(（].*?[\)）]|\s*[$¥€])?$/);--&gt;
 &lt;!--  if (m){--&gt;
 &lt;!--    const year = m[1];--&gt;
 &lt;!--    const month = String(m[2]).padStart(2, '0');--&gt;
-&lt;!--    const normalized = `${year}-${month}`; // 统一内部规范化为 2026-11--&gt;
-&lt;!--    const hasCurrency = /[$¥€]|USD|RMB/i.test(s);--&gt;
 &lt;!--    return {--&gt;
 &lt;!--      rawHeader: s,--&gt;
-&lt;!--      normalized: normalized,--&gt;
-&lt;!--      hasCurrency: hasCurrency--&gt;
+&lt;!--      normalized: `${year}-${month}`,--&gt;
+&lt;!--      hasCurrency: /[$¥€]|USD|RMB/i.test(s)--&gt;
 &lt;!--    };--&gt;
 &lt;!--  }--&gt;
 &lt;!--  return null;--&gt;
@@ -11455,11 +11850,11 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  histFileName: '',--&gt;
 &lt;!--  histHeaders: [],--&gt;
 &lt;!--  histRows: [],--&gt;
-&lt;!--  histMonthCols: [],      // 统一标准化的月份列列表 (如 [&quot;2026-11&quot;, &quot;2026-10&quot;, ...])--&gt;
-&lt;!--  histColRawNames: {},    // 标准化月份 -&gt; 原始列名映射 (如 &quot;2026-11&quot; -&gt; &quot;2026-11($)&quot;)--&gt;
-&lt;!--  histMap: {},            // [ASIN][normalizedMonth] -&gt; 数值--&gt;
-&lt;!--  histRawBooks: [],       // 内存缓存原始工作簿--&gt;
-&lt;!--  detectedSheetNames: [], // 扫描到的全部子表名称--&gt;
+&lt;!--  histMonthCols: [],--&gt;
+&lt;!--  histColRawNames: {},--&gt;
+&lt;!--  histMap: {},--&gt;
+&lt;!--  histRawBooks: [],--&gt;
+&lt;!--  detectedSheetNames: [],--&gt;
 &lt;!--  merged: [],--&gt;
 &lt;!--  filtered: [],--&gt;
 &lt;!--  page: 1,--&gt;
@@ -11547,13 +11942,9 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  return series.slice(firstPos);--&gt;
 &lt;!--}--&gt;
 
-&lt;!--// 智能识别当前展示名称--&gt;
 &lt;!--function getMetricDisplayTitle(){--&gt;
 &lt;!--  const kw = ($('histSheetKeyword').value || '').trim();--&gt;
 &lt;!--  if (!kw) return '历史数据';--&gt;
-&lt;!--  if (/销售额|金额|gmv|revenue/i.test(kw)) return '产品历史销售额';--&gt;
-&lt;!--  if (/售价|价格|price/i.test(kw)) return '产品历史月价格';--&gt;
-&lt;!--  if (/月销量|销量|sales/i.test(kw)) return '产品历史月销量';--&gt;
 &lt;!--  return kw;--&gt;
 &lt;!--}--&gt;
 &lt;!--function getMetricShortName(){--&gt;
@@ -11815,7 +12206,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--}--&gt;
 
 &lt;!--/* =========================================================--&gt;
-&lt;!-- *  历史数据多子表 / 多文件合并逻辑（深度修复：通杀带($)列名与子表匹配）--&gt;
+&lt;!-- *  历史数据子表匹配逻辑（核心防翻倍：单文件唯一单选 + 产品/子体彻底互斥）--&gt;
 &lt;!-- * ========================================================= */--&gt;
 &lt;!--async function handleHistoryFiles(fileList){--&gt;
 &lt;!--  const files = Array.from(fileList || []).filter(f =&gt; /\.(xlsx|xls|csv)$/i.test(f.name));--&gt;
@@ -11841,7 +12232,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  }--&gt;
 &lt;!--}--&gt;
 
-&lt;!--// 快速切换常用子表（宽容度极高）--&gt;
+&lt;!--// 快速切换常用子表--&gt;
 &lt;!--window.quickSelectKeyword = function(keyword){--&gt;
 &lt;!--  $('histSheetKeyword').value = keyword;--&gt;
 &lt;!--  renderDetectedSheetChips();--&gt;
@@ -11850,34 +12241,52 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  } else {--&gt;
 &lt;!--    updateExportLabelHint();--&gt;
 &lt;!--    saveAllToStorage();--&gt;
-&lt;!--    toast(`已设定关键字「${keyword}」，上传历史文件后将自动关联`);--&gt;
+&lt;!--    toast(`已设定关键字「${keyword}」，上传历史文件后将精准匹配该子表`);--&gt;
 &lt;!--  }--&gt;
 &lt;!--};--&gt;
 
-&lt;!--// 强宽容度子表匹配器（全面覆盖“产品历史月价格”、“历史销售额”等各种命名）--&gt;
-&lt;!--function findMatchingSheets(sheetNames, keyword){--&gt;
-&lt;!--  if (!sheetNames || !sheetNames.length) return [];--&gt;
-&lt;!--  if (!keyword) return [sheetNames[0]];--&gt;
+&lt;!--/**--&gt;
+&lt;!-- * 核心匹配函数：严格限制每个文件只匹配最多 1 个最精准的 Sheet！--&gt;
+&lt;!-- * 且「产品级」与「子体级」彻底排他互斥，防止翻倍！--&gt;
+&lt;!-- */--&gt;
+&lt;!--function findBestSheetForWorkbook(sheetNames, keyword){--&gt;
+&lt;!--  if (!sheetNames || !sheetNames.length) return null;--&gt;
+&lt;!--  const kw = (keyword || '').trim().toLowerCase();--&gt;
+&lt;!--  if (!kw) return sheetNames[0];--&gt;
 
-&lt;!--  const kw = keyword.trim().toLowerCase();--&gt;
+&lt;!--  const wantsSub = kw.includes('子体') || kw.includes('变体');--&gt;
 
-&lt;!--  // 1. 精确包含--&gt;
-&lt;!--  let matches = sheetNames.filter(sn =&gt; sn.toLowerCase().includes(kw));--&gt;
-&lt;!--  if (matches.length) return matches;--&gt;
+&lt;!--  // 1. 最高优先级：完全精准匹配（大小写无关）--&gt;
+&lt;!--  const exact = sheetNames.find(sn =&gt; sn.trim().toLowerCase() === kw);--&gt;
+&lt;!--  if (exact) return exact;--&gt;
 
-&lt;!--  // 2. 核心特征词智能泛匹配--&gt;
-&lt;!--  if (/销量|sales/i.test(kw)){--&gt;
-&lt;!--    matches = sheetNames.filter(sn =&gt; /销量|sales/i.test(sn));--&gt;
-&lt;!--  } else if (/销售额|金额|gmv|revenue/i.test(kw)){--&gt;
-&lt;!--    matches = sheetNames.filter(sn =&gt; /销售额|金额|gmv|revenue/i.test(sn));--&gt;
-&lt;!--  } else if (/价格|售价|price/i.test(kw)){--&gt;
-&lt;!--    matches = sheetNames.filter(sn =&gt; /价格|售价|price/i.test(sn));--&gt;
+&lt;!--  // 2. 候选过滤：如果不想要子体，坚决剔除任何含“子体/变体”的 Sheet--&gt;
+&lt;!--  let candidates = sheetNames;--&gt;
+&lt;!--  if (!wantsSub){--&gt;
+&lt;!--    candidates = sheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体'));--&gt;
+&lt;!--  } else {--&gt;
+&lt;!--    candidates = sheetNames.filter(sn =&gt; sn.includes('子体') || sn.includes('变体'));--&gt;
+&lt;!--  }--&gt;
+&lt;!--  if (!candidates.length) candidates = sheetNames;--&gt;
+
+&lt;!--  // 3. 次高优先级：包含关键词--&gt;
+&lt;!--  const included = candidates.find(sn =&gt; sn.toLowerCase().includes(kw));--&gt;
+&lt;!--  if (included) return included;--&gt;
+
+&lt;!--  // 4. 语义别名特征词精准保底（单选最符合的 1 个）--&gt;
+&lt;!--  let fallback = null;--&gt;
+&lt;!--  if (kw.includes('销售额') || kw.includes('金额')){--&gt;
+&lt;!--    fallback = candidates.find(sn =&gt; sn.includes('销售额') || sn.includes('金额'));--&gt;
+&lt;!--  } else if (kw.includes('价格') || kw.includes('售价')){--&gt;
+&lt;!--    fallback = candidates.find(sn =&gt; sn.includes('价格') || sn.includes('售价'));--&gt;
+&lt;!--  } else if (kw.includes('销量')){--&gt;
+&lt;!--    fallback = candidates.find(sn =&gt; sn.includes('销量'));--&gt;
 &lt;!--  }--&gt;
 
-&lt;!--  return matches.length ? matches : [];--&gt;
+&lt;!--  return fallback || null;--&gt;
 &lt;!--}--&gt;
 
-&lt;!--// 渲染检测到的子表标签--&gt;
+&lt;!--// 渲染检测到的子表标签（精准单选高亮，绝不多亮）--&gt;
 &lt;!--function renderDetectedSheetChips(){--&gt;
 &lt;!--  const area = $('sheetChipsArea');--&gt;
 &lt;!--  if (!state.detectedSheetNames || !state.detectedSheetNames.length){--&gt;
@@ -11885,11 +12294,12 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    return;--&gt;
 &lt;!--  }--&gt;
 &lt;!--  area.style.display = 'flex';--&gt;
-&lt;!--  const curKey = ($('histSheetKeyword').value || '').trim().toLowerCase();--&gt;
+&lt;!--  const curKey = ($('histSheetKeyword').value || '').trim();--&gt;
 
 &lt;!--  let html = `&lt;span style=&quot;font-size:11px;color:#64748b;line-height:22px;&quot;&gt;检测到子表(点击填入)：&lt;/span&gt;`;--&gt;
 &lt;!--  state.detectedSheetNames.forEach(sn =&gt; {--&gt;
-&lt;!--    const isAct = curKey &amp;&amp; (sn.toLowerCase().includes(curKey) || curKey.includes(sn.toLowerCase()));--&gt;
+&lt;!--    // 精准高亮判断：只高亮当前选中的唯一个子表，或者最佳命中的子表--&gt;
+&lt;!--    const isAct = (curKey === sn) || (!sn.includes('子体') &amp;&amp; curKey &amp;&amp; sn.includes(curKey) &amp;&amp; !curKey.includes('子体'));--&gt;
 &lt;!--    html += `&lt;span class=&quot;sheet-chip ${isAct ? 'active' : ''}&quot; onclick=&quot;selectSheetChip('${esc(sn)}')&quot;&gt;${esc(sn)}&lt;/span&gt;`;--&gt;
 &lt;!--  });--&gt;
 &lt;!--  area.innerHTML = html;--&gt;
@@ -11921,24 +12331,22 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  const allRows = [];--&gt;
 &lt;!--  const monthColsSet = new Set();--&gt;
 &lt;!--  const allHeadersSet = new Set();--&gt;
-&lt;!--  const rawColNameMap = {}; // &quot;2026-11&quot; -&gt; &quot;2026-11($)&quot; (保留原表头显示)--&gt;
+&lt;!--  const rawColNameMap = {};--&gt;
+&lt;!--  let targetSheetSampleName = '';--&gt;
 
 &lt;!--  state.histRawBooks.forEach(item =&gt; {--&gt;
 &lt;!--    const wb = item.wb;--&gt;
 &lt;!--    const names = wb.SheetNames || [];--&gt;
-&lt;!--    let targetNames = findMatchingSheets(names, keyword);--&gt;
 
-&lt;!--    if (!targetNames.length &amp;&amp; names.length){--&gt;
-&lt;!--      targetNames = [names[0]];--&gt;
-&lt;!--    }--&gt;
+&lt;!--    // 关键改变：每个工作簿只允许提取 1 个最精准的 Sheet！--&gt;
+&lt;!--    const targetName = findBestSheetForWorkbook(names, keyword);--&gt;
 
-&lt;!--    targetNames.forEach(sn =&gt; {--&gt;
+&lt;!--    if (targetName &amp;&amp; wb.Sheets[targetName]){--&gt;
 &lt;!--      matchedSheetCount++;--&gt;
-&lt;!--      const ws = wb.Sheets[sn];--&gt;
-&lt;!--      if (!ws) return;--&gt;
+&lt;!--      targetSheetSampleName = targetName;--&gt;
+&lt;!--      const ws = wb.Sheets[targetName];--&gt;
 &lt;!--      const t = sheetToTable(ws);--&gt;
 
-&lt;!--      // 提取月份列（支持 2026-11($)、2026-11 等）--&gt;
 &lt;!--      t.headers.forEach(h =&gt; {--&gt;
 &lt;!--        allHeadersSet.add(h);--&gt;
 &lt;!--        const parsed = parseMonthHeader(h);--&gt;
@@ -11948,7 +12356,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--        }--&gt;
 &lt;!--      });--&gt;
 &lt;!--      allRows.push(...t.rows);--&gt;
-&lt;!--    });--&gt;
+&lt;!--    }--&gt;
 &lt;!--  });--&gt;
 
 &lt;!--  state.histHeaders = Array.from(allHeadersSet);--&gt;
@@ -11956,7 +12364,7 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--  state.histMonthCols = Array.from(monthColsSet).sort((a, b) =&gt; (a &lt; b ? 1 : -1));--&gt;
 &lt;!--  state.histColRawNames = rawColNameMap;--&gt;
 
-&lt;!--  // ASIN 数据累加映射表：统一映射到标准化月份 &quot;YYYY-MM&quot;--&gt;
+&lt;!--  // ASIN 数据映射--&gt;
 &lt;!--  const map = {};--&gt;
 &lt;!--  allRows.forEach(o =&gt; {--&gt;
 &lt;!--    const asin = String(o['ASIN'] || '').trim().toUpperCase();--&gt;
@@ -11964,7 +12372,6 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    if (!map[asin]) map[asin] = {};--&gt;
 
 &lt;!--    state.histMonthCols.forEach(normMonth =&gt; {--&gt;
-&lt;!--      // 兼容原表头和标准化月份两种 key 取值--&gt;
 &lt;!--      const rawHeader = rawColNameMap[normMonth] || normMonth;--&gt;
 &lt;!--      const v = toNum(o[rawHeader] !== undefined ? o[rawHeader] : o[normMonth]);--&gt;
 &lt;!--      if (v){--&gt;
@@ -11980,25 +12387,26 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--  state.histFileName = filesLabel;--&gt;
 
-&lt;!--  const displayTitle = getMetricDisplayTitle();--&gt;
+&lt;!--  const displayTitle = targetSheetSampleName || getMetricDisplayTitle();--&gt;
 &lt;!--  $('dropHist').classList.add('done');--&gt;
 &lt;!--  $('histName').innerHTML = `✅ ${esc(filesLabel)}（合并 ${matchedSheetCount} 个「${displayTitle}」子表 · 共 ${allRows.length} 条记录 · ${state.histMonthCols.length} 个月份列）`;--&gt;
 
 &lt;!--  updateExportLabelHint();--&gt;
-&lt;!--  toast(`✅ 成功合并 ${matchedSheetCount} 个子表，已识别 ${state.histMonthCols.length} 个月份的【${displayTitle}】数据`);--&gt;
+&lt;!--  renderDetectedSheetChips();--&gt;
+&lt;!--  toast(`✅ 成功合并 ${matchedSheetCount} 个子表（每个文件唯一单选，已剔除子体表）`);--&gt;
 &lt;!--  computeAll();--&gt;
 &lt;!--  saveAllToStorage();--&gt;
 &lt;!--}--&gt;
 
-&lt;!--// 针对多子表一次性全量提取（用于合并全部历史指标导出）--&gt;
+&lt;!--// 针对多子表一次性全量提取（用于合并全部历史指标导出，默认只取产品级表）--&gt;
 &lt;!--function extractAllDetectedMetrics(){--&gt;
 &lt;!--  const result = [];--&gt;
 &lt;!--  if (!state.histRawBooks || !state.histRawBooks.length) return result;--&gt;
 
-&lt;!--  const handledSheetNames = new Set();--&gt;
-&lt;!--  state.detectedSheetNames.forEach(sn =&gt; {--&gt;
-&lt;!--    if (handledSheetNames.has(sn)) return;--&gt;
+&lt;!--  // 只提取产品维度的常用子表，防止混入子体--&gt;
+&lt;!--  const targetSheets = state.detectedSheetNames.filter(sn =&gt; !sn.includes('子体') &amp;&amp; !sn.includes('变体') &amp;&amp; sn.toLowerCase() !== 'notes');--&gt;
 
+&lt;!--  targetSheets.forEach(sn =&gt; {--&gt;
 &lt;!--    let sheetRows = [];--&gt;
 &lt;!--    let monthSet = new Set();--&gt;
 &lt;!--    let localRawMap = {};--&gt;
@@ -12018,7 +12426,6 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--    });--&gt;
 
 &lt;!--    if (monthSet.size &gt; 0){--&gt;
-&lt;!--      handledSheetNames.add(sn);--&gt;
 &lt;!--      const months = Array.from(monthSet).sort((a,b) =&gt; (a &lt; b ? 1 : -1));--&gt;
 &lt;!--      const map = {};--&gt;
 &lt;!--      sheetRows.forEach(o =&gt; {--&gt;
@@ -12821,7 +13228,6 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 
 &lt;!--    if (needHist){--&gt;
 &lt;!--      if (histMode === 'all'){--&gt;
-&lt;!--        // 模式 1：合并全部历史指标（销量 + 销售额 + 价格全部导出）--&gt;
 &lt;!--        const allMetrics = extractAllDetectedMetrics();--&gt;
 &lt;!--        if (allMetrics.length &gt; 0){--&gt;
 &lt;!--          allMetrics.forEach(item =&gt; {--&gt;
@@ -12843,7 +13249,6 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--        }--&gt;
 &lt;!--      }--&gt;
 
-&lt;!--      // 默认/单指标模式：导出当前所选的指标月份列--&gt;
 &lt;!--      if (!histExportCols.length &amp;&amp; state.histMonthCols &amp;&amp; state.histMonthCols.length){--&gt;
 &lt;!--        let months = [...state.histMonthCols];--&gt;
 &lt;!--        if (histOrder === 'asc') months.sort((a,b) =&gt; a.localeCompare(b));--&gt;
@@ -13032,7 +13437,6 @@ window.addEventListener('DOMContentLoaded', () =&gt; {
 &lt;!--&lt;/script&gt;--&gt;
 &lt;!--&lt;/body&gt;--&gt;
 &lt;!--&lt;/html&gt;--&gt;
-
 
 
 "></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="
