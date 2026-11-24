@@ -115,7 +115,6 @@
   .preview-wrap.show { display: block; }
   .preview-wrap video { width: 100%; display: block; }
 
-  /* 隐藏的 1920x1080 离屏渲染容器 */
   iframe#sandboxFrame {
     position: fixed; left: -99999px; top: 0;
     width: 1920px; height: 1080px; border: none;
@@ -127,13 +126,13 @@
 
 <div class="card">
   <h1>🎬 Vibe HTML → 16:9 MP4 导出器</h1>
-  <div class="sub">无需安装 Python 或任何软件，上传符合规范的动画 HTML，直接在浏览器内合成 1920×1080 高清视频。</div>
+  <div class="sub">自动兼容 Canvas 动画与 DIV/SVG 网页动画，直接在浏览器内合成 1920×1080 高清视频。</div>
 
   <div id="envBadge" class="env-badge env-ok">检测运行环境中...</div>
 
   <div class="drop-zone" id="dropZone">
-    <div class="drop-title">📂 点击或拖入你的动画 HTML 文件（如 37%法则.html）</div>
-    <div class="drop-hint">支持手机相册/文件管理器选择 HTML · 全程本地运算不上传服务器</div>
+    <div class="drop-title">📂 点击或拖入你的动画 HTML 文件（如 TA冷淡你上头.html）</div>
+    <div class="drop-hint">支持手机文件管理器与电脑拖拽 · 全程本地运算不上传服务器</div>
     <input type="file" id="htmlInput" accept=".html,.htm,text/html" hidden />
   </div>
 
@@ -204,12 +203,10 @@
     envBadge.className = 'env-badge env-ok';
     envBadge.textContent = hasAudioEnc
       ? '⚡ 极速硬件导出就绪（WebCodecs H.264 + AAC 音轨）'
-      : '⚡ 硬件视频导出就绪（当前浏览器不支持 AAC 编码，将导出纯画面或兼容录制）';
+      : '⚡ 硬件视频导出就绪（当前浏览器将导出视频或兼容录制）';
   } else {
     envBadge.className = 'env-badge env-warn';
-    envBadge.textContent = window.isSecureContext
-      ? '⚠️ 当前浏览器不支持 WebCodecs，将使用实时兼容录制模式'
-      : '⚠️ 当前为本地 file:// 模式（非 HTTPS），将使用实时兼容录制模式（挂 HTTPS 链接可提速 5 倍）';
+    envBadge.textContent = '⚠️ 当前环境不支持 WebCodecs，将使用实时兼容录制模式';
   }
 
   let loadedMeta = null;
@@ -238,6 +235,20 @@
     customAudioFile = audioInput.files[0] || null;
   });
 
+  async function ensureDomCapturer(win, doc) {
+    if (win.modernScreenshot && typeof win.modernScreenshot.domToCanvas === 'function') {
+      return win.modernScreenshot;
+    }
+    await new Promise((resolve, reject) => {
+      const s = doc.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/modern-screenshot@4.6.5/dist/index.min.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('DOM 矢量渲染库加载失败，请检查网络'));
+      (doc.head || doc.documentElement).appendChild(s);
+    });
+    return win.modernScreenshot;
+  }
+
   async function handleHtmlFile(file) {
     exportBtn.disabled = true;
     fileInfo.className = 'file-info show';
@@ -254,26 +265,44 @@
         const ct = doc.getElementById('controls');
         if (ct) ct.style.display = 'none';
 
-        const canvas = doc.getElementById('stage') || doc.querySelector('canvas');
-        if (!canvas) {
-          fileInfo.innerHTML = `❌ <b>${file.name}</b> 里没有找到 &lt;canvas&gt; 画布，请确认是 Canvas 动画版 HTML。`;
-          return;
-        }
         if (typeof win.__seekTo !== 'function') {
-          fileInfo.innerHTML = `❌ <b>${file.name}</b> 缺少 <code>window.__seekTo(t)</code> 接口，无法精准抽帧。`;
+          fileInfo.innerHTML = `❌ <b>${file.name}</b> 缺少 <code>window.__seekTo(t)</code> 接口，无法逐帧导出。`;
           return;
         }
         const duration = Number(win.__duration || 90);
         win.__seekTo(0);
 
+        // 优先查找真正的 <canvas>（即使被包在 <div id="stage"> 内也能找到）
+        const canvases = Array.from(doc.querySelectorAll('canvas'))
+          .filter(c => Number(c.width) > 0 && Number(c.height) > 0)
+          .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+        const realCanvas = canvases[0] || null;
+
+        let mode, targetEl, width, height;
+        if (realCanvas) {
+          mode = 'canvas';
+          targetEl = realCanvas;
+          width = realCanvas.width & ~1;
+          height = realCanvas.height & ~1;
+        } else {
+          mode = 'dom';
+          targetEl = doc.getElementById('stage') || doc.getElementById('app') || doc.body;
+          const rect = targetEl.getBoundingClientRect();
+          const rawW = rect.width >= 320 ? rect.width : 1920;
+          const rawH = rect.height >= 180 ? rect.height : 1080;
+          width = Math.max(2, Math.round(rawW) & ~1);
+          height = Math.max(2, Math.round(rawH) & ~1);
+        }
+
         loadedMeta = {
           name: file.name.replace(/\.(html?|htm)$/i, ''),
-          win, canvas, duration
+          win, doc, mode, targetEl, width, height, duration
         };
         lastFileName = loadedMeta.name + '.mp4';
+        const modeLabel = mode === 'canvas' ? 'Canvas 极速模式' : 'DOM/SVG 矢量渲染模式';
         fileInfo.innerHTML = `
-          ✅ 已加载：<b>${file.name}</b><br>
-          📐 分辨率：<b>${canvas.width} × ${canvas.height}</b> · 时长：<b>${duration.toFixed(1)} 秒</b>
+          ✅ 已加载：<b>${file.name}</b>（${modeLabel}）<br>
+          📐 分辨率：<b>${width} × ${height}</b> · 时长：<b>${duration.toFixed(1)} 秒</b>
         `;
         exportBtn.disabled = false;
       } catch (err) {
@@ -283,7 +312,6 @@
     frameEl.srcdoc = htmlText;
   }
 
-  // 生成默认 120 BPM + 17.0s 重拍音轨 (44.1kHz 单声道 Float32)
   function generateSynthPCM(duration, sr = 44100, climaxAt = 17.0) {
     const n = Math.floor(duration * sr);
     const audio = new Float32Array(n);
@@ -296,9 +324,11 @@
       for (let i = s0; i < s1; i++) {
         const lt = (i - s0) / sr;
         const env = Math.min(1, lt / 0.05) * Math.exp(-lt * 1.4);
-        audio[i] += (Math.sin(2 * Math.PI * f * lt) * 0.14 + Math.sin(2 * Math.PI * f * 1.5 * lt) * 0.07) * env;
+        audio[i] += (Math.sin(2 * npPI(f) * lt) * 0.14 + Math.sin(2 * npPI(f * 1.5) * lt) * 0.07) * env;
       }
     }
+    function npPI(x) { return Math.PI * x; }
+
     for (let b = 0; b < Math.floor(duration * 2); b++) {
       if (b % 4 === 0) continue;
       const s0 = Math.floor(b * 0.5 * sr);
@@ -356,11 +386,45 @@
     return null;
   }
 
+  // 创建一个统一抓取帧的函数（自动适配 Canvas 或 DOM/SVG）
+  async function createFrameCapturer(meta) {
+    const { win, doc, mode, targetEl, width, height } = meta;
+    if (mode === 'canvas') {
+      return {
+        canvas: targetEl,
+        capture: async (t) => {
+          win.__seekTo(t);
+          return targetEl;
+        }
+      };
+    }
+
+    setProgress(1, '首次加载 DOM/SVG 矢量帧渲染器...');
+    const ms = await ensureDomCapturer(win, doc);
+    const bufCanvas = document.createElement('canvas');
+    bufCanvas.width = width;
+    bufCanvas.height = height;
+    const bctx = bufCanvas.getContext('2d');
+
+    return {
+      canvas: bufCanvas,
+      capture: async (t) => {
+        win.__seekTo(t);
+        const snap = await ms.domToCanvas(targetEl, { width, height, scale: 1 });
+        bctx.fillStyle = '#0F0C1D';
+        bctx.fillRect(0, 0, width, height);
+        bctx.drawImage(snap, 0, 0, width, height);
+        return bufCanvas;
+      }
+    };
+  }
+
   async function exportWithWebCodecs(meta, fps, bitrate) {
-    const { win, canvas, duration } = meta;
-    const W = canvas.width, H = canvas.height;
+    const { width: W, height: H, duration } = meta;
     const vCodec = await findSupportedVideoCodec(W, H, fps, bitrate);
     if (!vCodec) throw new Error('设备不支持 H.264 硬件编码，将尝试兼容模式');
+
+    const capturer = await createFrameCapturer(meta);
 
     let useAudio = false;
     if (hasAudioEnc) {
@@ -420,15 +484,15 @@
         await new Promise(r => setTimeout(r, 4));
       }
       const t = i / fps;
-      win.__seekTo(t);
-      const frame = new VideoFrame(canvas, {
+      const sourceCanvas = await capturer.capture(t);
+      const frame = new VideoFrame(sourceCanvas, {
         timestamp: Math.round(t * 1_000_000),
         duration: frameDurUs,
       });
       videoEncoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
       frame.close();
 
-      if (i % 5 === 0 || i === totalFrames - 1) {
+      if (meta.mode === 'dom' || i % 5 === 0 || i === totalFrames - 1) {
         setProgress(5 + (i + 1) / totalFrames * 92, `编码中：${i + 1} / ${totalFrames} 帧`);
         await new Promise(r => setTimeout(r, 0));
       }
@@ -448,10 +512,10 @@
     };
   }
 
-  // 兜底：MediaRecorder 实时录制（用于 file:// 或不支持 WebCodecs 的环境）
   async function exportWithRecorder(meta, fps, bitrate) {
-    const { win, canvas, duration } = meta;
-    const stream = canvas.captureStream(fps);
+    const capturer = await createFrameCapturer(meta);
+    await capturer.capture(0);
+    const stream = capturer.canvas.captureStream(fps);
     const mimeList = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
     const mime = mimeList.find(m => MediaRecorder.isTypeSupported(m)) || '';
     const ext = mime.includes('mp4') ? '.mp4' : '.webm';
@@ -466,16 +530,21 @@
 
     rec.start(250);
     const t0 = performance.now();
+    let busy = false;
     await new Promise(resolve => {
-      function tick(now) {
+      async function tick(now) {
         const elapsed = (now - t0) / 1000;
-        if (elapsed >= duration) {
-          win.__seekTo(duration);
+        if (elapsed >= meta.duration) {
+          await capturer.capture(meta.duration);
           resolve();
           return;
         }
-        win.__seekTo(elapsed);
-        setProgress((elapsed / duration) * 96, `实时录制中（请勿切屏）：${elapsed.toFixed(1)}s / ${duration.toFixed(0)}s`);
+        if (!busy) {
+          busy = true;
+          await capturer.capture(elapsed);
+          busy = false;
+        }
+        setProgress((elapsed / meta.duration) * 96, `实时录制中（请勿切屏）：${elapsed.toFixed(1)}s / ${meta.duration.toFixed(0)}s`);
         requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
