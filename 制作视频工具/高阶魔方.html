@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>3D 多阶动态照片魔方工坊</title>
+<style>
+  :root {
+    --bg: #090d16;
+    --panel: #111827;
+    --panel-2: #1a2335;
+    --border: rgba(148, 163, 184, 0.16);
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #a855f7;
+    --green: #22c55e;
+    --cubie: 72px;
+    --half: 36px;
+    --step: 75px;
+    --bezel: 4px;
+    --radius: 7px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(circle at 30% 25%, #1e1b4b 0%, #090d16 62%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* 顶部栏 */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(9, 13, 22, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 20;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.02rem;
+  }
+  .brand-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, #38bdf8, #a855f7);
+    display: grid; place-items: center; font-size: 16px;
+    box-shadow: 0 2px 12px rgba(168, 85, 247, 0.35);
+  }
+
+  .top-switches {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .seg-group {
+    display: inline-flex;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .seg-btn {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .seg-btn:hover { color: #fff; }
+  .seg-btn.active {
+    background: linear-gradient(135deg, #0284c7, #6366f1);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+  }
+
+  /* 主体两栏 */
+  .workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 390px;
+    min-height: 0;
+  }
+
+  /* 左侧舞台 */
+  .stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 18px;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .stage-tip {
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: rgba(17, 24, 39, 0.72);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 999px;
+    text-align: center;
+    z-index: 5;
+  }
+
+  .viewport {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1050px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .viewport:active { cursor: grabbing; }
+
+  .cube-scaler {
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .cube-world {
+    position: relative;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .cubie {
+    position: absolute;
+    left: 0; top: 0; width: 0; height: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .face {
+    position: absolute;
+    width: var(--cubie);
+    height: var(--cubie);
+    margin-left: calc(var(--half) * -1);
+    margin-top: calc(var(--half) * -1);
+    background: #0b0f17;
+    border-radius: var(--radius);
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .sticker {
+    width: calc(var(--cubie) - var(--bezel));
+    height: calc(var(--cubie) - var(--bezel));
+    border-radius: calc(var(--radius) - 2px);
+    background-repeat: no-repeat;
+    box-shadow: inset 0 1px 3px rgba(255,255,255,0.22), inset 0 -1px 4px rgba(0,0,0,0.32);
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* 底部控制面板 */
+  .dock {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 6;
+  }
+
+  .motion-bar {
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 16px;
+  }
+
+  .motion-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .motion-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 600;
+  }
+
+  .switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    display: inline-block;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider-sw {
+    position: absolute; inset: 0;
+    background: #334155;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .slider-sw::before {
+    content: "";
+    position: absolute;
+    width: 16px; height: 16px; left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  .switch input:checked + .slider-sw { background: var(--green); }
+  .switch input:checked + .slider-sw::before { transform: translateX(18px); }
+
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn {
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 7px 13px;
+    border-radius: 9px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.14s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: #222e46;
+    transform: translateY(-1px);
+  }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-accent {
+    background: linear-gradient(135deg, #0284c7, #6366f1);
+    border-color: transparent;
+  }
+  .btn-green {
+    background: linear-gradient(135deg, #16a34a, #059669);
+    border-color: transparent;
+  }
+
+  /* 右侧图片与调节工作台 */
+  .sidebar {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 53px);
+    overflow-y: auto;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+  }
+
+  .upload-zone {
+    border: 2px dashed rgba(56, 189, 248, 0.35);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(56, 189, 248, 0.04);
+    transition: all 0.18s;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(56, 189, 248, 0.12);
+  }
+  .upload-zone p { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+
+  .pool-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    max-height: 185px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .thumb-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    background: #0b0f17;
+  }
+  .thumb-item.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+  }
+  .thumb-item img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .thumb-del {
+    position: absolute; top: 2px; right: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%; border: none;
+    background: rgba(0,0,0,0.72);
+    color: #fff; font-size: 11px; line-height: 18px;
+    cursor: pointer; display: none;
+  }
+  .thumb-item:hover .thumb-del { display: block; }
+
+  .ctrl-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.81rem;
+    color: #cbd5e1;
+  }
+  .ctrl-line select {
+    background: #0f172a;
+    color: #fff;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+
+  /* 6 面预览条 */
+  .face-slots {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .face-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .face-slot-box {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #0b0f17;
+  }
+  .face-slot-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* 原图预览弹窗 */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-card {
+    position: relative;
+    max-width: 90vw;
+    max-height: 88vh;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  .modal-card img {
+    max-width: 82vw;
+    max-height: 75vh;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+
+  @media (max-width: 960px) {
+    .workspace { grid-template-columns: 1fr; }
+    .sidebar { height: auto; border-left: none; border-top: 1px solid var(--border); }
+    .motion-bar { grid-template-columns: 1fr; }
+    .viewport { min-height: 300px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">🧊</div>
+    <span>3D 多阶动态照片魔方工坊</span>
+  </div>
+
+  <div class="top-switches">
+    <!-- 阶数选择 -->
+    <div class="seg-group" id="orderSwitch">
+      <button class="seg-btn" data-order="2">2阶</button>
+      <button class="seg-btn active" data-order="3">3阶</button>
+      <button class="seg-btn" data-order="4">4阶</button>
+      <button class="seg-btn" data-order="5">5阶</button>
+    </div>
+
+    <!-- 贴图模式 -->
+    <div class="seg-group" id="modeSwitch">
+      <button class="seg-btn active" data-mode="face">🧩 整面拼图</button>
+      <button class="seg-btn" data-mode="tile">🖼️ 每格一图</button>
+      <button class="seg-btn" data-mode="color">🎨 经典纯色</button>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- 左侧 3D 展示与控制区 -->
+  <section class="stage">
+
+
+    <div class="viewport" id="viewport">
+      <div class="cube-scaler" id="cubeScaler">
+        <div class="cube-world" id="cubeWorld"></div>
+      </div>
+    </div>
+
+    <div class="dock">
+      <!-- 双重动态控制 -->
+      <div class="motion-bar">
+        <div class="motion-item">
+          <div class="motion-head">
+            <span>🌀 魔方整体自转</span>
+            <label class="switch">
+              <input type="checkbox" id="chkAutoOrbit" checked>
+              <span class="slider-sw"></span>
+            </label>
+          </div>
+          <div class="range-row">
+            <span>慢</span>
+            <input type="range" id="rngOrbitSpeed" min="0.2" max="3.0" step="0.1" value="0.9">
+            <span>快</span>
+          </div>
+        </div>
+
+        <div class="motion-item">
+          <div class="motion-head">
+            <span>🎲 自动随机拧动</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <select id="selAutoPattern" style="background:#0f172a; color:#cbd5e1; border:1px solid var(--border); border-radius:6px; font-size:0.75rem; padding:2px 5px;">
+                <option value="endless">持续随机转</option>
+                <option value="loop">打乱⇄还原循环</option>
+              </select>
+              <label class="switch">
+                <input type="checkbox" id="chkAutoTwist" checked>
+                <span class="slider-sw"></span>
+              </label>
+            </div>
+          </div>
+          <div class="range-row">
+            <span>慢</span>
+            <input type="range" id="rngTwistSpeed" min="1" max="10" step="1" value="5">
+            <span>快</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-row">
+        <button class="btn btn-accent" id="btnScramble">🔀 随机打乱</button>
+        <button class="btn" id="btnUndo">↩️ 撤回</button>
+        <button class="btn btn-green" id="btnSolveAnim">✨ 动画还原</button>
+        <button class="btn" id="btnResetInstant">🔄 瞬间拼好</button>
+        <button class="btn" id="btnResetView">👁️ 重置视角</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右侧图片管理与显示微调 -->
+  <aside class="sidebar">
+    <!-- 批量上传 -->
+    <div class="card">
+      <div class="card-title">
+        <span>📸 图片素材库 (<span id="imgCount">0</span>)</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn" id="btnShuffleAssign" style="padding:4px 8px; font-size:0.76rem;">🎲 随机分配</button>
+          <button class="btn" id="btnClearImgs" style="padding:4px 8px; font-size:0.76rem;">清空</button>
+        </div>
+      </div>
+
+      <div class="upload-zone" id="uploadZone">
+        <strong>➕ 点击批量上传图片 / 拖拽图片到这里</strong>
+        <p>支持一次选多张 JPG / PNG / WebP（自动生成多阶拼图）</p>
+        <input type="file" id="fileInput" multiple accept="image/*" hidden>
+      </div>
+
+      <div class="pool-grid" id="poolGrid"></div>
+
+      <div id="faceSlotsWrap">
+        <div style="font-size:0.76rem; color:var(--muted); margin-bottom:5px;">
+          6个面当前分配（点击某面可用左侧选中图片替换）：
+        </div>
+        <div class="face-slots" id="faceSlots"></div>
+      </div>
+    </div>
+
+    <!-- 图片显示完整度调节 -->
+    <div class="card">
+      <div class="card-title">
+        <span>🛠️ 图片与立体展示微调</span>
+        <select id="selAdjustScope" style="background:#0f172a; color:#38bdf8; border:1px solid var(--border); border-radius:6px; font-size:0.76rem; padding:3px 6px;">
+          <option value="all">应用到全部图片</option>
+          <option value="selected">仅调当前选中图</option>
+        </select>
+      </div>
+
+      <div class="ctrl-line">
+        <span>显示方式</span>
+        <select id="selFitMode">
+          <option value="contain-blur">完整全图（模糊背景衬底）</option>
+          <option value="contain-solid">完整全图（纯色衬底）</option>
+          <option value="cover">铺满格子（自动裁剪居中）</option>
+        </select>
+      </div>
+
+      <div class="ctrl-line" id="bgColorRow">
+        <span>衬底颜色</span>
+        <input type="color" id="inpBgColor" value="#0f172a" style="width:44px; height:24px; border:none; background:none; cursor:pointer;">
+      </div>
+
+      <div class="ctrl-line">
+        <span>内容缩放 (<span id="lblImgScale">100%</span>)</span>
+        <input type="range" id="rngImgScale" min="0.5" max="2.0" step="0.05" value="1.0" style="max-width:170px;">
+      </div>
+
+      <div class="ctrl-line">
+        <span>水平微调 (<span id="lblOffX">0%</span>)</span>
+        <input type="range" id="rngOffX" min="-45" max="45" step="1" value="0" style="max-width:170px;">
+      </div>
+
+      <div class="ctrl-line">
+        <span>垂直微调 (<span id="lblOffY">0%</span>)</span>
+        <input type="range" id="rngOffY" min="-45" max="45" step="1" value="0" style="max-width:170px;">
+      </div>
+
+      <hr style="border:none; border-top:1px solid var(--border); margin:2px 0;">
+
+      <div class="ctrl-line">
+        <span>方块间隙/微爆裂</span>
+        <input type="range" id="rngGap" min="2" max="18" step="1" value="3" style="max-width:170px;">
+      </div>
+
+      <div class="ctrl-line">
+        <span>整体视图大小</span>
+        <input type="range" id="rngZoom" min="0.65" max="1.45" step="0.05" value="1.0" style="max-width:170px;">
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 双击看全图弹窗 -->
+<div class="modal-backdrop" id="previewModal">
+  <div class="modal-card">
+    <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+      <span id="previewTitle" style="font-size:0.9rem; font-weight:600;">原图预览</span>
+      <button class="btn" id="btnCloseModal" style="padding:4px 10px;">✕ 关闭</button>
+    </div>
+    <img id="previewImg" src="" alt="原图">
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==========================================
+  // 1. 矩阵与几何基础（支持任意 N 阶：2x2 ~ 5x5）
+  // ==========================================
+  const FACE_DEFS = [
+    { key: 'F', name: '前', normal: [0, 0, 1],  css: 'translateZ(var(--half))', color: '#22c55e' },
+    { key: 'B', name: '后', normal: [0, 0, -1], css: 'rotateY(180deg) translateZ(var(--half))', color: '#3b82f6' },
+    { key: 'R', name: '右', normal: [1, 0, 0],  css: 'rotateY(90deg) translateZ(var(--half))', color: '#f97316' },
+    { key: 'L', name: '左', normal: [-1, 0, 0], css: 'rotateY(-90deg) translateZ(var(--half))', color: '#ef4444' },
+    { key: 'U', name: '顶', normal: [0, -1, 0], css: 'rotateX(90deg) translateZ(var(--half))', color: '#facc15' },
+    { key: 'D', name: '底', normal: [0, 1, 0],  css: 'rotateX(-90deg) translateZ(var(--half))', color: '#f8fafc' }
+  ];
+
+  function matTranslate(x, y, z) { return [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]; }
+  function matRotX(deg) {
+    const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+    return [1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1];
+  }
+  function matRotY(deg) {
+    const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+    return [c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1];
+  }
+  function matRotZ(deg) {
+    const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+    return [c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1];
+  }
+  function matRotAxis(axis, deg) {
+    return axis === 'x' ? matRotX(deg) : (axis === 'y' ? matRotY(deg) : matRotZ(deg));
+  }
+  function matMul(a, b) {
+    const out = new Array(16);
+    for (let col = 0; col < 4; col++) {
+      for (let row = 0; row < 4; row++) {
+        out[col * 4 + row] =
+          a[0*4 + row] * b[col*4 + 0] +
+          a[1*4 + row] * b[col*4 + 1] +
+          a[2*4 + row] * b[col*4 + 2] +
+          a[3*4 + row] * b[col*4 + 3];
+      }
+    }
+    return out;
+  }
+  function transformVec3(m, v) {
+    return [
+      m[0]*v[0] + m[4]*v[1] + m[8]*v[2],
+      m[1]*v[0] + m[5]*v[1] + m[9]*v[2],
+      m[2]*v[0] + m[6]*v[1] + m[10]*v[2]
+    ];
+  }
+  function matToCss(m) {
+    return `matrix3d(${m.map(v => Math.abs(v) < 1e-6 ? 0 : +v.toFixed(5)).join(',')})`;
+  }
+
+  // ==========================================
+  // 2. 全局状态
+  // ==========================================
+  let cubeOrder = 3;          // 2, 3, 4, 5
+  let textureMode = 'face';   // 'face' | 'tile' | 'color'
+  let viewRotX = -24;
+  let viewRotY = -36;
+  let viewZoom = 1.0;
+  let gapPx = 3;
+
+  const cubies = [];
+  let moveQueue = [];
+  let isAnimating = false;
+  let animSessionId = 0;
+  let historyStack = [];      // [{axis, slice, dir}]
+
+  // 图片池与映射
+  const imagePool = [];       // [{id, name, img, origUrl, processedUrl, fitMode, scale, offsetX, offsetY, bgColor}]
+  let selectedImgId = null;
+  let faceAssignments = {};   // { F: imgId, B: imgId, ... }
+  let tileAssignments = [];   // 每次重建/洗牌分配给每个外贴纸的 imgId
+
+  // 自动动画状态
+  let autoOrbit = true;
+  let orbitSpeed = 0.9;
+  let autoTwist = true;
+  let autoPattern = 'endless'; // 'endless' | 'loop'
+  let twistSpeedLevel = 5;     // 1..10
+  let loopState = { phase: 'scramble', steps: [], cursor: 0, waitUntil: 0 };
+  let nextAutoTwistAt = 0;
+  let userDragging = false;
+
+  const cubeWorld = document.getElementById('cubeWorld');
+  const cubeScaler = document.getElementById('cubeScaler');
+  const viewport = document.getElementById('viewport');
+
+  // ==========================================
+  // 3. 尺寸计算与内置示例艺术图生成
+  // ==========================================
+  function getCubeSizing() {
+    const isMobile = window.innerWidth <= 960;
+    const totalSize = isMobile ? 190 : 232;
+    const cubieSize = Math.max(28, Math.floor((totalSize - (cubeOrder - 1) * gapPx) / cubeOrder));
+    const step = cubieSize + gapPx;
+    return { cubieSize, half: cubieSize / 2, step };
+  }
+
+  function applyCssSizing() {
+    const { cubieSize, half, step } = getCubeSizing();
+    const root = document.documentElement.style;
+    root.setProperty('--cubie', cubieSize + 'px');
+    root.setProperty('--half', half + 'px');
+    root.setProperty('--step', step + 'px');
+    root.setProperty('--bezel', (cubeOrder >= 4 ? 3 : 4) + 'px');
+    root.setProperty('--radius', (cubeOrder >= 4 ? 5 : 7) + 'px');
+
+    const halfStep = step / 2;
+    for (const c of cubies) {
+      c.matrix[12] = c.pos[0] * halfStep;
+      c.matrix[13] = c.pos[1] * halfStep;
+      c.matrix[14] = c.pos[2] * halfStep;
+      c.el.style.transform = matToCss(c.matrix);
+    }
+    cubeScaler.style.transform = `scale(${viewZoom})`;
+  }
+
+  function validSlices(n = cubeOrder) {
+    const arr = [];
+    for (let v = -(n - 1); v <= (n - 1); v += 2) arr.push(v);
+    return arr;
+  }
+
+  // 生成 6 张高颜值内置示例图（打开页面立刻就能体验）
+  function createStarterArtImages() {
+    const themes = [
+      { title: '日落山峦', c1: '#f97316', c2: '#db2777', accent: '#fde047', shape: 'mountain' },
+      { title: '深海极光', c1: '#0ea5e9', c2: '#6366f1', accent: '#34d399', shape: 'wave' },
+      { title: '赛博棱镜', c1: '#8b5cf6', c2: '#0f172a', accent: '#22d3ee', shape: 'prism' },
+      { title: '春日暖阳', c1: '#10b981', c2: '#059669', accent: '#fef08a', shape: 'sun' },
+      { title: '星空星球', c1: '#1e1b4b', c2: '#312e81', accent: '#f472b6', shape: 'planet' },
+      { title: '几何万花', c1: '#ef4444', c2: '#f59e0b', accent: '#ffffff', shape: 'rings' }
+    ];
+
+    themes.forEach((th, idx) => {
+      const cvs = document.createElement('canvas');
+      cvs.width = 480; cvs.height = 480;
+      const ctx = cvs.getContext('2d');
+
+      const grad = ctx.createLinearGradient(0, 0, 480, 480);
+      grad.addColorStop(0, th.c1);
+      grad.addColorStop(1, th.c2);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 480, 480);
+
+      ctx.save();
+      if (th.shape === 'mountain') {
+        ctx.fillStyle = th.accent;
+        ctx.beginPath(); ctx.arc(340, 130, 58, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(15,23,42,0.45)';
+        ctx.beginPath(); ctx.moveTo(0, 480); ctx.lineTo(170, 220); ctx.lineTo(350, 480); ctx.fill();
+        ctx.fillStyle = 'rgba(15,23,42,0.68)';
+        ctx.beginPath(); ctx.moveTo(150, 480); ctx.lineTo(330, 190); ctx.lineTo(480, 480); ctx.fill();
+      } else if (th.shape === 'wave') {
+        for (let k = 0; k < 5; k++) {
+          ctx.fillStyle = `rgba(52, 211, 153, ${0.18 + k * 0.12})`;
+          ctx.beginPath();
+          ctx.moveTo(0, 240 + k * 45);
+          ctx.bezierCurveTo(140, 170 + k * 35, 320, 330 + k * 25, 480, 230 + k * 45);
+          ctx.lineTo(480, 480); ctx.lineTo(0, 480); ctx.fill();
+        }
+      } else if (th.shape === 'prism') {
+        ctx.strokeStyle = th.accent;
+        ctx.lineWidth = 6;
+        for (let r = 40; r <= 180; r += 35) {
+          ctx.strokeRect(240 - r, 240 - r, r * 2, r * 2);
+        }
+      } else if (th.shape === 'sun') {
+        ctx.fillStyle = th.accent;
+        ctx.beginPath(); ctx.arc(240, 220, 88, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath(); ctx.arc(120, 380, 140, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(370, 390, 130, 0, Math.PI * 2); ctx.fill();
+      } else if (th.shape === 'planet') {
+        ctx.fillStyle = '#fff';
+        for (let s = 0; s < 40; s++) {
+          ctx.fillRect((s * 73) % 460 + 10, (s * 137) % 460 + 10, 4, 4);
+        }
+        ctx.fillStyle = th.accent;
+        ctx.beginPath(); ctx.arc(240, 240, 85, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.ellipse(240, 240, 155, 38, -0.35, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        for (let r = 200; r >= 40; r -= 40) {
+          ctx.fillStyle = r % 80 === 0 ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.12)';
+          ctx.beginPath(); ctx.arc(240, 240, r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      const dataUrl = cvs.toDataURL('image/png');
+      const img = new Image();
+      img.onload = () => {
+        const item = {
+          id: 'demo-' + idx,
+          name: th.title,
+          img,
+          origUrl: dataUrl,
+          processedUrl: dataUrl,
+          fitMode: 'contain-blur',
+          scale: 1.0,
+          offsetX: 0,
+          offsetY: 0,
+          bgColor: '#0f172a'
+        };
+        imagePool.push(item);
+        if (!selectedImgId) selectedImgId = item.id;
+        if (imagePool.length === themes.length) {
+          assignDefaultMappings();
+          refreshAllStickers();
+          renderImagePoolUI();
+        }
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  // ==========================================
+  // 4. 图片处理（确保不裁切、可缩放偏移）
+  // ==========================================
+  function processImageSquare(item) {
+    const size = 420;
+    const cvs = document.createElement('canvas');
+    cvs.width = size; cvs.height = size;
+    const ctx = cvs.getContext('2d');
+    const iw = item.img.naturalWidth || item.img.width || size;
+    const ih = item.img.naturalHeight || item.img.height || size;
+
+    if (item.fitMode === 'contain-blur') {
+      const coverRatio = Math.max(size / iw, size / ih);
+      const cw = iw * coverRatio, ch = ih * coverRatio;
+      ctx.save();
+      ctx.filter = 'blur(18px) brightness(0.62)';
+      ctx.drawImage(item.img, (size - cw) / 2, (size - ch) / 2, cw, ch);
+      ctx.restore();
+    } else if (item.fitMode === 'contain-solid') {
+      ctx.fillStyle = item.bgColor || '#0f172a';
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    const baseRatio = item.fitMode === 'cover'
+      ? Math.max(size / iw, size / ih)
+      : Math.min(size / iw, size / ih);
+
+    const drawW = iw * baseRatio * item.scale;
+    const drawH = ih * baseRatio * item.scale;
+    const dx = (size - drawW) / 2 + (item.offsetX / 100) * size;
+    const dy = (size - drawH) / 2 + (item.offsetY / 100) * size;
+
+    ctx.drawImage(item.img, dx, dy, drawW, drawH);
+    item.processedUrl = cvs.toDataURL('image/jpeg', 0.9);
+  }
+
+  function assignDefaultMappings() {
+    if (imagePool.length === 0) {
+      faceAssignments = {};
+      tileAssignments = [];
+      return;
+    }
+    FACE_DEFS.forEach((f, i) => {
+      faceAssignments[f.key] = imagePool[i % imagePool.length].id;
+    });
+    const totalTiles = 6 * cubeOrder * cubeOrder;
+    tileAssignments = [];
+    for (let i = 0; i < totalTiles; i++) {
+      tileAssignments.push(imagePool[i % imagePool.length].id);
+    }
+  }
+
+  function shuffleImageMappings() {
+    if (imagePool.length === 0) return;
+    const ids = imagePool.map(x => x.id);
+    const shuffled = [...ids].sort(() => Math.random() - 0.5);
+    FACE_DEFS.forEach((f, i) => {
+      faceAssignments[f.key] = shuffled[i % shuffled.length];
+    });
+    const totalTiles = 6 * cubeOrder * cubeOrder;
+    tileAssignments = [];
+    for (let i = 0; i < totalTiles; i++) {
+      tileAssignments.push(ids[Math.floor(Math.random() * ids.length)]);
+    }
+    refreshAllStickers();
+    renderFaceSlotsUI();
+  }
+
+  // ==========================================
+  // 5. 构建任意阶魔方 DOM 与贴图
+  // ==========================================
+  function buildCube() {
+    animSessionId++;
+    moveQueue = [];
+    isAnimating = false;
+    historyStack = [];
+    cubies.length = 0;
+    cubeWorld.innerHTML = '';
+
+    const { step } = getCubeSizing();
+    const halfStep = step / 2;
+    const maxC = cubeOrder - 1;
+    const coords = validSlices(cubeOrder);
+    let tileCounter = 0;
+
+    for (const x of coords) {
+      for (const y of coords) {
+        for (const z of coords) {
+          // 仅生成外壳方块，5阶也只需 98 个 DOM，保持 60fps 流畅
+          if (Math.abs(x) !== maxC && Math.abs(y) !== maxC && Math.abs(z) !== maxC) continue;
+
+          const el = document.createElement('div');
+          el.className = 'cubie';
+          const faces = [];
+
+          for (const f of FACE_DEFS) {
+            const faceEl = document.createElement('div');
+            faceEl.className = 'face';
+            faceEl.style.transform = f.css;
+            faceEl.dataset.normal = f.normal.join(',');
+
+            const isOuter =
+              (f.normal[0] !== 0 && f.normal[0] * maxC === x) ||
+              (f.normal[1] !== 0 && f.normal[1] * maxC === y) ||
+              (f.normal[2] !== 0 && f.normal[2] * maxC === z);
+
+            if (isOuter) {
+              const sticker = document.createElement('div');
+              sticker.className = 'sticker';
+
+              // 计算该贴纸在该面上的 (col, row)
+              const idx = v => (v + maxC) / 2;
+              const rev = v => (maxC - v) / 2;
+              let col = 0, row = 0;
+              if (f.key === 'F') { col = idx(x); row = idx(y); }
+              else if (f.key === 'B') { col = rev(x); row = idx(y); }
+              else if (f.key === 'R') { col = rev(z); row = idx(y); }
+              else if (f.key === 'L') { col = idx(z); row = idx(y); }
+              else if (f.key === 'U') { col = idx(x); row = idx(z); }
+              else if (f.key === 'D') { col = idx(x); row = rev(z); }
+
+              faceEl.appendChild(sticker);
+              faces.push({
+                el: faceEl,
+                sticker,
+                faceKey: f.key,
+                baseColor: f.color,
+                col,
+                row,
+                tileIdx: tileCounter++
+              });
+            }
+            el.appendChild(faceEl);
+          }
+
+          const cubie = {
+            el,
+            home: [x, y, z],
+            pos: [x, y, z],
+            matrix: matTranslate(x * halfStep, y * halfStep, z * halfStep),
+            faces
+          };
+          el.dataset.cubieIdx = cubies.length;
+          el.style.transform = matToCss(cubie.matrix);
+          cubeWorld.appendChild(el);
+          cubies.push(cubie);
+        }
+      }
+    }
+
+    applyCssSizing();
+    if (tileAssignments.length !== tileCounter) {
+      assignDefaultMappings();
+    }
+    refreshAllStickers();
+    renderFaceSlotsUI();
+  }
+
+  function getImageById(id) {
+    return imagePool.find(x => x.id === id) || imagePool[0] || null;
+  }
+
+  function refreshAllStickers() {
+    const n = cubeOrder;
+    const denom = Math.max(1, n - 1);
+
+    for (const c of cubies) {
+      for (const f of c.faces) {
+        const st = f.sticker;
+        if (textureMode === 'color' || imagePool.length === 0) {
+          st.style.backgroundImage = 'none';
+          st.style.backgroundColor = f.baseColor;
+          f.el.dataset.imgId = '';
+        } else if (textureMode === 'face') {
+          const item = getImageById(faceAssignments[f.faceKey]);
+          f.el.dataset.imgId = item.id;
+          st.style.backgroundColor = item.bgColor || '#0f172a';
+          st.style.backgroundImage = `url("${item.processedUrl}")`;
+          st.style.backgroundSize = `${n * 100}% ${n * 100}%`;
+          const px = (f.col / denom) * 100;
+          const py = (f.row / denom) * 100;
+          st.style.backgroundPosition = `${px}% ${py}%`;
+        } else {
+          // 每格一图
+          const imgId = tileAssignments[f.tileIdx % Math.max(1, tileAssignments.length)];
+          const item = getImageById(imgId);
+          f.el.dataset.imgId = item.id;
+          st.style.backgroundColor = item.bgColor || '#0f172a';
+          st.style.backgroundImage = `url("${item.processedUrl}")`;
+          st.style.backgroundSize = '100% 100%';
+          st.style.backgroundPosition = 'center center';
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // 6. 旋转引擎（支持队列 + 任意阶任意层）
+  // ==========================================
+  function snapCubie(c, halfStep) {
+    for (let i = 0; i < 12; i++) c.matrix[i] = Math.round(c.matrix[i]);
+    const nx = Math.round(c.matrix[12] / halfStep);
+    const ny = Math.round(c.matrix[13] / halfStep);
+    const nz = Math.round(c.matrix[14] / halfStep);
+    c.pos = [nx, ny, nz];
+    c.matrix[12] = nx * halfStep;
+    c.matrix[13] = ny * halfStep;
+    c.matrix[14] = nz * halfStep;
+  }
+
+  function enqueueSliceMove(axis, slice, dir, opts = {}) {
+    // dir: 1 (+90), -1 (-90), 2 (180)
+    const { duration = 220, recordHistory = true, onDone = null } = opts;
+    moveQueue.push({ axis, slice, dir, duration, recordHistory, onDone, session: animSessionId });
+    processQueue();
+  }
+
+  function pushMoveToHistory(axis, slice, dir) {
+    // 简化相邻同层操作，避免历史栈无意义膨胀
+    const top = historyStack[historyStack.length - 1];
+    if (top && top.axis === axis && top.slice === slice) {
+      const sum = ((top.dir + dir) % 4 + 4) % 4;
+      if (sum === 0) {
+        historyStack.pop();
+        return;
+      } else if (sum === 1 || sum === 2 || sum === 3) {
+        top.dir = sum === 3 ? -1 : sum;
+        return;
+      }
+    }
+    historyStack.push({ axis, slice, dir });
+    if (historyStack.length > 160) historyStack.shift();
+  }
+
+  function processQueue() {
+    if (isAnimating || moveQueue.length === 0) return;
+    const job = moveQueue.shift();
+    if (job.session !== animSessionId) { processQueue(); return; }
+
+    isAnimating = true;
+    const coordIdx = job.axis === 'x' ? 0 : (job.axis === 'y' ? 1 : 2);
+    const affected = cubies.filter(c => c.pos[coordIdx] === job.slice);
+    const baseMatrices = affected.map(c => [...c.matrix]);
+    const targetAngle = job.dir * 90;
+    const startTime = performance.now();
+
+    function frame(now) {
+      if (job.session !== animSessionId) { isAnimating = false; return; }
+      const t = Math.min(1, (now - startTime) / job.duration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      const rot = matRotAxis(job.axis, targetAngle * ease);
+
+      for (let i = 0; i < affected.length; i++) {
+        affected[i].el.style.transform = matToCss(matMul(rot, baseMatrices[i]));
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        const finalRot = matRotAxis(job.axis, targetAngle);
+        const halfStep = getCubeSizing().step / 2;
+        for (let i = 0; i < affected.length; i++) {
+          affected[i].matrix = matMul(finalRot, baseMatrices[i]);
+          snapCubie(affected[i], halfStep);
+          affected[i].el.style.transform = matToCss(affected[i].matrix);
+        }
+        if (job.recordHistory) {
+          pushMoveToHistory(job.axis, job.slice, job.dir);
+        }
+        isAnimating = false;
+        if (job.onDone) job.onDone();
+        processQueue();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function resetCubeInstant() {
+    animSessionId++;
+    moveQueue = [];
+    isAnimating = false;
+    historyStack = [];
+    loopState = { phase: 'scramble', steps: [], cursor: 0, waitUntil: performance.now() + 800 };
+    const halfStep = getCubeSizing().step / 2;
+    for (const c of cubies) {
+      c.pos = [...c.home];
+      c.matrix = matTranslate(c.home[0] * halfStep, c.home[1] * halfStep, c.home[2] * halfStep);
+      c.el.style.transform = matToCss(c.matrix);
+    }
+  }
+
+  function randomMoveGenerator(lastAxis = '') {
+    const axes = ['x', 'y', 'z'].filter(a => a !== lastAxis);
+    const axis = axes[Math.floor(Math.random() * axes.length)];
+    const slices = validSlices(cubeOrder);
+    const slice = slices[Math.floor(Math.random() * slices.length)];
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    return { axis, slice, dir };
+  }
+
+  // ==========================================
+  // 7. 鼠标/触摸拖拽（旋转视角 + 手拧魔方 + 双击看大图）
+  // ==========================================
+  let pointerState = null;
+
+  viewport.addEventListener('pointerdown', (e) => {
+    viewport.setPointerCapture(e.pointerId);
+    const faceEl = e.target.closest('.face');
+    if (faceEl && !isAnimating) {
+      const cubieEl = faceEl.closest('.cubie');
+      const cubie = cubies[Number(cubieEl.dataset.cubieIdx)];
+      const localN = faceEl.dataset.normal.split(',').map(Number);
+      const worldN = transformVec3(cubie.matrix, localN).map(Math.round);
+
+      let t1, t2;
+      if (Math.abs(worldN[0]) === 1) { t1 = [0,1,0]; t2 = [0,0,1]; }
+      else if (Math.abs(worldN[1]) === 1) { t1 = [1,0,0]; t2 = [0,0,1]; }
+      else { t1 = [1,0,0]; t2 = [0,1,0]; }
+
+      const mView = matMul(matRotX(viewRotX), matRotY(viewRotY));
+      pointerState = {
+        mode: 'cubie',
+        id: e.pointerId,
+        startX: e.clientX, startY: e.clientY,
+        cubie, worldN, t1, t2,
+        p1: transformVec3(mView, t1),
+        p2: transformVec3(mView, t2),
+        triggered: false
+      };
+    } else {
+      userDragging = true;
+      pointerState = { mode: 'orbit', id: e.pointerId, lastX: e.clientX, lastY: e.clientY };
+    }
+  });
+
+  viewport.addEventListener('pointermove', (e) => {
+    if (!pointerState || pointerState.id !== e.pointerId) return;
+    if (pointerState.mode === 'orbit') {
+      viewRotY += (e.clientX - pointerState.lastX) * 0.45;
+      viewRotX -= (e.clientY - pointerState.lastY) * 0.45;
+      viewRotX = Math.max(-88, Math.min(88, viewRotX));
+      pointerState.lastX = e.clientX;
+      pointerState.lastY = e.clientY;
+    } else if (pointerState.mode === 'cubie' && !pointerState.triggered) {
+      const mx = e.clientX - pointerState.startX;
+      const my = e.clientY - pointerState.startY;
+      if (Math.hypot(mx, my) < 16) return;
+
+      const { worldN, t1, t2, p1, p2, cubie } = pointerState;
+      const d1 = mx * p1[0] + my * p1[1];
+      const d2 = mx * p2[0] + my * p2[1];
+      const dirVec = Math.abs(d1) >= Math.abs(d2)
+        ? (d1 > 0 ? t1 : t1.map(v => -v))
+        : (d2 > 0 ? t2 : t2.map(v => -v));
+
+      const ax = worldN[1]*dirVec[2] - worldN[2]*dirVec[1];
+      const ay = worldN[2]*dirVec[0] - worldN[0]*dirVec[2];
+      const az = worldN[0]*dirVec[1] - worldN[1]*dirVec[0];
+
+      let axis, dir, slice;
+      if (Math.abs(ax) === 1) { axis = 'x'; dir = ax; slice = cubie.pos[0]; }
+      else if (Math.abs(ay) === 1) { axis = 'y'; dir = ay; slice = cubie.pos[1]; }
+      else { axis = 'z'; dir = az; slice = cubie.pos[2]; }
+
+      pointerState.triggered = true;
+      enqueueSliceMove(axis, slice, dir, { duration: 190 });
+    }
+  });
+
+  function endPointer(e) {
+    if (pointerState && pointerState.id === e.pointerId) {
+      pointerState = null;
+      userDragging = false;
+    }
+  }
+  viewport.addEventListener('pointerup', endPointer);
+  viewport.addEventListener('pointercancel', endPointer);
+
+  // 滚轮缩放
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    viewZoom = Math.max(0.6, Math.min(1.55, viewZoom - e.deltaY * 0.0008));
+    document.getElementById('rngZoom').value = viewZoom.toFixed(2);
+    cubeScaler.style.transform = `scale(${viewZoom})`;
+  }, { passive: false });
+
+  // 双击贴纸查看原图
+  viewport.addEventListener('dblclick', (e) => {
+    const faceEl = e.target.closest('.face');
+    if (!faceEl || !faceEl.dataset.imgId) return;
+    const item = getImageById(faceEl.dataset.imgId);
+    if (!item) return;
+    document.getElementById('previewImg').src = item.origUrl;
+    document.getElementById('previewTitle').textContent = `原图预览：${item.name}`;
+    document.getElementById('previewModal').classList.add('open');
+  });
+
+  document.getElementById('btnCloseModal').addEventListener('click', () => {
+    document.getElementById('previewModal').classList.remove('open');
+  });
+  document.getElementById('previewModal').addEventListener('click', (e) => {
+    if (e.target.id === 'previewModal') e.currentTarget.classList.remove('open');
+  });
+
+  // ==========================================
+  // 8. 双重动态主循环（整体自转 + 自动随机拧动）
+  // ==========================================
+  let lastFrameTime = performance.now();
+  let lastAutoAxis = '';
+
+  function mainLoop(now) {
+    const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+    lastFrameTime = now;
+
+    // 1) 魔方整体自转
+    if (autoOrbit && !userDragging) {
+      viewRotY += orbitSpeed * 38 * dt;
+      // 轻微俯仰呼吸感，让顶底面也能优雅展示
+      viewRotX = -18 + Math.sin(now * 0.00055 * orbitSpeed) * 24;
+    }
+    cubeWorld.style.transform = `rotateX(${viewRotX}deg) rotateY(${viewRotY}deg)`;
+
+    // 2) 自动拧动（持续随机 或 打乱⇄还原循环）
+    if (autoTwist && !isAnimating && moveQueue.length === 0 && now >= nextAutoTwistAt) {
+      // 根据滑块 1..10 计算单步时长和间隔
+      const turnDur = Math.round(720 - (twistSpeedLevel - 1) * 62); // 720ms -> 160ms
+      const pauseGap = Math.round(Math.max(20, (10 - twistSpeedLevel) * 55));
+
+      if (autoPattern === 'endless') {
+        const mv = randomMoveGenerator(lastAutoAxis);
+        lastAutoAxis = mv.axis;
+        enqueueSliceMove(mv.axis, mv.slice, mv.dir, {
+          duration: turnDur,
+          onDone: () => { nextAutoTwistAt = performance.now() + pauseGap; }
+        });
+      } else {
+        // 打乱⇄还原循环模式
+        if (now >= loopState.waitUntil) {
+          if (loopState.phase === 'scramble') {
+            if (loopState.steps.length === 0) {
+              const count = cubeOrder >= 4 ? 12 : 9;
+              let ax = '';
+              for (let i = 0; i < count; i++) {
+                const m = randomMoveGenerator(ax);
+                ax = m.axis;
+                loopState.steps.push(m);
+              }
+              loopState.cursor = 0;
+            }
+            const mv = loopState.steps[loopState.cursor++];
+            enqueueSliceMove(mv.axis, mv.slice, mv.dir, {
+              duration: turnDur,
+              onDone: () => {
+                if (loopState.cursor >= loopState.steps.length) {
+                  loopState.phase = 'solve';
+                  loopState.cursor = loopState.steps.length - 1;
+                  loopState.waitUntil = performance.now() + 900;
+                } else {
+                  nextAutoTwistAt = performance.now() + pauseGap;
+                }
+              }
+            });
+          } else {
+            const mv = loopState.steps[loopState.cursor--];
+            enqueueSliceMove(mv.axis, mv.slice, -mv.dir, {
+              duration: turnDur,
+              onDone: () => {
+                if (loopState.cursor < 0) {
+                  loopState.phase = 'scramble';
+                  loopState.steps = [];
+                  loopState.waitUntil = performance.now() + 2000; // 拼好后停顿2秒欣赏完整美图
+                } else {
+                  nextAutoTwistAt = performance.now() + pauseGap;
+                }
+              }
+            });
+          }
+        }
+      }
+    }
+
+    requestAnimationFrame(mainLoop);
+  }
+
+  // ==========================================
+  // 9. UI 控件与批量图片管理
+  // ==========================================
+  function renderImagePoolUI() {
+    document.getElementById('imgCount').textContent = imagePool.length;
+    const grid = document.getElementById('poolGrid');
+    grid.innerHTML = '';
+
+    imagePool.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'thumb-item' + (item.id === selectedImgId ? ' selected' : '');
+      div.title = item.name + '（点击选中微调，双击可看大图）';
+      const img = document.createElement('img');
+      img.src = item.processedUrl;
+      div.appendChild(img);
+
+      const del = document.createElement('button');
+      del.className = 'thumb-del';
+      del.textContent = '×';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = imagePool.findIndex(x => x.id === item.id);
+        if (idx >= 0) imagePool.splice(idx, 1);
+        if (selectedImgId === item.id) selectedImgId = imagePool[0]?.id || null;
+        assignDefaultMappings();
+        refreshAllStickers();
+        renderImagePoolUI();
+        renderFaceSlotsUI();
+      });
+      div.appendChild(del);
+
+      div.addEventListener('click', () => {
+        selectedImgId = item.id;
+        syncAdjustControlsFromSelected();
+        renderImagePoolUI();
+      });
+
+      div.addEventListener('dblclick', () => {
+        document.getElementById('previewImg').src = item.origUrl;
+        document.getElementById('previewTitle').textContent = `原图预览：${item.name}`;
+        document.getElementById('previewModal').classList.add('open');
+      });
+
+      grid.appendChild(div);
+    });
+    renderFaceSlotsUI();
+  }
+
+  function renderFaceSlotsUI() {
+    const wrap = document.getElementById('faceSlotsWrap');
+    wrap.style.display = textureMode === 'face' && imagePool.length > 0 ? 'block' : 'none';
+    const slots = document.getElementById('faceSlots');
+    slots.innerHTML = '';
+
+    FACE_DEFS.forEach((f) => {
+      const item = getImageById(faceAssignments[f.key]);
+      const slot = document.createElement('div');
+      slot.className = 'face-slot';
+      slot.title = `点击把「${f.name}面」换成当前选中的图片`;
+      const box = document.createElement('div');
+      box.className = 'face-slot-box';
+      if (item) {
+        const im = document.createElement('img');
+        im.src = item.processedUrl;
+        box.appendChild(im);
+      }
+      const lbl = document.createElement('span');
+      lbl.textContent = f.name;
+      slot.appendChild(box);
+      slot.appendChild(lbl);
+
+      slot.addEventListener('click', () => {
+        if (!selectedImgId) return;
+        faceAssignments[f.key] = selectedImgId;
+        refreshAllStickers();
+        renderFaceSlotsUI();
+      });
+      slots.appendChild(slot);
+    });
+  }
+
+  function handleUploadedFiles(files) {
+    const valid = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (valid.length === 0) return;
+
+    // 如果当前只有内置示例图，首次上传自动替换示例图（也可以点清空后上传）
+    const onlyDemo = imagePool.length > 0 && imagePool.every(x => x.id.startsWith('demo-'));
+    if (onlyDemo) imagePool.length = 0;
+
+    let loaded = 0;
+    valid.forEach((file, i) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const item = {
+          id: 'up-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 6),
+          name: file.name,
+          img,
+          origUrl: url,
+          processedUrl: url,
+          fitMode: document.getElementById('selFitMode').value,
+          scale: parseFloat(document.getElementById('rngImgScale').value),
+          offsetX: parseInt(document.getElementById('rngOffX').value, 10),
+          offsetY: parseInt(document.getElementById('rngOffY').value, 10),
+          bgColor: document.getElementById('inpBgColor').value
+        };
+        processImageSquare(item);
+        imagePool.push(item);
+        if (!selectedImgId || onlyDemo) selectedImgId = item.id;
+        loaded++;
+        if (loaded === valid.length) {
+          assignDefaultMappings();
+          refreshAllStickers();
+          renderImagePoolUI();
+        }
+      };
+      img.src = url;
+    });
+  }
+
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  uploadZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    handleUploadedFiles(e.target.files);
+    e.target.value = '';
+  });
+  uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+  });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    handleUploadedFiles(e.dataTransfer.files);
+  });
+
+  // 微调控件绑定
+  function syncAdjustControlsFromSelected() {
+    const item = getImageById(selectedImgId);
+    if (!item) return;
+    document.getElementById('selFitMode').value = item.fitMode;
+    document.getElementById('inpBgColor').value = item.bgColor;
+    document.getElementById('rngImgScale').value = item.scale;
+    document.getElementById('lblImgScale').textContent = Math.round(item.scale * 100) + '%';
+    document.getElementById('rngOffX').value = item.offsetX;
+    document.getElementById('lblOffX').textContent = item.offsetX + '%';
+    document.getElementById('rngOffY').value = item.offsetY;
+    document.getElementById('lblOffY').textContent = item.offsetY + '%';
+  }
+
+  function applyImageAdjustments() {
+    const scope = document.getElementById('selAdjustScope').value;
+    const fitMode = document.getElementById('selFitMode').value;
+    const bgColor = document.getElementById('inpBgColor').value;
+    const scale = parseFloat(document.getElementById('rngImgScale').value);
+    const offsetX = parseInt(document.getElementById('rngOffX').value, 10);
+    const offsetY = parseInt(document.getElementById('rngOffY').value, 10);
+
+    document.getElementById('lblImgScale').textContent = Math.round(scale * 100) + '%';
+    document.getElementById('lblOffX').textContent = offsetX + '%';
+    document.getElementById('lblOffY').textContent = offsetY + '%';
+
+    const targets = scope === 'all' ? imagePool : imagePool.filter(x => x.id === selectedImgId);
+    for (const item of targets) {
+      item.fitMode = fitMode;
+      item.bgColor = bgColor;
+      item.scale = scale;
+      item.offsetX = offsetX;
+      item.offsetY = offsetY;
+      processImageSquare(item);
+    }
+    refreshAllStickers();
+    renderImagePoolUI();
+  }
+
+  ['selFitMode', 'inpBgColor', 'rngImgScale', 'rngOffX', 'rngOffY'].forEach(id => {
+    document.getElementById(id).addEventListener('input', applyImageAdjustments);
+  });
+
+  document.getElementById('rngGap').addEventListener('input', (e) => {
+    gapPx = parseInt(e.target.value, 10);
+    applyCssSizing();
+  });
+
+  document.getElementById('rngZoom').addEventListener('input', (e) => {
+    viewZoom = parseFloat(e.target.value);
+    cubeScaler.style.transform = `scale(${viewZoom})`;
+  });
+
+  // 顶部切换：阶数 & 模式
+  document.getElementById('orderSwitch').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    document.querySelectorAll('#orderSwitch .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    cubeOrder = Number(btn.dataset.order);
+    loopState = { phase: 'scramble', steps: [], cursor: 0, waitUntil: performance.now() + 600 };
+    buildCube();
+  });
+
+  document.getElementById('modeSwitch').addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg-btn');
+    if (!btn) return;
+    document.querySelectorAll('#modeSwitch .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    textureMode = btn.dataset.mode;
+    refreshAllStickers();
+    renderFaceSlotsUI();
+  });
+
+  // 动作按钮
+  document.getElementById('btnShuffleAssign').addEventListener('click', shuffleImageMappings);
+  document.getElementById('btnClearImgs').addEventListener('click', () => {
+    imagePool.length = 0;
+    selectedImgId = null;
+    assignDefaultMappings();
+    refreshAllStickers();
+    renderImagePoolUI();
+  });
+
+  document.getElementById('chkAutoOrbit').addEventListener('change', (e) => { autoOrbit = e.target.checked; });
+  document.getElementById('rngOrbitSpeed').addEventListener('input', (e) => { orbitSpeed = parseFloat(e.target.value); });
+  document.getElementById('chkAutoTwist').addEventListener('change', (e) => {
+    autoTwist = e.target.checked;
+    if (autoTwist) nextAutoTwistAt = performance.now() + 150;
+  });
+  document.getElementById('selAutoPattern').addEventListener('change', (e) => {
+    autoPattern = e.target.value;
+    loopState = { phase: 'scramble', steps: [], cursor: 0, waitUntil: performance.now() + 400 };
+  });
+  document.getElementById('rngTwistSpeed').addEventListener('input', (e) => { twistSpeedLevel = parseInt(e.target.value, 10); });
+
+  document.getElementById('btnScramble').addEventListener('click', () => {
+    if (isAnimating) return;
+    const count = cubeOrder * 5;
+    let ax = '';
+    for (let i = 0; i < count; i++) {
+      const m = randomMoveGenerator(ax);
+      ax = m.axis;
+      enqueueSliceMove(m.axis, m.slice, m.dir, { duration: 95 });
+    }
+  });
+
+  document.getElementById('btnUndo').addEventListener('click', () => {
+    if (isAnimating || historyStack.length === 0) return;
+    const last = historyStack.pop();
+    enqueueSliceMove(last.axis, last.slice, -last.dir, { duration: 160, recordHistory: false });
+  });
+
+  document.getElementById('btnSolveAnim').addEventListener('click', () => {
+    if (isAnimating) return;
+    // 先暂停自动随机拧动，避免刚还原完又被拧乱
+    autoTwist = false;
+    document.getElementById('chkAutoTwist').checked = false;
+
+    if (historyStack.length === 0) return;
+    const rev = [...historyStack].reverse();
+    historyStack = [];
+    rev.forEach((m) => {
+      enqueueSliceMove(m.axis, m.slice, -m.dir, { duration: 120, recordHistory: false });
+    });
+  });
+
+  document.getElementById('btnResetInstant').addEventListener('click', () => {
+    autoTwist = false;
+    document.getElementById('chkAutoTwist').checked = false;
+    resetCubeInstant();
+  });
+
+  document.getElementById('btnResetView').addEventListener('click', () => {
+    viewRotX = -24;
+    viewRotY = -36;
+  });
+
+  window.addEventListener('resize', applyCssSizing);
+
+  // ==========================================
+  // 10. 启动！
+  // ==========================================
+  buildCube();
+  createStarterArtImages();
+  requestAnimationFrame(mainLoop);
+})();
+</script>
+</body>
+</html>
