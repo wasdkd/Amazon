@@ -1,39 +1,1897 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--<meta charset="UTF-8" />-->
+<!--<meta name="viewport" content="width=device-width, initial-scale=1.0" />-->
+<!--<title>HOLO-MATRIX // 科幻 3D 全息立体视觉空间</title>-->
+<!--<style>-->
+<!--  :root {-->
+<!--    &#45;&#45;theme: #00e5ff;-->
+<!--    &#45;&#45;theme-dim: rgba(0, 229, 255, 0.18);-->
+<!--    &#45;&#45;panel-bg: rgba(6, 12, 22, 0.80);-->
+<!--    &#45;&#45;border: rgba(0, 229, 255, 0.28);-->
+<!--    &#45;&#45;text: #e2f1ff;-->
+<!--    &#45;&#45;muted: #7c97b3;-->
+<!--  }-->
+<!--  * { box-sizing: border-box; margin: 0; padding: 0; }-->
+<!--  html, body {-->
+<!--    width: 100%;-->
+<!--    height: 100%;-->
+<!--    overflow: hidden;-->
+<!--    background: #02040a;-->
+<!--    color: var(&#45;&#45;text);-->
+<!--    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;-->
+<!--    user-select: none;-->
+<!--  }-->
+
+<!--  #glCanvas, #overlayCanvas {-->
+<!--    position: fixed;-->
+<!--    inset: 0;-->
+<!--    width: 100%;-->
+<!--    height: 100%;-->
+<!--    display: block;-->
+<!--  }-->
+<!--  #glCanvas { z-index: 1; cursor: grab; }-->
+<!--  #glCanvas:active { cursor: grabbing; }-->
+<!--  #overlayCanvas { z-index: 2; pointer-events: none; }-->
+
+<!--  /* 拖拽遮罩 */-->
+<!--  #dropOverlay {-->
+<!--    position: fixed;-->
+<!--    inset: 0;-->
+<!--    z-index: 900;-->
+<!--    background: rgba(0, 20, 40, 0.72);-->
+<!--    backdrop-filter: blur(8px);-->
+<!--    border: 2px dashed var(&#45;&#45;theme);-->
+<!--    display: none;-->
+<!--    align-items: center;-->
+<!--    justify-content: center;-->
+<!--    flex-direction: column;-->
+<!--    gap: 10px;-->
+<!--    pointer-events: none;-->
+<!--  }-->
+<!--  #dropOverlay.show { display: flex; }-->
+
+<!--  /* 左上角科幻遥测 HUD */-->
+<!--  .hud-telemetry {-->
+<!--    position: fixed;-->
+<!--    top: 16px;-->
+<!--    left: 16px;-->
+<!--    z-index: 500;-->
+<!--    padding: 10px 14px;-->
+<!--    background: var(&#45;&#45;panel-bg);-->
+<!--    backdrop-filter: blur(12px);-->
+<!--    border: 1px solid var(&#45;&#45;border);-->
+<!--    border-left: 3px solid var(&#45;&#45;theme);-->
+<!--    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;-->
+<!--    font-size: 11px;-->
+<!--    line-height: 1.55;-->
+<!--    box-shadow: 0 0 24px rgba(0,0,0,0.55);-->
+<!--    transition: opacity 0.25s;-->
+<!--    pointer-events: none;-->
+<!--  }-->
+<!--  .hud-title {-->
+<!--    color: var(&#45;&#45;theme);-->
+<!--    font-weight: 800;-->
+<!--    letter-spacing: 1.2px;-->
+<!--    font-size: 12px;-->
+<!--    margin-bottom: 2px;-->
+<!--  }-->
+<!--  .hud-sub { color: var(&#45;&#45;muted); }-->
+<!--  .hud-val { color: #ffffff; font-weight: 700; }-->
+
+<!--  /* 右上角快捷控制 */-->
+<!--  .top-actions {-->
+<!--    position: fixed;-->
+<!--    top: 16px;-->
+<!--    right: 16px;-->
+<!--    z-index: 600;-->
+<!--    display: flex;-->
+<!--    gap: 8px;-->
+<!--    transition: opacity 0.25s;-->
+<!--  }-->
+<!--  .hud-btn {-->
+<!--    background: var(&#45;&#45;panel-bg);-->
+<!--    backdrop-filter: blur(12px);-->
+<!--    border: 1px solid var(&#45;&#45;border);-->
+<!--    color: var(&#45;&#45;text);-->
+<!--    padding: 8px 13px;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 12px;-->
+<!--    font-weight: 600;-->
+<!--    cursor: pointer;-->
+<!--    display: inline-flex;-->
+<!--    align-items: center;-->
+<!--    gap: 6px;-->
+<!--    transition: all 0.2s;-->
+<!--    letter-spacing: 0.4px;-->
+<!--  }-->
+<!--  .hud-btn:hover {-->
+<!--    border-color: var(&#45;&#45;theme);-->
+<!--    box-shadow: 0 0 14px var(&#45;&#45;theme-dim);-->
+<!--    transform: translateY(-1px);-->
+<!--  }-->
+<!--  .hud-btn.active {-->
+<!--    background: var(&#45;&#45;theme-dim);-->
+<!--    border-color: var(&#45;&#45;theme);-->
+<!--    color: #fff;-->
+<!--    box-shadow: 0 0 16px var(&#45;&#45;theme-dim);-->
+<!--  }-->
+
+<!--  /* 底部科幻布局 Dock */-->
+<!--  .layout-dock {-->
+<!--    position: fixed;-->
+<!--    left: 16px;-->
+<!--    bottom: 16px;-->
+<!--    z-index: 520;-->
+<!--    display: flex;-->
+<!--    flex-wrap: wrap;-->
+<!--    gap: 6px;-->
+<!--    max-width: calc(100vw - 390px);-->
+<!--    transition: opacity 0.25s;-->
+<!--  }-->
+<!--  .dock-item {-->
+<!--    background: var(&#45;&#45;panel-bg);-->
+<!--    backdrop-filter: blur(14px);-->
+<!--    border: 1px solid rgba(255,255,255,0.14);-->
+<!--    color: #cbd5e1;-->
+<!--    padding: 8px 12px;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 12px;-->
+<!--    font-weight: 600;-->
+<!--    cursor: pointer;-->
+<!--    transition: all 0.2s;-->
+<!--    position: relative;-->
+<!--  }-->
+<!--  .dock-item:hover { border-color: var(&#45;&#45;theme); color: #fff; }-->
+<!--  .dock-item.active {-->
+<!--    background: var(&#45;&#45;theme-dim);-->
+<!--    border-color: var(&#45;&#45;theme);-->
+<!--    color: #fff;-->
+<!--    box-shadow: 0 0 18px var(&#45;&#45;theme-dim);-->
+<!--  }-->
+
+<!--  body.ui-hidden .hud-telemetry,-->
+<!--  body.ui-hidden .top-actions,-->
+<!--  body.ui-hidden .layout-dock,-->
+<!--  body.ui-hidden .control-panel {-->
+<!--    opacity: 0;-->
+<!--    pointer-events: none;-->
+<!--  }-->
+<!--  #restoreHint {-->
+<!--    position: fixed;-->
+<!--    top: 16px;-->
+<!--    right: 16px;-->
+<!--    z-index: 700;-->
+<!--    background: rgba(0,0,0,0.6);-->
+<!--    border: 1px solid var(&#45;&#45;border);-->
+<!--    color: var(&#45;&#45;theme);-->
+<!--    padding: 6px 12px;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 12px;-->
+<!--    cursor: pointer;-->
+<!--    display: none;-->
+<!--  }-->
+<!--  body.ui-hidden #restoreHint { display: block; }-->
+
+<!--  /* 右侧科幻控制台 */-->
+<!--  .control-panel {-->
+<!--    position: fixed;-->
+<!--    top: 62px;-->
+<!--    right: 16px;-->
+<!--    bottom: 16px;-->
+<!--    width: 356px;-->
+<!--    max-width: calc(100vw - 32px);-->
+<!--    z-index: 550;-->
+<!--    background: var(&#45;&#45;panel-bg);-->
+<!--    backdrop-filter: blur(18px);-->
+<!--    border: 1px solid var(&#45;&#45;border);-->
+<!--    border-radius: 10px;-->
+<!--    box-shadow: 0 20px 50px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,229,255,0.04);-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--    overflow: hidden;-->
+<!--    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s;-->
+<!--  }-->
+<!--  .control-panel.collapsed {-->
+<!--    transform: translateX(calc(100% + 32px));-->
+<!--    opacity: 0;-->
+<!--    pointer-events: none;-->
+<!--  }-->
+
+<!--  .panel-tabs {-->
+<!--    display: grid;-->
+<!--    grid-template-columns: repeat(4, 1fr);-->
+<!--    gap: 4px;-->
+<!--    padding: 8px;-->
+<!--    background: rgba(0,0,0,0.38);-->
+<!--    border-bottom: 1px solid var(&#45;&#45;border);-->
+<!--    flex-shrink: 0;-->
+<!--  }-->
+<!--  .tab-btn {-->
+<!--    padding: 7px 4px;-->
+<!--    border: 1px solid transparent;-->
+<!--    border-radius: 6px;-->
+<!--    background: transparent;-->
+<!--    color: var(&#45;&#45;muted);-->
+<!--    font-size: 11.5px;-->
+<!--    font-weight: 700;-->
+<!--    cursor: pointer;-->
+<!--    transition: all 0.2s;-->
+<!--  }-->
+<!--  .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }-->
+<!--  .tab-btn.active {-->
+<!--    background: var(&#45;&#45;theme-dim);-->
+<!--    border-color: var(&#45;&#45;theme);-->
+<!--    color: #fff;-->
+<!--  }-->
+
+<!--  .panel-body {-->
+<!--    flex: 1;-->
+<!--    overflow-y: auto;-->
+<!--    padding: 12px;-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--    gap: 10px;-->
+<!--  }-->
+<!--  .panel-body::-webkit-scrollbar { width: 4px; }-->
+<!--  .panel-body::-webkit-scrollbar-thumb { background: var(&#45;&#45;border); border-radius: 99px; }-->
+
+<!--  .tab-pane { display: none; flex-direction: column; gap: 10px; }-->
+<!--  .tab-pane.active { display: flex; }-->
+
+<!--  .card {-->
+<!--    background: rgba(255,255,255,0.03);-->
+<!--    border: 1px solid rgba(255,255,255,0.09);-->
+<!--    border-radius: 8px;-->
+<!--    padding: 11px;-->
+<!--    display: flex;-->
+<!--    flex-direction: column;-->
+<!--    gap: 9px;-->
+<!--  }-->
+<!--  .card-title {-->
+<!--    font-size: 11.5px;-->
+<!--    font-weight: 800;-->
+<!--    color: var(&#45;&#45;theme);-->
+<!--    letter-spacing: 0.8px;-->
+<!--    text-transform: uppercase;-->
+<!--  }-->
+
+<!--  .control-row { display: flex; flex-direction: column; gap: 4px; }-->
+<!--  .row-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; }-->
+<!--  .row-val { font-family: ui-monospace, monospace; color: var(&#45;&#45;theme); font-weight: 700; font-size: 11px; }-->
+
+<!--  input[type="range"] { width: 100%; accent-color: var(&#45;&#45;theme); cursor: pointer; height: 4px; }-->
+<!--  textarea {-->
+<!--    width: 100%;-->
+<!--    background: rgba(0,0,0,0.4);-->
+<!--    border: 1px solid rgba(255,255,255,0.16);-->
+<!--    color: #f8fafc;-->
+<!--    border-radius: 6px;-->
+<!--    padding: 7px 9px;-->
+<!--    font-size: 12px;-->
+<!--    outline: none;-->
+<!--    font-family: inherit;-->
+<!--    resize: vertical;-->
+<!--    min-height: 54px;-->
+<!--  }-->
+<!--  textarea:focus { border-color: var(&#45;&#45;theme); }-->
+
+<!--  .seg-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }-->
+<!--  .seg-group.cols-3 { grid-template-columns: repeat(3, 1fr); }-->
+<!--  .seg-group.cols-5 { grid-template-columns: repeat(5, 1fr); }-->
+<!--  .seg-btn {-->
+<!--    padding: 6px 4px;-->
+<!--    border-radius: 6px;-->
+<!--    border: 1px solid rgba(255,255,255,0.12);-->
+<!--    background: rgba(255,255,255,0.04);-->
+<!--    color: #cbd5e1;-->
+<!--    font-size: 11px;-->
+<!--    font-weight: 600;-->
+<!--    cursor: pointer;-->
+<!--    transition: all 0.18s;-->
+<!--    text-align: center;-->
+<!--  }-->
+<!--  .seg-btn:hover { background: rgba(255,255,255,0.1); }-->
+<!--  .seg-btn.active { background: var(&#45;&#45;theme-dim); border-color: var(&#45;&#45;theme); color: #fff; }-->
+
+<!--  .theme-dot {-->
+<!--    height: 28px;-->
+<!--    border-radius: 6px;-->
+<!--    border: 2px solid rgba(255,255,255,0.2);-->
+<!--    cursor: pointer;-->
+<!--    transition: transform 0.15s, border-color 0.15s;-->
+<!--  }-->
+<!--  .theme-dot:hover { transform: scale(1.06); }-->
+<!--  .theme-dot.active { border-color: #fff; box-shadow: 0 0 12px #fff; }-->
+
+<!--  .switch-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #e2e8f0; gap: 8px; }-->
+<!--  .switch { position: relative; width: 38px; height: 20px; flex-shrink: 0; }-->
+<!--  .switch input { opacity: 0; width: 0; height: 0; }-->
+<!--  .slider { position: absolute; inset: 0; background: rgba(255,255,255,0.18); border-radius: 999px; cursor: pointer; transition: 0.2s; }-->
+<!--  .slider:before { content: ""; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }-->
+<!--  .switch input:checked + .slider { background: var(&#45;&#45;theme); }-->
+<!--  .switch input:checked + .slider:before { transform: translateX(18px); }-->
+
+<!--  .action-btn {-->
+<!--    padding: 8px 10px;-->
+<!--    border-radius: 6px;-->
+<!--    border: 1px solid rgba(255,255,255,0.15);-->
+<!--    background: rgba(255,255,255,0.06);-->
+<!--    color: #fff;-->
+<!--    font-size: 12px;-->
+<!--    font-weight: 600;-->
+<!--    cursor: pointer;-->
+<!--    display: inline-flex;-->
+<!--    align-items: center;-->
+<!--    justify-content: center;-->
+<!--    gap: 5px;-->
+<!--    transition: all 0.2s;-->
+<!--  }-->
+<!--  .action-btn:hover { background: var(&#45;&#45;theme-dim); border-color: var(&#45;&#45;theme); }-->
+<!--  .action-btn.primary { background: var(&#45;&#45;theme-dim); border-color: var(&#45;&#45;theme); }-->
+<!--  .action-btn.danger { color: #fca5a5; border-color: rgba(248,113,113,0.35); }-->
+<!--  .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }-->
+
+<!--  .ring-custom-list { display: flex; flex-direction: column; gap: 5px; max-height: 180px; overflow-y: auto; }-->
+<!--  .ring-item {-->
+<!--    display: grid;-->
+<!--    grid-template-columns: 42px 70px 1fr 36px;-->
+<!--    align-items: center;-->
+<!--    gap: 6px;-->
+<!--    background: rgba(0,0,0,0.3);-->
+<!--    padding: 5px 7px;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 11px;-->
+<!--  }-->
+<!--  .ring-dir-btn { padding: 3px 5px; border-radius: 4px; border: 1px solid var(&#45;&#45;border); background: rgba(255,255,255,0.08); color: #fff; font-size: 11px; cursor: pointer; }-->
+
+<!--  .stat-pill { font-size: 11px; color: var(&#45;&#45;muted); background: rgba(0,0,0,0.35); padding: 5px 9px; border-radius: 6px; display: flex; justify-content: space-between; }-->
+
+<!--  /* 图库弹窗 */-->
+<!--  .modal-backdrop { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.78); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 20px; }-->
+<!--  .modal-backdrop.show { display: flex; }-->
+<!--  .modal-card { width: 820px; max-width: 100%; max-height: 86vh; background: #07101e; border: 1px solid var(&#45;&#45;border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }-->
+<!--  .modal-header { padding: 14px 18px; border-bottom: 1px solid var(&#45;&#45;border); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }-->
+<!--  .modal-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }-->
+<!--  .gallery-item { position: relative; aspect-ratio: 1 / 1; border-radius: 6px; overflow: hidden; background: #02050b; border: 1px solid rgba(255,255,255,0.14); cursor: pointer; }-->
+<!--  .gallery-item img { width: 100%; height: 100%; object-fit: contain; display: block; }-->
+<!--  .gallery-tag { position: absolute; left: 6px; bottom: 6px; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.72); }-->
+<!--  .gallery-del { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(239,68,68,0.88); color: #fff; font-size: 12px; cursor: pointer; }-->
+
+<!--  #lightbox { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }-->
+<!--  #lightbox.show { display: flex; }-->
+<!--  #lightbox img { max-width: 95vw; max-height: 92vh; object-fit: contain; border-radius: 6px; border: 1px solid var(&#45;&#45;theme); }-->
+
+<!--  #toast {-->
+<!--    position: fixed;-->
+<!--    top: 62px;-->
+<!--    left: 50%;-->
+<!--    transform: translateX(-50%);-->
+<!--    z-index: 999;-->
+<!--    background: rgba(6, 12, 24, 0.94);-->
+<!--    border: 1px solid var(&#45;&#45;theme);-->
+<!--    color: #fff;-->
+<!--    padding: 8px 18px;-->
+<!--    border-radius: 6px;-->
+<!--    font-size: 13px;-->
+<!--    font-weight: 600;-->
+<!--    display: none;-->
+<!--    box-shadow: 0 0 20px var(&#45;&#45;theme-dim);-->
+<!--  }-->
+<!--</style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<canvas id="glCanvas"></canvas>-->
+<!--<canvas id="overlayCanvas"></canvas>-->
+
+<!--<div id="dropOverlay">-->
+<!--  <div style="font-size:24px;font-weight:800;color:var(&#45;&#45;theme);">[ HOLO-UPLOAD // 松开批量注入影像 ]</div>-->
+<!--  <div style="font-size:13px;color:#cbd5e1;">将自动映射到当前 3D 全息立体布局中</div>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; 左上角科幻遥测信息 &ndash;&gt;-->
+<!--<div class="hud-telemetry" id="hudTelemetry">-->
+<!--  <div class="hud-title">HOLO-MATRIX // 3D SPATIAL ENGINE</div>-->
+<!--  <div>LAYOUT: <span class="hud-val" id="hudLayout">ORBITAL RINGS</span> · FPS: <span class="hud-val" id="hudFps">60</span></div>-->
+<!--  <div class="hud-sub">🖱 拖拽旋转 3D 空间 · 滚轮推拉 · 双击复位 · H 纯享</div>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; 右上角按钮 &ndash;&gt;-->
+<!--<div class="top-actions">-->
+<!--  <button class="hud-btn" id="btnTogglePlay" onclick="togglePlay()">⏸ 暂停</button>-->
+<!--  <button class="hud-btn" onclick="triggerUpload()">📤 批量传图</button>-->
+<!--  <button class="hud-btn" onclick="resetCamera()">🔄 回正视角</button>-->
+<!--  <button class="hud-btn active" id="btnPanelToggle" onclick="togglePanel()">⚙ 控制台</button>-->
+<!--</div>-->
+
+<!--<div id="restoreHint" onclick="toggleUIHidden()">👁 恢复全息控制台 (H)</div>-->
+
+<!--&lt;!&ndash; 底部科幻布局快速切换 Dock &ndash;&gt;-->
+<!--<div class="layout-dock">-->
+<!--  <button class="dock-item active" data-layout="orbital" onclick="setLayout('orbital', this)">🪐 星环阵列</button>-->
+<!--  <button class="dock-item" data-layout="helix" onclick="setLayout('helix', this)">🧬 DNA双螺旋</button>-->
+<!--  <button class="dock-item" data-layout="command" onclick="setLayout('command', this)">🏛 全息指挥幕墙</button>-->
+<!--  <button class="dock-item" data-layout="tesseract" onclick="setLayout('tesseract', this)">🔮 超立方星阵</button>-->
+<!--  <button class="dock-item" data-layout="vortex" onclick="setLayout('vortex', this)">🌪 量子虫洞漩涡</button>-->
+<!--  <button class="dock-item" data-layout="dyson" onclick="setLayout('dyson', this)">🌐 戴森全息球</button>-->
+<!--</div>-->
+
+<!--&lt;!&ndash; 右侧科幻战术面板 &ndash;&gt;-->
+<!--<aside class="control-panel" id="controlPanel">-->
+<!--  <div class="panel-tabs">-->
+<!--    <button class="tab-btn active" onclick="switchTab('layout', this)">🚀 立体架构</button>-->
+<!--    <button class="tab-btn" onclick="switchTab('scifi', this)">⚡ 科幻光效</button>-->
+<!--    <button class="tab-btn" onclick="switchTab('media', this)">🖼 影像源</button>-->
+<!--    <button class="tab-btn" onclick="switchTab('audio', this)">🎵 音画录制</button>-->
+<!--  </div>-->
+
+<!--  <div class="panel-body">-->
+
+<!--    &lt;!&ndash; TAB 1: 立体架构与环形控制 &ndash;&gt;-->
+<!--    <div class="tab-pane active" id="tab-layout">-->
+<!--      <div class="card">-->
+<!--        <div class="card-title">外围 3D 立体环形结构</div>-->
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>立体环类型</span></div>-->
+<!--          <div class="seg-group cols-3">-->
+<!--            <button class="seg-btn active" data-ringtype="frame" onclick="setRingType('frame', this)">立体方环</button>-->
+<!--            <button class="seg-btn" data-ringtype="arena" onclick="setRingType('arena', this)">巨幕圆环</button>-->
+<!--            <button class="seg-btn" data-ringtype="none" onclick="setRingType('none', this)">纯线框环</button>-->
+<!--          </div>-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>环形旋转方向</span></div>-->
+<!--          <div class="seg-group">-->
+<!--            <button class="seg-btn active" data-dir="alternate" onclick="setDirMode('alternate', this)">🔁 相邻反向</button>-->
+<!--            <button class="seg-btn" data-dir="sameCW" onclick="setDirMode('sameCW', this)">↻ 全部顺时针</button>-->
+<!--            <button class="seg-btn" data-dir="sameCCW" onclick="setDirMode('sameCCW', this)">↺ 全部逆时针</button>-->
+<!--            <button class="seg-btn" data-dir="custom" onclick="setDirMode('custom', this)">🎛 自定义每环</button>-->
+<!--          </div>-->
+<!--        </div>-->
+
+<!--        <div id="customRingsBox" style="display:none;">-->
+<!--          <div class="ring-custom-list" id="ringCustomList"></div>-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>立体环数量</span><span class="row-val" id="valRingCount">4 环</span></div>-->
+<!--          <input type="range" id="rngRingCount" min="1" max="7" step="1" value="4" oninput="onStructChange()">-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>立体环尺寸 (包围中心)</span><span class="row-val" id="valRingScale">1.28x</span></div>-->
+<!--          <input type="range" id="rngRingScale" min="0.65" max="2.10" step="0.02" value="1.28" oninput="onStructChange()">-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>环框厚度与带宽</span><span class="row-val" id="valRingThick">0.85</span></div>-->
+<!--          <input type="range" id="rngRingThick" min="0.30" max="1.80" step="0.05" value="0.85" oninput="onStructChange()">-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>环形转速</span><span class="row-val" id="valRingSpeed">1.00x</span></div>-->
+<!--          <input type="range" id="rngRingSpeed" min="0" max="3.5" step="0.05" value="1.0" oninput="onParamChange()">-->
+<!--        </div>-->
+<!--      </div>-->
+
+<!--      <div class="card">-->
+<!--        <div class="card-title">悬浮全息照片矩阵</div>-->
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>空间全息卡片数量</span><span class="row-val" id="valCardCount">72 张</span></div>-->
+<!--          <input type="range" id="rngCardCount" min="16" max="140" step="4" value="72" oninput="onParamChange()">-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>单张全息屏大小</span><span class="row-val" id="valCardSize">1.00x</span></div>-->
+<!--          <input type="range" id="rngCardSize" min="0.45" max="2.00" step="0.05" value="1.0" oninput="onParamChange()">-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>矩阵运行流速</span><span class="row-val" id="valFlowSpeed">1.00x</span></div>-->
+<!--          <input type="range" id="rngFlowSpeed" min="0" max="3.5" step="0.05" value="1.0" oninput="onParamChange()">-->
+<!--        </div>-->
+
+<!--        <div class="switch-row">-->
+<!--          <span>🎬 自动电影运镜巡航</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkAutoCam" checked onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>镜头景深距离 (或滚轮缩放)</span><span class="row-val" id="valCamDist">13.0</span></div>-->
+<!--          <input type="range" id="rngCamDist" min="4.5" max="26" step="0.2" value="13.0" oninput="onParamChange()">-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; TAB 2: 科幻光效与全息组件 &ndash;&gt;-->
+<!--    <div class="tab-pane" id="tab-scifi">-->
+<!--      <div class="card">-->
+<!--        <div class="card-title">科幻配色系统</div>-->
+<!--        <div class="seg-group cols-5">-->
+<!--          <button class="theme-dot active" style="background:#00e5ff;" title="斯塔克冰蓝" onclick="setTheme('cyan', this)"></button>-->
+<!--          <button class="theme-dot" style="background:#ff9d00;" title="银翼琥珀金" onclick="setTheme('amber', this)"></button>-->
+<!--          <button class="theme-dot" style="background:#e83cff;" title="赛博霓虹紫" onclick="setTheme('magenta', this)"></button>-->
+<!--          <button class="theme-dot" style="background:#10ff88;" title="黑客矩阵绿" onclick="setTheme('emerald', this)"></button>-->
+<!--          <button class="theme-dot" style="background:#ff2e55;" title="创战纪猩红" onclick="setTheme('crimson', this)"></button>-->
+<!--        </div>-->
+<!--      </div>-->
+
+<!--      <div class="card">-->
+<!--        <div class="card-title">全息渲染特效</div>-->
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>全息扫描线强度</span><span class="row-val" id="valScanline">45%</span></div>-->
+<!--          <input type="range" id="rngScanline" min="0" max="100" step="2" value="45" oninput="onParamChange()">-->
+<!--        </div>-->
+
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>全息边框与光晕强度</span><span class="row-val" id="valGlow">0.90</span></div>-->
+<!--          <input type="range" id="rngGlow" min="0" max="2.2" step="0.05" value="0.90" oninput="onParamChange()">-->
+<!--        </div>-->
+
+<!--        <div class="switch-row">-->
+<!--          <span>中心聚变能量核心 (二十面体)</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkCoreReactor" checked onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+
+<!--        <div class="switch-row">-->
+<!--          <span>HUD 雷达刻度环 & 轨道线</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkHudRings" checked onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+
+<!--        <div class="switch-row">-->
+<!--          <span>底部全息透视网格地板</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkFloorGrid" checked onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+
+<!--        <div class="switch-row">-->
+<!--          <span>3D 深空能量星尘粒子</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkStarfield" checked onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; TAB 3: 影像源管理 &ndash;&gt;-->
+<!--    <div class="tab-pane" id="tab-media">-->
+<!--      <div class="card">-->
+<!--        <div class="card-title">批量传图与图库</div>-->
+<!--        <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">-->
+<!--        <button class="action-btn primary" onclick="triggerUpload()">📤 批量上传图片 (多选 / 拖入)</button>-->
+
+<!--        <div class="switch-row">-->
+<!--          <span>隐藏默认图片 (仅展示上传图)</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkHideDefault" onchange="onImageFilterChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+
+<!--        <div class="stat-pill">-->
+<!--          <span id="statDefault">默认影像: 加载中...</span>-->
+<!--          <span id="statCustom">本地上传: 0 张</span>-->
+<!--        </div>-->
+
+<!--        <div class="btn-grid-2">-->
+<!--          <button class="action-btn" onclick="openGallery()">🖼 管理图库</button>-->
+<!--          <button class="action-btn" onclick="shuffleImages()">🔀 洗牌重排</button>-->
+<!--        </div>-->
+<!--        <button class="action-btn danger" onclick="clearCustomImages()">🗑 清空已上传图片</button>-->
+<!--      </div>-->
+
+<!--      <div class="card">-->
+<!--        <div class="card-title">影像裁剪模式（看全图设置）</div>-->
+<!--        <div class="seg-group">-->
+<!--          <button class="seg-btn active" data-fit="cover" onclick="setFitMode('cover', this)">🧱 填满裁剪 (Cover)</button>-->
+<!--          <button class="seg-btn" data-fit="contain" onclick="setFitMode('contain', this)">🖼 完整显示 (看全图)</button>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; TAB 4: 音频律动、文字与输出 &ndash;&gt;-->
+<!--    <div class="tab-pane" id="tab-audio">-->
+<!--      <div class="card">-->
+<!--        <div class="card-title">HUD 中心全息文字</div>-->
+<!--        <div class="switch-row">-->
+<!--          <span>显示标题文字</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkText" onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+<!--        <textarea id="txtOverlay" oninput="onParamChange()">STARK // HOLO-MATRIX-->
+<!--3D SPATIAL ARCHIVE</textarea>-->
+<!--        <div class="control-row">-->
+<!--          <div class="row-head"><span>文字字号</span><span class="row-val" id="valTextSize">22 px</span></div>-->
+<!--          <input type="range" id="rngTextSize" min="12" max="52" step="1" value="22" oninput="onParamChange()">-->
+<!--        </div>-->
+<!--      </div>-->
+
+<!--      <div class="card">-->
+<!--        <div class="card-title">🎵 音频频谱驱动</div>-->
+<!--        <input type="file" id="audioInput" accept="audio/*" style="display:none" onchange="handleAudioFile(this.files)">-->
+<!--        <div class="btn-grid-2">-->
+<!--          <button class="action-btn" onclick="document.getElementById('audioInput').click()">🎧 载入本地音乐</button>-->
+<!--          <button class="action-btn" id="btnAudioPlay" onclick="toggleAudioPlay()" disabled>▶ 播放</button>-->
+<!--        </div>-->
+<!--        <div class="switch-row">-->
+<!--          <span>全息矩阵随重低音脉冲</span>-->
+<!--          <label class="switch"><input type="checkbox" id="chkAudioReact" checked onchange="onParamChange()"><span class="slider"></span></label>-->
+<!--        </div>-->
+<!--        <div id="audioStatus" style="font-size:11px;color:var(&#45;&#45;muted);">未载入音频（支持 MP3 / WAV / M4A）</div>-->
+<!--      </div>-->
+
+<!--      <div class="card">-->
+<!--        <div class="card-title">画面导出与纯享</div>-->
+<!--        <div class="btn-grid-2">-->
+<!--          <button class="action-btn" onclick="takeSnapshot()">📸 高清截图</button>-->
+<!--          <button class="action-btn" id="btnRecord" onclick="toggleRecord()">⏺ 录制视频</button>-->
+<!--        </div>-->
+<!--        <button class="action-btn" onclick="toggleUIHidden()">🙈 隐藏全部面板 (按 H 键)</button>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--  </div>-->
+<!--</aside>-->
+
+<!--&lt;!&ndash; 图库弹窗 &ndash;&gt;-->
+<!--<div class="modal-backdrop" id="galleryModal" onclick="if(event.target===this) closeGallery()">-->
+<!--  <div class="modal-card">-->
+<!--    <div class="modal-header">-->
+<!--      <div style="font-weight:700;font-size:15px;color:var(&#45;&#45;theme);">[ MEDIA ARCHIVE // 点击看完整原图 ]</div>-->
+<!--      <div style="display:flex;gap:8px;">-->
+<!--        <button class="action-btn primary" onclick="triggerUpload()">+ 继续传图</button>-->
+<!--        <button class="action-btn" onclick="closeGallery()">关闭</button>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    <div class="modal-grid" id="galleryGrid"></div>-->
+<!--  </div>-->
+<!--</div>-->
+
+<!--<div id="lightbox" onclick="this.classList.remove('show')"><img id="lightboxImg" src="" alt=""></div>-->
+<!--<div id="toast"></div>-->
+
+<!--<script>-->
+<!--// ==================== 1. 默认图源 ====================-->
+<!--const DEFAULT_URLS = [-->
+<!--  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=2000&auto=format&fit=crop&q=90",-->
+<!--  "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=2000&auto=format&fit=crop&q=90"-->
+<!--];-->
+
+<!--const THEMES = {-->
+<!--  cyan:    { hex: '#00e5ff', dim: 'rgba(0, 229, 255, 0.18)', border: 'rgba(0, 229, 255, 0.30)', rgb: [0.0, 0.90, 1.0] },-->
+<!--  amber:   { hex: '#ff9d00', dim: 'rgba(255, 157, 0, 0.18)', border: 'rgba(255, 157, 0, 0.32)', rgb: [1.0, 0.62, 0.0] },-->
+<!--  magenta: { hex: '#e83cff', dim: 'rgba(232, 60, 255, 0.18)', border: 'rgba(232, 60, 255, 0.32)', rgb: [0.91, 0.24, 1.0] },-->
+<!--  emerald: { hex: '#10ff88', dim: 'rgba(16, 255, 136, 0.16)', border: 'rgba(16, 255, 136, 0.30)', rgb: [0.06, 1.0, 0.53] },-->
+<!--  crimson: { hex: '#ff2e55', dim: 'rgba(255, 46, 85, 0.18)', border: 'rgba(255, 46, 85, 0.32)', rgb: [1.0, 0.18, 0.33] }-->
+<!--};-->
+
+<!--// ==================== 2. 全局状态 ====================-->
+<!--const MAX_CARDS = 140;-->
+<!--const state = {-->
+<!--  playing: true,-->
+<!--  layout: 'orbital',       // orbital | helix | command | tesseract | vortex | dyson-->
+<!--  ringType: 'frame',       // frame | arena | none-->
+<!--  dirMode: 'alternate',    // alternate | sameCW | sameCCW | custom-->
+<!--  ringCount: 4,-->
+<!--  ringScale: 1.28,-->
+<!--  ringThick: 0.85,-->
+<!--  ringSpeed: 1.0,-->
+
+<!--  cardCount: 72,-->
+<!--  cardSize: 1.0,-->
+<!--  flowSpeed: 1.0,-->
+<!--  autoCam: true,-->
+<!--  camDist: 13.0,-->
+<!--  camYaw: 0,-->
+<!--  camPitch: 0.16,-->
+
+<!--  themeRgb: [0.0, 0.90, 1.0],-->
+<!--  scanline: 0.45,-->
+<!--  glow: 0.90,-->
+<!--  coreReactor: true,-->
+<!--  hudRings: true,-->
+<!--  floorGrid: true,-->
+<!--  starfield: true,-->
+
+<!--  fitMode: 'cover',-->
+<!--  hideDefault: false,-->
+<!--  textEnabled: false,-->
+<!--  textContent: 'STARK // HOLO-MATRIX\n3D SPATIAL ARCHIVE',-->
+<!--  textSize: 22,-->
+<!--  audioReact: true,-->
+
+<!--  customRings: Array.from({ length: 8 }, (_, i) => ({ dir: i % 2 === 0 ? 1 : -1, speed: 1.0 })),-->
+<!--  angles: [0, 0.5, -0.45, 0.9, -0.8, 1.2, -1.1],-->
+<!--  totalTime: 0,-->
+<!--  flowTime: 0-->
+<!--};-->
+
+<!--// 持久化卡片状态（用于丝滑变形过渡 morphing）-->
+<!--const cardStates = Array.from({ length: MAX_CARDS }, (_, i) => ({-->
+<!--  x: (Math.random() - 0.5) * 10,-->
+<!--  y: (Math.random() - 0.5) * 10,-->
+<!--  z: (Math.random() - 0.5) * 10,-->
+<!--  rx: 0, ry: 0, rz: 0, s: 0.01,-->
+<!--  slot: i-->
+<!--}));-->
+
+<!--let defaultItems = [];-->
+<!--let customItems = [];-->
+<!--let atlasCanvas = document.createElement('canvas');-->
+<!--atlasCanvas.width = 2048;-->
+<!--atlasCanvas.height = 2048;-->
+<!--let atlasGrid = 6;-->
+<!--let atlasTimer = null;-->
+
+<!--// ==================== 3. WebGL 初始化 ====================-->
+<!--const glCanvas = document.getElementById('glCanvas');-->
+<!--const ovCanvas = document.getElementById('overlayCanvas');-->
+<!--const ovCtx = ovCanvas.getContext('2d');-->
+<!--const gl = glCanvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true });-->
+
+<!--let viewW = window.innerWidth, viewH = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);-->
+<!--function resizeAll() {-->
+<!--  viewW = window.innerWidth;-->
+<!--  viewH = window.innerHeight;-->
+<!--  dpr = Math.min(window.devicePixelRatio || 1, 2);-->
+<!--  glCanvas.width = Math.floor(viewW * dpr);-->
+<!--  glCanvas.height = Math.floor(viewH * dpr);-->
+<!--  ovCanvas.width = Math.floor(viewW * dpr);-->
+<!--  ovCanvas.height = Math.floor(viewH * dpr);-->
+<!--  gl.viewport(0, 0, glCanvas.width, glCanvas.height);-->
+<!--}-->
+<!--window.addEventListener('resize', resizeAll);-->
+<!--resizeAll();-->
+
+<!--function compileShader(type, src) {-->
+<!--  const s = gl.createShader(type);-->
+<!--  gl.shaderSource(s, src);-->
+<!--  gl.compileShader(s);-->
+<!--  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));-->
+<!--  return s;-->
+<!--}-->
+<!--function makeProgram(vs, fs) {-->
+<!--  const p = gl.createProgram();-->
+<!--  gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vs));-->
+<!--  gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fs));-->
+<!--  gl.linkProgram(p);-->
+<!--  return p;-->
+<!--}-->
+
+<!--// 着色器 1：全息照片材质（立体环 & 悬空全息卡片）-->
+<!--const texProg = makeProgram(`-->
+<!--attribute vec3 aPos;-->
+<!--attribute vec3 aNormal;-->
+<!--attribute vec2 aUV;-->
+<!--attribute vec2 aLocalUV;-->
+<!--uniform mat4 uProj;-->
+<!--uniform mat4 uView;-->
+<!--uniform mat4 uModel;-->
+<!--varying vec2 vUV;-->
+<!--varying vec2 vLocalUV;-->
+<!--varying vec3 vNormal;-->
+<!--varying vec3 vWorldPos;-->
+<!--void main() {-->
+<!--  vec4 world = uModel * vec4(aPos, 1.0);-->
+<!--  vWorldPos = world.xyz;-->
+<!--  vNormal = normalize((uModel * vec4(aNormal, 0.0)).xyz);-->
+<!--  vUV = aUV;-->
+<!--  vLocalUV = aLocalUV;-->
+<!--  gl_Position = uProj * uView * world;-->
+<!--}`, `-->
+<!--precision highp float;-->
+<!--uniform sampler2D uTex;-->
+<!--uniform vec2 uUVOffset;-->
+<!--uniform vec2 uUVScale;-->
+<!--uniform vec3 uTheme;-->
+<!--uniform float uGlow;-->
+<!--uniform float uScanline;-->
+<!--uniform float uTime;-->
+<!--uniform float uIsCard;-->
+<!--uniform float uCardAlpha;-->
+<!--varying vec2 vUV;-->
+<!--varying vec2 vLocalUV;-->
+<!--varying vec3 vNormal;-->
+<!--varying vec3 vWorldPos;-->
+
+<!--void main() {-->
+<!--  vec4 texCol = texture2D(uTex, vUV * uUVScale + uUVOffset);-->
+<!--  vec3 n = normalize(vNormal);-->
+<!--  vec3 lightDir = normalize(vec3(0.4, 0.7, 0.8));-->
+<!--  vec3 viewDir = normalize(-vWorldPos);-->
+<!--  float diff = abs(dot(n, lightDir));-->
+<!--  float shade = mix(0.62 + 0.38 * diff, 1.0, uIsCard * 0.65);-->
+
+<!--  vec3 col = texCol.rgb * shade;-->
+
+<!--  // 全息扫描线-->
+<!--  float scan = 1.0 - uScanline * 0.24 * (0.5 + 0.5 * sin(vLocalUV.y * 130.0 + uTime * 5.0));-->
+<!--  col *= scan;-->
+
+<!--  if (uIsCard > 0.5) {-->
+<!--    // 科幻卡片发光边框 + 四角 HUD 括号 [ ]-->
+<!--    vec2 edge = min(vLocalUV, 1.0 - vLocalUV);-->
+<!--    float minE = min(edge.x, edge.y);-->
+<!--    float border = 1.0 - smoothstep(0.010, 0.026, minE);-->
+<!--    float cornerX = step(edge.x, 0.19);-->
+<!--    float cornerY = step(edge.y, 0.19);-->
+<!--    float bracket = clamp(cornerX * step(edge.y, 0.036) + cornerY * step(edge.x, 0.036), 0.0, 1.0);-->
+<!--    float rim = pow(1.0 - max(abs(dot(n, viewDir)), 0.0), 2.2);-->
+<!--    col += uTheme * (border * 0.55 + bracket * 0.95 + rim * 0.35) * (0.45 + uGlow * 0.75);-->
+<!--  } else {-->
+<!--    // 立体环边缘全息光晕-->
+<!--    float rim = pow(1.0 - max(abs(dot(n, viewDir)), 0.0), 2.3);-->
+<!--    float edgeBand = 1.0 - smoothstep(0.02, 0.08, min(vLocalUV.y, 1.0 - vLocalUV.y));-->
+<!--    col += uTheme * (rim * 0.45 + edgeBand * 0.4) * uGlow;-->
+<!--  }-->
+
+<!--  float dist = length(vWorldPos);-->
+<!--  float fog = clamp((dist - 16.0) * 0.028, 0.0, 0.72);-->
+<!--  col = mix(col, vec3(0.008, 0.016, 0.038), fog);-->
+
+<!--  gl_FragColor = vec4(col, uCardAlpha);-->
+<!--}`);-->
+
+<!--// 着色器 2：科幻线框 / HUD 刻度环 / 3D 能量粒子-->
+<!--const fxProg = makeProgram(`-->
+<!--attribute vec3 aPos;-->
+<!--attribute float aAlpha;-->
+<!--uniform mat4 uProj;-->
+<!--uniform mat4 uView;-->
+<!--uniform mat4 uModel;-->
+<!--uniform float uPointSize;-->
+<!--varying float vAlpha;-->
+<!--void main() {-->
+<!--  vec4 world = uModel * vec4(aPos, 1.0);-->
+<!--  vAlpha = aAlpha;-->
+<!--  gl_Position = uProj * uView * world;-->
+<!--  gl_PointSize = uPointSize / max(1.0, - (uView * world).z * 0.25);-->
+<!--}`, `-->
+<!--precision mediump float;-->
+<!--uniform vec3 uTheme;-->
+<!--uniform float uGlobalAlpha;-->
+<!--uniform float uIsPoint;-->
+<!--varying float vAlpha;-->
+<!--void main() {-->
+<!--  float a = vAlpha * uGlobalAlpha;-->
+<!--  if (uIsPoint > 0.5) {-->
+<!--    float d = length(gl_PointCoord - vec2(0.5));-->
+<!--    if (d > 0.5) discard;-->
+<!--    a *= smoothstep(0.5, 0.05, d);-->
+<!--  }-->
+<!--  gl_FragColor = vec4(uTheme, a);-->
+<!--}`);-->
+
+<!--const tLoc = {-->
+<!--  aPos: gl.getAttribLocation(texProg, 'aPos'),-->
+<!--  aNormal: gl.getAttribLocation(texProg, 'aNormal'),-->
+<!--  aUV: gl.getAttribLocation(texProg, 'aUV'),-->
+<!--  aLocalUV: gl.getAttribLocation(texProg, 'aLocalUV'),-->
+<!--  uProj: gl.getUniformLocation(texProg, 'uProj'),-->
+<!--  uView: gl.getUniformLocation(texProg, 'uView'),-->
+<!--  uModel: gl.getUniformLocation(texProg, 'uModel'),-->
+<!--  uTex: gl.getUniformLocation(texProg, 'uTex'),-->
+<!--  uUVOffset: gl.getUniformLocation(texProg, 'uUVOffset'),-->
+<!--  uUVScale: gl.getUniformLocation(texProg, 'uUVScale'),-->
+<!--  uTheme: gl.getUniformLocation(texProg, 'uTheme'),-->
+<!--  uGlow: gl.getUniformLocation(texProg, 'uGlow'),-->
+<!--  uScanline: gl.getUniformLocation(texProg, 'uScanline'),-->
+<!--  uTime: gl.getUniformLocation(texProg, 'uTime'),-->
+<!--  uIsCard: gl.getUniformLocation(texProg, 'uIsCard'),-->
+<!--  uCardAlpha: gl.getUniformLocation(texProg, 'uCardAlpha')-->
+<!--};-->
+
+<!--const fLoc = {-->
+<!--  aPos: gl.getAttribLocation(fxProg, 'aPos'),-->
+<!--  aAlpha: gl.getAttribLocation(fxProg, 'aAlpha'),-->
+<!--  uProj: gl.getUniformLocation(fxProg, 'uProj'),-->
+<!--  uView: gl.getUniformLocation(fxProg, 'uView'),-->
+<!--  uModel: gl.getUniformLocation(fxProg, 'uModel'),-->
+<!--  uTheme: gl.getUniformLocation(fxProg, 'uTheme'),-->
+<!--  uGlobalAlpha: gl.getUniformLocation(fxProg, 'uGlobalAlpha'),-->
+<!--  uPointSize: gl.getUniformLocation(fxProg, 'uPointSize'),-->
+<!--  uIsPoint: gl.getUniformLocation(fxProg, 'uIsPoint')-->
+<!--};-->
+
+<!--const glTexture = gl.createTexture();-->
+<!--gl.bindTexture(gl.TEXTURE_2D, glTexture);-->
+<!--gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);-->
+<!--gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);-->
+<!--gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);-->
+<!--gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);-->
+
+<!--// ==================== 4. 矩阵工具 ====================-->
+<!--const mat4I = () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);-->
+<!--function mat4Mul(a, b) {-->
+<!--  const o = new Float32Array(16);-->
+<!--  for (let c = 0; c < 4; c++)-->
+<!--    for (let r = 0; r < 4; r++)-->
+<!--      o[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];-->
+<!--  return o;-->
+<!--}-->
+<!--function mat4Persp(fovy, asp, near, far) {-->
+<!--  const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);-->
+<!--  return new Float32Array([f/asp,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]);-->
+<!--}-->
+<!--const mat4Trans = (m, x, y, z) => mat4Mul(m, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]));-->
+<!--const mat4RotX = (m, a) => { const c=Math.cos(a), s=Math.sin(a); return mat4Mul(m, new Float32Array([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1])); };-->
+<!--const mat4RotY = (m, a) => { const c=Math.cos(a), s=Math.sin(a); return mat4Mul(m, new Float32Array([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1])); };-->
+<!--const mat4RotZ = (m, a) => { const c=Math.cos(a), s=Math.sin(a); return mat4Mul(m, new Float32Array([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1])); };-->
+<!--const mat4Scale = (m, x, y, z) => mat4Mul(m, new Float32Array([x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]));-->
+
+<!--// ==================== 5. 网格构造器 ====================-->
+<!--function makeTexMesh(d) {-->
+<!--  const b = (arr, target=gl.ARRAY_BUFFER, T=Float32Array) => {-->
+<!--    const buf = gl.createBuffer();-->
+<!--    gl.bindBuffer(target, buf);-->
+<!--    gl.bufferData(target, new T(arr), gl.STATIC_DRAW);-->
+<!--    return buf;-->
+<!--  };-->
+<!--  return {-->
+<!--    pos: b(d.pos), norm: b(d.norm), uv: b(d.uv), luv: b(d.luv),-->
+<!--    idx: b(d.idx, gl.ELEMENT_ARRAY_BUFFER, Uint16Array), count: d.idx.length-->
+<!--  };-->
+<!--}-->
+<!--function freeTexMesh(m) {-->
+<!--  if (!m) return;-->
+<!--  gl.deleteBuffer(m.pos); gl.deleteBuffer(m.norm); gl.deleteBuffer(m.uv); gl.deleteBuffer(m.luv); gl.deleteBuffer(m.idx);-->
+<!--}-->
+
+<!--// 全息卡片单元网格-->
+<!--const cardMesh = makeTexMesh({-->
+<!--  pos:  [-0.72,-0.54,0,  0.72,-0.54,0,  0.72,0.54,0,  -0.72,0.54,0],-->
+<!--  norm: [0,0,1, 0,0,1, 0,0,1, 0,0,1],-->
+<!--  uv:   [0.02,0.98, 0.98,0.98, 0.98,0.02, 0.02,0.02],-->
+<!--  luv:  [0,1, 1,1, 1,0, 0,0],-->
+<!--  idx:  [0,1,2, 0,2,3]-->
+<!--});-->
+
+<!--// 立体方环 & 弧面圆柱环-->
+<!--function sampleRoundedLoop(hw, hh, r, segs = 6) {-->
+<!--  r = Math.max(0.02, Math.min(hw * 0.9, hh * 0.9, r));-->
+<!--  const raw = [];-->
+<!--  [-->
+<!--    { cx: hw-r, cy: hh-r, a0: 0, a1: Math.PI/2 },-->
+<!--    { cx: -hw+r, cy: hh-r, a0: Math.PI/2, a1: Math.PI },-->
+<!--    { cx: -hw+r, cy: -hh+r, a0: Math.PI, a1: Math.PI*1.5 },-->
+<!--    { cx: hw-r, cy: -hh+r, a0: Math.PI*1.5, a1: Math.PI*2 }-->
+<!--  ].forEach(c => {-->
+<!--    for (let i = 0; i <= segs; i++) {-->
+<!--      const a = c.a0 + (c.a1 - c.a0) * (i / segs);-->
+<!--      raw.push({ x: c.cx + Math.cos(a)*r, y: c.cy + Math.sin(a)*r, nx: Math.cos(a), ny: Math.sin(a) });-->
+<!--    }-->
+<!--  });-->
+<!--  let s = 0;-->
+<!--  for (let i = 0; i < raw.length; i++) {-->
+<!--    if (i > 0) s += Math.hypot(raw[i].x - raw[i-1].x, raw[i].y - raw[i-1].y);-->
+<!--    raw[i].s = s;-->
+<!--  }-->
+<!--  const totalLen = s + Math.hypot(raw[0].x - raw[raw.length-1].x, raw[0].y - raw[raw.length-1].y);-->
+<!--  raw.push({ ...raw[0], s: totalLen });-->
+<!--  return { pts: raw, totalLen };-->
+<!--}-->
+
+<!--function buildFrameRing(outerW, outerH, thick, depth, g) {-->
+<!--  const innerW = Math.max(0.4, outerW - thick);-->
+<!--  const innerH = Math.max(0.4, outerH - thick);-->
+<!--  const outerR = Math.min(outerW, outerH) * 0.22;-->
+<!--  const innerR = Math.max(0.05, outerR - thick * 0.72);-->
+<!--  const out = sampleRoundedLoop(outerW, outerH, outerR, 6);-->
+<!--  const inn = sampleRoundedLoop(innerW, innerH, innerR, 6);-->
+<!--  const N = out.pts.length - 1, hz = depth / 2;-->
+<!--  const pos = [], norm = [], uv = [], luv = [], idx = [];-->
+<!--  const dv = 1 / g, du = 1 / g;-->
+<!--  const tilesAround = Math.max(10, Math.round(out.totalLen / thick));-->
+<!--  const uSpan = tilesAround * du;-->
+
+<!--  function addStrip(pairFn, nFn) {-->
+<!--    const base = pos.length / 3;-->
+<!--    for (let i = 0; i <= N; i++) {-->
+<!--      const t = out.pts[i].s / out.totalLen;-->
+<!--      const u = t * uSpan;-->
+<!--      const p = pairFn(i), n = nFn(i);-->
+<!--      pos.push(p.ax,p.ay,p.az, p.bx,p.by,p.bz);-->
+<!--      norm.push(n[0],n[1],n[2], n[0],n[1],n[2]);-->
+<!--      uv.push(u, 0, u, dv);-->
+<!--      luv.push(t, 0, t, 1);-->
+<!--    }-->
+<!--    for (let i = 0; i < N; i++) { const a=base+i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }-->
+<!--  }-->
+<!--  addStrip(i => ({ax:out.pts[i].x, ay:out.pts[i].y, az:hz,  bx:inn.pts[i].x, by:inn.pts[i].y, bz:hz}),  () => [0,0,1]);-->
+<!--  addStrip(i => ({ax:out.pts[i].x, ay:out.pts[i].y, az:-hz, bx:inn.pts[i].x, by:inn.pts[i].y, bz:-hz}), () => [0,0,-1]);-->
+<!--  addStrip(i => ({ax:out.pts[i].x, ay:out.pts[i].y, az:hz,  bx:out.pts[i].x, by:out.pts[i].y, bz:-hz}), i => [out.pts[i].nx,out.pts[i].ny,0]);-->
+<!--  addStrip(i => ({ax:inn.pts[i].x, ay:inn.pts[i].y, az:hz,  bx:inn.pts[i].x, by:inn.pts[i].y, bz:-hz}), i => [-inn.pts[i].nx,-inn.pts[i].ny,0]);-->
+<!--  return makeTexMesh({ pos, norm, uv, luv, idx });-->
+<!--}-->
+
+<!--function buildArenaRing(radius, bandH, thick, g) {-->
+<!--  const segs = 72, rOut = radius, rIn = Math.max(0.4, radius - thick), hh = bandH / 2;-->
+<!--  const pos = [], norm = [], uv = [], luv = [], idx = [];-->
+<!--  const dv = 1 / g, du = 1 / g;-->
+<!--  const tilesAround = Math.max(12, Math.round((2 * Math.PI * radius) / bandH));-->
+<!--  const uSpan = tilesAround * du;-->
+
+<!--  function addStrip(rA, yA, rB, yB, nFn) {-->
+<!--    const base = pos.length / 3;-->
+<!--    for (let i = 0; i <= segs; i++) {-->
+<!--      const t = i / segs, a = t * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), u = t * uSpan;-->
+<!--      const n = nFn(ca, sa);-->
+<!--      pos.push(ca*rA, yA, sa*rA, ca*rB, yB, sa*rB);-->
+<!--      norm.push(n[0],n[1],n[2], n[0],n[1],n[2]);-->
+<!--      uv.push(u, 0, u, dv);-->
+<!--      luv.push(t, 0, t, 1);-->
+<!--    }-->
+<!--    for (let i = 0; i < segs; i++) { const a=base+i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }-->
+<!--  }-->
+<!--  addStrip(rOut, hh, rOut, -hh, (ca,sa) => [ca,0,sa]);-->
+<!--  addStrip(rIn, hh, rIn, -hh, (ca,sa) => [-ca,0,-sa]);-->
+<!--  addStrip(rOut, hh, rIn, hh, () => [0,1,0]);-->
+<!--  addStrip(rOut, -hh, rIn, -hh, () => [0,-1,0]);-->
+<!--  return makeTexMesh({ pos, norm, uv, luv, idx });-->
+<!--}-->
+
+<!--let ringMeshes = [];-->
+<!--function rebuildRingMeshes() {-->
+<!--  ringMeshes.forEach(freeTexMesh);-->
+<!--  ringMeshes = [];-->
+<!--  if (state.ringType === 'none') return;-->
+
+<!--  for (let i = 0; i < state.ringCount; i++) {-->
+<!--    const shrink = 1 - (i / Math.max(1, state.ringCount)) * 0.24;-->
+<!--    if (state.ringType === 'arena') {-->
+<!--      ringMeshes.push(buildArenaRing(4.2 * state.ringScale * shrink, state.ringThick * 1.15, 0.24, atlasGrid));-->
+<!--    } else {-->
+<!--      const w = 4.0 * state.ringScale * shrink;-->
+<!--      ringMeshes.push(buildFrameRing(w, w * 0.85, state.ringThick * 0.9, 0.42, atlasGrid));-->
+<!--    }-->
+<!--  }-->
+<!--}-->
+
+<!--// ==================== 6. 科幻 HUD 线框与粒子缓冲 ====================-->
+<!--function makeLineMesh(verts, alphas) {-->
+<!--  const pb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, pb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);-->
+<!--  const ab = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, ab); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(alphas), gl.STATIC_DRAW);-->
+<!--  return { pos: pb, alpha: ab, count: verts.length / 3 };-->
+<!--}-->
+
+<!--// 1) 底部全息透视网格-->
+<!--const gridMesh = (() => {-->
+<!--  const v = [], a = [], R = 18, step = 1.5;-->
+<!--  for (let x = -R; x <= R; x += step) {-->
+<!--    const al = Math.max(0.05, 0.45 * (1 - Math.abs(x) / R));-->
+<!--    v.push(x, 0, -R, x, 0, R); a.push(al * 0.25, al * 0.25);-->
+<!--    v.push(-R, 0, x, R, 0, x); a.push(al * 0.25, al * 0.25);-->
+<!--  }-->
+<!--  for (let r = 3; r <= 15; r += 3) {-->
+<!--    const segs = 72;-->
+<!--    for (let i = 0; i < segs; i++) {-->
+<!--      const a0 = (i / segs) * Math.PI * 2, a1 = ((i + 1) / segs) * Math.PI * 2;-->
+<!--      v.push(Math.cos(a0)*r, 0, Math.sin(a0)*r, Math.cos(a1)*r, 0, Math.sin(a1)*r);-->
+<!--      a.push(0.55, 0.55);-->
+<!--    }-->
+<!--  }-->
+<!--  return makeLineMesh(v, a);-->
+<!--})();-->
+
+<!--// 2) HUD 分段雷达刻度圆环-->
+<!--const hudArcMesh = (() => {-->
+<!--  const v = [], a = [];-->
+<!--  const segs = 120;-->
+<!--  for (let i = 0; i < segs; i++) {-->
+<!--    // 分段虚线效果-->
+<!--    if (i % 6 === 4 || i % 6 === 5) continue;-->
+<!--    const t0 = (i / segs) * Math.PI * 2, t1 = ((i + 1) / segs) * Math.PI * 2;-->
+<!--    v.push(Math.cos(t0), Math.sin(t0), 0, Math.cos(t1), Math.sin(t1), 0);-->
+<!--    a.push(0.85, 0.85);-->
+<!--    if (i % 3 === 0) {-->
+<!--      v.push(Math.cos(t0)*0.94, Math.sin(t0)*0.94, 0, Math.cos(t0)*1.04, Math.sin(t0)*1.04, 0);-->
+<!--      a.push(0.95, 0.4);-->
+<!--    }-->
+<!--  }-->
+<!--  return makeLineMesh(v, a);-->
+<!--})();-->
+
+<!--// 3) 中心二十面体能量核线框-->
+<!--const coreReactorMesh = (() => {-->
+<!--  const t = (1 + Math.sqrt(5)) / 2;-->
+<!--  const pts = [-->
+<!--    [-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],-->
+<!--    [0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],-->
+<!--    [t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]-->
+<!--  ].map(p => { const l = Math.hypot(p[0],p[1],p[2]); return [p[0]/l, p[1]/l, p[2]/l]; });-->
+<!--  const edges = [-->
+<!--    [0,11],[0,5],[0,1],[0,7],[0,10], [1,5],[5,11],[11,10],[10,7],[7,1],-->
+<!--    [3,9],[3,4],[3,2],[3,6],[3,8],    [4,9],[9,8],[8,6],[6,2],[2,4],-->
+<!--    [1,9],[5,4],[11,2],[10,6],[7,8],  [9,5],[4,11],[2,10],[6,7],[8,1]-->
+<!--  ];-->
+<!--  const v = [], a = [];-->
+<!--  edges.forEach(([i, j]) => {-->
+<!--    v.push(pts[i][0],pts[i][1],pts[i][2], pts[j][0],pts[j][1],pts[j][2]);-->
+<!--    a.push(0.9, 0.9);-->
+<!--  });-->
+<!--  return makeLineMesh(v, a);-->
+<!--})();-->
+
+<!--// 4) 3D 深空能量粒子-->
+<!--const starMesh = (() => {-->
+<!--  const v = [], a = [];-->
+<!--  for (let i = 0; i < 650; i++) {-->
+<!--    const r = 4 + Math.random() * 20;-->
+<!--    const th = Math.random() * Math.PI * 2;-->
+<!--    const ph = Math.acos(2 * Math.random() - 1);-->
+<!--    v.push(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th));-->
+<!--    a.push(0.25 + Math.random() * 0.75);-->
+<!--  }-->
+<!--  return makeLineMesh(v, a);-->
+<!--})();-->
+
+<!--// ==================== 7. 影像加载与图集构建 ====================-->
+<!--function loadImageItem(src, isDefault, objectUrl = null) {-->
+<!--  const item = { id: Math.random().toString(36).slice(2), src, objectUrl, isDefault, img: null, loaded: false };-->
+<!--  const img = new Image();-->
+<!--  img.crossOrigin = 'anonymous';-->
+<!--  img.onload = () => {-->
+<!--    item.img = img;-->
+<!--    item.loaded = true;-->
+<!--    updateStats();-->
+<!--    clearTimeout(atlasTimer);-->
+<!--    atlasTimer = setTimeout(buildAtlas, 80);-->
+<!--  };-->
+<!--  img.onerror = () => updateStats();-->
+<!--  img.src = src;-->
+<!--  return item;-->
+<!--}-->
+
+<!--function initDefaultImages() {-->
+<!--  defaultItems = DEFAULT_URLS.map(u => loadImageItem(u, true));-->
+<!--  updateStats();-->
+<!--  buildAtlas();-->
+<!--}-->
+<!--function getActiveItems() {-->
+<!--  const pool = state.hideDefault ? customItems : [...customItems, ...defaultItems];-->
+<!--  return pool.filter(i => i.loaded && i.img);-->
+<!--}-->
+<!--function updateStats() {-->
+<!--  const ok = defaultItems.filter(i => i.loaded).length;-->
+<!--  document.getElementById('statDefault').textContent = `默认影像: ${ok}/${defaultItems.length}`;-->
+<!--  document.getElementById('statCustom').textContent = `本地上传: ${customItems.length} 张`;-->
+<!--}-->
+
+<!--function buildAtlas() {-->
+<!--  const items = getActiveItems();-->
+<!--  const n = items.length;-->
+<!--  atlasGrid = n <= 16 ? 4 : (n <= 36 ? 6 : (n <= 64 ? 8 : 10));-->
+
+<!--  const W = 2048, cw = W / atlasGrid;-->
+<!--  const ctx = atlasCanvas.getContext('2d');-->
+<!--  ctx.fillStyle = '#040a14';-->
+<!--  ctx.fillRect(0, 0, W, W);-->
+
+<!--  const totalSlots = atlasGrid * atlasGrid;-->
+<!--  for (let s = 0; s < totalSlots; s++) {-->
+<!--    const col = s % atlasGrid, row = Math.floor(s / atlasGrid);-->
+<!--    const pad = 6;-->
+<!--    const x = col * cw + pad, y = row * cw + pad, w = cw - pad * 2, h = cw - pad * 2;-->
+<!--    if (n === 0) {-->
+<!--      ctx.fillStyle = `hsl(${(s * 29) % 360}, 60%, 22%)`;-->
+<!--      ctx.fillRect(x, y, w, h);-->
+<!--      continue;-->
+<!--    }-->
+<!--    const img = items[s % n].img;-->
+<!--    const iw = img.naturalWidth || img.width || 100;-->
+<!--    const ih = img.naturalHeight || img.height || 100;-->
+
+<!--    ctx.save();-->
+<!--    ctx.beginPath();-->
+<!--    ctx.rect(x, y, w, h);-->
+<!--    ctx.clip();-->
+<!--    if (state.fitMode === 'cover') {-->
+<!--      const sc = Math.max(w / iw, h / ih);-->
+<!--      ctx.drawImage(img, x + (w - iw * sc)/2, y + (h - ih * sc)/2, iw * sc, ih * sc);-->
+<!--    } else {-->
+<!--      ctx.fillStyle = '#030812';-->
+<!--      ctx.fillRect(x, y, w, h);-->
+<!--      const sc = Math.min(w / iw, h / ih);-->
+<!--      ctx.drawImage(img, x + (w - iw * sc)/2, y + (h - ih * sc)/2, iw * sc, ih * sc);-->
+<!--    }-->
+<!--    ctx.restore();-->
+<!--  }-->
+
+<!--  gl.bindTexture(gl.TEXTURE_2D, glTexture);-->
+<!--  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlasCanvas);-->
+<!--  gl.generateMipmap(gl.TEXTURE_2D);-->
+<!--  rebuildRingMeshes();-->
+<!--}-->
+
+<!--// ==================== 8. 6 大科幻布局目标计算器 ====================-->
+<!--function computeLayoutTarget(mode, idx, total, t) {-->
+<!--  const u = idx / total;-->
+
+<!--  if (mode === 'orbital') {-->
+<!--    // 斯塔克星环：3 条交错大轨道环绕中心-->
+<!--    const orbitIdx = idx % 3;-->
+<!--    const perOrbit = Math.ceil(total / 3);-->
+<!--    const localIdx = Math.floor(idx / 3);-->
+<!--    const ang = (localIdx / perOrbit) * Math.PI * 2 + t * (orbitIdx === 1 ? -0.35 : 0.32) + orbitIdx;-->
+<!--    const R = 3.2 + orbitIdx * 1.45;-->
+<!--    const tiltX = orbitIdx === 0 ? 0.18 : (orbitIdx === 1 ? 0.55 : -0.48);-->
+<!--    const tiltZ = orbitIdx === 1 ? 0.42 : (orbitIdx === 2 ? -0.38 : 0);-->
+
+<!--    // 局部轨道坐标 -> 3D 旋转-->
+<!--    let x = Math.cos(ang) * R, y = 0, z = Math.sin(ang) * R;-->
+<!--    const y1 = y * Math.cos(tiltX) - z * Math.sin(tiltX), z1 = y * Math.sin(tiltX) + z * Math.cos(tiltX);-->
+<!--    const x2 = x * Math.cos(tiltZ) - y1 * Math.sin(tiltZ), y2 = x * Math.sin(tiltZ) + y1 * Math.cos(tiltZ);-->
+<!--    return {-->
+<!--      x: x2, y: y2, z: z1,-->
+<!--      rx: -Math.atan2(y2, Math.hypot(x2, z1)),-->
+<!--      ry: Math.atan2(x2, z1),-->
+<!--      rz: 0, s: 0.95-->
+<!--    };-->
+<!--  }-->
+
+<!--  if (mode === 'helix') {-->
+<!--    // DNA 双螺旋：两条链螺旋上升并无缝循环-->
+<!--    const strand = idx % 2;-->
+<!--    const pairIdx = Math.floor(idx / 2);-->
+<!--    const pairs = Math.ceil(total / 2);-->
+<!--    const p = ((pairIdx / pairs) + t * 0.055) % 1;-->
+<!--    const y = (p - 0.5) * 12.0;-->
+<!--    const ang = p * Math.PI * 4.5 + strand * Math.PI + t * 0.35;-->
+<!--    const R = 3.1;-->
+<!--    const x = Math.cos(ang) * R, z = Math.sin(ang) * R;-->
+<!--    const edgeFade = Math.min(1, Math.min(p, 1 - p) * 7);-->
+<!--    return { x, y, z, rx: 0, ry: Math.atan2(x, z), rz: 0, s: 0.95 * edgeFade };-->
+<!--  }-->
+
+<!--  if (mode === 'command') {-->
+<!--    // 少数派 3 层弧形全息幕墙（上下层反向旋转）-->
+<!--    const tiers = 3;-->
+<!--    const tier = idx % tiers;-->
+<!--    const perTier = Math.ceil(total / tiers);-->
+<!--    const col = Math.floor(idx / tiers);-->
+<!--    const dir = tier === 1 ? -1 : 1;-->
+<!--    const ang = (col / perTier) * Math.PI * 2 + t * 0.24 * dir + tier * 0.4;-->
+<!--    const R = 5.4;-->
+<!--    const x = Math.cos(ang) * R, z = Math.sin(ang) * R;-->
+<!--    const y = (tier - 1) * 1.95;-->
+<!--    return { x, y, z, rx: 0, ry: Math.atan2(x, z), rz: 0, s: 1.05 };-->
+<!--  }-->
+
+<!--  if (mode === 'tesseract') {-->
+<!--    // 超立方 3D 晶格矩阵-->
+<!--    const side = Math.ceil(Math.cbrt(total));-->
+<!--    const ix = idx % side;-->
+<!--    const iy = Math.floor(idx / side) % side;-->
+<!--    const iz = Math.floor(idx / (side * side));-->
+<!--    const gap = 2.05;-->
+<!--    const off = (side - 1) * gap * 0.5;-->
+<!--    let x = ix * gap - off, y = iy * gap - off, z = iz * gap - off;-->
+<!--    const rot = t * 0.25;-->
+<!--    const cr = Math.cos(rot), sr = Math.sin(rot);-->
+<!--    const rx = x * cr - z * sr, rz = x * sr + z * cr;-->
+<!--    return { x: rx, y, z: rz, rx: 0, ry: -rot, rz: 0, s: 0.85 };-->
+<!--  }-->
+
+<!--  if (mode === 'vortex') {-->
+<!--    // 量子虫洞螺旋隧道-->
+<!--    const p = ((u + t * 0.14) % 1);-->
+<!--    const z = -14 + p * 20; // 从深处飞向镜头-->
+<!--    const ang = p * Math.PI * 8 + idx * 0.4 - t * 0.6;-->
+<!--    const R = 1.6 + Math.pow(p, 1.3) * 4.8;-->
+<!--    const x = Math.cos(ang) * R, y = Math.sin(ang) * R;-->
+<!--    const fade = Math.min(1, p * 4, (1 - p) * 6);-->
+<!--    return { x, y, z, rx: 0, ry: 0, rz: ang * 0.15, s: (0.4 + p * 0.85) * fade };-->
+<!--  }-->
+
+<!--  // dyson: 戴森全息球阵（斐波那契球面）-->
+<!--  const phi = Math.acos(1 - 2 * (idx + 0.5) / total);-->
+<!--  const theta = Math.PI * (1 + Math.sqrt(5)) * idx + t * 0.26;-->
+<!--  const R = 4.15;-->
+<!--  const x = R * Math.sin(phi) * Math.cos(theta);-->
+<!--  const y = R * Math.cos(phi);-->
+<!--  const z = R * Math.sin(phi) * Math.sin(theta);-->
+<!--  return {-->
+<!--    x, y, z,-->
+<!--    rx: -Math.atan2(y, Math.hypot(x, z)),-->
+<!--    ry: Math.atan2(x, z),-->
+<!--    rz: 0, s: 0.92-->
+<!--  };-->
+<!--}-->
+
+<!--function lerpAngle(cur, target, a) {-->
+<!--  let d = ((target - cur + Math.PI) % (Math.PI * 2)) - Math.PI;-->
+<!--  if (d < -Math.PI) d += Math.PI * 2;-->
+<!--  return cur + d * a;-->
+<!--}-->
+
+<!--// ==================== 9. 音频与镜头交互 ====================-->
+<!--let audioEl=null, audioCtx=null, analyser=null, audioData=null, audioPlaying=false;-->
+<!--function handleAudioFile(files) {-->
+<!--  if (!files || !files.length) return;-->
+<!--  if (audioEl) { audioEl.pause(); URL.revokeObjectURL(audioEl.src); }-->
+<!--  audioEl = new Audio(URL.createObjectURL(files[0]));-->
+<!--  audioEl.loop = true;-->
+<!--  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();-->
+<!--  const src = audioCtx.createMediaElementSource(audioEl);-->
+<!--  analyser = audioCtx.createAnalyser(); analyser.fftSize = 128;-->
+<!--  audioData = new Uint8Array(analyser.frequencyBinCount);-->
+<!--  src.connect(analyser); analyser.connect(audioCtx.destination);-->
+<!--  document.getElementById('btnAudioPlay').disabled = false;-->
+<!--  document.getElementById('audioStatus').textContent = `已加载: ${files[0].name}`;-->
+<!--  toggleAudioPlay(true);-->
+<!--}-->
+<!--function toggleAudioPlay(force = false) {-->
+<!--  if (!audioEl) return;-->
+<!--  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();-->
+<!--  if (force || audioEl.paused) {-->
+<!--    audioEl.play(); audioPlaying = true;-->
+<!--    document.getElementById('btnAudioPlay').textContent = '⏸ 暂停';-->
+<!--  } else {-->
+<!--    audioEl.pause(); audioPlaying = false;-->
+<!--    document.getElementById('btnAudioPlay').textContent = '▶ 播放';-->
+<!--  }-->
+<!--}-->
+<!--function getBeat() {-->
+<!--  if (!state.audioReact || !analyser || !audioPlaying) return 0;-->
+<!--  analyser.getByteFrequencyData(audioData);-->
+<!--  let s = 0; for (let i = 0; i < 10; i++) s += audioData[i];-->
+<!--  return s / (10 * 255);-->
+<!--}-->
+
+<!--let dragging = false, lastX = 0, lastY = 0;-->
+<!--glCanvas.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });-->
+<!--window.addEventListener('pointermove', e => {-->
+<!--  if (!dragging) return;-->
+<!--  state.camYaw += (e.clientX - lastX) * 0.0055;-->
+<!--  state.camPitch = Math.max(-1.35, Math.min(1.35, state.camPitch + (e.clientY - lastY) * 0.0055));-->
+<!--  lastX = e.clientX; lastY = e.clientY;-->
+<!--});-->
+<!--window.addEventListener('pointerup', () => { dragging = false; });-->
+<!--glCanvas.addEventListener('wheel', e => {-->
+<!--  e.preventDefault();-->
+<!--  state.camDist = Math.max(4.5, Math.min(26, state.camDist + e.deltaY * 0.009));-->
+<!--  document.getElementById('rngCamDist').value = state.camDist;-->
+<!--  document.getElementById('valCamDist').textContent = state.camDist.toFixed(1);-->
+<!--}, { passive: false });-->
+<!--glCanvas.addEventListener('dblclick', resetCamera);-->
+
+<!--function resetCamera() {-->
+<!--  state.camYaw = 0; state.camPitch = 0.16; state.camDist = 13.0;-->
+<!--  document.getElementById('rngCamDist').value = 13.0;-->
+<!--  document.getElementById('valCamDist').textContent = '13.0';-->
+<!--  showToast('🔄 3D 镜头已回正');-->
+<!--}-->
+
+<!--// ==================== 10. 主渲染循环 ====================-->
+<!--let lastTs = performance.now(), fpsAcc = 0, fpsCnt = 0;-->
+
+<!--function render(now) {-->
+<!--  const dt = Math.min(0.05, (now - lastTs) / 1000);-->
+<!--  lastTs = now;-->
+
+<!--  fpsAcc += dt; fpsCnt++;-->
+<!--  if (fpsAcc >= 0.5) {-->
+<!--    document.getElementById('hudFps').textContent = Math.round(fpsCnt / fpsAcc);-->
+<!--    fpsAcc = 0; fpsCnt = 0;-->
+<!--  }-->
+
+<!--  const beat = getBeat();-->
+<!--  const boost = 1 + beat * 1.35;-->
+
+<!--  if (state.playing) {-->
+<!--    state.totalTime += dt;-->
+<!--    state.flowTime += dt * state.flowSpeed * boost;-->
+<!--    for (let i = 0; i < state.ringCount; i++) {-->
+<!--      let dir = 1, mult = 1;-->
+<!--      if (state.dirMode === 'alternate') dir = i % 2 === 0 ? 1 : -1;-->
+<!--      else if (state.dirMode === 'sameCW') dir = 1;-->
+<!--      else if (state.dirMode === 'sameCCW') dir = -1;-->
+<!--      else { dir = state.customRings[i].dir; mult = state.customRings[i].speed; }-->
+<!--      if (state.dirMode !== 'custom') mult = 0.8 + (i % 3) * 0.2;-->
+<!--      state.angles[i] += dir * mult * state.ringSpeed * 0.34 * boost * dt;-->
+<!--    }-->
+<!--  }-->
+
+<!--  gl.clearColor(0.008, 0.015, 0.036, 1);-->
+<!--  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);-->
+
+<!--  const aspect = viewW / Math.max(1, viewH);-->
+<!--  const proj = mat4Persp((50 * Math.PI) / 180, aspect, 0.1, 100);-->
+<!--  const autoY = state.autoCam ? Math.sin(state.totalTime * 0.28) * 0.45 : 0;-->
+<!--  const autoP = state.autoCam ? Math.sin(state.totalTime * 0.22) * 0.12 : 0;-->
+<!--  let view = mat4Trans(mat4I(), 0, 0, -state.camDist + beat * 0.8);-->
+<!--  view = mat4RotX(view, state.camPitch + autoP);-->
+<!--  view = mat4RotY(view, state.camYaw + autoY);-->
+
+<!--  // &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45; PASS 1: 实心全息环 & 悬浮全息照片卡 &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--  gl.enable(gl.DEPTH_TEST);-->
+<!--  gl.depthMask(true);-->
+<!--  gl.disable(gl.BLEND);-->
+<!--  gl.useProgram(texProg);-->
+<!--  gl.uniformMatrix4fv(tLoc.uProj, false, proj);-->
+<!--  gl.uniformMatrix4fv(tLoc.uView, false, view);-->
+<!--  gl.uniform3f(tLoc.uTheme, state.themeRgb[0], state.themeRgb[1], state.themeRgb[2]);-->
+<!--  gl.uniform1f(tLoc.uGlow, state.glow + beat * 1.1);-->
+<!--  gl.uniform1f(tLoc.uScanline, state.scanline);-->
+<!--  gl.uniform1f(tLoc.uTime, state.totalTime);-->
+<!--  gl.uniform1f(tLoc.uCardAlpha, 1.0);-->
+
+<!--  // A) 外围超大 3D 立体环-->
+<!--  gl.uniform1f(tLoc.uIsCard, 0.0);-->
+<!--  gl.uniform2f(tLoc.uUVScale, 1.0, 1.0);-->
+<!--  for (let i = 0; i < ringMeshes.length; i++) {-->
+<!--    const m = ringMeshes[i];-->
+<!--    if (!m) continue;-->
+<!--    let mod = mat4I();-->
+<!--    if (state.ringType === 'arena') {-->
+<!--      mod = mat4RotZ(mod, (i - (state.ringCount-1)/2) * 0.34);-->
+<!--      mod = mat4RotX(mod, 0.28 + Math.sin(state.totalTime * 0.45 + i) * 0.18);-->
+<!--      mod = mat4RotY(mod, state.angles[i]);-->
+<!--    } else {-->
+<!--      mod = mat4RotX(mod, Math.sin(state.totalTime * 0.5 + i * 1.2) * 0.36 + (i % 2 === 0 ? 0.25 : -0.25));-->
+<!--      mod = mat4RotY(mod, Math.cos(state.totalTime * 0.4 + i * 1.4) * 0.35);-->
+<!--      mod = mat4RotZ(mod, state.angles[i]);-->
+<!--    }-->
+<!--    gl.uniformMatrix4fv(tLoc.uModel, false, mod);-->
+<!--    gl.uniform2f(tLoc.uUVOffset, state.flowTime * 0.12 * (i % 2 === 0 ? 1 : -1), i / atlasGrid);-->
+<!--    bindAndDrawTexMesh(m);-->
+<!--  }-->
+
+<!--  // B) 悬空全息照片卡片（丝滑平滑过渡 morphing）-->
+<!--  gl.uniform1f(tLoc.uIsCard, 1.0);-->
+<!--  const slotStep = 1 / atlasGrid;-->
+<!--  gl.uniform2f(tLoc.uUVScale, slotStep, slotStep);-->
+<!--  const morphAlpha = 1 - Math.exp(-6.5 * dt);-->
+
+<!--  for (let k = 0; k < state.cardCount; k++) {-->
+<!--    const target = computeLayoutTarget(state.layout, k, state.cardCount, state.flowTime);-->
+<!--    const cs = cardStates[k];-->
+<!--    if (Math.hypot(target.x - cs.x, target.y - cs.y, target.z - cs.z) > 10) {-->
+<!--      cs.x = target.x; cs.y = target.y; cs.z = target.z;-->
+<!--    } else {-->
+<!--      cs.x += (target.x - cs.x) * morphAlpha;-->
+<!--      cs.y += (target.y - cs.y) * morphAlpha;-->
+<!--      cs.z += (target.z - cs.z) * morphAlpha;-->
+<!--    }-->
+<!--    cs.rx = lerpAngle(cs.rx, target.rx, morphAlpha);-->
+<!--    cs.ry = lerpAngle(cs.ry, target.ry, morphAlpha);-->
+<!--    cs.rz = lerpAngle(cs.rz, target.rz, morphAlpha);-->
+<!--    cs.s += (target.s - cs.s) * morphAlpha;-->
+
+<!--    const sc = cs.s * state.cardSize * (1 + beat * 0.12);-->
+<!--    if (sc < 0.02) continue;-->
+
+<!--    let cm = mat4Trans(mat4I(), cs.x, cs.y, cs.z);-->
+<!--    cm = mat4RotY(cm, cs.ry);-->
+<!--    cm = mat4RotX(cm, cs.rx);-->
+<!--    cm = mat4RotZ(cm, cs.rz);-->
+<!--    cm = mat4Scale(cm, sc, sc, sc);-->
+
+<!--    const slot = k % (atlasGrid * atlasGrid);-->
+<!--    const col = slot % atlasGrid, row = Math.floor(slot / atlasGrid);-->
+<!--    gl.uniformMatrix4fv(tLoc.uModel, false, cm);-->
+<!--    gl.uniform2f(tLoc.uUVOffset, col * slotStep, row * slotStep);-->
+<!--    bindAndDrawTexMesh(cardMesh);-->
+<!--  }-->
+
+<!--  // &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45; PASS 2: 加色混合 科幻 HUD 线框、能量核、雷达网格与粒子 &#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+<!--  gl.depthMask(false);-->
+<!--  gl.enable(gl.BLEND);-->
+<!--  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);-->
+<!--  gl.useProgram(fxProg);-->
+<!--  gl.uniformMatrix4fv(fLoc.uProj, false, proj);-->
+<!--  gl.uniformMatrix4fv(fLoc.uView, false, view);-->
+<!--  gl.uniform3f(fLoc.uTheme, state.themeRgb[0], state.themeRgb[1], state.themeRgb[2]);-->
+
+<!--  // 1) 底部全息雷达网格-->
+<!--  if (state.floorGrid) {-->
+<!--    let gm = mat4Trans(mat4I(), 0, -5.8, 0);-->
+<!--    gm = mat4RotY(gm, state.totalTime * 0.04);-->
+<!--    drawFxMesh(gridMesh, gm, gl.LINES, 0.35 + beat * 0.25, 0, 1);-->
+<!--  }-->
+
+<!--  // 2) HUD 刻度光环-->
+<!--  if (state.hudRings) {-->
+<!--    for (let h = 0; h < 3; h++) {-->
+<!--      let hm = mat4I();-->
+<!--      const s = (4.6 + h * 1.45) * state.ringScale;-->
+<!--      hm = mat4RotX(hm, Math.PI / 2 + Math.sin(state.totalTime * 0.35 + h) * 0.35);-->
+<!--      hm = mat4RotY(hm, h * 0.6);-->
+<!--      hm = mat4RotZ(hm, state.totalTime * (h % 2 === 0 ? 0.25 : -0.3));-->
+<!--      hm = mat4Scale(hm, s, s, s);-->
+<!--      drawFxMesh(hudArcMesh, hm, gl.LINES, 0.48 + beat * 0.45, 0, 1);-->
+<!--    }-->
+<!--  }-->
+
+<!--  // 3) 中心二十面体聚变核-->
+<!--  if (state.coreReactor) {-->
+<!--    const cs = 1.25 + beat * 0.55 + Math.sin(state.totalTime * 2.5) * 0.08;-->
+<!--    let rm = mat4RotY(mat4I(), state.totalTime * 0.7);-->
+<!--    rm = mat4RotX(rm, state.totalTime * 0.45);-->
+<!--    rm = mat4Scale(rm, cs, cs, cs);-->
+<!--    drawFxMesh(coreReactorMesh, rm, gl.LINES, 0.65 + beat * 0.5, 0, 1);-->
+
+<!--    let rm2 = mat4RotY(mat4I(), -state.totalTime * 0.5);-->
+<!--    rm2 = mat4Scale(rm2, cs * 0.62, cs * 0.62, cs * 0.62);-->
+<!--    drawFxMesh(coreReactorMesh, rm2, gl.LINES, 0.85, 0, 1);-->
+<!--  }-->
+
+<!--  // 4) 3D 能量星尘粒子-->
+<!--  if (state.starfield) {-->
+<!--    const sm = mat4RotY(mat4I(), state.totalTime * 0.05);-->
+<!--    drawFxMesh(starMesh, sm, gl.POINTS, 0.75 + beat * 0.3, 1, 14.0 + beat * 8.0);-->
+<!--  }-->
+
+<!--  gl.depthMask(true);-->
+<!--  gl.disable(gl.BLEND);-->
+
+<!--  drawOverlay2D(beat);-->
+<!--  requestAnimationFrame(render);-->
+<!--}-->
+
+<!--function bindAndDrawTexMesh(m) {-->
+<!--  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);-->
+<!--  gl.enableVertexAttribArray(tLoc.aPos);-->
+<!--  gl.vertexAttribPointer(tLoc.aPos, 3, gl.FLOAT, false, 0, 0);-->
+
+<!--  gl.bindBuffer(gl.ARRAY_BUFFER, m.norm);-->
+<!--  gl.enableVertexAttribArray(tLoc.aNormal);-->
+<!--  gl.vertexAttribPointer(tLoc.aNormal, 3, gl.FLOAT, false, 0, 0);-->
+
+<!--  gl.bindBuffer(gl.ARRAY_BUFFER, m.uv);-->
+<!--  gl.enableVertexAttribArray(tLoc.aUV);-->
+<!--  gl.vertexAttribPointer(tLoc.aUV, 2, gl.FLOAT, false, 0, 0);-->
+
+<!--  gl.bindBuffer(gl.ARRAY_BUFFER, m.luv);-->
+<!--  gl.enableVertexAttribArray(tLoc.aLocalUV);-->
+<!--  gl.vertexAttribPointer(tLoc.aLocalUV, 2, gl.FLOAT, false, 0, 0);-->
+
+<!--  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.idx);-->
+<!--  gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_SHORT, 0);-->
+<!--}-->
+
+<!--function drawFxMesh(m, model, mode, alpha, isPoint, ptSize) {-->
+<!--  gl.uniformMatrix4fv(fLoc.uModel, false, model);-->
+<!--  gl.uniform1f(fLoc.uGlobalAlpha, alpha);-->
+<!--  gl.uniform1f(fLoc.uIsPoint, isPoint);-->
+<!--  gl.uniform1f(fLoc.uPointSize, ptSize);-->
+
+<!--  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);-->
+<!--  gl.enableVertexAttribArray(fLoc.aPos);-->
+<!--  gl.vertexAttribPointer(fLoc.aPos, 3, gl.FLOAT, false, 0, 0);-->
+
+<!--  gl.bindBuffer(gl.ARRAY_BUFFER, m.alpha);-->
+<!--  gl.enableVertexAttribArray(fLoc.aAlpha);-->
+<!--  gl.vertexAttribPointer(fLoc.aAlpha, 1, gl.FLOAT, false, 0, 0);-->
+
+<!--  gl.drawArrays(mode, 0, m.count);-->
+<!--}-->
+
+<!--function drawOverlay2D(beat) {-->
+<!--  ovCtx.save();-->
+<!--  ovCtx.scale(dpr, dpr);-->
+<!--  ovCtx.clearRect(0, 0, viewW, viewH);-->
+
+<!--  // 科幻四周微暗角-->
+<!--  const grad = ovCtx.createRadialGradient(viewW/2, viewH/2, Math.min(viewW,viewH)*0.3, viewW/2, viewH/2, Math.max(viewW,viewH)*0.75);-->
+<!--  grad.addColorStop(0, 'rgba(0,0,0,0)');-->
+<!--  grad.addColorStop(1, 'rgba(1,4,12,0.55)');-->
+<!--  ovCtx.fillStyle = grad;-->
+<!--  ovCtx.fillRect(0, 0, viewW, viewH);-->
+
+<!--  if (state.textEnabled && state.textContent.trim()) {-->
+<!--    const lines = state.textContent.split('\n');-->
+<!--    const fs = state.textSize * (1 + beat * 0.06);-->
+<!--    const lh = fs * 1.4;-->
+<!--    const startY = viewH * 0.5 - (lines.length * lh) / 2 + lh / 2;-->
+<!--    ovCtx.font = `800 ${fs}px "Segoe UI", "PingFang SC", sans-serif`;-->
+<!--    ovCtx.textAlign = 'center';-->
+<!--    ovCtx.textBaseline = 'middle';-->
+<!--    const tc = `rgb(${state.themeRgb[0]*255},${state.themeRgb[1]*255},${state.themeRgb[2]*255})`;-->
+<!--    lines.forEach((line, idx) => {-->
+<!--      const y = startY + idx * lh;-->
+<!--      ovCtx.lineWidth = Math.max(3, fs * 0.14);-->
+<!--      ovCtx.strokeStyle = 'rgba(0,0,0,0.75)';-->
+<!--      ovCtx.strokeText(line, viewW / 2, y);-->
+<!--      ovCtx.shadowColor = tc;-->
+<!--      ovCtx.shadowBlur = 16;-->
+<!--      ovCtx.fillStyle = '#ffffff';-->
+<!--      ovCtx.fillText(line, viewW / 2, y);-->
+<!--    });-->
+<!--  }-->
+<!--  ovCtx.restore();-->
+<!--}-->
+
+<!--// ==================== 11. UI 控制与事件 ====================-->
+<!--const LAYOUT_NAMES = {-->
+<!--  orbital: 'ORBITAL RINGS',-->
+<!--  helix: 'DNA BIO-HELIX',-->
+<!--  command: 'HOLO-COMMAND WALL',-->
+<!--  tesseract: 'TESSERACT MATRIX',-->
+<!--  vortex: 'QUANTUM VORTEX',-->
+<!--  dyson: 'DYSON SPHERE'-->
+<!--};-->
+
+<!--function setLayout(layout, btn) {-->
+<!--  state.layout = layout;-->
+<!--  document.querySelectorAll('.dock-item').forEach(b => b.classList.remove('active'));-->
+<!--  if (btn) btn.classList.add('active');-->
+<!--  document.getElementById('hudLayout').textContent = LAYOUT_NAMES[layout];-->
+<!--  showToast(`🚀 空间矩阵重组中 -> ${btn.textContent}`);-->
+<!--}-->
+
+<!--function setTheme(name, btn) {-->
+<!--  const th = THEMES[name];-->
+<!--  document.documentElement.style.setProperty('&#45;&#45;theme', th.hex);-->
+<!--  document.documentElement.style.setProperty('&#45;&#45;theme-dim', th.dim);-->
+<!--  document.documentElement.style.setProperty('&#45;&#45;border', th.border);-->
+<!--  state.themeRgb = th.rgb;-->
+<!--  document.querySelectorAll('.theme-dot').forEach(b => b.classList.remove('active'));-->
+<!--  btn.classList.add('active');-->
+<!--}-->
+
+<!--function setRingType(rt, btn) {-->
+<!--  state.ringType = rt;-->
+<!--  btn.parentElement.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));-->
+<!--  rebuildRingMeshes();-->
+<!--}-->
+
+<!--function setDirMode(mode, btn) {-->
+<!--  state.dirMode = mode;-->
+<!--  btn.parentElement.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));-->
+<!--  document.getElementById('customRingsBox').style.display = mode === 'custom' ? 'block' : 'none';-->
+<!--  if (mode === 'custom') renderCustomRingsUI();-->
+<!--}-->
+
+<!--function renderCustomRingsUI() {-->
+<!--  const box = document.getElementById('ringCustomList');-->
+<!--  box.innerHTML = '';-->
+<!--  for (let i = 0; i < state.ringCount; i++) {-->
+<!--    const r = state.customRings[i];-->
+<!--    const row = document.createElement('div');-->
+<!--    row.className = 'ring-item';-->
+<!--    const lbl = r.dir === 1 ? '↻ 顺转' : (r.dir === -1 ? '↺ 反转' : '⏸ 暂停');-->
+<!--    row.innerHTML = `<span>环 ${i+1}</span><button class="ring-dir-btn" onclick="cycleRingDir(${i})">${lbl}</button><input type="range" min="0.2" max="3" step="0.1" value="${r.speed}" oninput="setRingCustomSpeed(${i},this.value,this.nextElementSibling)"><span class="row-val">${r.speed.toFixed(1)}x</span>`;-->
+<!--    box.appendChild(row);-->
+<!--  }-->
+<!--}-->
+<!--function cycleRingDir(i) { const c = state.customRings[i].dir; state.customRings[i].dir = c===1?-1:(c===-1?0:1); renderCustomRingsUI(); }-->
+<!--function setRingCustomSpeed(i, v, el) { state.customRings[i].speed = Number(v); el.textContent = `${Number(v).toFixed(1)}x`; }-->
+
+<!--function onStructChange() {-->
+<!--  onParamChange();-->
+<!--  rebuildRingMeshes();-->
+<!--  if (state.dirMode === 'custom') renderCustomRingsUI();-->
+<!--}-->
+
+<!--function onParamChange() {-->
+<!--  state.ringCount = Number(document.getElementById('rngRingCount').value);-->
+<!--  state.ringScale = Number(document.getElementById('rngRingScale').value);-->
+<!--  state.ringThick = Number(document.getElementById('rngRingThick').value);-->
+<!--  state.ringSpeed = Number(document.getElementById('rngRingSpeed').value);-->
+
+<!--  state.cardCount = Number(document.getElementById('rngCardCount').value);-->
+<!--  state.cardSize = Number(document.getElementById('rngCardSize').value);-->
+<!--  state.flowSpeed = Number(document.getElementById('rngFlowSpeed').value);-->
+<!--  state.autoCam = document.getElementById('chkAutoCam').checked;-->
+<!--  state.camDist = Number(document.getElementById('rngCamDist').value);-->
+
+<!--  state.scanline = Number(document.getElementById('rngScanline').value) / 100;-->
+<!--  state.glow = Number(document.getElementById('rngGlow').value);-->
+<!--  state.coreReactor = document.getElementById('chkCoreReactor').checked;-->
+<!--  state.hudRings = document.getElementById('chkHudRings').checked;-->
+<!--  state.floorGrid = document.getElementById('chkFloorGrid').checked;-->
+<!--  state.starfield = document.getElementById('chkStarfield').checked;-->
+
+<!--  state.textEnabled = document.getElementById('chkText').checked;-->
+<!--  state.textContent = document.getElementById('txtOverlay').value;-->
+<!--  state.textSize = Number(document.getElementById('rngTextSize').value);-->
+<!--  state.audioReact = document.getElementById('chkAudioReact').checked;-->
+
+<!--  document.getElementById('valRingCount').textContent = `${state.ringCount} 环`;-->
+<!--  document.getElementById('valRingScale').textContent = `${state.ringScale.toFixed(2)}x`;-->
+<!--  document.getElementById('valRingThick').textContent = state.ringThick.toFixed(2);-->
+<!--  document.getElementById('valRingSpeed').textContent = `${state.ringSpeed.toFixed(2)}x`;-->
+<!--  document.getElementById('valCardCount').textContent = `${state.cardCount} 张`;-->
+<!--  document.getElementById('valCardSize').textContent = `${state.cardSize.toFixed(2)}x`;-->
+<!--  document.getElementById('valFlowSpeed').textContent = `${state.flowSpeed.toFixed(2)}x`;-->
+<!--  document.getElementById('valCamDist').textContent = state.camDist.toFixed(1);-->
+<!--  document.getElementById('valScanline').textContent = `${Math.round(state.scanline*100)}%`;-->
+<!--  document.getElementById('valGlow').textContent = state.glow.toFixed(2);-->
+<!--  document.getElementById('valTextSize').textContent = `${state.textSize} px`;-->
+<!--}-->
+
+<!--function switchTab(name, btn) {-->
+<!--  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));-->
+<!--  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));-->
+<!--  btn.classList.add('active');-->
+<!--  document.getElementById(`tab-${name}`).classList.add('active');-->
+<!--}-->
+<!--function togglePanel() {-->
+<!--  const p = document.getElementById('controlPanel'), b = document.getElementById('btnPanelToggle');-->
+<!--  p.classList.toggle('collapsed');-->
+<!--  b.classList.toggle('active', !p.classList.contains('collapsed'));-->
+<!--}-->
+<!--function togglePlay() {-->
+<!--  state.playing = !state.playing;-->
+<!--  document.getElementById('btnTogglePlay').textContent = state.playing ? '⏸ 暂停' : '▶ 播放';-->
+<!--}-->
+<!--function toggleUIHidden() { document.body.classList.toggle('ui-hidden'); }-->
+
+<!--function triggerUpload() { document.getElementById('fileInput').click(); }-->
+<!--function handleFiles(fileList) {-->
+<!--  if (!fileList || !fileList.length) return;-->
+<!--  let n = 0;-->
+<!--  Array.from(fileList).forEach(f => {-->
+<!--    if (!f.type.startsWith('image/')) return;-->
+<!--    const url = URL.createObjectURL(f);-->
+<!--    customItems.push(loadImageItem(url, false, url));-->
+<!--    n++;-->
+<!--  });-->
+<!--  document.getElementById('fileInput').value = '';-->
+<!--  if (n > 0) {-->
+<!--    updateStats();-->
+<!--    showToast(`📤 已注入 ${n} 张影像到全息矩阵`);-->
+<!--    if (document.getElementById('galleryModal').classList.contains('show')) renderGallery();-->
+<!--  }-->
+<!--}-->
+<!--function onImageFilterChange() {-->
+<!--  state.hideDefault = document.getElementById('chkHideDefault').checked;-->
+<!--  buildAtlas();-->
+<!--  showToast(state.hideDefault ? '🙈 已隐藏默认影像' : '🖼 已恢复默认影像');-->
+<!--}-->
+<!--function setFitMode(mode, btn) {-->
+<!--  state.fitMode = mode;-->
+<!--  btn.parentElement.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));-->
+<!--  buildAtlas();-->
+<!--  showToast(mode === 'contain' ? '🖼 已切换为完整显示（不裁剪）' : '🧱 已切换为填满裁剪');-->
+<!--}-->
+<!--function shuffleImages() {-->
+<!--  customItems.sort(() => Math.random() - 0.5);-->
+<!--  defaultItems.sort(() => Math.random() - 0.5);-->
+<!--  buildAtlas();-->
+<!--  showToast('🔀 已洗牌重排矩阵影像');-->
+<!--}-->
+<!--function clearCustomImages() {-->
+<!--  customItems.forEach(it => { if (it.objectUrl) URL.revokeObjectURL(it.objectUrl); });-->
+<!--  customItems = [];-->
+<!--  updateStats();-->
+<!--  buildAtlas();-->
+<!--  showToast('🗑 已清空本地影像');-->
+<!--}-->
+<!--function openGallery() { renderGallery(); document.getElementById('galleryModal').classList.add('show'); }-->
+<!--function closeGallery() { document.getElementById('galleryModal').classList.remove('show'); }-->
+<!--function renderGallery() {-->
+<!--  const g = document.getElementById('galleryGrid');-->
+<!--  g.innerHTML = '';-->
+<!--  const list = state.hideDefault ? customItems : [...customItems, ...defaultItems];-->
+<!--  if (!list.length) { g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#7c97b3;">暂无影像，请上传</div>'; return; }-->
+<!--  list.forEach(it => {-->
+<!--    const d = document.createElement('div'); d.className = 'gallery-item';-->
+<!--    d.innerHTML = `<img src="${it.src}" alt=""><span class="gallery-tag">${it.isDefault?'默认':'上传'}</span>`;-->
+<!--    d.onclick = () => { document.getElementById('lightboxImg').src = it.src; document.getElementById('lightbox').classList.add('show'); };-->
+<!--    if (!it.isDefault) {-->
+<!--      const del = document.createElement('button'); del.className = 'gallery-del'; del.textContent = '×';-->
+<!--      del.onclick = e => { e.stopPropagation(); if (it.objectUrl) URL.revokeObjectURL(it.objectUrl); customItems = customItems.filter(x => x.id !== it.id); updateStats(); buildAtlas(); renderGallery(); };-->
+<!--      d.appendChild(del);-->
+<!--    }-->
+<!--    g.appendChild(d);-->
+<!--  });-->
+<!--}-->
+
+<!--window.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropOverlay').classList.add('show'); });-->
+<!--window.addEventListener('dragleave', e => { if (e.relatedTarget === null) document.getElementById('dropOverlay').classList.remove('show'); });-->
+<!--window.addEventListener('drop', e => {-->
+<!--  e.preventDefault(); document.getElementById('dropOverlay').classList.remove('show');-->
+<!--  if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);-->
+<!--});-->
+
+<!--const capCanvas = document.createElement('canvas'), capCtx = capCanvas.getContext('2d');-->
+<!--function compose() {-->
+<!--  capCanvas.width = glCanvas.width; capCanvas.height = glCanvas.height;-->
+<!--  capCtx.drawImage(glCanvas, 0, 0); capCtx.drawImage(ovCanvas, 0, 0);-->
+<!--}-->
+<!--function takeSnapshot() {-->
+<!--  try { compose(); const a = document.createElement('a'); a.href = capCanvas.toDataURL('image/png'); a.download = `HOLO_MATRIX_${Date.now()}.png`; a.click(); showToast('📸 科幻全息截图已保存'); }-->
+<!--  catch (e) { showToast('⚠ 截图失败'); }-->
+<!--}-->
+<!--let mediaRecorder = null, chunks = [], recTimer = null;-->
+<!--function toggleRecord() {-->
+<!--  const btn = document.getElementById('btnRecord');-->
+<!--  if (mediaRecorder && mediaRecorder.state === 'recording') {-->
+<!--    mediaRecorder.stop(); clearInterval(recTimer); btn.textContent = '⏺ 录制视频'; btn.classList.remove('active'); return;-->
+<!--  }-->
+<!--  try {-->
+<!--    compose();-->
+<!--    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';-->
+<!--    chunks = []; mediaRecorder = new MediaRecorder(capCanvas.captureStream(60), { mimeType: mime, videoBitsPerSecond: 7500000 });-->
+<!--    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };-->
+<!--    mediaRecorder.onstop = () => {-->
+<!--      const url = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));-->
+<!--      const a = document.createElement('a'); a.href = url; a.download = `HOLO_MATRIX_${Date.now()}.webm`; a.click();-->
+<!--      setTimeout(() => URL.revokeObjectURL(url), 5000); showToast('🎬 视频已导出 (.webm)');-->
+<!--    };-->
+<!--    recTimer = setInterval(compose, 1000 / 60);-->
+<!--    mediaRecorder.start(); btn.textContent = '⏹ 停止录制'; btn.classList.add('active'); showToast('⏺ 正在录制 60FPS 全息影像...');-->
+<!--  } catch (e) { showToast('⚠ 录制启动失败'); }-->
+<!--}-->
+
+<!--let toastTimer = null;-->
+<!--function showToast(msg) {-->
+<!--  const el = document.getElementById('toast'); el.textContent = msg; el.style.display = 'block';-->
+<!--  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2400);-->
+<!--}-->
+<!--window.addEventListener('keydown', e => {-->
+<!--  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;-->
+<!--  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }-->
+<!--  else if (e.key === 'h' || e.key === 'H') toggleUIHidden();-->
+<!--});-->
+
+<!--// 启动引擎-->
+<!--initDefaultImages();-->
+<!--onParamChange();-->
+<!--rebuildRingMeshes();-->
+<!--requestAnimationFrame(render);-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>HOLO-MATRIX // 科幻 3D 全息立体视觉空间</title>
 <style>
   :root {
     --theme: #00e5ff;
     --theme-dim: rgba(0, 229, 255, 0.18);
-    --panel-bg: rgba(6, 12, 22, 0.80);
+    --panel-bg: rgba(6, 12, 22, 0.84);
     --border: rgba(0, 229, 255, 0.28);
     --text: #e2f1ff;
     --muted: #7c97b3;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body {
     width: 100%;
     height: 100%;
+    height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
     background: #02040a;
     color: var(--text);
     font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     user-select: none;
+    -webkit-user-select: none;
   }
 
-  #glCanvas, #overlayCanvas {
+  #glCanvas, #overlayCanvas, .vignette-layer {
     position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
     display: block;
   }
-  #glCanvas { z-index: 1; cursor: grab; }
+  #glCanvas { z-index: 1; cursor: grab; touch-action: none; }
   #glCanvas:active { cursor: grabbing; }
-  #overlayCanvas { z-index: 2; pointer-events: none; }
+  .vignette-layer {
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle at center, rgba(0,0,0,0) 42%, rgba(1,4,12,0.58) 100%);
+  }
+  #overlayCanvas { z-index: 3; pointer-events: none; }
 
   /* 拖拽遮罩 */
   #dropOverlay {
@@ -49,32 +1907,34 @@
     flex-direction: column;
     gap: 10px;
     pointer-events: none;
+    text-align: center;
+    padding: 20px;
   }
   #dropOverlay.show { display: flex; }
 
   /* 左上角科幻遥测 HUD */
   .hud-telemetry {
     position: fixed;
-    top: 16px;
-    left: 16px;
+    top: max(14px, env(safe-area-inset-top));
+    left: 14px;
     z-index: 500;
-    padding: 10px 14px;
+    padding: 9px 12px;
     background: var(--panel-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-left: 3px solid var(--theme);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 11px;
-    line-height: 1.55;
-    box-shadow: 0 0 24px rgba(0,0,0,0.55);
+    line-height: 1.5;
+    box-shadow: 0 0 20px rgba(0,0,0,0.55);
     transition: opacity 0.25s;
     pointer-events: none;
   }
   .hud-title {
     color: var(--theme);
     font-weight: 800;
-    letter-spacing: 1.2px;
-    font-size: 12px;
+    letter-spacing: 1px;
+    font-size: 11.5px;
     margin-bottom: 2px;
   }
   .hud-sub { color: var(--muted); }
@@ -83,33 +1943,33 @@
   /* 右上角快捷控制 */
   .top-actions {
     position: fixed;
-    top: 16px;
-    right: 16px;
+    top: max(14px, env(safe-area-inset-top));
+    right: 14px;
     z-index: 600;
     display: flex;
-    gap: 8px;
+    gap: 7px;
     transition: opacity 0.25s;
   }
   .hud-btn {
     background: var(--panel-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 8px 13px;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 7px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     transition: all 0.2s;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
   }
   .hud-btn:hover {
     border-color: var(--theme);
     box-shadow: 0 0 14px var(--theme-dim);
-    transform: translateY(-1px);
   }
   .hud-btn.active {
     background: var(--theme-dim);
@@ -121,34 +1981,35 @@
   /* 底部科幻布局 Dock */
   .layout-dock {
     position: fixed;
-    left: 16px;
-    bottom: 16px;
+    left: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom));
     z-index: 520;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     max-width: calc(100vw - 390px);
-    transition: opacity 0.25s;
+    transition: opacity 0.25s, transform 0.25s;
   }
   .dock-item {
     background: var(--panel-bg);
-    backdrop-filter: blur(14px);
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.14);
     color: #cbd5e1;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 7px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    position: relative;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .dock-item:hover { border-color: var(--theme); color: #fff; }
   .dock-item.active {
     background: var(--theme-dim);
     border-color: var(--theme);
     color: #fff;
-    box-shadow: 0 0 18px var(--theme-dim);
+    box-shadow: 0 0 16px var(--theme-dim);
   }
 
   body.ui-hidden .hud-telemetry,
@@ -160,31 +2021,31 @@
   }
   #restoreHint {
     position: fixed;
-    top: 16px;
-    right: 16px;
+    top: max(14px, env(safe-area-inset-top));
+    right: 14px;
     z-index: 700;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.68);
     border: 1px solid var(--border);
     color: var(--theme);
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 7px 12px;
+    border-radius: 7px;
     font-size: 12px;
     cursor: pointer;
     display: none;
   }
   body.ui-hidden #restoreHint { display: block; }
 
-  /* 右侧科幻控制台 */
+  /* 右侧科幻控制台（桌面） / 底部抽屉（手机） */
   .control-panel {
     position: fixed;
     top: 62px;
-    right: 16px;
-    bottom: 16px;
+    right: 14px;
+    bottom: 14px;
     width: 356px;
-    max-width: calc(100vw - 32px);
+    max-width: calc(100vw - 28px);
     z-index: 550;
     background: var(--panel-bg);
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(16px);
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,229,255,0.04);
@@ -197,6 +2058,31 @@
     transform: translateX(calc(100% + 32px));
     opacity: 0;
     pointer-events: none;
+  }
+
+  .mobile-drawer-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .drawer-handle {
+    width: 38px;
+    height: 4px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.28);
+    margin: 0 auto;
+  }
+  .drawer-close-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 5px;
+    cursor: pointer;
   }
 
   .panel-tabs {
@@ -218,6 +2104,7 @@
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
   }
   .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
   .tab-btn.active {
@@ -229,6 +2116,7 @@
   .panel-body {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -257,11 +2145,11 @@
     text-transform: uppercase;
   }
 
-  .control-row { display: flex; flex-direction: column; gap: 4px; }
+  .control-row { display: flex; flex-direction: column; gap: 5px; }
   .row-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #cbd5e1; }
   .row-val { font-family: ui-monospace, monospace; color: var(--theme); font-weight: 700; font-size: 11px; }
 
-  input[type="range"] { width: 100%; accent-color: var(--theme); cursor: pointer; height: 4px; }
+  input[type="range"] { width: 100%; accent-color: var(--theme); cursor: pointer; height: 22px; background: transparent; }
   textarea {
     width: 100%;
     background: rgba(0,0,0,0.4);
@@ -269,7 +2157,7 @@
     color: #f8fafc;
     border-radius: 6px;
     padding: 7px 9px;
-    font-size: 12px;
+    font-size: 13px;
     outline: none;
     font-family: inherit;
     resize: vertical;
@@ -281,7 +2169,7 @@
   .seg-group.cols-3 { grid-template-columns: repeat(3, 1fr); }
   .seg-group.cols-5 { grid-template-columns: repeat(5, 1fr); }
   .seg-btn {
-    padding: 6px 4px;
+    padding: 7px 4px;
     border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
@@ -296,7 +2184,7 @@
   .seg-btn.active { background: var(--theme-dim); border-color: var(--theme); color: #fff; }
 
   .theme-dot {
-    height: 28px;
+    height: 30px;
     border-radius: 6px;
     border: 2px solid rgba(255,255,255,0.2);
     cursor: pointer;
@@ -305,16 +2193,16 @@
   .theme-dot:hover { transform: scale(1.06); }
   .theme-dot.active { border-color: #fff; box-shadow: 0 0 12px #fff; }
 
-  .switch-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #e2e8f0; gap: 8px; }
-  .switch { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+  .switch-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #e2e8f0; gap: 8px; min-height: 26px; }
+  .switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; inset: 0; background: rgba(255,255,255,0.18); border-radius: 999px; cursor: pointer; transition: 0.2s; }
-  .slider:before { content: ""; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .slider:before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
   .switch input:checked + .slider { background: var(--theme); }
   .switch input:checked + .slider:before { transform: translateX(18px); }
 
   .action-btn {
-    padding: 8px 10px;
+    padding: 9px 10px;
     border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.15);
     background: rgba(255,255,255,0.06);
@@ -344,69 +2232,153 @@
     border-radius: 6px;
     font-size: 11px;
   }
-  .ring-dir-btn { padding: 3px 5px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.08); color: #fff; font-size: 11px; cursor: pointer; }
+  .ring-dir-btn { padding: 4px 5px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.08); color: #fff; font-size: 11px; cursor: pointer; }
 
-  .stat-pill { font-size: 11px; color: var(--muted); background: rgba(0,0,0,0.35); padding: 5px 9px; border-radius: 6px; display: flex; justify-content: space-between; }
+  .stat-pill { font-size: 11px; color: var(--muted); background: rgba(0,0,0,0.35); padding: 6px 9px; border-radius: 6px; display: flex; justify-content: space-between; }
 
   /* 图库弹窗 */
-  .modal-backdrop { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.78); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-backdrop { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.78); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 14px; }
   .modal-backdrop.show { display: flex; }
-  .modal-card { width: 820px; max-width: 100%; max-height: 86vh; background: #07101e; border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  .modal-grid { padding: 16px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+  .modal-card { width: 820px; max-width: 100%; max-height: 86dvh; background: #07101e; border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-header { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .modal-grid { padding: 12px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; }
   .gallery-item { position: relative; aspect-ratio: 1 / 1; border-radius: 6px; overflow: hidden; background: #02050b; border: 1px solid rgba(255,255,255,0.14); cursor: pointer; }
   .gallery-item img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .gallery-tag { position: absolute; left: 6px; bottom: 6px; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.72); }
-  .gallery-del { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(239,68,68,0.88); color: #fff; font-size: 12px; cursor: pointer; }
+  .gallery-tag { position: absolute; left: 5px; bottom: 5px; font-size: 10px; padding: 2px 5px; border-radius: 4px; background: rgba(0,0,0,0.72); }
+  .gallery-del { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(239,68,68,0.88); color: #fff; font-size: 13px; cursor: pointer; }
 
-  #lightbox { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out; }
+  #lightbox { position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
   #lightbox.show { display: flex; }
-  #lightbox img { max-width: 95vw; max-height: 92vh; object-fit: contain; border-radius: 6px; border: 1px solid var(--theme); }
+  #lightbox img { max-width: 95vw; max-height: 90dvh; object-fit: contain; border-radius: 6px; border: 1px solid var(--theme); }
 
   #toast {
     position: fixed;
-    top: 62px;
+    top: 58px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 999;
     background: rgba(6, 12, 24, 0.94);
     border: 1px solid var(--theme);
     color: #fff;
-    padding: 8px 18px;
+    padding: 7px 15px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
     display: none;
+    white-space: nowrap;
+    max-width: 92vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
     box-shadow: 0 0 20px var(--theme-dim);
+  }
+
+  /* ==================== 移动端响应式优化 ==================== */
+  @media (max-width: 768px) {
+    .hud-telemetry {
+      top: max(10px, env(safe-area-inset-top));
+      left: 10px;
+      padding: 6px 9px;
+      font-size: 10px;
+      line-height: 1.35;
+      max-width: 145px;
+    }
+    .hud-title { font-size: 10.5px; letter-spacing: 0.4px; }
+    .hud-sub { display: none; }
+
+    .top-actions {
+      top: max(10px, env(safe-area-inset-top));
+      right: 10px;
+      gap: 5px;
+    }
+    .hud-btn {
+      padding: 6px 8px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+    .btn-label-hide-sm { display: none; }
+
+    .layout-dock {
+      left: 10px;
+      right: 10px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      max-width: none;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .layout-dock::-webkit-scrollbar { display: none; }
+    .dock-item {
+      padding: 7px 11px;
+      font-size: 11.5px;
+    }
+    body.mobile-panel-open .layout-dock {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px);
+    }
+
+    .control-panel {
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 100%;
+      height: min(56dvh, 450px);
+      border-radius: 16px 16px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      padding-bottom: env(safe-area-inset-bottom);
+      background: rgba(6, 12, 22, 0.92);
+    }
+    .control-panel.collapsed {
+      transform: translateY(calc(100% + 24px));
+      opacity: 0;
+      pointer-events: none;
+    }
+    .mobile-drawer-bar {
+      display: grid;
+      grid-template-columns: 56px 1fr 56px;
+      align-items: center;
+    }
+    .panel-tabs { padding: 6px 8px; }
+    .tab-btn { font-size: 11px; padding: 7px 2px; }
+    .panel-body { padding: 10px; gap: 9px; }
+    .card { padding: 10px; }
+    .seg-btn, .action-btn { padding: 8px 6px; font-size: 11.5px; }
   }
 </style>
 </head>
 <body>
 
 <canvas id="glCanvas"></canvas>
+<div class="vignette-layer"></div>
 <canvas id="overlayCanvas"></canvas>
 
 <div id="dropOverlay">
-  <div style="font-size:24px;font-weight:800;color:var(--theme);">[ HOLO-UPLOAD // 松开批量注入影像 ]</div>
+  <div style="font-size:22px;font-weight:800;color:var(--theme);">[ HOLO-UPLOAD // 松开批量注入影像 ]</div>
   <div style="font-size:13px;color:#cbd5e1;">将自动映射到当前 3D 全息立体布局中</div>
 </div>
 
 <!-- 左上角科幻遥测信息 -->
 <div class="hud-telemetry" id="hudTelemetry">
-  <div class="hud-title">HOLO-MATRIX // 3D SPATIAL ENGINE</div>
-  <div>LAYOUT: <span class="hud-val" id="hudLayout">ORBITAL RINGS</span> · FPS: <span class="hud-val" id="hudFps">60</span></div>
-  <div class="hud-sub">🖱 拖拽旋转 3D 空间 · 滚轮推拉 · 双击复位 · H 纯享</div>
+  <div class="hud-title">HOLO // 3D ENGINE</div>
+  <div><span class="hud-val" id="hudLayout">ORBITAL</span> · <span class="hud-val" id="hudFps">60</span> FPS</div>
+  <div class="hud-sub">🖱 拖拽旋转 · 滚轮推拉 · 双击复位 · H 纯享</div>
 </div>
 
 <!-- 右上角按钮 -->
 <div class="top-actions">
-  <button class="hud-btn" id="btnTogglePlay" onclick="togglePlay()">⏸ 暂停</button>
-  <button class="hud-btn" onclick="triggerUpload()">📤 批量传图</button>
-  <button class="hud-btn" onclick="resetCamera()">🔄 回正视角</button>
-  <button class="hud-btn active" id="btnPanelToggle" onclick="togglePanel()">⚙ 控制台</button>
+  <button class="hud-btn" id="btnTogglePlay" onclick="togglePlay()">⏸<span class="btn-label-hide-sm"> 暂停</span></button>
+  <button class="hud-btn" onclick="triggerUpload()">📤<span class="btn-label-hide-sm"> 批量</span>传图</button>
+  <button class="hud-btn" onclick="resetCamera()">🔄<span class="btn-label-hide-sm"> 回正</span></button>
+  <button class="hud-btn active" id="btnPanelToggle" onclick="togglePanel()">⚙<span class="btn-label-hide-sm"> 控制台</span></button>
 </div>
 
-<div id="restoreHint" onclick="toggleUIHidden()">👁 恢复全息控制台 (H)</div>
+<div id="restoreHint" onclick="toggleUIHidden()">👁 恢复面板</div>
 
 <!-- 底部科幻布局快速切换 Dock -->
 <div class="layout-dock">
@@ -418,13 +2390,19 @@
   <button class="dock-item" data-layout="dyson" onclick="setLayout('dyson', this)">🌐 戴森全息球</button>
 </div>
 
-<!-- 右侧科幻战术面板 -->
+<!-- 右侧科幻战术面板 / 手机底部抽屉 -->
 <aside class="control-panel" id="controlPanel">
+  <div class="mobile-drawer-bar">
+    <span></span>
+    <div class="drawer-handle" onclick="togglePanel()"></div>
+    <button class="drawer-close-btn" onclick="togglePanel()">收起 ⌄</button>
+  </div>
+
   <div class="panel-tabs">
-    <button class="tab-btn active" onclick="switchTab('layout', this)">🚀 立体架构</button>
-    <button class="tab-btn" onclick="switchTab('scifi', this)">⚡ 科幻光效</button>
-    <button class="tab-btn" onclick="switchTab('media', this)">🖼 影像源</button>
-    <button class="tab-btn" onclick="switchTab('audio', this)">🎵 音画录制</button>
+    <button class="tab-btn active" onclick="switchTab('layout', this)">🚀 架构</button>
+    <button class="tab-btn" onclick="switchTab('scifi', this)">⚡ 光效</button>
+    <button class="tab-btn" onclick="switchTab('media', this)">🖼 影像</button>
+    <button class="tab-btn" onclick="switchTab('audio', this)">🎵 音画</button>
   </div>
 
   <div class="panel-body">
@@ -500,14 +2478,22 @@
         </div>
 
         <div class="control-row">
-          <div class="row-head"><span>镜头景深距离 (或滚轮缩放)</span><span class="row-val" id="valCamDist">13.0</span></div>
+          <div class="row-head"><span>镜头景深距离 (双指缩放)</span><span class="row-val" id="valCamDist">13.0</span></div>
           <input type="range" id="rngCamDist" min="4.5" max="26" step="0.2" value="13.0" oninput="onParamChange()">
         </div>
       </div>
     </div>
 
-    <!-- TAB 2: 科幻光效与全息组件 -->
+    <!-- TAB 2: 科幻光效与性能 -->
     <div class="tab-pane" id="tab-scifi">
+      <div class="card">
+        <div class="card-title">性能与画质档位</div>
+        <div class="seg-group">
+          <button class="seg-btn" id="btnPerfSmooth" onclick="setPerfMode('smooth')">⚡ 流畅省电 (推荐手机)</button>
+          <button class="seg-btn active" id="btnPerfHigh" onclick="setPerfMode('high')">✨ 高清视觉 (PC/旗舰)</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">科幻配色系统</div>
         <div class="seg-group cols-5">
@@ -633,9 +2619,9 @@
 <div class="modal-backdrop" id="galleryModal" onclick="if(event.target===this) closeGallery()">
   <div class="modal-card">
     <div class="modal-header">
-      <div style="font-weight:700;font-size:15px;color:var(--theme);">[ MEDIA ARCHIVE // 点击看完整原图 ]</div>
+      <div style="font-weight:700;font-size:14px;color:var(--theme);">[ MEDIA ARCHIVE // 点击看原图 ]</div>
       <div style="display:flex;gap:8px;">
-        <button class="action-btn primary" onclick="triggerUpload()">+ 继续传图</button>
+        <button class="action-btn primary" onclick="triggerUpload()">+ 传图</button>
         <button class="action-btn" onclick="closeGallery()">关闭</button>
       </div>
     </div>
@@ -647,26 +2633,30 @@
 <div id="toast"></div>
 
 <script>
-// ==================== 1. 默认图源 ====================
+// ==================== 0. 设备检测与初始自适应 ====================
+const isMobileDevice = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// ==================== 1. 默认图源（按设备自适应加载尺寸，减少手机内存与卡顿） ====================
+const imgWidthParam = isMobileDevice ? 720 : 1280;
 const DEFAULT_URLS = [
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=2000&auto=format&fit=crop&q=90",
-  "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=2000&auto=format&fit=crop&q=90"
+  `https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=${imgWidthParam}&auto=format&fit=crop&q=82`,
+  `https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=${imgWidthParam}&auto=format&fit=crop&q=82`
 ];
 
 const THEMES = {
@@ -681,19 +2671,20 @@ const THEMES = {
 const MAX_CARDS = 140;
 const state = {
   playing: true,
-  layout: 'orbital',       // orbital | helix | command | tesseract | vortex | dyson
-  ringType: 'frame',       // frame | arena | none
-  dirMode: 'alternate',    // alternate | sameCW | sameCCW | custom
-  ringCount: 4,
-  ringScale: 1.28,
+  perfMode: isMobileDevice ? 'smooth' : 'high', // smooth | high
+  layout: 'orbital',
+  ringType: 'frame',
+  dirMode: 'alternate',
+  ringCount: isMobileDevice ? 3 : 4,
+  ringScale: isMobileDevice ? 1.12 : 1.28,
   ringThick: 0.85,
   ringSpeed: 1.0,
 
-  cardCount: 72,
-  cardSize: 1.0,
+  cardCount: isMobileDevice ? 44 : 72,
+  cardSize: isMobileDevice ? 0.90 : 1.0,
   flowSpeed: 1.0,
   autoCam: true,
-  camDist: 13.0,
+  camDist: isMobileDevice ? 14.2 : 13.0,
   camYaw: 0,
   camPitch: 0.16,
 
@@ -709,7 +2700,7 @@ const state = {
   hideDefault: false,
   textEnabled: false,
   textContent: 'STARK // HOLO-MATRIX\n3D SPATIAL ARCHIVE',
-  textSize: 22,
+  textSize: isMobileDevice ? 18 : 22,
   audioReact: true,
 
   customRings: Array.from({ length: 8 }, (_, i) => ({ dir: i % 2 === 0 ? 1 : -1, speed: 1.0 })),
@@ -718,7 +2709,21 @@ const state = {
   flowTime: 0
 };
 
-// 持久化卡片状态（用于丝滑变形过渡 morphing）
+// 同步初始化控件默认值
+document.getElementById('rngRingCount').value = state.ringCount;
+document.getElementById('rngRingScale').value = state.ringScale;
+document.getElementById('rngCardCount').value = state.cardCount;
+document.getElementById('rngCardSize').value = state.cardSize;
+document.getElementById('rngCamDist').value = state.camDist;
+document.getElementById('rngTextSize').value = state.textSize;
+
+if (isMobileDevice) {
+  document.getElementById('controlPanel').classList.add('collapsed');
+  document.getElementById('btnPanelToggle').classList.remove('active');
+  document.getElementById('btnPerfSmooth').classList.add('active');
+  document.getElementById('btnPerfHigh').classList.remove('active');
+}
+
 const cardStates = Array.from({ length: MAX_CARDS }, (_, i) => ({
   x: (Math.random() - 0.5) * 10,
   y: (Math.random() - 0.5) * 10,
@@ -730,27 +2735,41 @@ const cardStates = Array.from({ length: MAX_CARDS }, (_, i) => ({
 let defaultItems = [];
 let customItems = [];
 let atlasCanvas = document.createElement('canvas');
-atlasCanvas.width = 2048;
-atlasCanvas.height = 2048;
+const initialAtlasSize = state.perfMode === 'smooth' ? 1024 : 2048;
+atlasCanvas.width = initialAtlasSize;
+atlasCanvas.height = initialAtlasSize;
 let atlasGrid = 6;
 let atlasTimer = null;
 
-// ==================== 3. WebGL 初始化 ====================
+// ==================== 3. WebGL 初始化（关闭 preserveDrawingBuffer 提升手机 GPU 性能） ====================
 const glCanvas = document.getElementById('glCanvas');
 const ovCanvas = document.getElementById('overlayCanvas');
 const ovCtx = ovCanvas.getContext('2d');
-const gl = glCanvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true });
+const gl = glCanvas.getContext('webgl', {
+  antialias: !isMobileDevice,
+  alpha: false,
+  preserveDrawingBuffer: false,
+  powerPreference: 'high-performance'
+});
 
-let viewW = window.innerWidth, viewH = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+let viewW = window.innerWidth, viewH = window.innerHeight, dpr = 1;
+let overlayHasContent = false;
+
+function getTargetDpr() {
+  const raw = window.devicePixelRatio || 1;
+  return state.perfMode === 'smooth' ? Math.min(raw, 1.35) : Math.min(raw, 2.0);
+}
+
 function resizeAll() {
   viewW = window.innerWidth;
   viewH = window.innerHeight;
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
-  glCanvas.width = Math.floor(viewW * dpr);
-  glCanvas.height = Math.floor(viewH * dpr);
-  ovCanvas.width = Math.floor(viewW * dpr);
-  ovCanvas.height = Math.floor(viewH * dpr);
+  dpr = getTargetDpr();
+  glCanvas.width = Math.max(1, Math.floor(viewW * dpr));
+  glCanvas.height = Math.max(1, Math.floor(viewH * dpr));
+  ovCanvas.width = Math.max(1, Math.floor(viewW * dpr));
+  ovCanvas.height = Math.max(1, Math.floor(viewH * dpr));
   gl.viewport(0, 0, glCanvas.width, glCanvas.height);
+  overlayHasContent = true;
 }
 window.addEventListener('resize', resizeAll);
 resizeAll();
@@ -770,7 +2789,6 @@ function makeProgram(vs, fs) {
   return p;
 }
 
-// 着色器 1：全息照片材质（立体环 & 悬空全息卡片）
 const texProg = makeProgram(`
 attribute vec3 aPos;
 attribute vec3 aNormal;
@@ -791,7 +2809,7 @@ void main() {
   vLocalUV = aLocalUV;
   gl_Position = uProj * uView * world;
 }`, `
-precision highp float;
+precision mediump float;
 uniform sampler2D uTex;
 uniform vec2 uUVOffset;
 uniform vec2 uUVScale;
@@ -816,12 +2834,10 @@ void main() {
 
   vec3 col = texCol.rgb * shade;
 
-  // 全息扫描线
   float scan = 1.0 - uScanline * 0.24 * (0.5 + 0.5 * sin(vLocalUV.y * 130.0 + uTime * 5.0));
   col *= scan;
 
   if (uIsCard > 0.5) {
-    // 科幻卡片发光边框 + 四角 HUD 括号 [ ]
     vec2 edge = min(vLocalUV, 1.0 - vLocalUV);
     float minE = min(edge.x, edge.y);
     float border = 1.0 - smoothstep(0.010, 0.026, minE);
@@ -831,7 +2847,6 @@ void main() {
     float rim = pow(1.0 - max(abs(dot(n, viewDir)), 0.0), 2.2);
     col += uTheme * (border * 0.55 + bracket * 0.95 + rim * 0.35) * (0.45 + uGlow * 0.75);
   } else {
-    // 立体环边缘全息光晕
     float rim = pow(1.0 - max(abs(dot(n, viewDir)), 0.0), 2.3);
     float edgeBand = 1.0 - smoothstep(0.02, 0.08, min(vLocalUV.y, 1.0 - vLocalUV.y));
     col += uTheme * (rim * 0.45 + edgeBand * 0.4) * uGlow;
@@ -844,7 +2859,6 @@ void main() {
   gl_FragColor = vec4(col, uCardAlpha);
 }`);
 
-// 着色器 2：科幻线框 / HUD 刻度环 / 3D 能量粒子
 const fxProg = makeProgram(`
 attribute vec3 aPos;
 attribute float aAlpha;
@@ -857,7 +2871,7 @@ void main() {
   vec4 world = uModel * vec4(aPos, 1.0);
   vAlpha = aAlpha;
   gl_Position = uProj * uView * world;
-  gl_PointSize = uPointSize / max(1.0, - (uView * world).z * 0.25);
+  gl_PointSize = uPointSize / max(1.0, -(uView * world).z * 0.25);
 }`, `
 precision mediump float;
 uniform vec3 uTheme;
@@ -912,28 +2926,64 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-// ==================== 4. 矩阵工具 ====================
-const mat4I = () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
-function mat4Mul(a, b) {
-  const o = new Float32Array(16);
-  for (let c = 0; c < 4; c++)
-    for (let r = 0; r < 4; r++)
-      o[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
-  return o;
+// ==================== 4. 零分配矩阵工具（消除 GC 卡顿） ====================
+const mProj = new Float32Array(16);
+const mView = new Float32Array(16);
+const mModel = new Float32Array(16);
+
+function mat4Identity(m) {
+  m[0]=1; m[1]=0; m[2]=0; m[3]=0;
+  m[4]=0; m[5]=1; m[6]=0; m[7]=0;
+  m[8]=0; m[9]=0; m[10]=1; m[11]=0;
+  m[12]=0; m[13]=0; m[14]=0; m[15]=1;
+  return m;
 }
-function mat4Persp(fovy, asp, near, far) {
+function mat4Perspective(out, fovy, asp, near, far) {
   const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
-  return new Float32Array([f/asp,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]);
+  out[0]=f/asp; out[1]=0; out[2]=0; out[3]=0;
+  out[4]=0; out[5]=f; out[6]=0; out[7]=0;
+  out[8]=0; out[9]=0; out[10]=(far+near)*nf; out[11]=-1;
+  out[12]=0; out[13]=0; out[14]=2*far*near*nf; out[15]=0;
 }
-const mat4Trans = (m, x, y, z) => mat4Mul(m, new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]));
-const mat4RotX = (m, a) => { const c=Math.cos(a), s=Math.sin(a); return mat4Mul(m, new Float32Array([1,0,0,0, 0,c,s,0, 0,-s,c,0, 0,0,0,1])); };
-const mat4RotY = (m, a) => { const c=Math.cos(a), s=Math.sin(a); return mat4Mul(m, new Float32Array([c,0,-s,0, 0,1,0,0, s,0,c,0, 0,0,0,1])); };
-const mat4RotZ = (m, a) => { const c=Math.cos(a), s=Math.sin(a); return mat4Mul(m, new Float32Array([c,s,0,0, -s,c,0,0, 0,0,1,0, 0,0,0,1])); };
-const mat4Scale = (m, x, y, z) => mat4Mul(m, new Float32Array([x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]));
+function mat4TranslateSelf(m, x, y, z) {
+  m[12] += m[0]*x + m[4]*y + m[8]*z;
+  m[13] += m[1]*x + m[5]*y + m[9]*z;
+  m[14] += m[2]*x + m[6]*y + m[10]*z;
+  m[15] += m[3]*x + m[7]*y + m[11]*z;
+}
+function mat4RotateXSelf(m, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  for (let r = 0; r < 4; r++) {
+    const m4 = m[4+r], m8 = m[8+r];
+    m[4+r] = m4*c + m8*s;
+    m[8+r] = -m4*s + m8*c;
+  }
+}
+function mat4RotateYSelf(m, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  for (let r = 0; r < 4; r++) {
+    const m0 = m[r], m8 = m[8+r];
+    m[r]   = m0*c - m8*s;
+    m[8+r] = m0*s + m8*c;
+  }
+}
+function mat4RotateZSelf(m, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  for (let r = 0; r < 4; r++) {
+    const m0 = m[r], m4 = m[4+r];
+    m[r]   = m0*c + m4*s;
+    m[4+r] = -m0*s + m4*c;
+  }
+}
+function mat4ScaleSelf(m, x, y, z) {
+  for (let r = 0; r < 4; r++) {
+    m[r] *= x; m[4+r] *= y; m[8+r] *= z;
+  }
+}
 
 // ==================== 5. 网格构造器 ====================
 function makeTexMesh(d) {
-  const b = (arr, target=gl.ARRAY_BUFFER, T=Float32Array) => {
+  const b = (arr, target = gl.ARRAY_BUFFER, T = Float32Array) => {
     const buf = gl.createBuffer();
     gl.bindBuffer(target, buf);
     gl.bufferData(target, new T(arr), gl.STATIC_DRAW);
@@ -949,7 +2999,6 @@ function freeTexMesh(m) {
   gl.deleteBuffer(m.pos); gl.deleteBuffer(m.norm); gl.deleteBuffer(m.uv); gl.deleteBuffer(m.luv); gl.deleteBuffer(m.idx);
 }
 
-// 全息卡片单元网格
 const cardMesh = makeTexMesh({
   pos:  [-0.72,-0.54,0,  0.72,-0.54,0,  0.72,0.54,0,  -0.72,0.54,0],
   norm: [0,0,1, 0,0,1, 0,0,1, 0,0,1],
@@ -958,8 +3007,7 @@ const cardMesh = makeTexMesh({
   idx:  [0,1,2, 0,2,3]
 });
 
-// 立体方环 & 弧面圆柱环
-function sampleRoundedLoop(hw, hh, r, segs = 6) {
+function sampleRoundedLoop(hw, hh, r, segs = 5) {
   r = Math.max(0.02, Math.min(hw * 0.9, hh * 0.9, r));
   const raw = [];
   [
@@ -988,8 +3036,9 @@ function buildFrameRing(outerW, outerH, thick, depth, g) {
   const innerH = Math.max(0.4, outerH - thick);
   const outerR = Math.min(outerW, outerH) * 0.22;
   const innerR = Math.max(0.05, outerR - thick * 0.72);
-  const out = sampleRoundedLoop(outerW, outerH, outerR, 6);
-  const inn = sampleRoundedLoop(innerW, innerH, innerR, 6);
+  const segs = state.perfMode === 'smooth' ? 4 : 6;
+  const out = sampleRoundedLoop(outerW, outerH, outerR, segs);
+  const inn = sampleRoundedLoop(innerW, innerH, innerR, segs);
   const N = out.pts.length - 1, hz = depth / 2;
   const pos = [], norm = [], uv = [], luv = [], idx = [];
   const dv = 1 / g, du = 1 / g;
@@ -1007,7 +3056,7 @@ function buildFrameRing(outerW, outerH, thick, depth, g) {
       uv.push(u, 0, u, dv);
       luv.push(t, 0, t, 1);
     }
-    for (let i = 0; i < N; i++) { const a=base+i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
+    for (let i = 0; i < N; i++) { const a = base+i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
   }
   addStrip(i => ({ax:out.pts[i].x, ay:out.pts[i].y, az:hz,  bx:inn.pts[i].x, by:inn.pts[i].y, bz:hz}),  () => [0,0,1]);
   addStrip(i => ({ax:out.pts[i].x, ay:out.pts[i].y, az:-hz, bx:inn.pts[i].x, by:inn.pts[i].y, bz:-hz}), () => [0,0,-1]);
@@ -1017,7 +3066,8 @@ function buildFrameRing(outerW, outerH, thick, depth, g) {
 }
 
 function buildArenaRing(radius, bandH, thick, g) {
-  const segs = 72, rOut = radius, rIn = Math.max(0.4, radius - thick), hh = bandH / 2;
+  const segs = state.perfMode === 'smooth' ? 48 : 72;
+  const rOut = radius, rIn = Math.max(0.4, radius - thick), hh = bandH / 2;
   const pos = [], norm = [], uv = [], luv = [], idx = [];
   const dv = 1 / g, du = 1 / g;
   const tilesAround = Math.max(12, Math.round((2 * Math.PI * radius) / bandH));
@@ -1033,7 +3083,7 @@ function buildArenaRing(radius, bandH, thick, g) {
       uv.push(u, 0, u, dv);
       luv.push(t, 0, t, 1);
     }
-    for (let i = 0; i < segs; i++) { const a=base+i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
+    for (let i = 0; i < segs; i++) { const a = base+i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
   }
   addStrip(rOut, hh, rOut, -hh, (ca,sa) => [ca,0,sa]);
   addStrip(rIn, hh, rIn, -hh, (ca,sa) => [-ca,0,-sa]);
@@ -1066,7 +3116,6 @@ function makeLineMesh(verts, alphas) {
   return { pos: pb, alpha: ab, count: verts.length / 3 };
 }
 
-// 1) 底部全息透视网格
 const gridMesh = (() => {
   const v = [], a = [], R = 18, step = 1.5;
   for (let x = -R; x <= R; x += step) {
@@ -1075,7 +3124,7 @@ const gridMesh = (() => {
     v.push(-R, 0, x, R, 0, x); a.push(al * 0.25, al * 0.25);
   }
   for (let r = 3; r <= 15; r += 3) {
-    const segs = 72;
+    const segs = 64;
     for (let i = 0; i < segs; i++) {
       const a0 = (i / segs) * Math.PI * 2, a1 = ((i + 1) / segs) * Math.PI * 2;
       v.push(Math.cos(a0)*r, 0, Math.sin(a0)*r, Math.cos(a1)*r, 0, Math.sin(a1)*r);
@@ -1085,12 +3134,9 @@ const gridMesh = (() => {
   return makeLineMesh(v, a);
 })();
 
-// 2) HUD 分段雷达刻度圆环
 const hudArcMesh = (() => {
-  const v = [], a = [];
-  const segs = 120;
+  const v = [], a = [], segs = 108;
   for (let i = 0; i < segs; i++) {
-    // 分段虚线效果
     if (i % 6 === 4 || i % 6 === 5) continue;
     const t0 = (i / segs) * Math.PI * 2, t1 = ((i + 1) / segs) * Math.PI * 2;
     v.push(Math.cos(t0), Math.sin(t0), 0, Math.cos(t1), Math.sin(t1), 0);
@@ -1103,7 +3149,6 @@ const hudArcMesh = (() => {
   return makeLineMesh(v, a);
 })();
 
-// 3) 中心二十面体能量核线框
 const coreReactorMesh = (() => {
   const t = (1 + Math.sqrt(5)) / 2;
   const pts = [
@@ -1124,7 +3169,6 @@ const coreReactorMesh = (() => {
   return makeLineMesh(v, a);
 })();
 
-// 4) 3D 深空能量粒子
 const starMesh = (() => {
   const v = [], a = [];
   for (let i = 0; i < 650; i++) {
@@ -1147,7 +3191,7 @@ function loadImageItem(src, isDefault, objectUrl = null) {
     item.loaded = true;
     updateStats();
     clearTimeout(atlasTimer);
-    atlasTimer = setTimeout(buildAtlas, 80);
+    atlasTimer = setTimeout(buildAtlas, 180);
   };
   img.onerror = () => updateStats();
   img.src = src;
@@ -1174,15 +3218,20 @@ function buildAtlas() {
   const n = items.length;
   atlasGrid = n <= 16 ? 4 : (n <= 36 ? 6 : (n <= 64 ? 8 : 10));
 
-  const W = 2048, cw = W / atlasGrid;
+  const W = state.perfMode === 'smooth' ? 1024 : 2048;
+  if (atlasCanvas.width !== W) {
+    atlasCanvas.width = W;
+    atlasCanvas.height = W;
+  }
+  const cw = W / atlasGrid;
   const ctx = atlasCanvas.getContext('2d');
   ctx.fillStyle = '#040a14';
   ctx.fillRect(0, 0, W, W);
 
   const totalSlots = atlasGrid * atlasGrid;
+  const pad = Math.max(3, Math.round(W / 340));
   for (let s = 0; s < totalSlots; s++) {
     const col = s % atlasGrid, row = Math.floor(s / atlasGrid);
-    const pad = 6;
     const x = col * cw + pad, y = row * cw + pad, w = cw - pad * 2, h = cw - pad * 2;
     if (n === 0) {
       ctx.fillStyle = `hsl(${(s * 29) % 360}, 60%, 22%)`;
@@ -1215,12 +3264,13 @@ function buildAtlas() {
   rebuildRingMeshes();
 }
 
-// ==================== 8. 6 大科幻布局目标计算器 ====================
-function computeLayoutTarget(mode, idx, total, t) {
+// ==================== 8. 6 大科幻布局目标计算器（复用对象，零分配） ====================
+const layoutTargetTmp = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, s: 1 };
+
+function computeLayoutTarget(mode, idx, total, t, out) {
   const u = idx / total;
 
   if (mode === 'orbital') {
-    // 斯塔克星环：3 条交错大轨道环绕中心
     const orbitIdx = idx % 3;
     const perOrbit = Math.ceil(total / 3);
     const localIdx = Math.floor(idx / 3);
@@ -1229,20 +3279,17 @@ function computeLayoutTarget(mode, idx, total, t) {
     const tiltX = orbitIdx === 0 ? 0.18 : (orbitIdx === 1 ? 0.55 : -0.48);
     const tiltZ = orbitIdx === 1 ? 0.42 : (orbitIdx === 2 ? -0.38 : 0);
 
-    // 局部轨道坐标 -> 3D 旋转
-    let x = Math.cos(ang) * R, y = 0, z = Math.sin(ang) * R;
-    const y1 = y * Math.cos(tiltX) - z * Math.sin(tiltX), z1 = y * Math.sin(tiltX) + z * Math.cos(tiltX);
+    const x = Math.cos(ang) * R, z = Math.sin(ang) * R;
+    const y1 = -z * Math.sin(tiltX), z1 = z * Math.cos(tiltX);
     const x2 = x * Math.cos(tiltZ) - y1 * Math.sin(tiltZ), y2 = x * Math.sin(tiltZ) + y1 * Math.cos(tiltZ);
-    return {
-      x: x2, y: y2, z: z1,
-      rx: -Math.atan2(y2, Math.hypot(x2, z1)),
-      ry: Math.atan2(x2, z1),
-      rz: 0, s: 0.95
-    };
+    out.x = x2; out.y = y2; out.z = z1;
+    out.rx = -Math.atan2(y2, Math.hypot(x2, z1));
+    out.ry = Math.atan2(x2, z1);
+    out.rz = 0; out.s = 0.95;
+    return out;
   }
 
   if (mode === 'helix') {
-    // DNA 双螺旋：两条链螺旋上升并无缝循环
     const strand = idx % 2;
     const pairIdx = Math.floor(idx / 2);
     const pairs = Math.ceil(total / 2);
@@ -1252,11 +3299,12 @@ function computeLayoutTarget(mode, idx, total, t) {
     const R = 3.1;
     const x = Math.cos(ang) * R, z = Math.sin(ang) * R;
     const edgeFade = Math.min(1, Math.min(p, 1 - p) * 7);
-    return { x, y, z, rx: 0, ry: Math.atan2(x, z), rz: 0, s: 0.95 * edgeFade };
+    out.x = x; out.y = y; out.z = z;
+    out.rx = 0; out.ry = Math.atan2(x, z); out.rz = 0; out.s = 0.95 * edgeFade;
+    return out;
   }
 
   if (mode === 'command') {
-    // 少数派 3 层弧形全息幕墙（上下层反向旋转）
     const tiers = 3;
     const tier = idx % tiers;
     const perTier = Math.ceil(total / tiers);
@@ -1265,49 +3313,49 @@ function computeLayoutTarget(mode, idx, total, t) {
     const ang = (col / perTier) * Math.PI * 2 + t * 0.24 * dir + tier * 0.4;
     const R = 5.4;
     const x = Math.cos(ang) * R, z = Math.sin(ang) * R;
-    const y = (tier - 1) * 1.95;
-    return { x, y, z, rx: 0, ry: Math.atan2(x, z), rz: 0, s: 1.05 };
+    out.x = x; out.y = (tier - 1) * 1.95; out.z = z;
+    out.rx = 0; out.ry = Math.atan2(x, z); out.rz = 0; out.s = 1.05;
+    return out;
   }
 
   if (mode === 'tesseract') {
-    // 超立方 3D 晶格矩阵
     const side = Math.ceil(Math.cbrt(total));
     const ix = idx % side;
     const iy = Math.floor(idx / side) % side;
     const iz = Math.floor(idx / (side * side));
     const gap = 2.05;
     const off = (side - 1) * gap * 0.5;
-    let x = ix * gap - off, y = iy * gap - off, z = iz * gap - off;
+    const x = ix * gap - off, y = iy * gap - off, z = iz * gap - off;
     const rot = t * 0.25;
     const cr = Math.cos(rot), sr = Math.sin(rot);
-    const rx = x * cr - z * sr, rz = x * sr + z * cr;
-    return { x: rx, y, z: rz, rx: 0, ry: -rot, rz: 0, s: 0.85 };
+    out.x = x * cr - z * sr; out.y = y; out.z = x * sr + z * cr;
+    out.rx = 0; out.ry = -rot; out.rz = 0; out.s = 0.85;
+    return out;
   }
 
   if (mode === 'vortex') {
-    // 量子虫洞螺旋隧道
     const p = ((u + t * 0.14) % 1);
-    const z = -14 + p * 20; // 从深处飞向镜头
+    const z = -14 + p * 20;
     const ang = p * Math.PI * 8 + idx * 0.4 - t * 0.6;
     const R = 1.6 + Math.pow(p, 1.3) * 4.8;
-    const x = Math.cos(ang) * R, y = Math.sin(ang) * R;
     const fade = Math.min(1, p * 4, (1 - p) * 6);
-    return { x, y, z, rx: 0, ry: 0, rz: ang * 0.15, s: (0.4 + p * 0.85) * fade };
+    out.x = Math.cos(ang) * R; out.y = Math.sin(ang) * R; out.z = z;
+    out.rx = 0; out.ry = 0; out.rz = ang * 0.15; out.s = (0.4 + p * 0.85) * fade;
+    return out;
   }
 
-  // dyson: 戴森全息球阵（斐波那契球面）
+  // dyson
   const phi = Math.acos(1 - 2 * (idx + 0.5) / total);
   const theta = Math.PI * (1 + Math.sqrt(5)) * idx + t * 0.26;
   const R = 4.15;
   const x = R * Math.sin(phi) * Math.cos(theta);
   const y = R * Math.cos(phi);
   const z = R * Math.sin(phi) * Math.sin(theta);
-  return {
-    x, y, z,
-    rx: -Math.atan2(y, Math.hypot(x, z)),
-    ry: Math.atan2(x, z),
-    rz: 0, s: 0.92
-  };
+  out.x = x; out.y = y; out.z = z;
+  out.rx = -Math.atan2(y, Math.hypot(x, z));
+  out.ry = Math.atan2(x, z);
+  out.rz = 0; out.s = 0.92;
+  return out;
 }
 
 function lerpAngle(cur, target, a) {
@@ -1316,8 +3364,8 @@ function lerpAngle(cur, target, a) {
   return cur + d * a;
 }
 
-// ==================== 9. 音频与镜头交互 ====================
-let audioEl=null, audioCtx=null, analyser=null, audioData=null, audioPlaying=false;
+// ==================== 9. 音频与触控/鼠标镜头交互 ====================
+let audioEl = null, audioCtx = null, analyser = null, audioData = null, audioPlaying = false;
 function handleAudioFile(files) {
   if (!files || !files.length) return;
   if (audioEl) { audioEl.pause(); URL.revokeObjectURL(audioEl.src); }
@@ -1350,32 +3398,113 @@ function getBeat() {
   return s / (10 * 255);
 }
 
-let dragging = false, lastX = 0, lastY = 0;
-glCanvas.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
-window.addEventListener('pointermove', e => {
-  if (!dragging) return;
-  state.camYaw += (e.clientX - lastX) * 0.0055;
-  state.camPitch = Math.max(-1.35, Math.min(1.35, state.camPitch + (e.clientY - lastY) * 0.0055));
-  lastX = e.clientX; lastY = e.clientY;
+// 单指旋转 + 双指捏合缩放 + 双击/双触复位
+const activePointers = new Map();
+let prevPinchDist = null;
+let lastTapTime = 0;
+
+glCanvas.addEventListener('pointerdown', e => {
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (activePointers.size === 1) {
+    const now = performance.now();
+    if (now - lastTapTime < 280) {
+      resetCamera();
+      lastTapTime = 0;
+    } else {
+      lastTapTime = now;
+    }
+    prevPinchDist = null;
+  } else if (activePointers.size === 2) {
+    const pts = Array.from(activePointers.values());
+    prevPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
 });
-window.addEventListener('pointerup', () => { dragging = false; });
+
+window.addEventListener('pointermove', e => {
+  if (!activePointers.has(e.pointerId)) return;
+  const prev = activePointers.get(e.pointerId);
+  const dx = e.clientX - prev.x;
+  const dy = e.clientY - prev.y;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activePointers.size === 1) {
+    state.camYaw += dx * 0.0055;
+    state.camPitch = Math.max(-1.35, Math.min(1.35, state.camPitch + dy * 0.0055));
+  } else if (activePointers.size === 2) {
+    const pts = Array.from(activePointers.values());
+    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (prevPinchDist !== null && dist > 0) {
+      const delta = prevPinchDist - dist;
+      state.camDist = Math.max(4.5, Math.min(26, state.camDist + delta * 0.032));
+      document.getElementById('rngCamDist').value = state.camDist;
+      document.getElementById('valCamDist').textContent = state.camDist.toFixed(1);
+    }
+    prevPinchDist = dist;
+  }
+});
+
+function removePointer(e) {
+  activePointers.delete(e.pointerId);
+  if (activePointers.size < 2) prevPinchDist = null;
+}
+window.addEventListener('pointerup', removePointer);
+window.addEventListener('pointercancel', removePointer);
+
 glCanvas.addEventListener('wheel', e => {
   e.preventDefault();
   state.camDist = Math.max(4.5, Math.min(26, state.camDist + e.deltaY * 0.009));
   document.getElementById('rngCamDist').value = state.camDist;
   document.getElementById('valCamDist').textContent = state.camDist.toFixed(1);
 }, { passive: false });
-glCanvas.addEventListener('dblclick', resetCamera);
 
 function resetCamera() {
-  state.camYaw = 0; state.camPitch = 0.16; state.camDist = 13.0;
-  document.getElementById('rngCamDist').value = 13.0;
-  document.getElementById('valCamDist').textContent = '13.0';
+  state.camYaw = 0; state.camPitch = 0.16;
+  state.camDist = isMobileDevice ? 14.2 : 13.0;
+  document.getElementById('rngCamDist').value = state.camDist;
+  document.getElementById('valCamDist').textContent = state.camDist.toFixed(1);
   showToast('🔄 3D 镜头已回正');
 }
 
-// ==================== 10. 主渲染循环 ====================
+// ==================== 10. 主渲染循环（零分配 + 合批优化） ====================
 let lastTs = performance.now(), fpsAcc = 0, fpsCnt = 0;
+let pendingSnapshot = false, isRecording = false, lastRecComposeTs = 0;
+
+function bindTexMeshAttribs(m) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
+  gl.enableVertexAttribArray(tLoc.aPos);
+  gl.vertexAttribPointer(tLoc.aPos, 3, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.norm);
+  gl.enableVertexAttribArray(tLoc.aNormal);
+  gl.vertexAttribPointer(tLoc.aNormal, 3, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.uv);
+  gl.enableVertexAttribArray(tLoc.aUV);
+  gl.vertexAttribPointer(tLoc.aUV, 2, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.luv);
+  gl.enableVertexAttribArray(tLoc.aLocalUV);
+  gl.vertexAttribPointer(tLoc.aLocalUV, 2, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.idx);
+}
+
+function drawFxMesh(m, model, mode, alpha, isPoint, ptSize, countOverride) {
+  gl.uniformMatrix4fv(fLoc.uModel, false, model);
+  gl.uniform1f(fLoc.uGlobalAlpha, alpha);
+  gl.uniform1f(fLoc.uIsPoint, isPoint);
+  gl.uniform1f(fLoc.uPointSize, ptSize);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
+  gl.enableVertexAttribArray(fLoc.aPos);
+  gl.vertexAttribPointer(fLoc.aPos, 3, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.alpha);
+  gl.enableVertexAttribArray(fLoc.aAlpha);
+  gl.vertexAttribPointer(fLoc.aAlpha, 1, gl.FLOAT, false, 0, 0);
+
+  gl.drawArrays(mode, 0, countOverride || m.count);
+}
 
 function render(now) {
   const dt = Math.min(0.05, (now - lastTs) / 1000);
@@ -1407,63 +3536,74 @@ function render(now) {
   gl.clearColor(0.008, 0.015, 0.036, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+  // 竖屏自适应镜头：当屏幕宽高比 < 1 时适当增广视场角和后退距离，避免在手机上显得过大溢出
   const aspect = viewW / Math.max(1, viewH);
-  const proj = mat4Persp((50 * Math.PI) / 180, aspect, 0.1, 100);
+  const portraitRatio = aspect < 1 ? (1 - aspect) : 0;
+  const fovyDeg = 50 + portraitRatio * 24; // 竖屏自动放宽至 ~63°
+  const effectiveDist = state.camDist * (1 + portraitRatio * 0.62) - beat * 0.8;
+
+  mat4Perspective(mProj, (fovyDeg * Math.PI) / 180, aspect, 0.1, 100);
   const autoY = state.autoCam ? Math.sin(state.totalTime * 0.28) * 0.45 : 0;
   const autoP = state.autoCam ? Math.sin(state.totalTime * 0.22) * 0.12 : 0;
-  let view = mat4Trans(mat4I(), 0, 0, -state.camDist + beat * 0.8);
-  view = mat4RotX(view, state.camPitch + autoP);
-  view = mat4RotY(view, state.camYaw + autoY);
+
+  mat4Identity(mView);
+  mat4TranslateSelf(mView, 0, 0, -effectiveDist);
+  mat4RotateXSelf(mView, state.camPitch + autoP);
+  mat4RotateYSelf(mView, state.camYaw + autoY);
 
   // ---------- PASS 1: 实心全息环 & 悬浮全息照片卡 ----------
   gl.enable(gl.DEPTH_TEST);
   gl.depthMask(true);
   gl.disable(gl.BLEND);
   gl.useProgram(texProg);
-  gl.uniformMatrix4fv(tLoc.uProj, false, proj);
-  gl.uniformMatrix4fv(tLoc.uView, false, view);
+  gl.uniformMatrix4fv(tLoc.uProj, false, mProj);
+  gl.uniformMatrix4fv(tLoc.uView, false, mView);
   gl.uniform3f(tLoc.uTheme, state.themeRgb[0], state.themeRgb[1], state.themeRgb[2]);
   gl.uniform1f(tLoc.uGlow, state.glow + beat * 1.1);
   gl.uniform1f(tLoc.uScanline, state.scanline);
-  gl.uniform1f(tLoc.uTime, state.totalTime);
+  gl.uniform1f(tLoc.uTime, state.totalTime % 628.318);
   gl.uniform1f(tLoc.uCardAlpha, 1.0);
 
-  // A) 外围超大 3D 立体环
+  // A) 外围立体环
   gl.uniform1f(tLoc.uIsCard, 0.0);
   gl.uniform2f(tLoc.uUVScale, 1.0, 1.0);
   for (let i = 0; i < ringMeshes.length; i++) {
     const m = ringMeshes[i];
     if (!m) continue;
-    let mod = mat4I();
+    mat4Identity(mModel);
     if (state.ringType === 'arena') {
-      mod = mat4RotZ(mod, (i - (state.ringCount-1)/2) * 0.34);
-      mod = mat4RotX(mod, 0.28 + Math.sin(state.totalTime * 0.45 + i) * 0.18);
-      mod = mat4RotY(mod, state.angles[i]);
+      mat4RotateZSelf(mModel, (i - (state.ringCount - 1) / 2) * 0.34);
+      mat4RotateXSelf(mModel, 0.28 + Math.sin(state.totalTime * 0.45 + i) * 0.18);
+      mat4RotateYSelf(mModel, state.angles[i]);
     } else {
-      mod = mat4RotX(mod, Math.sin(state.totalTime * 0.5 + i * 1.2) * 0.36 + (i % 2 === 0 ? 0.25 : -0.25));
-      mod = mat4RotY(mod, Math.cos(state.totalTime * 0.4 + i * 1.4) * 0.35);
-      mod = mat4RotZ(mod, state.angles[i]);
+      mat4RotateXSelf(mModel, Math.sin(state.totalTime * 0.5 + i * 1.2) * 0.36 + (i % 2 === 0 ? 0.25 : -0.25));
+      mat4RotateYSelf(mModel, Math.cos(state.totalTime * 0.4 + i * 1.4) * 0.35);
+      mat4RotateZSelf(mModel, state.angles[i]);
     }
-    gl.uniformMatrix4fv(tLoc.uModel, false, mod);
+    gl.uniformMatrix4fv(tLoc.uModel, false, mModel);
     gl.uniform2f(tLoc.uUVOffset, state.flowTime * 0.12 * (i % 2 === 0 ? 1 : -1), i / atlasGrid);
-    bindAndDrawTexMesh(m);
+    bindTexMeshAttribs(m);
+    gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_SHORT, 0);
   }
 
-  // B) 悬空全息照片卡片（丝滑平滑过渡 morphing）
+  // B) 悬空全息照片卡片（只绑定一次顶点缓冲）
   gl.uniform1f(tLoc.uIsCard, 1.0);
   const slotStep = 1 / atlasGrid;
   gl.uniform2f(tLoc.uUVScale, slotStep, slotStep);
   const morphAlpha = 1 - Math.exp(-6.5 * dt);
+  const totalSlots = atlasGrid * atlasGrid;
 
+  bindTexMeshAttribs(cardMesh);
   for (let k = 0; k < state.cardCount; k++) {
-    const target = computeLayoutTarget(state.layout, k, state.cardCount, state.flowTime);
+    const target = computeLayoutTarget(state.layout, k, state.cardCount, state.flowTime, layoutTargetTmp);
     const cs = cardStates[k];
-    if (Math.hypot(target.x - cs.x, target.y - cs.y, target.z - cs.z) > 10) {
+    const dx = target.x - cs.x, dy = target.y - cs.y, dz = target.z - cs.z;
+    if (dx*dx + dy*dy + dz*dz > 100) {
       cs.x = target.x; cs.y = target.y; cs.z = target.z;
     } else {
-      cs.x += (target.x - cs.x) * morphAlpha;
-      cs.y += (target.y - cs.y) * morphAlpha;
-      cs.z += (target.z - cs.z) * morphAlpha;
+      cs.x += dx * morphAlpha;
+      cs.y += dy * morphAlpha;
+      cs.z += dz * morphAlpha;
     }
     cs.rx = lerpAngle(cs.rx, target.rx, morphAlpha);
     cs.ry = lerpAngle(cs.ry, target.ry, morphAlpha);
@@ -1473,155 +3613,139 @@ function render(now) {
     const sc = cs.s * state.cardSize * (1 + beat * 0.12);
     if (sc < 0.02) continue;
 
-    let cm = mat4Trans(mat4I(), cs.x, cs.y, cs.z);
-    cm = mat4RotY(cm, cs.ry);
-    cm = mat4RotX(cm, cs.rx);
-    cm = mat4RotZ(cm, cs.rz);
-    cm = mat4Scale(cm, sc, sc, sc);
+    mat4Identity(mModel);
+    mat4TranslateSelf(mModel, cs.x, cs.y, cs.z);
+    mat4RotateYSelf(mModel, cs.ry);
+    mat4RotateXSelf(mModel, cs.rx);
+    mat4RotateZSelf(mModel, cs.rz);
+    mat4ScaleSelf(mModel, sc, sc, sc);
 
-    const slot = k % (atlasGrid * atlasGrid);
-    const col = slot % atlasGrid, row = Math.floor(slot / atlasGrid);
-    gl.uniformMatrix4fv(tLoc.uModel, false, cm);
+    const slot = k % totalSlots;
+    const col = slot % atlasGrid, row = (slot / atlasGrid) | 0;
+    gl.uniformMatrix4fv(tLoc.uModel, false, mModel);
     gl.uniform2f(tLoc.uUVOffset, col * slotStep, row * slotStep);
-    bindAndDrawTexMesh(cardMesh);
+    gl.drawElements(gl.TRIANGLES, cardMesh.count, gl.UNSIGNED_SHORT, 0);
   }
 
-  // ---------- PASS 2: 加色混合 科幻 HUD 线框、能量核、雷达网格与粒子 ----------
+  // ---------- PASS 2: 加色混合 科幻 HUD 线框、能量核与粒子 ----------
   gl.depthMask(false);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
   gl.useProgram(fxProg);
-  gl.uniformMatrix4fv(fLoc.uProj, false, proj);
-  gl.uniformMatrix4fv(fLoc.uView, false, view);
+  gl.uniformMatrix4fv(fLoc.uProj, false, mProj);
+  gl.uniformMatrix4fv(fLoc.uView, false, mView);
   gl.uniform3f(fLoc.uTheme, state.themeRgb[0], state.themeRgb[1], state.themeRgb[2]);
 
-  // 1) 底部全息雷达网格
   if (state.floorGrid) {
-    let gm = mat4Trans(mat4I(), 0, -5.8, 0);
-    gm = mat4RotY(gm, state.totalTime * 0.04);
-    drawFxMesh(gridMesh, gm, gl.LINES, 0.35 + beat * 0.25, 0, 1);
+    mat4Identity(mModel);
+    mat4TranslateSelf(mModel, 0, -5.8, 0);
+    mat4RotateYSelf(mModel, state.totalTime * 0.04);
+    drawFxMesh(gridMesh, mModel, gl.LINES, 0.35 + beat * 0.25, 0, 1);
   }
 
-  // 2) HUD 刻度光环
   if (state.hudRings) {
     for (let h = 0; h < 3; h++) {
-      let hm = mat4I();
+      mat4Identity(mModel);
       const s = (4.6 + h * 1.45) * state.ringScale;
-      hm = mat4RotX(hm, Math.PI / 2 + Math.sin(state.totalTime * 0.35 + h) * 0.35);
-      hm = mat4RotY(hm, h * 0.6);
-      hm = mat4RotZ(hm, state.totalTime * (h % 2 === 0 ? 0.25 : -0.3));
-      hm = mat4Scale(hm, s, s, s);
-      drawFxMesh(hudArcMesh, hm, gl.LINES, 0.48 + beat * 0.45, 0, 1);
+      mat4RotateXSelf(mModel, Math.PI / 2 + Math.sin(state.totalTime * 0.35 + h) * 0.35);
+      mat4RotateYSelf(mModel, h * 0.6);
+      mat4RotateZSelf(mModel, state.totalTime * (h % 2 === 0 ? 0.25 : -0.3));
+      mat4ScaleSelf(mModel, s, s, s);
+      drawFxMesh(hudArcMesh, mModel, gl.LINES, 0.48 + beat * 0.45, 0, 1);
     }
   }
 
-  // 3) 中心二十面体聚变核
   if (state.coreReactor) {
     const cs = 1.25 + beat * 0.55 + Math.sin(state.totalTime * 2.5) * 0.08;
-    let rm = mat4RotY(mat4I(), state.totalTime * 0.7);
-    rm = mat4RotX(rm, state.totalTime * 0.45);
-    rm = mat4Scale(rm, cs, cs, cs);
-    drawFxMesh(coreReactorMesh, rm, gl.LINES, 0.65 + beat * 0.5, 0, 1);
+    mat4Identity(mModel);
+    mat4RotateYSelf(mModel, state.totalTime * 0.7);
+    mat4RotateXSelf(mModel, state.totalTime * 0.45);
+    mat4ScaleSelf(mModel, cs, cs, cs);
+    drawFxMesh(coreReactorMesh, mModel, gl.LINES, 0.65 + beat * 0.5, 0, 1);
 
-    let rm2 = mat4RotY(mat4I(), -state.totalTime * 0.5);
-    rm2 = mat4Scale(rm2, cs * 0.62, cs * 0.62, cs * 0.62);
-    drawFxMesh(coreReactorMesh, rm2, gl.LINES, 0.85, 0, 1);
+    mat4Identity(mModel);
+    mat4RotateYSelf(mModel, -state.totalTime * 0.5);
+    mat4ScaleSelf(mModel, cs * 0.62, cs * 0.62, cs * 0.62);
+    drawFxMesh(coreReactorMesh, mModel, gl.LINES, 0.85, 0, 1);
   }
 
-  // 4) 3D 能量星尘粒子
   if (state.starfield) {
-    const sm = mat4RotY(mat4I(), state.totalTime * 0.05);
-    drawFxMesh(starMesh, sm, gl.POINTS, 0.75 + beat * 0.3, 1, 14.0 + beat * 8.0);
+    mat4Identity(mModel);
+    mat4RotateYSelf(mModel, state.totalTime * 0.05);
+    const starPts = state.perfMode === 'smooth' ? 240 : 650;
+    drawFxMesh(starMesh, mModel, gl.POINTS, 0.75 + beat * 0.3, 1, (12.0 + beat * 8.0) * dpr, starPts);
   }
 
   gl.depthMask(true);
   gl.disable(gl.BLEND);
 
   drawOverlay2D(beat);
+
+  // 帧末处理截图与录屏（兼容 preserveDrawingBuffer: false）
+  if (pendingSnapshot) {
+    pendingSnapshot = false;
+    try {
+      compose();
+      const a = document.createElement('a');
+      a.href = capCanvas.toDataURL('image/png');
+      a.download = `HOLO_MATRIX_${Date.now()}.png`;
+      a.click();
+      showToast('📸 科幻全息截图已保存');
+    } catch (e) {
+      showToast('⚠ 截图失败');
+    }
+  }
+  if (isRecording && now - lastRecComposeTs >= (state.perfMode === 'smooth' ? 32 : 16)) {
+    lastRecComposeTs = now;
+    compose();
+  }
+
   requestAnimationFrame(render);
 }
 
-function bindAndDrawTexMesh(m) {
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
-  gl.enableVertexAttribArray(tLoc.aPos);
-  gl.vertexAttribPointer(tLoc.aPos, 3, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.norm);
-  gl.enableVertexAttribArray(tLoc.aNormal);
-  gl.vertexAttribPointer(tLoc.aNormal, 3, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.uv);
-  gl.enableVertexAttribArray(tLoc.aUV);
-  gl.vertexAttribPointer(tLoc.aUV, 2, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.luv);
-  gl.enableVertexAttribArray(tLoc.aLocalUV);
-  gl.vertexAttribPointer(tLoc.aLocalUV, 2, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.idx);
-  gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_SHORT, 0);
-}
-
-function drawFxMesh(m, model, mode, alpha, isPoint, ptSize) {
-  gl.uniformMatrix4fv(fLoc.uModel, false, model);
-  gl.uniform1f(fLoc.uGlobalAlpha, alpha);
-  gl.uniform1f(fLoc.uIsPoint, isPoint);
-  gl.uniform1f(fLoc.uPointSize, ptSize);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
-  gl.enableVertexAttribArray(fLoc.aPos);
-  gl.vertexAttribPointer(fLoc.aPos, 3, gl.FLOAT, false, 0, 0);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.alpha);
-  gl.enableVertexAttribArray(fLoc.aAlpha);
-  gl.vertexAttribPointer(fLoc.aAlpha, 1, gl.FLOAT, false, 0, 0);
-
-  gl.drawArrays(mode, 0, m.count);
-}
-
 function drawOverlay2D(beat) {
+  const hasText = state.textEnabled && state.textContent.trim();
+  if (!hasText) {
+    if (overlayHasContent) {
+      ovCtx.clearRect(0, 0, ovCanvas.width, ovCanvas.height);
+      overlayHasContent = false;
+    }
+    return;
+  }
+  overlayHasContent = true;
   ovCtx.save();
-  ovCtx.scale(dpr, dpr);
+  ovCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ovCtx.clearRect(0, 0, viewW, viewH);
 
-  // 科幻四周微暗角
-  const grad = ovCtx.createRadialGradient(viewW/2, viewH/2, Math.min(viewW,viewH)*0.3, viewW/2, viewH/2, Math.max(viewW,viewH)*0.75);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(1,4,12,0.55)');
-  ovCtx.fillStyle = grad;
-  ovCtx.fillRect(0, 0, viewW, viewH);
-
-  if (state.textEnabled && state.textContent.trim()) {
-    const lines = state.textContent.split('\n');
-    const fs = state.textSize * (1 + beat * 0.06);
-    const lh = fs * 1.4;
-    const startY = viewH * 0.5 - (lines.length * lh) / 2 + lh / 2;
-    ovCtx.font = `800 ${fs}px "Segoe UI", "PingFang SC", sans-serif`;
-    ovCtx.textAlign = 'center';
-    ovCtx.textBaseline = 'middle';
-    const tc = `rgb(${state.themeRgb[0]*255},${state.themeRgb[1]*255},${state.themeRgb[2]*255})`;
-    lines.forEach((line, idx) => {
-      const y = startY + idx * lh;
-      ovCtx.lineWidth = Math.max(3, fs * 0.14);
-      ovCtx.strokeStyle = 'rgba(0,0,0,0.75)';
-      ovCtx.strokeText(line, viewW / 2, y);
-      ovCtx.shadowColor = tc;
-      ovCtx.shadowBlur = 16;
-      ovCtx.fillStyle = '#ffffff';
-      ovCtx.fillText(line, viewW / 2, y);
-    });
-  }
+  const lines = state.textContent.split('\n');
+  const fs = state.textSize * (1 + beat * 0.06);
+  const lh = fs * 1.4;
+  const startY = viewH * 0.5 - (lines.length * lh) / 2 + lh / 2;
+  ovCtx.font = `800 ${fs}px "Segoe UI", "PingFang SC", sans-serif`;
+  ovCtx.textAlign = 'center';
+  ovCtx.textBaseline = 'middle';
+  const tc = `rgb(${state.themeRgb[0]*255},${state.themeRgb[1]*255},${state.themeRgb[2]*255})`;
+  lines.forEach((line, idx) => {
+    const y = startY + idx * lh;
+    ovCtx.lineWidth = Math.max(3, fs * 0.14);
+    ovCtx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ovCtx.strokeText(line, viewW / 2, y);
+    ovCtx.shadowColor = tc;
+    ovCtx.shadowBlur = 14;
+    ovCtx.fillStyle = '#ffffff';
+    ovCtx.fillText(line, viewW / 2, y);
+  });
   ovCtx.restore();
 }
 
 // ==================== 11. UI 控制与事件 ====================
 const LAYOUT_NAMES = {
-  orbital: 'ORBITAL RINGS',
-  helix: 'DNA BIO-HELIX',
-  command: 'HOLO-COMMAND WALL',
-  tesseract: 'TESSERACT MATRIX',
-  vortex: 'QUANTUM VORTEX',
-  dyson: 'DYSON SPHERE'
+  orbital: 'ORBITAL',
+  helix: 'DNA-HELIX',
+  command: 'COMMAND',
+  tesseract: 'TESSERACT',
+  vortex: 'VORTEX',
+  dyson: 'DYSON'
 };
 
 function setLayout(layout, btn) {
@@ -1629,7 +3753,16 @@ function setLayout(layout, btn) {
   document.querySelectorAll('.dock-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.getElementById('hudLayout').textContent = LAYOUT_NAMES[layout];
-  showToast(`🚀 空间矩阵重组中 -> ${btn.textContent}`);
+  showToast(`🚀 切换矩阵 -> ${btn.textContent}`);
+}
+
+function setPerfMode(mode) {
+  state.perfMode = mode;
+  document.getElementById('btnPerfSmooth').classList.toggle('active', mode === 'smooth');
+  document.getElementById('btnPerfHigh').classList.toggle('active', mode === 'high');
+  resizeAll();
+  buildAtlas();
+  showToast(mode === 'smooth' ? '⚡ 已切换至流畅省电模式' : '✨ 已切换至高清视觉模式');
 }
 
 function setTheme(name, btn) {
@@ -1719,14 +3852,19 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   document.getElementById(`tab-${name}`).classList.add('active');
 }
+
 function togglePanel() {
   const p = document.getElementById('controlPanel'), b = document.getElementById('btnPanelToggle');
   p.classList.toggle('collapsed');
-  b.classList.toggle('active', !p.classList.contains('collapsed'));
+  const open = !p.classList.contains('collapsed');
+  b.classList.toggle('active', open);
+  document.body.classList.toggle('mobile-panel-open', open);
 }
+
 function togglePlay() {
   state.playing = !state.playing;
-  document.getElementById('btnTogglePlay').textContent = state.playing ? '⏸ 暂停' : '▶ 播放';
+  const label = isMobileDevice ? (state.playing ? '⏸' : '▶') : (state.playing ? '⏸ 暂停' : '▶ 播放');
+  document.getElementById('btnTogglePlay').innerHTML = `${state.playing ? '⏸' : '▶'}<span class="btn-label-hide-sm"> ${state.playing ? '暂停' : '播放'}</span>`;
 }
 function toggleUIHidden() { document.body.classList.toggle('ui-hidden'); }
 
@@ -1801,31 +3939,53 @@ window.addEventListener('drop', e => {
 const capCanvas = document.createElement('canvas'), capCtx = capCanvas.getContext('2d');
 function compose() {
   capCanvas.width = glCanvas.width; capCanvas.height = glCanvas.height;
-  capCtx.drawImage(glCanvas, 0, 0); capCtx.drawImage(ovCanvas, 0, 0);
+  capCtx.drawImage(glCanvas, 0, 0);
+  const g = capCtx.createRadialGradient(capCanvas.width/2, capCanvas.height/2, Math.min(capCanvas.width,capCanvas.height)*0.3, capCanvas.width/2, capCanvas.height/2, Math.max(capCanvas.width,capCanvas.height)*0.75);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(1,4,12,0.55)');
+  capCtx.fillStyle = g;
+  capCtx.fillRect(0, 0, capCanvas.width, capCanvas.height);
+  if (overlayHasContent) capCtx.drawImage(ovCanvas, 0, 0);
 }
 function takeSnapshot() {
-  try { compose(); const a = document.createElement('a'); a.href = capCanvas.toDataURL('image/png'); a.download = `HOLO_MATRIX_${Date.now()}.png`; a.click(); showToast('📸 科幻全息截图已保存'); }
-  catch (e) { showToast('⚠ 截图失败'); }
+  pendingSnapshot = true;
 }
-let mediaRecorder = null, chunks = [], recTimer = null;
+
+let mediaRecorder = null, chunks = [];
 function toggleRecord() {
   const btn = document.getElementById('btnRecord');
   if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.stop(); clearInterval(recTimer); btn.textContent = '⏺ 录制视频'; btn.classList.remove('active'); return;
+    isRecording = false;
+    mediaRecorder.stop();
+    btn.textContent = '⏺ 录制视频';
+    btn.classList.remove('active');
+    return;
   }
   try {
+    if (typeof MediaRecorder === 'undefined') { showToast('⚠ 当前浏览器不支持录屏'); return; }
     compose();
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-    chunks = []; mediaRecorder = new MediaRecorder(capCanvas.captureStream(60), { mimeType: mime, videoBitsPerSecond: 7500000 });
+    const candidates = ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'];
+    const mime = candidates.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    const fps = state.perfMode === 'smooth' ? 30 : 60;
+    chunks = [];
+    mediaRecorder = new MediaRecorder(capCanvas.captureStream(fps), mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined);
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
     mediaRecorder.onstop = () => {
-      const url = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
-      const a = document.createElement('a'); a.href = url; a.download = `HOLO_MATRIX_${Date.now()}.webm`; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000); showToast('🎬 视频已导出 (.webm)');
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      const url = URL.createObjectURL(new Blob(chunks, { type: mime || 'video/webm' }));
+      const a = document.createElement('a'); a.href = url; a.download = `HOLO_MATRIX_${Date.now()}.${ext}`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showToast(`🎬 视频已导出 (.${ext})`);
     };
-    recTimer = setInterval(compose, 1000 / 60);
-    mediaRecorder.start(); btn.textContent = '⏹ 停止录制'; btn.classList.add('active'); showToast('⏺ 正在录制 60FPS 全息影像...');
-  } catch (e) { showToast('⚠ 录制启动失败'); }
+    isRecording = true;
+    mediaRecorder.start();
+    btn.textContent = '⏹ 停止录制';
+    btn.classList.add('active');
+    showToast(`⏺ 正在录制 ${fps}FPS 全息影像...`);
+  } catch (e) {
+    isRecording = false;
+    showToast('⚠ 当前手机浏览器不支持网页录屏');
+  }
 }
 
 let toastTimer = null;
