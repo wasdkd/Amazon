@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>环形照片框旋转漩涡 · 高自由度可视化平台</title>
+<style>
+  :root {
+    --panel-bg: rgba(14, 17, 26, 0.80);
+    --panel-border: rgba(255, 255, 255, 0.14);
+    --accent: #38bdf8;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #05070d;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    user-select: none;
+  }
+
+  #stage {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #05070d;
+  }
+
+  /* 拖拽上传提示遮罩 */
+  #dropOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(14, 165, 233, 0.2);
+    backdrop-filter: blur(8px);
+    border: 3px dashed var(--accent);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+  }
+  #dropOverlay.show { display: flex; }
+  #dropOverlay .drop-title { font-size: 26px; font-weight: 800; text-shadow: 0 2px 12px rgba(0,0,0,0.6); }
+  #dropOverlay .drop-sub { font-size: 14px; color: #e2e8f0; }
+
+  /* 顶部按钮 */
+  .top-actions {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 600;
+    display: flex;
+    gap: 8px;
+    transition: opacity 0.25s;
+  }
+  .pill-btn {
+    background: var(--panel-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  }
+  .pill-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .pill-btn.active { background: linear-gradient(135deg, #0284c7, #7c3aed); border-color: transparent; }
+
+  /* 底部快捷条 */
+  .bottom-bar {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    transition: opacity 0.25s;
+  }
+  body.ui-hidden .bottom-bar,
+  body.ui-hidden .control-panel,
+  body.ui-hidden .top-actions {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #restoreHint {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 700;
+    background: rgba(0,0,0,0.55);
+    color: rgba(255,255,255,0.75);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  body.ui-hidden #restoreHint { display: block; }
+
+  /* 右侧控制台 */
+  .control-panel {
+    position: fixed;
+    top: 64px;
+    right: 16px;
+    bottom: 16px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    z-index: 550;
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s;
+  }
+  .control-panel.collapsed {
+    transform: translateX(calc(100% + 32px));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .panel-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 10px;
+    background: rgba(0,0,0,0.28);
+    border-bottom: 1px solid var(--panel-border);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    padding: 7px 4px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(168,85,247,0.28));
+    color: #fff;
+    border: 1px solid rgba(56,189,248,0.45);
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-body::-webkit-scrollbar { width: 5px; }
+  .panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 99px; }
+
+  .tab-pane { display: none; flex-direction: column; gap: 12px; }
+  .tab-pane.active { display: flex; }
+
+  .card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.4px;
+  }
+
+  .control-row { display: flex; flex-direction: column; gap: 5px; }
+  .row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #cbd5e1;
+  }
+  .row-val {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; height: 5px; }
+  input[type="color"] { width: 34px; height: 24px; border: none; border-radius: 6px; background: transparent; cursor: pointer; }
+  textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.16);
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    outline: none;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.5;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .seg-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .seg-group.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .seg-btn {
+    padding: 7px 6px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: #cbd5e1;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+  }
+  .seg-btn:hover { background: rgba(255,255,255,0.1); }
+  .seg-btn.active {
+    background: rgba(56, 189, 248, 0.22);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: #e2e8f0;
+    gap: 8px;
+  }
+  .switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .slider:before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  .switch input:checked + .slider { background: linear-gradient(135deg, #0ea5e9, #8b5cf6); }
+  .switch input:checked + .slider:before { transform: translateX(18px); }
+
+  .action-btn {
+    padding: 8px 12px;
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .action-btn:hover { background: rgba(255,255,255,0.16); border-color: var(--accent); }
+  .action-btn.primary { background: linear-gradient(135deg, #0284c7, #7c3aed); border-color: transparent; }
+  .action-btn.danger { color: #fca5a5; border-color: rgba(248,113,113,0.35); }
+  .action-btn.danger:hover { background: rgba(239,68,68,0.2); }
+  .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .ring-custom-list { display: flex; flex-direction: column; gap: 6px; max-height: 210px; overflow-y: auto; }
+  .ring-item {
+    display: grid;
+    grid-template-columns: 44px 72px 1fr 38px;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.25);
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+  }
+  .ring-dir-btn {
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .stat-pill {
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(0,0,0,0.3);
+    padding: 5px 10px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* 图库管理弹窗 */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal-card {
+    width: 820px;
+    max-width: 100%;
+    max-height: 86vh;
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.65);
+  }
+  .modal-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .modal-grid {
+    padding: 16px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 10px;
+  }
+  .gallery-item {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #020617;
+    border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer;
+  }
+  .gallery-item img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.2s; }
+  .gallery-item:hover img { transform: scale(1.05); }
+  .gallery-tag {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.68);
+    color: #e2e8f0;
+  }
+  .gallery-del {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(239,68,68,0.88);
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    cursor: zoom-out;
+  }
+  #lightbox.show { display: flex; }
+  #lightbox img { max-width: 95vw; max-height: 92vh; object-fit: contain; border-radius: 10px; }
+
+  #toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid var(--accent);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div id="dropOverlay">
+  <div class="drop-title">📥 松开即可批量添加图片</div>
+  <div class="drop-sub">新图片将自动铺满旋转环框与中心照片墙</div>
+</div>
+
+<!-- 顶部悬浮按钮 -->
+<div class="top-actions">
+  <button class="pill-btn" id="btnTogglePlay" onclick="togglePlay()">⏸ 暂停</button>
+  <button class="pill-btn" onclick="triggerUpload()">📤 批量传图</button>
+  <button class="pill-btn active" id="btnPanelToggle" onclick="togglePanel()">⚙️ 控制面板</button>
+</div>
+
+<div id="restoreHint" onclick="toggleUIHidden()">👁 显示菜单 (H)</div>
+
+<!-- 底部快捷控制条 -->
+<div class="bottom-bar">
+  <button class="pill-btn" onclick="applyPreset('sketchEqual')">💠 草图等大叠环</button>
+  <button class="pill-btn" onclick="applyPreset('classic2')">✨ 图2经典环</button>
+  <button class="pill-btn" onclick="applyPreset('circleWheel')">🎡 圆形照片轮</button>
+  <button class="pill-btn" onclick="applyPreset('fullview')">🖼 全图无裁剪</button>
+  <button class="pill-btn" onclick="takeSnapshot()">📸 截图</button>
+  <button class="pill-btn" id="btnRecord" onclick="toggleRecord()">⏺ 录视频</button>
+  <button class="pill-btn" onclick="toggleUIHidden()">🙈 纯享(H)</button>
+</div>
+
+<!-- 右侧控制台 -->
+<aside class="control-panel" id="controlPanel">
+  <div class="panel-tabs">
+    <button class="tab-btn active" onclick="switchTab('rings', this)">🌀 环框</button>
+    <button class="tab-btn" onclick="switchTab('bg', this)">🌊 中间底图</button>
+    <button class="tab-btn" onclick="switchTab('images', this)">🖼 图库</button>
+    <button class="tab-btn" onclick="switchTab('fx', this)">✨ 特效字</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- TAB 1: 大环框设置 -->
+    <div class="tab-pane active" id="tab-rings">
+      <div class="card">
+        <div class="card-title">旋转方向与数量</div>
+        <div class="control-row">
+          <div class="row-head"><span>旋转方向模式</span></div>
+          <div class="seg-group">
+            <button class="seg-btn active" data-dir="alternate" onclick="setDirMode('alternate', this)">🔁 相邻反向</button>
+            <button class="seg-btn" data-dir="sameCW" onclick="setDirMode('sameCW', this)">↻ 全部顺时针</button>
+            <button class="seg-btn" data-dir="sameCCW" onclick="setDirMode('sameCCW', this)">↺ 全部逆时针</button>
+            <button class="seg-btn" data-dir="custom" onclick="setDirMode('custom', this)">🎛 自定义每圈</button>
+          </div>
+        </div>
+
+        <div id="customRingsBox" style="display:none;">
+          <div class="row-head" style="margin-bottom:6px;"><span>逐圈独立设置 (1=最底层环)</span></div>
+          <div class="ring-custom-list" id="ringCustomList"></div>
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>大环数量</span><span class="row-val" id="valRingCount">3 圈</span></div>
+          <input type="range" id="rngRingCount" min="1" max="8" step="1" value="3" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>全局旋转速度</span><span class="row-val" id="valRingSpeed">1.00x</span></div>
+          <input type="range" id="rngRingSpeed" min="0" max="4" step="0.05" value="1" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>各环速度差</span></div>
+          <div class="seg-group cols-3">
+            <button class="seg-btn active" data-grad="stagger" onclick="setSpeedGrad('stagger', this)">微差错开</button>
+            <button class="seg-btn" data-grad="uniform" onclick="setSpeedGrad('uniform', this)">完全等速</button>
+            <button class="seg-btn" data-grad="innerFast" onclick="setSpeedGrad('innerFast', this)">逐层加速</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">大环框形状与图片排布（包围中间）</div>
+        <div class="control-row">
+          <div class="row-head"><span>环框形状</span></div>
+          <div class="seg-group">
+            <button class="seg-btn active" data-shape="roundedRect" onclick="setShape('roundedRect', this)">⬜ 圆角方环(草图同款)</button>
+            <button class="seg-btn" data-shape="circle" onclick="setShape('circle', this)">⭕ 圆形照片环</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>环框整体大小 (包围中间空窗)</span><span class="row-val" id="valRingScale">0.90</span></div>
+          <input type="range" id="rngRingScale" min="0.50" max="1.45" step="0.01" value="0.90" oninput="onParamChange()">
+        </div>
+
+        <div class="btn-grid-2">
+          <button class="action-btn" onclick="setQuickScale(0.74)">🔍 完整看到所有环角</button>
+          <button class="action-btn" onclick="setQuickScale(1.06)">🖥 大环贴边冲击</button>
+        </div>
+
+        <div class="control-row" id="rowBoxAspect">
+          <div class="row-head"><span>方环长宽比例 (1.0=正方 / 1.15=宽方)</span><span class="row-val" id="valBoxAspect">1.14</span></div>
+          <input type="range" id="rngBoxAspect" min="0.70" max="1.45" step="0.01" value="1.14" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>各环大小差 (0%=完全等大叠绕)</span><span class="row-val" id="valSizeStep">5%</span></div>
+          <input type="range" id="rngSizeStep" min="0" max="60" step="1" value="5" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>环框厚度 (带宽)</span><span class="row-val" id="valRingThick">17%</span></div>
+          <input type="range" id="rngRingThick" min="8" max="34" step="1" value="17" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>环上图片排数</span><span class="row-val" id="valRingRows">2 排</span></div>
+          <input type="range" id="rngRingRows" min="1" max="5" step="1" value="2" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row" id="rowCornerR">
+          <div class="row-head"><span>圆角弧度</span><span class="row-val" id="valCornerR">16%</span></div>
+          <input type="range" id="rngCornerR" min="0" max="42" step="1" value="16" oninput="onParamChange()">
+        </div>
+
+        <div class="switch-row">
+          <span>环框上的照片也沿边框流动</span>
+          <label class="switch"><input type="checkbox" id="chkRingFlow" checked onchange="onParamChange()"><span class="slider"></span></label>
+        </div>
+        <div class="control-row">
+          <div class="row-head"><span>环上照片流动速度</span><span class="row-val" id="valRingFlowSpeed">1.0x</span></div>
+          <input type="range" id="rngRingFlowSpeed" min="0.2" max="4" step="0.1" value="1.0" oninput="onParamChange()">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: 中间底部背景图 -->
+    <div class="tab-pane" id="tab-bg">
+      <div class="card">
+        <div class="card-title">中间底层照片墙（一直在动）</div>
+        <div class="control-row">
+          <div class="row-head"><span>底部运动模式</span></div>
+          <div class="seg-group cols-3">
+            <button class="seg-btn active" data-bg="diagonal" onclick="setBgMode('diagonal', this)">↘ 斜向流动</button>
+            <button class="seg-btn" data-bg="zoom" onclick="setBgMode('zoom', this)">🌀 深渊推进</button>
+            <button class="seg-btn" data-bg="spiral" onclick="setBgMode('spiral', this)">💫 旋转漂移</button>
+            <button class="seg-btn" data-bg="up" onclick="setBgMode('up', this)">⬆ 向上漂流</button>
+            <button class="seg-btn" data-bg="left" onclick="setBgMode('left', this)">⬅ 横向滚动</button>
+            <button class="seg-btn" data-bg="wave" onclick="setBgMode('wave', this)">〰 波浪漫游</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>底图移动速度</span><span class="row-val" id="valBgSpeed">1.00x</span></div>
+          <input type="range" id="rngBgSpeed" min="0.1" max="4" step="0.05" value="1.0" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>底图照片密度 (越小越密)</span><span class="row-val" id="valBgScale">0.62x</span></div>
+          <input type="range" id="rngBgScale" min="0.25" max="2.2" step="0.05" value="0.62" oninput="onParamChange()">
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>底图亮度 (压暗突出前景环框)</span><span class="row-val" id="valBgBright">86%</span></div>
+          <input type="range" id="rngBgBright" min="25" max="120" step="2" value="86" oninput="onParamChange()">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: 图库管理与完整显示 -->
+    <div class="tab-pane" id="tab-images">
+      <div class="card">
+        <div class="card-title">批量传图与默认图控制</div>
+        <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+        <button class="action-btn primary" onclick="triggerUpload()">📤 批量上传图片 (多选 / 拖入)</button>
+
+        <div class="switch-row">
+          <span>隐藏默认图片 (仅展示我上传的)</span>
+          <label class="switch"><input type="checkbox" id="chkHideDefault" onchange="onImageFilterChange()"><span class="slider"></span></label>
+        </div>
+
+        <div class="stat-pill">
+          <span id="statDefault">默认图: 加载中...</span>
+          <span id="statCustom">已上传: 0 张</span>
+        </div>
+
+        <div class="btn-grid-2">
+          <button class="action-btn" onclick="openGallery()">🖼 查看/管理全部图片</button>
+          <button class="action-btn" onclick="shuffleAll()">🔀 打乱图片顺序</button>
+        </div>
+        <button class="action-btn danger" onclick="clearCustomImages()">🗑 清空已上传图片</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">图片内容显示设置（看全图不裁剪）</div>
+        <div class="control-row">
+          <div class="row-head"><span>单张图片适配模式</span></div>
+          <div class="seg-group">
+            <button class="seg-btn active" data-fit="cover" onclick="setFitMode('cover', this)">🧱 填满裁剪 (Cover)</button>
+            <button class="seg-btn" data-fit="contain" onclick="setFitMode('contain', this)">🖼 完整显示 (看全图)</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>单格画幅比例</span></div>
+          <div class="seg-group cols-3">
+            <button class="seg-btn active" data-aspect="1" onclick="setCellAspect(1, this)">1:1 正方</button>
+            <button class="seg-btn" data-aspect="0.75" onclick="setCellAspect(0.75, this)">3:4 竖版</button>
+            <button class="seg-btn" data-aspect="1.333" onclick="setCellAspect(1.333, this)">4:3 横版</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>图片间距</span><span class="row-val" id="valCellGap">2 px</span></div>
+          <input type="range" id="rngCellGap" min="0" max="10" step="1" value="2" oninput="onTileStyleChange()">
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: 特效、文字与音乐 -->
+    <div class="tab-pane" id="tab-fx">
+      <div class="card">
+        <div class="card-title">立体层次与光效</div>
+        <div class="control-row">
+          <div class="row-head"><span>环框立体阴影</span><span class="row-val" id="valShadow">32 px</span></div>
+          <input type="range" id="rngShadow" min="0" max="60" step="1" value="32" oninput="onParamChange()">
+        </div>
+
+        <div class="switch-row">
+          <span>环框霓虹描边</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="color" id="clrGlow" value="#38bdf8" oninput="onParamChange()">
+            <label class="switch"><input type="checkbox" id="chkGlow" onchange="onParamChange()"><span class="slider"></span></label>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="row-head"><span>呼吸缩放幅度</span><span class="row-val" id="valPulse">2.5%</span></div>
+          <input type="range" id="rngPulse" min="0" max="12" step="0.5" value="2.5" oninput="onParamChange()">
+        </div>
+
+        <div class="switch-row">
+          <span>星尘光斑粒子</span>
+          <label class="switch"><input type="checkbox" id="chkParticles" checked onchange="onParamChange()"><span class="slider"></span></label>
+        </div>
+
+        <div class="switch-row">
+          <span>四周聚光暗角</span>
+          <label class="switch"><input type="checkbox" id="chkVignette" checked onchange="onParamChange()"><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">中心文字叠层</div>
+        <div class="switch-row">
+          <span>显示中心文字</span>
+          <label class="switch"><input type="checkbox" id="chkText" checked onchange="onParamChange()"><span class="slider"></span></label>
+        </div>
+        <textarea id="txtOverlay" oninput="onParamChange()">这首歌频率太快了
+就像我的2026一眨眼就要结束了</textarea>
+        <div class="control-row">
+          <div class="row-head"><span>文字大小</span><span class="row-val" id="valTextSize">24 px</span></div>
+          <input type="range" id="rngTextSize" min="12" max="54" step="1" value="24" oninput="onParamChange()">
+        </div>
+        <div class="control-row">
+          <div class="row-head"><span>文字纵向位置</span><span class="row-val" id="valTextY">50%</span></div>
+          <input type="range" id="rngTextY" min="15" max="85" step="1" value="50" oninput="onParamChange()">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎵 音乐鼓点律动</div>
+        <input type="file" id="audioInput" accept="audio/*" style="display:none" onchange="handleAudioFile(this.files)">
+        <div class="btn-grid-2">
+          <button class="action-btn" onclick="document.getElementById('audioInput').click()">🎧 选择本地音乐</button>
+          <button class="action-btn" id="btnAudioPlay" onclick="toggleAudioPlay()" disabled>▶ 播放音乐</button>
+        </div>
+        <div class="switch-row">
+          <span>画面随音乐节奏跳动</span>
+          <label class="switch"><input type="checkbox" id="chkAudioReact" checked onchange="onParamChange()"><span class="slider"></span></label>
+        </div>
+        <div id="audioStatus" style="font-size:11px;color:var(--muted);">未加载音频（支持 MP3 / WAV / M4A）</div>
+      </div>
+    </div>
+
+  </div>
+</aside>
+
+<!-- 图库弹窗 -->
+<div class="modal-backdrop" id="galleryModal" onclick="if(event.target===this) closeGallery()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div style="font-weight:700;font-size:15px;">🖼 当前图库预览（点击单图查看原图）</div>
+      <div style="display:flex;gap:8px;">
+        <button class="action-btn primary" onclick="triggerUpload()">+ 继续传图</button>
+        <button class="action-btn" onclick="closeGallery()">关闭</button>
+      </div>
+    </div>
+    <div class="modal-grid" id="galleryGrid"></div>
+  </div>
+</div>
+
+<!-- 大图预览 -->
+<div id="lightbox" onclick="this.classList.remove('show')">
+  <img id="lightboxImg" src="" alt="全图预览">
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ==================== 1. 默认图片 ====================
+const DEFAULT_URLS = [
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=2000&auto=format&fit=crop&q=90",
+  "https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=2000&auto=format&fit=crop&q=90"
+];
+
+// ==================== 2. 全局状态 ====================
+const state = {
+  playing: true,
+  dirMode: 'alternate',     // alternate | sameCW | sameCCW | custom
+  speedGrad: 'stagger',     // stagger | uniform | innerFast
+  shape: 'roundedRect',     // roundedRect | circle
+  ringCount: 3,
+  ringSpeed: 1.0,
+  ringScale: 0.90,
+  boxAspect: 1.14,
+  sizeStep: 0.05,           // 0 ~ 0.60
+  ringThick: 0.17,          // 0.08 ~ 0.34
+  ringRows: 2,              // 1 ~ 5
+  cornerR: 0.16,            // 0 ~ 0.42
+  ringFlow: true,
+  ringFlowSpeed: 1.0,
+
+  bgMode: 'diagonal',
+  bgSpeed: 1.0,
+  bgScale: 0.62,
+  bgBright: 0.86,
+
+  fitMode: 'cover',
+  cellAspect: 1,
+  cellGap: 2,
+  hideDefault: false,
+
+  shadowBlur: 32,
+  glowEnabled: false,
+  glowColor: '#38bdf8',
+  pulseAmount: 0.025,
+  particlesEnabled: true,
+  vignetteEnabled: true,
+
+  textEnabled: true,
+  textContent: '这首歌频率太快了\n就像我的2026一眨眼就要结束了',
+  textSize: 24,
+  textY: 0.50,
+  audioReact: true,
+
+  customRings: Array.from({ length: 8 }, (_, i) => ({
+    dir: i % 2 === 0 ? 1 : -1,
+    speed: 1.0
+  })),
+
+  // 初始错位角度，开场即呈现草图交错形态
+  angles: [0, 0.58, -0.48, 0.96, -0.82, 1.25, -1.15, 0.32],
+  bgTime: 0,
+  totalTime: 0
+};
+
+let defaultItems = [];
+let customItems = [];
+let mosaicCanvas = document.createElement('canvas');
+let mosaicPattern = null;
+let mosaicTileW = 1024;
+let mosaicTileH = 1024;
+let rebuildTimer = null;
+
+const particles = Array.from({ length: 48 }, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  r: 0.8 + Math.random() * 2.0,
+  vx: (Math.random() - 0.5) * 0.018,
+  vy: -0.01 - Math.random() * 0.026,
+  alpha: 0.18 + Math.random() * 0.52
+}));
+
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+let viewW = window.innerWidth;
+let viewH = window.innerHeight;
+let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+function resizeCanvas() {
+  viewW = window.innerWidth;
+  viewH = window.innerHeight;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(viewW * dpr);
+  canvas.height = Math.floor(viewH * dpr);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ==================== 3. 图片加载与单图预烘焙（极速无卡顿） ====================
+function bakeItemTile(item) {
+  if (!item.thumb) return;
+  const gap = state.cellGap;
+  const baseH = 136;
+  const baseW = Math.round(baseH * state.cellAspect);
+  const c = item.tileCanvas || document.createElement('canvas');
+  c.width = baseW;
+  c.height = baseH;
+  const tctx = c.getContext('2d');
+
+  tctx.fillStyle = '#070a12';
+  tctx.fillRect(0, 0, baseW, baseH);
+
+  const x = gap / 2;
+  const y = gap / 2;
+  const w = Math.max(4, baseW - gap);
+  const h = Math.max(4, baseH - gap);
+
+  const img = item.thumb;
+  const iw = img.width || img.naturalWidth || 100;
+  const ih = img.height || img.naturalHeight || 100;
+
+  tctx.save();
+  tctx.beginPath();
+  tctx.rect(x, y, w, h);
+  tctx.clip();
+
+  if (state.fitMode === 'cover') {
+    const s = Math.max(w / iw, h / ih);
+    const dw = iw * s;
+    const dh = ih * s;
+    tctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  } else {
+    // 完整显示 Contain：暗化虚底 + 全图不裁剪
+    tctx.globalAlpha = 0.25;
+    const sb = Math.max(w / iw, h / ih);
+    tctx.drawImage(img, x + (w - iw * sb) / 2, y + (h - ih * sb) / 2, iw * sb, ih * sb);
+    tctx.globalAlpha = 1;
+    tctx.fillStyle = 'rgba(4, 7, 14, 0.52)';
+    tctx.fillRect(x, y, w, h);
+
+    const sc = Math.min(w / iw, h / ih);
+    const dw = iw * sc;
+    const dh = ih * sc;
+    tctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    tctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    tctx.lineWidth = 1;
+    tctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  }
+
+  tctx.restore();
+  item.tileCanvas = c;
+}
+
+function createThumbCanvas(img) {
+  const maxDim = 280;
+  const w = img.naturalWidth || img.width || 280;
+  const h = img.naturalHeight || img.height || 280;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  const tw = Math.max(32, Math.round(w * scale));
+  const th = Math.max(32, Math.round(h * scale));
+  const c = document.createElement('canvas');
+  c.width = tw;
+  c.height = th;
+  c.getContext('2d').drawImage(img, 0, 0, tw, th);
+  return c;
+}
+
+function loadImageItem(src, isDefault, objectUrl = null) {
+  const item = {
+    id: Math.random().toString(36).slice(2),
+    src,
+    objectUrl,
+    isDefault,
+    thumb: null,
+    tileCanvas: null,
+    loaded: false,
+    error: false
+  };
+
+  const tryLoad = (useCors) => {
+    const img = new Image();
+    if (useCors) img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        item.thumb = createThumbCanvas(img);
+      } catch (e) {
+        item.thumb = img;
+      }
+      item.loaded = true;
+      bakeItemTile(item);
+      updateStats();
+      rebuildMosaicDebounced();
+    };
+    img.onerror = () => {
+      if (useCors) tryLoad(false);
+      else { item.error = true; updateStats(); }
+    };
+    img.src = src;
+  };
+
+  tryLoad(true);
+  return item;
+}
+
+function initDefaultImages() {
+  defaultItems = DEFAULT_URLS.map(url => loadImageItem(url, true));
+  updateStats();
+}
+
+function getActiveItems() {
+  const pool = state.hideDefault ? customItems : [...customItems, ...defaultItems];
+  return pool.filter(it => it.loaded && it.tileCanvas);
+}
+
+function updateStats() {
+  const defLoaded = defaultItems.filter(i => i.loaded).length;
+  document.getElementById('statDefault').textContent = `默认图: ${defLoaded}/${defaultItems.length}`;
+  document.getElementById('statCustom').textContent = `已上传: ${customItems.length} 张`;
+}
+
+// ==================== 4. 底层中心照片墙构建 ====================
+function rebuildMosaicDebounced() {
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(buildMosaicCanvas, 70);
+}
+
+function onTileStyleChange() {
+  state.cellGap = Number(document.getElementById('rngCellGap').value);
+  document.getElementById('valCellGap').textContent = `${state.cellGap} px`;
+  [...customItems, ...defaultItems].forEach(it => { if (it.loaded) bakeItemTile(it); });
+  rebuildMosaicDebounced();
+}
+
+function shuffleAll() {
+  customItems.sort(() => Math.random() - 0.5);
+  defaultItems.sort(() => Math.random() - 0.5);
+  buildMosaicCanvas();
+  showToast('🔀 已重新打乱照片顺序');
+}
+
+function buildMosaicCanvas() {
+  const items = getActiveItems();
+  const cols = 10;
+  const rows = 10;
+  const cellH = 112;
+  const cellW = Math.round(cellH * state.cellAspect);
+
+  mosaicTileW = cols * cellW;
+  mosaicTileH = rows * cellH;
+  mosaicCanvas.width = mosaicTileW;
+  mosaicCanvas.height = mosaicTileH;
+
+  const mctx = mosaicCanvas.getContext('2d');
+  mctx.fillStyle = '#060911';
+  mctx.fillRect(0, 0, mosaicTileW, mosaicTileH);
+
+  if (items.length === 0) {
+    mosaicPattern = mctx.createPattern(mosaicCanvas, 'repeat');
+    return;
+  }
+
+  let bag = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (bag.length === 0) bag = [...items].sort(() => Math.random() - 0.5);
+      const item = bag.pop();
+      mctx.drawImage(item.tileCanvas, c * cellW, r * cellH, cellW, cellH);
+    }
+  }
+  mosaicPattern = ctx.createPattern(mosaicCanvas, 'repeat');
+}
+
+// ==================== 5. 几何路径绘制 ====================
+function traceRoundedRect(context, halfW, halfH, cornerR) {
+  const x = -halfW;
+  const y = -halfH;
+  const w = halfW * 2;
+  const h = halfH * 2;
+  const r = Math.max(0, Math.min(halfW, halfH, cornerR));
+  context.moveTo(x + r, y);
+  context.lineTo(x + w - r, y);
+  context.arcTo(x + w, y, x + w, y + r, r);
+  context.lineTo(x + w, y + h - r);
+  context.arcTo(x + w, y + h, x + w - r, y + h, r);
+  context.lineTo(x + r, y + h);
+  context.arcTo(x, y + h, x, y + h - r, r);
+  context.lineTo(x, y + r);
+  context.arcTo(x, y, x + r, y, r);
+  context.closePath();
+}
+
+function traceRingPath(context, shape, outerW, outerH, innerW, innerH, outerR, innerR) {
+  context.beginPath();
+  if (shape === 'circle') {
+    const oR = (outerW + outerH) / 2;
+    const iR = (innerW + innerH) / 2;
+    context.arc(0, 0, oR, 0, Math.PI * 2);
+    context.closePath();
+    context.moveTo(iR, 0);
+    context.arc(0, 0, iR, 0, Math.PI * 2);
+    context.closePath();
+  } else {
+    traceRoundedRect(context, outerW, outerH, outerR);
+    traceRoundedRect(context, innerW, innerH, innerR);
+  }
+}
+
+// ==================== 6. 把照片直接排布在环框上 ====================
+function drawHorizontalStrip(items, ringIdx, rowIdx, startX, endX, y, cellW, cellH, offsetPx) {
+  const len = items.length;
+  if (!len) return;
+  const span = endX - startX;
+  const shift = ((offsetPx % cellW) + cellW) % cellW;
+  const startStep = Math.floor(offsetPx / cellW);
+  const count = Math.ceil(span / cellW) + 2;
+  const seed = ringIdx * 7 + rowIdx * 13;
+
+  for (let col = -1; col < count; col++) {
+    const x = startX + col * cellW + shift - cellW;
+    const idx = (((col - startStep + seed) % len) + len) % len;
+    ctx.drawImage(items[idx].tileCanvas, x, y, cellW, cellH);
+  }
+}
+
+function drawVerticalStrip(items, ringIdx, rowIdx, x, startY, endY, cellW, cellH, offsetPx) {
+  const len = items.length;
+  if (!len) return;
+  const span = endY - startY;
+  const shift = ((offsetPx % cellH) + cellH) % cellH;
+  const startStep = Math.floor(offsetPx / cellH);
+  const count = Math.ceil(span / cellH) + 2;
+  const seed = ringIdx * 11 + rowIdx * 19;
+
+  for (let row = -1; row < count; row++) {
+    const y = startY + row * cellH + shift - cellH;
+    const idx = (((row - startStep + seed) % len) + len) % len;
+    ctx.drawImage(items[idx].tileCanvas, x, y, cellW, cellH);
+  }
+}
+
+function drawRectRingPhotos(items, ringIdx, outerW, outerH, T, flowOffset) {
+  const rows = state.ringRows;
+  const rowThick = T / rows;
+
+  // 上边 & 下边水平条带
+  const hCellH = rowThick;
+  const hCellW = rowThick * state.cellAspect;
+  for (let r = 0; r < rows; r++) {
+    const topY = -outerH + r * rowThick;
+    const botY = outerH - (r + 1) * rowThick;
+    const dirSign = r % 2 === 0 ? 1 : -1;
+    drawHorizontalStrip(items, ringIdx, r, -outerW, outerW, topY, hCellW, hCellH, flowOffset * dirSign);
+    drawHorizontalStrip(items, ringIdx, r + 40, -outerW, outerW, botY, hCellW, hCellH, -flowOffset * dirSign);
+  }
+
+  // 左边 & 右边垂直条带（完美衔接上下条带内侧，无重叠）
+  const vCellW = rowThick;
+  const vCellH = rowThick / state.cellAspect;
+  const innerTop = -outerH + T;
+  const innerBot = outerH - T;
+  if (innerBot > innerTop) {
+    for (let r = 0; r < rows; r++) {
+      const leftX = -outerW + r * rowThick;
+      const rightX = outerW - (r + 1) * rowThick;
+      const dirSign = r % 2 === 0 ? 1 : -1;
+      drawVerticalStrip(items, ringIdx, r + 80, leftX, innerTop, innerBot, vCellW, vCellH, -flowOffset * dirSign);
+      drawVerticalStrip(items, ringIdx, r + 120, rightX, innerTop, innerBot, vCellW, vCellH, flowOffset * dirSign);
+    }
+  }
+}
+
+function drawCircleRingPhotos(items, ringIdx, outerR, T, flowOffset) {
+  const rows = state.ringRows;
+  const rowThick = T / rows;
+  const len = items.length;
+  if (!len) return;
+
+  for (let r = 0; r < rows; r++) {
+    const midR = outerR - (r + 0.5) * rowThick;
+    if (midR <= 8) continue;
+    const circum = 2 * Math.PI * midR;
+    const targetW = rowThick * state.cellAspect;
+    const count = Math.max(8, Math.round(circum / targetW));
+    const stepA = (Math.PI * 2) / count;
+    const cellW = (circum / count) + 1.5;
+    const cellH = rowThick + 1.5;
+    const angShift = (flowOffset / midR) * (r % 2 === 0 ? 1 : -1);
+    const seed = ringIdx * 9 + r * 5;
+
+    for (let k = 0; k < count; k++) {
+      const a = k * stepA + angShift;
+      const idx = (k + seed) % len;
+      ctx.save();
+      ctx.rotate(a);
+      ctx.translate(0, -midR);
+      ctx.drawImage(items[idx].tileCanvas, -cellW / 2, -cellH / 2, cellW, cellH);
+      ctx.restore();
+    }
+  }
+}
+
+// ==================== 7. Web Audio 音乐律动 ====================
+let audioEl = null, audioCtx = null, analyser = null, audioDataArr = null, audioPlaying = false;
+
+function handleAudioFile(files) {
+  if (!files || !files.length) return;
+  const file = files[0];
+  if (audioEl) { audioEl.pause(); URL.revokeObjectURL(audioEl.src); }
+  audioEl = new Audio(URL.createObjectURL(file));
+  audioEl.loop = true;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const srcNode = audioCtx.createMediaElementSource(audioEl);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 128;
+  audioDataArr = new Uint8Array(analyser.frequencyBinCount);
+  srcNode.connect(analyser);
+  analyser.connect(audioCtx.destination);
+  document.getElementById('btnAudioPlay').disabled = false;
+  document.getElementById('audioStatus').textContent = `已加载: ${file.name}`;
+  toggleAudioPlay(true);
+}
+
+function toggleAudioPlay(forcePlay = false) {
+  if (!audioEl) return;
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (forcePlay || audioEl.paused) {
+    audioEl.play();
+    audioPlaying = true;
+    document.getElementById('btnAudioPlay').textContent = '⏸ 暂停音乐';
+  } else {
+    audioEl.pause();
+    audioPlaying = false;
+    document.getElementById('btnAudioPlay').textContent = '▶ 播放音乐';
+  }
+}
+
+function getAudioEnergy() {
+  if (!state.audioReact || !analyser || !audioPlaying) return 0;
+  analyser.getByteFrequencyData(audioDataArr);
+  let sum = 0;
+  const bins = Math.min(10, audioDataArr.length);
+  for (let i = 0; i < bins; i++) sum += audioDataArr[i];
+  return sum / (bins * 255);
+}
+
+// ==================== 8. 主渲染循环 ====================
+let lastTs = performance.now();
+
+function renderFrame(now) {
+  const dt = Math.min(0.05, (now - lastTs) / 1000);
+  lastTs = now;
+
+  const beat = getAudioEnergy();
+  const boost = 1 + beat * 1.35;
+
+  if (state.playing) {
+    state.totalTime += dt;
+    state.bgTime += dt * state.bgSpeed * (1 + beat * 0.75);
+
+    for (let i = 0; i < state.ringCount; i++) {
+      let dir = 1;
+      let mult = 1;
+
+      if (state.dirMode === 'alternate') {
+        dir = i % 2 === 0 ? 1 : -1;
+      } else if (state.dirMode === 'sameCW') {
+        dir = 1;
+      } else if (state.dirMode === 'sameCCW') {
+        dir = -1;
+      } else {
+        dir = state.customRings[i].dir;
+        mult = state.customRings[i].speed;
+      }
+
+      if (state.dirMode !== 'custom') {
+        if (state.speedGrad === 'stagger') {
+          mult = 0.85 + (i % 3) * 0.22;
+        } else if (state.speedGrad === 'innerFast') {
+          mult = 0.72 + (i / Math.max(1, state.ringCount - 1)) * 0.85;
+        }
+      }
+
+      state.angles[i] += dir * mult * state.ringSpeed * 0.22 * boost * dt;
+    }
+  }
+
+  drawScene(beat);
+  requestAnimationFrame(renderFrame);
+}
+
+function drawScene(beat) {
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, viewW, viewH);
+
+  const items = getActiveItems();
+  if (items.length === 0 || !mosaicPattern) {
+    ctx.fillStyle = '#060912';
+    ctx.fillRect(0, 0, viewW, viewH);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无图片 — 请批量上传或拖入图片，或关闭「隐藏默认图片」', viewW / 2, viewH / 2);
+    ctx.restore();
+    return;
+  }
+
+  const cx = viewW / 2;
+  const cy = viewH / 2;
+  const minDim = Math.min(viewW, viewH);
+
+  // 1) 中间底层持续运动的密集照片墙
+  drawBackgroundWall(cx, cy, state.bgTime, beat);
+
+  // 2) 外围重叠交错的多个大环框（包围中间）
+  const pulse = state.pulseAmount * Math.sin(state.totalTime * 2.0) + beat * 0.06;
+  const baseHalf = minDim * 0.43 * state.ringScale * (1 + pulse);
+
+  const aspect = state.shape === 'circle' ? 1 : state.boxAspect;
+  const norm = Math.sqrt((1 + aspect * aspect) / 2);
+  const baseH = baseHalf / norm;
+  const baseW = baseH * aspect;
+
+  for (let i = 0; i < state.ringCount; i++) {
+    // 默认大小差很小(5%)，所以全部环框都是大环，包围中间并彼此穿插！
+    const ratio = i / Math.max(1, state.ringCount);
+    const shrink = 1 - ratio * state.sizeStep;
+    const outerW = baseW * shrink;
+    const outerH = baseH * shrink;
+    const T = Math.max(22, Math.min(outerW, outerH) * state.ringThick * 2);
+    const innerW = Math.max(18, outerW - T);
+    const innerH = Math.max(18, outerH - T);
+
+    const outerR = Math.min(outerW, outerH) * state.cornerR * 1.8;
+    const innerR = Math.max(4, outerR - T * 0.72);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(state.angles[i]);
+
+    // A) 环框立体阴影（投射到下方环与中间底图上）
+    if (state.shadowBlur > 0) {
+      ctx.save();
+      traceRingPath(ctx, state.shape, outerW, outerH, innerW, innerH, outerR, innerR);
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.88)';
+      ctx.shadowBlur = state.shadowBlur;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 6;
+      ctx.fillStyle = '#000';
+      ctx.fill('evenodd');
+      ctx.restore();
+    }
+
+    // B) 裁剪成空心环框，把照片直接排列在环框上
+    ctx.save();
+    traceRingPath(ctx, state.shape, outerW, outerH, innerW, innerH, outerR, innerR);
+    ctx.clip('evenodd');
+
+    ctx.fillStyle = '#070a12';
+    ctx.fillRect(-outerW - 4, -outerH - 4, (outerW + 4) * 2, (outerH + 4) * 2);
+
+    const flowPx = state.ringFlow
+      ? state.totalTime * 48 * state.ringFlowSpeed * (i % 2 === 0 ? 1 : -1)
+      : 0;
+
+    if (state.shape === 'circle') {
+      drawCircleRingPhotos(items, i, (outerW + outerH) / 2, T, flowPx);
+    } else {
+      drawRectRingPhotos(items, i, outerW, outerH, T, flowPx);
+    }
+    ctx.restore();
+
+    // C) 环框边缘线条（强化前后叠压穿插关系 / 可选霓虹发光）
+    ctx.save();
+    traceRingPath(ctx, state.shape, outerW, outerH, innerW, innerH, outerR, innerR);
+    if (state.glowEnabled || beat > 0.35) {
+      ctx.strokeStyle = state.glowColor;
+      ctx.lineWidth = state.glowEnabled ? 2.2 : 1.5;
+      ctx.shadowColor = state.glowColor;
+      ctx.shadowBlur = (state.glowEnabled ? 16 : 8) + beat * 18;
+      ctx.globalAlpha = state.glowEnabled ? 0.92 : Math.min(0.65, beat);
+    } else {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.34)';
+      ctx.lineWidth = 1.6;
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // 3) 星尘粒子
+  if (state.particlesEnabled) drawParticles(beat);
+
+  // 4) 电影暗角
+  if (state.vignetteEnabled) {
+    const grad = ctx.createRadialGradient(cx, cy, minDim * 0.25, cx, cy, Math.max(viewW, viewH) * 0.72);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(2,4,10,0.62)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, viewW, viewH);
+  }
+
+  // 5) 中心文字
+  if (state.textEnabled && state.textContent.trim()) {
+    drawCenterText(cx, beat);
+  }
+
+  ctx.restore();
+}
+
+function drawBackgroundWall(cx, cy, t, beat) {
+  ctx.save();
+  const baseScale = state.bgScale * (1 + beat * 0.04);
+
+  if (state.bgMode === 'zoom') {
+    const cycle = (t * 0.22) % 1;
+    for (let layer = 0; layer < 2; layer++) {
+      const p = (cycle + layer * 0.5) % 1;
+      const scale = baseScale * Math.pow(2, p);
+      const alpha = p < 0.2 ? p / 0.2 : (p > 0.8 ? (1 - p) / 0.2 : 1);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = mosaicPattern;
+      const w = (viewW / scale) * 1.4;
+      const h = (viewH / scale) * 1.4;
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+  } else {
+    let dx = 0, dy = 0, rot = 0;
+    const speedPx = 56;
+    if (state.bgMode === 'diagonal') { dx = t * speedPx; dy = t * speedPx * 0.72; }
+    else if (state.bgMode === 'up') { dy = -t * speedPx; }
+    else if (state.bgMode === 'left') { dx = -t * speedPx; }
+    else if (state.bgMode === 'spiral') {
+      dx = Math.cos(t * 0.4) * 110 + t * 28;
+      dy = Math.sin(t * 0.4) * 110 + t * 22;
+      rot = t * 0.07;
+    } else if (state.bgMode === 'wave') {
+      dx = Math.sin(t * 0.8) * 130 + t * 22;
+      dy = Math.cos(t * 0.65) * 100 + t * 18;
+    }
+
+    ctx.translate(cx, cy);
+    if (rot !== 0) ctx.rotate(rot);
+    ctx.scale(baseScale, baseScale);
+    const ox = ((dx % mosaicTileW) + mosaicTileW) % mosaicTileW;
+    const oy = ((dy % mosaicTileH) + mosaicTileH) % mosaicTileH;
+    ctx.translate(ox, oy);
+    ctx.fillStyle = mosaicPattern;
+    const diag = Math.hypot(viewW, viewH) / baseScale + mosaicTileW;
+    ctx.fillRect(-diag / 2 - ox, -diag / 2 - oy, diag, diag);
+  }
+  ctx.restore();
+
+  if (state.bgBright < 1) {
+    ctx.fillStyle = `rgba(3, 5, 12, ${1 - state.bgBright})`;
+    ctx.fillRect(0, 0, viewW, viewH);
+  } else if (state.bgBright > 1) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${(state.bgBright - 1) * 0.32})`;
+    ctx.fillRect(0, 0, viewW, viewH);
+  }
+}
+
+function drawParticles(beat) {
+  ctx.save();
+  particles.forEach(p => {
+    if (state.playing) {
+      p.x += p.vx;
+      p.y += p.vy * (1 + beat * 2);
+      if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
+      if (p.x < -0.05) p.x = 1.05;
+      if (p.x > 1.05) p.x = -0.05;
+    }
+    ctx.beginPath();
+    ctx.arc(p.x * viewW, p.y * viewH, p.r * (1 + beat * 0.8), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, p.alpha + beat * 0.3)})`;
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawCenterText(cx, beat) {
+  const lines = state.textContent.split('\n');
+  const fontSize = state.textSize * (1 + beat * 0.06);
+  const lineHeight = fontSize * 1.38;
+  const totalH = lines.length * lineHeight;
+  const startY = viewH * state.textY - totalH / 2 + lineHeight / 2;
+
+  ctx.save();
+  ctx.font = `700 ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  lines.forEach((line, idx) => {
+    const y = startY + idx * lineHeight;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = Math.max(3, fontSize * 0.14);
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.72)';
+    ctx.strokeText(line, cx, y);
+
+    ctx.shadowColor = state.glowEnabled ? state.glowColor : 'rgba(255,255,255,0.45)';
+    ctx.shadowBlur = state.glowEnabled ? 18 : 8;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(line, cx, y);
+  });
+  ctx.restore();
+}
+
+// ==================== 9. UI 控制 ====================
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+function togglePanel() {
+  const panel = document.getElementById('controlPanel');
+  const btn = document.getElementById('btnPanelToggle');
+  panel.classList.toggle('collapsed');
+  btn.classList.toggle('active', !panel.classList.contains('collapsed'));
+}
+
+function togglePlay() {
+  state.playing = !state.playing;
+  document.getElementById('btnTogglePlay').textContent = state.playing ? '⏸ 暂停' : '▶ 播放';
+}
+
+function toggleUIHidden() { document.body.classList.toggle('ui-hidden'); }
+
+function setActiveSeg(container, attr, value) {
+  container.querySelectorAll('.seg-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute(attr) == value);
+  });
+}
+
+function setDirMode(mode, btn) {
+  state.dirMode = mode;
+  setActiveSeg(btn.parentElement, 'data-dir', mode);
+  document.getElementById('customRingsBox').style.display = mode === 'custom' ? 'block' : 'none';
+  if (mode === 'custom') renderCustomRingsUI();
+}
+
+function setSpeedGrad(grad, btn) {
+  state.speedGrad = grad;
+  setActiveSeg(btn.parentElement, 'data-grad', grad);
+}
+
+function setShape(shape, btn) {
+  state.shape = shape;
+  setActiveSeg(btn.parentElement, 'data-shape', shape);
+  const isRect = shape === 'roundedRect';
+  document.getElementById('rowBoxAspect').style.display = isRect ? 'flex' : 'none';
+  document.getElementById('rowCornerR').style.display = isRect ? 'flex' : 'none';
+}
+
+function setBgMode(mode, btn) {
+  state.bgMode = mode;
+  setActiveSeg(btn.parentElement, 'data-bg', mode);
+}
+
+function setFitMode(mode, btn) {
+  state.fitMode = mode;
+  setActiveSeg(btn.parentElement, 'data-fit', mode);
+  onTileStyleChange();
+  showToast(mode === 'contain' ? '🖼 已切换为完整显示（不裁剪原图）' : '🧱 已切换为填满裁剪模式');
+}
+
+function setCellAspect(aspect, btn) {
+  state.cellAspect = aspect;
+  setActiveSeg(btn.parentElement, 'data-aspect', aspect);
+  onTileStyleChange();
+}
+
+function setQuickScale(val) {
+  document.getElementById('rngRingScale').value = val;
+  onParamChange();
+}
+
+function renderCustomRingsUI() {
+  const box = document.getElementById('ringCustomList');
+  box.innerHTML = '';
+  for (let i = 0; i < state.ringCount; i++) {
+    const r = state.customRings[i];
+    const row = document.createElement('div');
+    row.className = 'ring-item';
+    const dirLabel = r.dir === 1 ? '↻ 顺转' : (r.dir === -1 ? '↺ 反转' : '⏸ 暂停');
+    row.innerHTML = `
+      <span>第 ${i + 1} 圈</span>
+      <button class="ring-dir-btn" onclick="cycleRingDir(${i})">${dirLabel}</button>
+      <input type="range" min="0.2" max="3" step="0.1" value="${r.speed}" oninput="setRingCustomSpeed(${i}, this.value, this.nextElementSibling)">
+      <span class="row-val">${r.speed.toFixed(1)}x</span>
+    `;
+    box.appendChild(row);
+  }
+}
+
+function cycleRingDir(i) {
+  const cur = state.customRings[i].dir;
+  state.customRings[i].dir = cur === 1 ? -1 : (cur === -1 ? 0 : 1);
+  renderCustomRingsUI();
+}
+
+function setRingCustomSpeed(i, val, labelEl) {
+  state.customRings[i].speed = Number(val);
+  labelEl.textContent = `${Number(val).toFixed(1)}x`;
+}
+
+function onParamChange() {
+  const prevCount = state.ringCount;
+  state.ringCount = Number(document.getElementById('rngRingCount').value);
+  state.ringSpeed = Number(document.getElementById('rngRingSpeed').value);
+  state.ringScale = Number(document.getElementById('rngRingScale').value);
+  state.boxAspect = Number(document.getElementById('rngBoxAspect').value);
+  state.sizeStep = Number(document.getElementById('rngSizeStep').value) / 100;
+  state.ringThick = Number(document.getElementById('rngRingThick').value) / 100;
+  state.ringRows = Number(document.getElementById('rngRingRows').value);
+  state.cornerR = Number(document.getElementById('rngCornerR').value) / 100;
+  state.ringFlow = document.getElementById('chkRingFlow').checked;
+  state.ringFlowSpeed = Number(document.getElementById('rngRingFlowSpeed').value);
+
+  state.bgSpeed = Number(document.getElementById('rngBgSpeed').value);
+  state.bgScale = Number(document.getElementById('rngBgScale').value);
+  state.bgBright = Number(document.getElementById('rngBgBright').value) / 100;
+
+  state.shadowBlur = Number(document.getElementById('rngShadow').value);
+  state.glowEnabled = document.getElementById('chkGlow').checked;
+  state.glowColor = document.getElementById('clrGlow').value;
+  state.pulseAmount = Number(document.getElementById('rngPulse').value) / 100;
+  state.particlesEnabled = document.getElementById('chkParticles').checked;
+  state.vignetteEnabled = document.getElementById('chkVignette').checked;
+
+  state.textEnabled = document.getElementById('chkText').checked;
+  state.textContent = document.getElementById('txtOverlay').value;
+  state.textSize = Number(document.getElementById('rngTextSize').value);
+  state.textY = Number(document.getElementById('rngTextY').value) / 100;
+  state.audioReact = document.getElementById('chkAudioReact').checked;
+
+  document.getElementById('valRingCount').textContent = `${state.ringCount} 圈`;
+  document.getElementById('valRingSpeed').textContent = `${state.ringSpeed.toFixed(2)}x`;
+  document.getElementById('valRingScale').textContent = state.ringScale.toFixed(2);
+  document.getElementById('valBoxAspect').textContent = state.boxAspect.toFixed(2);
+  document.getElementById('valSizeStep').textContent = `${Math.round(state.sizeStep * 100)}%`;
+  document.getElementById('valRingThick').textContent = `${Math.round(state.ringThick * 100)}%`;
+  document.getElementById('valRingRows').textContent = `${state.ringRows} 排`;
+  document.getElementById('valCornerR').textContent = `${Math.round(state.cornerR * 100)}%`;
+  document.getElementById('valRingFlowSpeed').textContent = `${state.ringFlowSpeed.toFixed(1)}x`;
+
+  document.getElementById('valBgSpeed').textContent = `${state.bgSpeed.toFixed(2)}x`;
+  document.getElementById('valBgScale').textContent = `${state.bgScale.toFixed(2)}x`;
+  document.getElementById('valBgBright').textContent = `${Math.round(state.bgBright * 100)}%`;
+
+  document.getElementById('valShadow').textContent = `${state.shadowBlur} px`;
+  document.getElementById('valPulse').textContent = `${(state.pulseAmount * 100).toFixed(1)}%`;
+  document.getElementById('valTextSize').textContent = `${state.textSize} px`;
+  document.getElementById('valTextY').textContent = `${Math.round(state.textY * 100)}%`;
+
+  if (state.dirMode === 'custom' && prevCount !== state.ringCount) {
+    renderCustomRingsUI();
+  }
+}
+
+// ==================== 10. 上传、图库与预设 ====================
+function triggerUpload() { document.getElementById('fileInput').click(); }
+
+function handleFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  let added = 0;
+  Array.from(fileList).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const url = URL.createObjectURL(file);
+    customItems.push(loadImageItem(url, false, url));
+    added++;
+  });
+  document.getElementById('fileInput').value = '';
+  if (added > 0) {
+    updateStats();
+    showToast(`📤 已添加 ${added} 张图片`);
+    if (document.getElementById('galleryModal').classList.contains('show')) renderGallery();
+  }
+}
+
+function onImageFilterChange() {
+  state.hideDefault = document.getElementById('chkHideDefault').checked;
+  buildMosaicCanvas();
+  if (state.hideDefault && customItems.length === 0) {
+    showToast('⚠ 已隐藏默认图，请上传你自己的图片');
+  } else {
+    showToast(state.hideDefault ? '🙈 已隐藏默认图片' : '🖼 已显示默认图片');
+  }
+}
+
+function clearCustomImages() {
+  customItems.forEach(it => { if (it.objectUrl) URL.revokeObjectURL(it.objectUrl); });
+  customItems = [];
+  updateStats();
+  buildMosaicCanvas();
+  showToast('🗑 已清空自定义图片');
+}
+
+function openGallery() { renderGallery(); document.getElementById('galleryModal').classList.add('show'); }
+function closeGallery() { document.getElementById('galleryModal').classList.remove('show'); }
+
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+  const list = state.hideDefault ? customItems : [...customItems, ...defaultItems];
+  if (list.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;">暂无图片，请点击上方「继续传图」</div>';
+    return;
+  }
+  list.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.innerHTML = `<img src="${item.src}" alt=""><span class="gallery-tag">${item.isDefault ? '默认' : '上传'}</span>`;
+    div.onclick = () => {
+      document.getElementById('lightboxImg').src = item.src;
+      document.getElementById('lightbox').classList.add('show');
+    };
+    if (!item.isDefault) {
+      const del = document.createElement('button');
+      del.className = 'gallery-del';
+      del.textContent = '×';
+      del.onclick = e => {
+        e.stopPropagation();
+        if (item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+        customItems = customItems.filter(x => x.id !== item.id);
+        updateStats();
+        buildMosaicCanvas();
+        renderGallery();
+      };
+      div.appendChild(del);
+    }
+    grid.appendChild(div);
+  });
+}
+
+window.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropOverlay').classList.add('show'); });
+window.addEventListener('dragleave', e => { if (e.relatedTarget === null) document.getElementById('dropOverlay').classList.remove('show'); });
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('dropOverlay').classList.remove('show');
+  if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+});
+
+function applyPreset(name) {
+  if (name === 'sketchEqual') {
+    document.getElementById('rngRingCount').value = 3;
+    document.getElementById('rngRingScale').value = 0.84;
+    document.getElementById('rngBoxAspect').value = 1.18;
+    document.getElementById('rngSizeStep').value = 0;
+    document.getElementById('rngRingThick').value = 15;
+    document.getElementById('rngRingRows').value = 2;
+    document.getElementById('rngCornerR').value = 18;
+    document.getElementById('chkGlow').checked = false;
+    setShape('roundedRect', document.querySelector('[data-shape="roundedRect"]'));
+    setDirMode('alternate', document.querySelector('[data-dir="alternate"]'));
+    showToast('💠 已切换：草图等大叠环（完全等大交错包围中间）');
+  } else if (name === 'classic2') {
+    document.getElementById('rngRingCount').value = 4;
+    document.getElementById('rngRingScale').value = 1.04;
+    document.getElementById('rngBoxAspect').value = 1.05;
+    document.getElementById('rngSizeStep').value = 12;
+    document.getElementById('rngRingThick').value = 19;
+    document.getElementById('rngRingRows').value = 3;
+    document.getElementById('rngCornerR').value = 12;
+    document.getElementById('chkGlow').checked = false;
+    setShape('roundedRect', document.querySelector('[data-shape="roundedRect"]'));
+    setDirMode('alternate', document.querySelector('[data-dir="alternate"]'));
+    setBgMode('diagonal', document.querySelector('[data-bg="diagonal"]'));
+    showToast('✨ 已切换：图2经典大环漩涡');
+  } else if (name === 'circleWheel') {
+    document.getElementById('rngRingCount').value = 3;
+    document.getElementById('rngRingScale').value = 0.88;
+    document.getElementById('rngSizeStep').value = 10;
+    document.getElementById('rngRingThick').value = 16;
+    document.getElementById('rngRingRows').value = 2;
+    document.getElementById('chkGlow').checked = true;
+    document.getElementById('clrGlow').value = '#38bdf8';
+    setShape('circle', document.querySelector('[data-shape="circle"]'));
+    showToast('🎡 已切换：圆形照片轮');
+  } else if (name === 'fullview') {
+    document.getElementById('rngRingScale').value = 0.74;
+    document.getElementById('rngRingRows').value = 1;
+    document.getElementById('rngRingThick').value = 16;
+    setFitMode('contain', document.querySelector('[data-fit="contain"]'));
+    showToast('🖼 已切换：单排完整无裁剪大图环框');
+  }
+  onParamChange();
+}
+
+function takeSnapshot() {
+  try {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `旋转照片环_${Date.now()}.png`;
+    a.click();
+    showToast('📸 截图已保存');
+  } catch (e) {
+    showToast('⚠ 受浏览器跨域限制，请使用本地上传图片后截图');
+  }
+}
+
+let mediaRecorder = null, recordedChunks = [];
+function toggleRecord() {
+  const btn = document.getElementById('btnRecord');
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    btn.textContent = '⏺ 录视频';
+    btn.classList.remove('active');
+    return;
+  }
+  try {
+    const stream = canvas.captureStream(60);
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `旋转照片环_${Date.now()}.webm`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showToast('🎬 视频已保存 (.webm)');
+    };
+    mediaRecorder.start();
+    btn.textContent = '⏹ 停止录制';
+    btn.classList.add('active');
+    showToast('⏺ 正在录制 60FPS 动态视频...');
+  } catch (e) {
+    showToast('⚠ 当前环境不支持直接录制（请尝试使用本地图片）');
+  }
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+window.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'h' || e.key === 'H') toggleUIHidden();
+});
+
+initDefaultImages();
+onParamChange();
+requestAnimationFrame(renderFrame);
+</script>
+</body>
+</html>
