@@ -1,0 +1,3183 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>云端笔记本 & 工具百宝箱</title>
+  <style>
+    :root {
+      --bg-app: #f6f7f9;
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --bg-hover: #f0f2f5;
+      --bg-active: #e8f0fe;
+      --bg-input: #f3f4f6;
+      --bg-code: #f1f3f5;
+      --text-main: #1f2328;
+      --text-secondary: #59636e;
+      --text-muted: #8b949e;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-soft: rgba(37, 99, 235, 0.1);
+      --danger: #dc2626;
+      --danger-soft: rgba(220, 38, 38, 0.1);
+      --warning: #d97706;
+      --warning-soft: rgba(217, 119, 6, 0.12);
+      --success: #16a34a;
+      --success-soft: rgba(22, 163, 74, 0.12);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.1);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+    }
+
+    html.dark {
+      --bg-app: #0f1117;
+      --bg-sidebar: #161922;
+      --bg-card: #1c202b;
+      --bg-hover: #252a38;
+      --bg-active: #1e2d4d;
+      --bg-input: #232836;
+      --bg-code: #232836;
+      --text-main: #e6edf3;
+      --text-secondary: #9da7b3;
+      --text-muted: #6e7681;
+      --border: #2b3140;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --primary-soft: rgba(59, 130, 246, 0.15);
+      --danger: #f87171;
+      --danger-soft: rgba(248, 113, 113, 0.15);
+      --warning: #fbbf24;
+      --warning-soft: rgba(251, 191, 36, 0.15);
+      --success: #4ade80;
+      --success-soft: rgba(74, 222, 128, 0.15);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg-app);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      line-height: 1.6;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    input, textarea, select { font-family: inherit; color: inherit; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Sidebar */
+    .sidebar {
+      width: 305px; min-width: 305px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; height: 100%; z-index: 20;
+      transition: transform 0.25s ease;
+    }
+
+    .sidebar-header {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .brand-row { display: flex; align-items: center; justify-content: space-between; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+    .brand-icon {
+      width: 28px; height: 28px; border-radius: 8px; background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .icon-btn { width: 30px; height: 30px; border-radius: var(--radius-sm); color: var(--text-secondary); }
+    .icon-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+
+    .search-box { position: relative; display: flex; align-items: center; }
+    .search-box svg { position: absolute; left: 10px; color: var(--text-muted); pointer-events: none; }
+    .search-input {
+      width: 100%; padding: 7px 28px 7px 32px; background: var(--bg-input);
+      border: 1px solid transparent; border-radius: var(--radius-sm); font-size: 13px; outline: none;
+    }
+    .search-input:focus { border-color: var(--primary); background: var(--bg-card); }
+    .search-clear {
+      position: absolute; right: 6px; color: var(--text-muted);
+      width: 20px; height: 20px; border-radius: 50%; display: none;
+    }
+    .search-clear.visible { display: flex; }
+
+    .primary-actions { display: flex; gap: 8px; }
+    .btn-primary {
+      flex: 1; background: var(--primary); color: #fff;
+      padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 500;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-secondary {
+      background: var(--bg-input); color: var(--text-main);
+      padding: 8px 10px; border-radius: var(--radius-sm); font-weight: 500;
+    }
+    .btn-secondary:hover:not(:disabled) { background: var(--bg-hover); }
+
+    .tag-filter-section {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 6px; max-height: 105px; overflow-y: auto;
+    }
+    .filter-pill {
+      padding: 3px 9px; border-radius: 99px; font-size: 12px;
+      background: var(--bg-input); color: var(--text-secondary); border: 1px solid transparent;
+    }
+    .filter-pill:hover { background: var(--bg-hover); color: var(--text-main); }
+    .filter-pill.active {
+      background: var(--primary-soft); color: var(--primary); border-color: var(--primary); font-weight: 500;
+    }
+
+    .note-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+    .note-item {
+      padding: 9px 11px; border-radius: var(--radius-sm); cursor: pointer;
+      display: flex; flex-direction: column; gap: 3px; border: 1px solid transparent;
+    }
+    .note-item:hover { background: var(--bg-hover); }
+    .note-item.active { background: var(--bg-active); border-color: rgba(37, 99, 235, 0.25); }
+    .note-item-title {
+      font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .pin-badge { color: var(--warning); flex-shrink: 0; }
+    .note-item-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--text-muted); gap: 6px;
+    }
+    .note-item-tags { display: flex; gap: 4px; overflow: hidden; white-space: nowrap; }
+    .mini-tag { background: var(--bg-input); padding: 1px 6px; border-radius: 4px; font-size: 11px; color: var(--text-secondary); }
+
+    .sidebar-footer {
+      padding: 10px 14px; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px; background: var(--bg-sidebar);
+    }
+    .export-menu-wrapper { position: relative; }
+    .export-dropdown {
+      position: absolute; bottom: calc(100% + 6px); left: 0; right: 0;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md); padding: 6px; display: none; flex-direction: column; gap: 2px; z-index: 50;
+    }
+    .export-dropdown.open { display: flex; }
+    .export-dropdown button {
+      justify-content: flex-start; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12.5px; text-align: left;
+    }
+    .export-dropdown button:hover { background: var(--bg-hover); }
+    .footer-row { display: flex; gap: 6px; }
+    .footer-row button {
+      flex: 1; padding: 7px 8px; border-radius: var(--radius-sm);
+      background: var(--bg-input); color: var(--text-main); font-size: 12px; font-weight: 500;
+    }
+    .footer-row button:hover:not(:disabled) { background: var(--bg-hover); }
+
+    /* Main Workspace */
+    .main { flex: 1; height: 100%; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .global-topbar {
+      padding: 8px 20px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 46px;
+    }
+    .topbar-left, .topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .mobile-menu-btn { display: none; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      border-radius: 99px; font-size: 12px; font-weight: 500;
+    }
+    .status-badge.readonly { background: var(--bg-input); color: var(--text-secondary); }
+    .status-badge.verified { background: var(--success-soft); color: var(--success); }
+    .status-badge.dirty { background: var(--warning-soft); color: var(--warning); }
+
+    .btn-sync {
+      padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600;
+      background: var(--bg-input); color: var(--text-main);
+    }
+    .btn-sync:hover:not(:disabled) { background: var(--bg-hover); }
+    .btn-sync.needs-push { background: var(--primary); color: #fff; box-shadow: 0 0 0 2px var(--primary-soft); }
+    .btn-sync.needs-push:hover:not(:disabled) { background: var(--primary-hover); }
+
+    .btn-auth {
+      padding: 5px 11px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 500;
+      background: var(--primary-soft); color: var(--primary);
+    }
+    .btn-auth:hover { background: var(--primary); color: #fff; }
+
+    /* Overview View */
+    .overview-container { flex: 1; overflow-y: auto; padding: 24px 28px; }
+    .overview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .overview-title h1 { font-size: 20px; font-weight: 700; }
+    .overview-title p { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+    .overview-controls { display: flex; align-items: center; gap: 8px; }
+
+    .view-switcher { display: inline-flex; background: var(--bg-input); padding: 3px; border-radius: var(--radius-sm); gap: 2px; }
+    .view-switcher button { padding: 5px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary); }
+    .view-switcher button.active { background: var(--bg-card); color: var(--text-main); box-shadow: var(--shadow-sm); font-weight: 600; }
+
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+    .tool-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+      padding: 15px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow-sm);
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .tool-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+    .card-title { font-size: 15.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .card-thumb {
+      width: 100%; height: 125px; object-fit: cover; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--bg-input);
+    }
+    .card-excerpt {
+      font-size: 13px; color: var(--text-secondary);
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: 1;
+    }
+    .card-links { display: flex; flex-wrap: wrap; gap: 6px; }
+    .card-link-pill {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: var(--radius-sm);
+      background: var(--primary-soft); color: var(--primary); font-size: 12px; font-weight: 500;
+      text-decoration: none; max-width: 100%;
+    }
+    .card-link-pill:hover { background: var(--primary); color: #fff; }
+    .card-link-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 8px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-muted);
+    }
+
+    .compact-table-wrap {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow-x: auto; box-shadow: var(--shadow-sm);
+    }
+    .compact-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .compact-table th {
+      text-align: left; padding: 10px 14px; background: var(--bg-app);
+      border-bottom: 1px solid var(--border); color: var(--text-secondary); font-weight: 600; font-size: 12px; white-space: nowrap;
+    }
+    .compact-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .compact-table tr:last-child td { border-bottom: none; }
+    .compact-table tbody tr { cursor: pointer; }
+    .compact-table tbody tr:hover { background: var(--bg-hover); }
+
+    /* Editor View */
+    .editor-container { flex: 1; display: none; flex-direction: column; height: calc(100% - 46px); background: var(--bg-card); }
+    .editor-container.active { display: flex; }
+
+    .editor-topbar {
+      padding: 8px 22px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg-card); flex-wrap: wrap;
+    }
+    .editor-topbar-left, .editor-topbar-right { display: flex; align-items: center; gap: 8px; }
+
+    .btn-ghost { padding: 5px 9px; border-radius: var(--radius-sm); color: var(--text-secondary); }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-main); }
+    .btn-ghost.active-pin { color: var(--warning); background: var(--warning-soft); }
+    .btn-danger-ghost:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
+
+    .readonly-banner {
+      background: var(--bg-app); border-bottom: 1px solid var(--border); padding: 7px 22px;
+      font-size: 12.5px; color: var(--text-secondary); display: none;
+      align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .readonly-banner.visible { display: flex; }
+
+    .editor-scroll { flex: 1; overflow-y: auto; padding: 24px 32px 80px; }
+    .editor-inner { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+    .title-input {
+      width: 100%; font-size: 26px; font-weight: 700; border: none; outline: none;
+      background: transparent; color: var(--text-main);
+    }
+    .title-input::placeholder { color: var(--text-muted); }
+
+    .tags-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .tag-chip {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
+      border-radius: 99px; background: var(--bg-input); color: var(--text-main); font-size: 12px;
+    }
+    .tag-chip button { width: 14px; height: 14px; border-radius: 50%; color: var(--text-muted); font-size: 12px; }
+    .tag-chip button:hover { background: var(--danger-soft); color: var(--danger); }
+    .tag-input {
+      border: none; outline: none; background: transparent; font-size: 12.5px;
+      padding: 4px 6px; min-width: 160px; color: var(--text-main);
+    }
+
+    .links-box {
+      background: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius-md);
+      padding: 11px 14px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .links-box-header {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    }
+    .links-list { display: flex; flex-direction: column; gap: 6px; }
+    .link-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 6px 10px; gap: 10px;
+    }
+    .link-row-info { display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; }
+    .link-row-label { font-weight: 600; font-size: 13px; white-space: nowrap; }
+    .link-row-url {
+      font-size: 12px; color: var(--primary); text-decoration: none;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .link-row-url:hover { text-decoration: underline; }
+    .link-row-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+    .add-link-form { display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .add-link-form.open { display: flex; }
+    .add-link-form input {
+      padding: 6px 10px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--bg-card); font-size: 13px; outline: none;
+    }
+    .add-link-form input:focus { border-color: var(--primary); }
+
+    .rich-wrapper {
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      background: var(--bg-card); display: flex; flex-direction: column;
+    }
+    .rich-toolbar {
+      padding: 7px 10px; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
+      background: var(--bg-app); border-radius: var(--radius-md) var(--radius-md) 0 0;
+      position: sticky; top: 0; z-index: 6;
+    }
+    .tb-btn {
+      height: 28px; min-width: 28px; padding: 0 7px; border-radius: 5px;
+      color: var(--text-secondary); font-size: 12.5px; font-weight: 500;
+    }
+    .tb-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-main); }
+    .tb-sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
+
+    .tb-dropdown-wrap { position: relative; display: inline-flex; }
+    .color-palette {
+      position: absolute; top: calc(100% + 4px); left: 0;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
+      padding: 6px; display: none; gap: 5px; z-index: 30;
+    }
+    .color-palette.open { display: flex; }
+    .swatch-btn { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border); font-size: 11px; }
+    .swatch-btn:hover { transform: scale(1.12); }
+
+    .rich-editor {
+      min-height: 380px; padding: 18px 20px; outline: none;
+      font-size: 15px; line-height: 1.75; color: var(--text-main); word-break: break-word;
+    }
+    .rich-editor:empty:before { content: attr(data-placeholder); color: var(--text-muted); pointer-events: none; display: block; }
+    .rich-editor.drag-over { background: var(--primary-soft); outline: 2px dashed var(--primary); outline-offset: -4px; }
+
+    .rich-editor h2 { font-size: 20px; margin: 14px 0 6px; font-weight: 700; }
+    .rich-editor h3 { font-size: 17px; margin: 12px 0 6px; font-weight: 600; }
+    .rich-editor p { margin-bottom: 8px; }
+    .rich-editor ul, .rich-editor ol { padding-left: 24px; margin-bottom: 10px; }
+    .rich-editor hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    .rich-editor blockquote {
+      border-left: 3px solid var(--primary); padding: 4px 12px; margin: 8px 0;
+      background: var(--bg-app); color: var(--text-secondary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+    .rich-editor pre {
+      background: var(--bg-code); padding: 12px 14px; border-radius: var(--radius-sm);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px; overflow-x: auto; margin: 8px 0; border: 1px solid var(--border);
+    }
+    .rich-editor code {
+      background: var(--bg-code); padding: 2px 5px; border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.9em;
+    }
+    .rich-editor pre code { background: none; padding: 0; }
+    .rich-editor a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+
+    .rich-editor table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; background: var(--bg-card); }
+    .rich-editor th, .rich-editor td { border: 1px solid var(--border); padding: 8px 10px; min-width: 60px; vertical-align: top; }
+    .rich-editor th { background: var(--bg-app); font-weight: 600; text-align: left; }
+
+    .rich-editor img {
+      max-width: 100%; height: auto; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); margin: 10px 0; display: block; cursor: pointer;
+    }
+    .rich-editor img.selected-img { outline: 2px solid var(--primary); }
+
+    .todo-line { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0; }
+    .todo-line input[type="checkbox"] {
+      margin-top: 6px; width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0;
+    }
+    .todo-line .todo-text { flex: 1; outline: none; }
+    .todo-line.checked .todo-text { text-decoration: line-through; color: var(--text-muted); }
+
+    .floating-popover {
+      position: fixed; z-index: 100; background: var(--bg-card); border: 1px solid var(--border);
+      box-shadow: var(--shadow-md); border-radius: var(--radius-sm); padding: 5px 7px;
+      display: none; align-items: center; gap: 4px; flex-wrap: wrap; max-width: 92vw;
+    }
+    .floating-popover.visible { display: flex; }
+    .floating-popover button { padding: 4px 7px; border-radius: 4px; font-size: 12px; }
+    .floating-popover button:hover { background: var(--bg-hover); }
+
+    .lightbox {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 95%; max-height: 92vh; border-radius: var(--radius-sm); }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 500;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+      padding: 20px; width: 100%; max-width: 440px; box-shadow: var(--shadow-md);
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal-box h3 { font-size: 16px; }
+    .modal-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+    .modal-field { display: flex; flex-direction: column; gap: 5px; }
+    .modal-field label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .modal-field input {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--bg-input); outline: none; font-size: 13px;
+    }
+    .modal-field input:focus { border-color: var(--primary); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+    .toast-container {
+      position: fixed; bottom: 20px; right: 20px; z-index: 1200;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .toast {
+      background: var(--text-main); color: var(--bg-card); padding: 10px 16px;
+      border-radius: var(--radius-sm); font-size: 13px; box-shadow: var(--shadow-md); animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+
+    @media (max-width: 860px) {
+      .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-md); }
+      .mobile-menu-btn { display: inline-flex; }
+      .overview-container { padding: 16px; }
+      .editor-scroll { padding: 16px 14px 70px; }
+      .global-topbar { padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-row">
+        <div class="brand" id="btn-home" title="回到总览">
+          <div class="brand-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          </div>
+          <span>云端笔记本</span>
+        </div>
+        <button class="icon-btn" id="btn-theme" title="切换亮色/暗色">
+          <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" class="search-input" id="search-input" placeholder="搜索标题、标签、链接、内容...">
+        <button class="search-clear" id="search-clear" title="清空">×</button>
+      </div>
+
+      <div class="primary-actions">
+        <button class="btn-primary" id="btn-new-note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          新建笔记 / 工具
+        </button>
+        <button class="btn-secondary" id="btn-overview" title="回到总览视图">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="tag-filter-section" id="tag-filter-bar"></div>
+    <div class="note-list" id="note-list"></div>
+
+    <div class="sidebar-footer">
+      <div class="export-menu-wrapper">
+        <div class="export-dropdown" id="export-dropdown">
+          <button id="exp-docx-one">📘 导出当前笔记为 Word (.docx)</button>
+          <button id="exp-docx-all">📚 导出全部笔记为 Word (.docx)</button>
+          <button id="exp-html">📦 导出独立 HTML（含所有图文）</button>
+          <button id="exp-bookmarks">🔖 导出纯网址书签 (.html 可导入浏览器)</button>
+          <button id="exp-json">💾 导出 JSON 数据备份</button>
+        </div>
+        <div class="footer-row">
+          <button id="btn-export-menu" style="background:var(--primary-soft); color:var(--primary);">📤 导出 (Word/HTML/书签/JSON) ▾</button>
+        </div>
+      </div>
+      <div class="footer-row">
+        <button id="btn-import-json">📂 导入 JSON 恢复</button>
+        <input type="file" id="import-json-input" accept=".json" style="display:none">
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main class="main">
+    <div class="global-topbar">
+      <div class="topbar-left">
+        <button class="btn-ghost mobile-menu-btn" id="btn-toggle-sidebar">☰ 目录</button>
+        <span class="status-badge readonly" id="auth-badge">🔒 只读浏览模式</span>
+        <span class="status-badge" id="sync-badge" style="display:none"></span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-sync" id="btn-pull-github" title="从 GitHub 仓库拉取最新数据">🔄 拉取云端</button>
+        <button class="btn-sync" id="btn-push-github" title="将本地修改及图片上传到 GitHub 仓库">☁️ 保存到 GitHub</button>
+        <button class="btn-auth" id="btn-auth-action">🔑 验证 Token</button>
+      </div>
+    </div>
+
+    <!-- Overview View -->
+    <section class="overview-container" id="overview-view">
+      <div class="overview-header">
+        <div class="overview-title">
+          <h1 id="overview-heading">全部笔记与工具</h1>
+          <p id="overview-sub">文字存于 wasdkd/Amazon/笔记本/notes.json，图片自动存放在 笔记本/images/ 目录</p>
+        </div>
+        <div class="overview-controls">
+          <div class="view-switcher">
+            <button id="mode-card" class="active">卡片墙</button>
+            <button id="mode-compact">紧凑列表</button>
+          </div>
+          <button class="btn-primary" style="flex:0" id="btn-new-overview">+ 新建</button>
+        </div>
+      </div>
+      <div id="overview-content"></div>
+    </section>
+
+    <!-- Note Editor / Reader View -->
+    <section class="editor-container" id="editor-view">
+      <div class="editor-topbar">
+        <div class="editor-topbar-left">
+          <button class="btn-ghost" id="btn-back-overview">← 返回总览</button>
+          <span id="local-save-hint" style="font-size:12px; color:var(--text-muted);"></span>
+        </div>
+        <div class="editor-topbar-right">
+          <button class="btn-ghost" id="btn-export-current-docx" title="导出当前笔记为 Word (.docx)">📘 导出Word</button>
+          <button class="btn-ghost" id="btn-pin-note" title="置顶">★ <span id="pin-btn-text">置顶</span></button>
+          <button class="btn-ghost btn-danger-ghost" id="btn-delete-note" title="删除">🗑 删除</button>
+        </div>
+      </div>
+
+      <div class="readonly-banner" id="readonly-banner">
+        <span>🔒 当前为只读浏览模式，如需修改内容、勾选待办或增删链接，请先验证 GitHub Token。</span>
+        <button class="btn-auth" id="btn-banner-auth" style="padding:3px 10px;">立即验证</button>
+      </div>
+
+      <div class="editor-scroll">
+        <div class="editor-inner">
+          <input type="text" class="title-input" id="note-title-input" placeholder="输入软件名、项目名称或数据分析标题...">
+
+          <div class="tags-row" id="tags-container">
+            <input type="text" class="tag-input" id="tag-input" placeholder="+ 添加标签 (回车确认，如: 装机软件 / 项目 / 数据分析)">
+          </div>
+
+          <div class="links-box">
+            <div class="links-box-header">
+              <span>🔗 快捷链接（下载页、GitHub仓库、文档地址等）</span>
+              <button class="btn-ghost" id="btn-toggle-add-link" style="padding:2px 8px; font-size:12px; color:var(--primary);">+ 添加链接</button>
+            </div>
+            <div class="links-list" id="links-list"></div>
+            <div class="add-link-form" id="add-link-form">
+              <input type="text" id="new-link-label" placeholder="名称 (如: 官网下载)" style="width:150px;">
+              <input type="text" id="new-link-url" placeholder="网址 (如: https://...)" style="flex:1; min-width:200px;">
+              <button class="btn-primary" style="flex:0; padding:6px 12px;" id="btn-confirm-add-link">添加</button>
+              <button class="btn-secondary" style="padding:6px 10px;" id="btn-cancel-add-link">取消</button>
+            </div>
+          </div>
+
+          <div class="rich-wrapper">
+            <div class="rich-toolbar" id="rich-toolbar">
+              <button class="tb-btn" data-cmd="formatBlock" data-val="H2" title="大标题">H2</button>
+              <button class="tb-btn" data-cmd="formatBlock" data-val="H3" title="小标题">H3</button>
+              <button class="tb-btn" data-cmd="bold" title="加粗"><b>B</b></button>
+              <button class="tb-btn" data-cmd="italic" title="斜体"><i>I</i></button>
+              <button class="tb-btn" data-cmd="strikeThrough" title="删除线"><s>S</s></button>
+
+              <div class="tb-dropdown-wrap">
+                <button class="tb-btn" id="tb-forecolor-btn" title="文字颜色">A▾</button>
+                <div class="color-palette" id="forecolor-palette">
+                  <button class="swatch-btn" data-color="inherit" title="默认">默认</button>
+                  <button class="swatch-btn" data-color="#dc2626" style="background:#dc2626;" title="红"></button>
+                  <button class="swatch-btn" data-color="#2563eb" style="background:#2563eb;" title="蓝"></button>
+                  <button class="swatch-btn" data-color="#16a34a" style="background:#16a34a;" title="绿"></button>
+                  <button class="swatch-btn" data-color="#d97706" style="background:#d97706;" title="橙"></button>
+                  <button class="swatch-btn" data-color="#9333ea" style="background:#9333ea;" title="紫"></button>
+                </div>
+              </div>
+
+              <div class="tb-dropdown-wrap">
+                <button class="tb-btn" id="tb-hilite-btn" title="背景高亮">🖍▾</button>
+                <div class="color-palette" id="hilite-palette">
+                  <button class="swatch-btn" data-color="transparent" title="无高亮">无</button>
+                  <button class="swatch-btn" data-color="rgba(250, 204, 21, 0.35)" style="background:rgba(250, 204, 21, 0.55);" title="黄"></button>
+                  <button class="swatch-btn" data-color="rgba(74, 222, 128, 0.3)" style="background:rgba(74, 222, 128, 0.5);" title="绿"></button>
+                  <button class="swatch-btn" data-color="rgba(96, 165, 250, 0.3)" style="background:rgba(96, 165, 250, 0.5);" title="蓝"></button>
+                  <button class="swatch-btn" data-color="rgba(244, 114, 182, 0.3)" style="background:rgba(244, 114, 182, 0.5);" title="粉"></button>
+                  <button class="swatch-btn" data-color="rgba(192, 132, 252, 0.3)" style="background:rgba(192, 132, 252, 0.5);" title="紫"></button>
+                </div>
+              </div>
+
+              <div class="tb-sep"></div>
+              <button class="tb-btn" data-cmd="insertUnorderedList" title="无序列表">• 列表</button>
+              <button class="tb-btn" id="tb-todo" title="可勾选清单">☑ 待办</button>
+              <button class="tb-btn" id="tb-table" title="插入表格">⊞ 表格</button>
+              <button class="tb-btn" id="tb-code" title="插入代码块">&lt;/&gt; 代码</button>
+              <button class="tb-btn" data-cmd="formatBlock" data-val="BLOCKQUOTE" title="引用块">❝ 引用</button>
+              <button class="tb-btn" data-cmd="insertHorizontalRule" title="分割线">―</button>
+              <div class="tb-sep"></div>
+              <button class="tb-btn" id="tb-link" title="插入正文链接">🔗 链接</button>
+              <button class="tb-btn" id="tb-image" title="插入图片">🖼 图片</button>
+              <input type="file" id="image-upload-input" accept="image/*" multiple style="display:none">
+            </div>
+
+            <div
+              class="rich-editor"
+              id="rich-editor"
+              contenteditable="false"
+              data-placeholder="在这里自由记录：软件配置、项目文档、数据分析结论、图表截图... 支持 Ctrl+V 粘贴截图或拖拽图片！"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Floating Popovers -->
+  <div class="floating-popover" id="link-popover">
+    <button id="pop-open-link" style="color:var(--primary); font-weight:600;">↗ 打开链接</button>
+    <button id="pop-unlink">取消链接</button>
+  </div>
+
+  <div class="floating-popover" id="img-popover">
+    <button data-w="25%">25%</button>
+    <button data-w="50%">50%</button>
+    <button data-w="75%">75%</button>
+    <button data-w="100%">100%</button>
+    <input type="range" id="img-width-slider" min="15" max="100" value="100" style="width:75px; accent-color:var(--primary);" title="自由调整宽度">
+    <button id="pop-zoom-img">🔍 放大</button>
+    <button id="pop-del-img" style="color:var(--danger);">🗑 删除</button>
+  </div>
+
+  <div class="floating-popover" id="table-popover">
+    <button id="tbl-add-row">+ 插行</button>
+    <button id="tbl-add-col">+ 插列</button>
+    <button id="tbl-del-row">- 删行</button>
+    <button id="tbl-del-col">- 删列</button>
+    <button id="tbl-del-table" style="color:var(--danger);">🗑 删表格</button>
+  </div>
+
+  <div class="lightbox" id="lightbox"><img id="lightbox-img" src="" alt="预览"></div>
+
+  <!-- Token Auth Modal -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal-box">
+      <h3>🔑 验证 GitHub Token</h3>
+      <p class="modal-desc">
+        目标仓库：<b>wasdkd/Amazon</b>（文字：<code>笔记本/notes.json</code>，图片：<code>笔记本/images/</code>）<br>
+        查看无需验证；只有进行<b>新增、编辑、删除及上传同步</b>时需要验证拥有仓库读写权限的 Personal Access Token。
+      </p>
+      <div class="modal-field">
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="token-input" placeholder="ghp_... 或 github_pat_...">
+      </div>
+      <label style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-secondary); cursor:pointer;">
+        <input type="checkbox" id="remember-token" checked style="accent-color:var(--primary);">
+        在当前浏览器记住 Token（方便下次免输入，不会上传到云端）
+      </label>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="auth-cancel">取消</button>
+        <button class="btn-primary" style="flex:0" id="auth-confirm">验证并连接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insert Link Modal -->
+  <div class="modal-backdrop" id="link-modal">
+    <div class="modal-box">
+      <h3>插入正文链接</h3>
+      <div class="modal-field">
+        <label>显示文字</label>
+        <input type="text" id="modal-link-text" placeholder="例如：查看分析报告">
+      </div>
+      <div class="modal-field">
+        <label>目标网址 (URL)</label>
+        <input type="text" id="modal-link-url" placeholder="https://...">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modal-link-cancel">取消</button>
+        <button class="btn-primary" style="flex:0" id="modal-link-ok">插入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insert Table Modal -->
+  <div class="modal-backdrop" id="table-modal">
+    <div class="modal-box" style="max-width:340px;">
+      <h3>插入表格</h3>
+      <div style="display:flex; gap:12px;">
+        <div class="modal-field" style="flex:1;">
+          <label>行数（含表头）</label>
+          <input type="number" id="tbl-rows-input" value="3" min="2" max="30">
+        </div>
+        <div class="modal-field" style="flex:1;">
+          <label>列数</label>
+          <input type="number" id="tbl-cols-input" value="3" min="1" max="15">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="table-modal-cancel">取消</button>
+        <button class="btn-primary" style="flex:0" id="table-modal-ok">插入表格</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+  <script id="embedded-data" type="application/json"></script>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ==========================================
+      // 1. GitHub Config & UTF-8 Base64 Helpers
+      // ==========================================
+      const GH_CONFIG = {
+        owner: 'wasdkd',
+        repo: 'Amazon',
+        folder: '笔记本',
+        imagesDir: '笔记本/images',
+        filePath: '笔记本/notes.json',
+        pagesBase: 'https://wasdkd.github.io/Amazon'
+      };
+
+      function encodeRepoPath(path) {
+        return path.split('/').map(encodeURIComponent).join('/');
+      }
+
+      function utf8ToBase64(str) {
+        const bytes = new TextEncoder().encode(str);
+        let binary = '';
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      }
+
+      function base64ToUtf8(b64) {
+        const clean = (b64 || '').replace(/\s/g, '');
+        const binary = atob(clean);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new TextDecoder().decode(bytes);
+      }
+
+      function base64ToUint8Array(b64) {
+        const clean = (b64 || '').replace(/\s/g, '');
+        const binary = atob(clean);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes;
+      }
+
+      function parseDataUrl(dataUrl) {
+        const m = /^data:([^;]+);base64,(.+)$/i.exec(dataUrl || '');
+        if (!m) return null;
+        const mime = m[1].toLowerCase();
+        const extMap = {
+          'image/png': 'png',
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+          'image/svg+xml': 'svg'
+        };
+        return { mime, ext: extMap[mime] || 'png', base64: m[2] };
+      }
+
+      function mimeFromPath(path) {
+        const lower = (path || '').toLowerCase();
+        if (lower.endsWith('.webp')) return 'image/webp';
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+        if (lower.endsWith('.gif')) return 'image/gif';
+        if (lower.endsWith('.svg')) return 'image/svg+xml';
+        return 'image/png';
+      }
+
+      // ==========================================
+      // 2. IndexedDB Layer (Notes + Image Cache)
+      // ==========================================
+      const DB_NAME = 'CloudToolboxNotes_v3';
+      const STORE_STATE = 'appState';
+      const STORE_IMAGES = 'imgCache';
+      const STATE_KEY = 'main';
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          if (!window.indexedDB) return reject(new Error('No IndexedDB'));
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_STATE)) db.createObjectStore(STORE_STATE);
+            if (!db.objectStoreNames.contains(STORE_IMAGES)) db.createObjectStore(STORE_IMAGES);
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function loadLocalState() {
+        try {
+          const db = await openDB();
+          return await new Promise((resolve, reject) => {
+            const req = db.transaction(STORE_STATE, 'readonly').objectStore(STORE_STATE).get(STATE_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+          });
+        } catch (e) {
+          const raw = localStorage.getItem('cloud_toolbox_fallback_v3');
+          return raw ? JSON.parse(raw) : null;
+        }
+      }
+
+      async function saveLocalState(stateObj) {
+        try {
+          const db = await openDB();
+          await new Promise((resolve, reject) => {
+            const req = db.transaction(STORE_STATE, 'readwrite').objectStore(STORE_STATE).put(stateObj, STATE_KEY);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+          });
+        } catch (e) {
+          localStorage.setItem('cloud_toolbox_fallback_v3', JSON.stringify(stateObj));
+        }
+      }
+
+      const memoryImgCache = new Map();
+
+      async function getCachedImage(ghPath) {
+        if (memoryImgCache.has(ghPath)) return memoryImgCache.get(ghPath);
+        try {
+          const db = await openDB();
+          const val = await new Promise((resolve) => {
+            const req = db.transaction(STORE_IMAGES, 'readonly').objectStore(STORE_IMAGES).get(ghPath);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+          });
+          if (val) memoryImgCache.set(ghPath, val);
+          return val;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      async function setCachedImage(ghPath, dataUrl) {
+        memoryImgCache.set(ghPath, dataUrl);
+        try {
+          const db = await openDB();
+          await new Promise((resolve) => {
+            const req = db.transaction(STORE_IMAGES, 'readwrite').objectStore(STORE_IMAGES).put(dataUrl, ghPath);
+            req.onsuccess = () => resolve();
+            req.onerror = () => resolve();
+          });
+        } catch (e) {}
+      }
+
+      // ==========================================
+      // 3. App State
+      // ==========================================
+      let appData = {
+        notes: [],
+        localUpdatedAt: 0,
+        lastSyncedAt: 0,
+        remoteSha: null,
+        hasUnsavedChanges: false
+      };
+
+      let authState = {
+        token: '',
+        verified: false,
+        branch: 'main'
+      };
+
+      let uiState = {
+        activeNoteId: null,
+        selectedTag: 'ALL',
+        searchQuery: '',
+        viewMode: 'overview',
+        overviewLayout: 'card'
+      };
+
+      let saveTimer = null;
+      let savedRange = null;
+      let activeLinkEl = null;
+      let activeImgEl = null;
+      let activeTableCell = null;
+
+      function uuid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      }
+
+      function createStarterNotes() {
+        const now = Date.now();
+        return [
+          {
+            id: uuid(),
+            title: 'Everything (极速本地文件搜索)',
+            tags: ['装机软件', '效率工具'],
+            pinned: true,
+            links: [{ id: uuid(), label: '官网下载', url: 'https://www.voidtools.com/zh-cn/' }],
+            content: '<p><b>简介：</b>装机必装，输入文件名瞬间定位电脑里的任何文件。</p><div class="todo-line"><input type="checkbox"><span class="todo-text">安装后开启开机自启</span></div><div class="todo-line"><input type="checkbox"><span class="todo-text">配置全局快捷键 Alt + Space</span></div>',
+            createdAt: now,
+            updatedAt: now
+          },
+          {
+            id: uuid(),
+            title: '📊 项目与数据分析示例模板',
+            tags: ['数据分析', '项目'],
+            pinned: false,
+            links: [{ id: uuid(), label: 'GitHub 仓库', url: 'https://github.com/wasdkd/Amazon' }],
+            content: '<h2>核心指标汇总表</h2><table><thead><tr><th>项目模块</th><th>关键指标</th><th>当前状态</th></tr></thead><tbody><tr><td>转化率分析</td><td>+12.4%</td><td>已完成</td></tr><tr><td>图片独立存储</td><td>笔记本/images/</td><td>已支持</td></tr></tbody></table><p><span style="background-color: rgba(250, 204, 21, 0.35);">粘贴或上传的图片会在保存到 GitHub 时自动存入 笔记本/images/ 目录，也可一键导出为图文并茂的 Word (.docx) 文档！</span></p>',
+            createdAt: now - 1000,
+            updatedAt: now - 1000
+          }
+        ];
+      }
+
+      // ==========================================
+      // 4. GitHub API Operations
+      // ==========================================
+      function ghHeaders(withAuth = true) {
+        const h = { 'Accept': 'application/vnd.github+json' };
+        if (withAuth && authState.token) h['Authorization'] = `Bearer ${authState.token}`;
+        return h;
+      }
+
+      async function detectRepoInfo(token) {
+        const res = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}`, {
+          headers: { 'Accept': 'application/vnd.github+json', 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(res.status === 401 ? 'Token 无效或已过期' : (err.message || `验证失败 (${res.status})`));
+        }
+        const repo = await res.json();
+        if (repo.permissions && !repo.permissions.push && !repo.permissions.admin && !repo.permissions.maintain) {
+          throw new Error('该 Token 只有只读权限，缺少仓库写入权限 (Contents: Read & Write)');
+        }
+        return repo.default_branch || 'main';
+      }
+
+      async function getRemoteFileMeta(useAuth) {
+        const encodedDir = encodeRepoPath(GH_CONFIG.folder);
+        const refParam = authState.branch ? `&ref=${encodeURIComponent(authState.branch)}` : '';
+        const url = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${encodedDir}?t=${Date.now()}${refParam}`;
+        const res = await fetch(url, { headers: ghHeaders(useAuth) });
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+        const list = await res.json();
+        if (!Array.isArray(list)) return null;
+        return list.find(item => item.name === 'notes.json') || null;
+      }
+
+      async function fetchRemoteNotes() {
+        try {
+          const meta = await getRemoteFileMeta(authState.verified);
+          if (!meta) return { exists: false };
+
+          const blobUrl = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/blobs/${meta.sha}`;
+          const blobRes = await fetch(blobUrl, { headers: ghHeaders(authState.verified) });
+          if (blobRes.ok) {
+            const blob = await blobRes.json();
+            const parsed = JSON.parse(base64ToUtf8(blob.content));
+            return { exists: true, sha: meta.sha, data: parsed };
+          }
+        } catch (err) {}
+
+        const candidates = [
+          `./${encodeRepoPath(GH_CONFIG.filePath)}?t=${Date.now()}`,
+          `${GH_CONFIG.pagesBase}/${encodeRepoPath(GH_CONFIG.filePath)}?t=${Date.now()}`
+        ];
+        for (const u of candidates) {
+          try {
+            const r = await fetch(u);
+            if (r.ok) {
+              const parsed = await r.json();
+              return { exists: true, sha: null, data: parsed };
+            }
+          } catch (e) {}
+        }
+        return { exists: false };
+      }
+
+      const pendingImgFetches = new Map();
+      async function fetchGitHubImageAsDataUrl(ghPath) {
+        if (!ghPath) return null;
+        const cached = await getCachedImage(ghPath);
+        if (cached) return cached;
+        if (pendingImgFetches.has(ghPath)) return pendingImgFetches.get(ghPath);
+
+        const task = (async () => {
+          if (authState.verified) {
+            try {
+              const refParam = authState.branch ? `&ref=${encodeURIComponent(authState.branch)}` : '';
+              const url = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${encodeRepoPath(ghPath)}?t=${Date.now()}${refParam}`;
+              const r = await fetch(url, { headers: ghHeaders(true) });
+              if (r.ok) {
+                const json = await r.json();
+                let b64 = json.content;
+                if (!b64 && json.sha) {
+                  const br = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/blobs/${json.sha}`, { headers: ghHeaders(true) });
+                  if (br.ok) b64 = (await br.json()).content;
+                }
+                if (b64) {
+                  const dataUrl = `data:${mimeFromPath(ghPath)};base64,${b64.replace(/\s/g, '')}`;
+                  await setCachedImage(ghPath, dataUrl);
+                  return dataUrl;
+                }
+              }
+            } catch (e) {}
+          }
+
+          const pageUrls = [];
+          if (location.protocol !== 'file:') pageUrls.push(`./${encodeRepoPath(ghPath)}?t=${Date.now()}`);
+          pageUrls.push(`${GH_CONFIG.pagesBase}/${encodeRepoPath(ghPath)}?t=${Date.now()}`);
+
+          for (const u of pageUrls) {
+            try {
+              const r = await fetch(u);
+              if (r.ok) {
+                const blob = await r.blob();
+                const dataUrl = await new Promise((resolve) => {
+                  const fr = new FileReader();
+                  fr.onload = () => resolve(fr.result);
+                  fr.onerror = () => resolve(null);
+                  fr.readAsDataURL(blob);
+                });
+                if (dataUrl) {
+                  await setCachedImage(ghPath, dataUrl);
+                  return dataUrl;
+                }
+              }
+            } catch (e) {}
+          }
+
+          if (!authState.verified) {
+            try {
+              const url = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${encodeRepoPath(ghPath)}?t=${Date.now()}`;
+              const r = await fetch(url, { headers: ghHeaders(false) });
+              if (r.ok) {
+                const json = await r.json();
+                if (json.content) {
+                  const dataUrl = `data:${mimeFromPath(ghPath)};base64,${json.content.replace(/\s/g, '')}`;
+                  await setCachedImage(ghPath, dataUrl);
+                  return dataUrl;
+                }
+              }
+            } catch (e) {}
+          }
+
+          return null;
+        })();
+
+        pendingImgFetches.set(ghPath, task);
+        try {
+          return await task;
+        } finally {
+          pendingImgFetches.delete(ghPath);
+        }
+      }
+
+      async function hydrateImagesInContainer(container) {
+        if (!container) return;
+        const imgs = Array.from(container.querySelectorAll('img'));
+        for (const img of imgs) {
+          const ghPath = img.getAttribute('data-gh-path');
+          if (!ghPath) continue;
+
+          const cached = await getCachedImage(ghPath);
+          if (cached) {
+            img.src = cached;
+            continue;
+          }
+
+          if (location.protocol === 'file:') {
+            fetchGitHubImageAsDataUrl(ghPath).then(dataUrl => {
+              if (dataUrl) img.src = dataUrl;
+            });
+          } else {
+            img.onerror = () => {
+              img.onerror = null;
+              fetchGitHubImageAsDataUrl(ghPath).then(dataUrl => {
+                if (dataUrl) img.src = dataUrl;
+              });
+            };
+          }
+        }
+      }
+
+      async function prepareNotesAndImagesForUpload(notes) {
+        const clonedNotes = JSON.parse(JSON.stringify(notes));
+        const newImages = [];
+
+        for (const note of clonedNotes) {
+          if (!note.content) continue;
+          const div = document.createElement('div');
+          div.innerHTML = note.content;
+          const imgs = div.querySelectorAll('img');
+          let changed = false;
+
+          for (const img of imgs) {
+            const existingGhPath = img.getAttribute('data-gh-path');
+            const src = img.getAttribute('src') || '';
+
+            if (existingGhPath) {
+              const cleanSrc = `./${existingGhPath}`;
+              if (src !== cleanSrc) {
+                img.setAttribute('src', cleanSrc);
+                changed = true;
+              }
+            } else if (src.startsWith('data:image/')) {
+              const parsed = parseDataUrl(src);
+              if (parsed) {
+                const fileName = `img_${uuid()}.${parsed.ext}`;
+                const ghPath = `${GH_CONFIG.imagesDir}/${fileName}`;
+                newImages.push({ path: ghPath, base64: parsed.base64, dataUrl: src });
+                img.setAttribute('data-gh-path', ghPath);
+                img.setAttribute('src', `./${ghPath}`);
+                changed = true;
+              }
+            }
+          }
+          if (changed) note.content = div.innerHTML;
+        }
+        return { cleanNotes: clonedNotes, newImages };
+      }
+
+      async function createGitBlob(base64Content) {
+        const res = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/blobs`, {
+          method: 'POST',
+          headers: { ...ghHeaders(true), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: base64Content, encoding: 'base64' })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || `创建 Blob 失败 (${res.status})`);
+        }
+        return (await res.json()).sha;
+      }
+
+      function syncEditorToActiveNote() {
+        const currentActive = getActiveNote();
+        if (currentActive && uiState.viewMode === 'editor' && authState.verified) {
+          currentActive.title = elTitleInput.value;
+          currentActive.content = sanitizeEditorHtmlForLocalSave(elRichEditor.innerHTML);
+        }
+      }
+
+      async function pushNotesToGitHub(commitMsg) {
+        if (!authState.verified) {
+          openAuthModal();
+          return false;
+        }
+        const btn = document.getElementById('btn-push-github');
+        btn.disabled = true;
+        btn.textContent = '⏳ 准备图片与数据...';
+
+        try {
+          const remoteMeta = await getRemoteFileMeta(true);
+          if (remoteMeta && appData.remoteSha && remoteMeta.sha !== appData.remoteSha) {
+            const goAhead = confirm('检测到 GitHub 云端已有比上次同步更新的内容，强制保存将覆盖云端版本。\n是否继续覆盖？（点「取消」可先拉取云端）');
+            if (!goAhead) {
+              btn.disabled = false;
+              updateSyncUI();
+              return false;
+            }
+          }
+
+          syncEditorToActiveNote();
+          const currentActive = getActiveNote();
+          if (currentActive && uiState.viewMode === 'editor') currentActive.updatedAt = Date.now();
+
+          const { cleanNotes, newImages } = await prepareNotesAndImagesForUpload(appData.notes);
+          const now = Date.now();
+          const payload = { updatedAt: now, notes: cleanNotes };
+          const jsonStr = JSON.stringify(payload, null, 2);
+
+          const branch = authState.branch || 'main';
+          const refUrl = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/ref/heads/${encodeURIComponent(branch)}?t=${Date.now()}`;
+          const refRes = await fetch(refUrl, { headers: ghHeaders(true) });
+
+          let newNotesSha = null;
+
+          if (refRes.ok) {
+            const refData = await refRes.json();
+            const baseCommitSha = refData.object.sha;
+
+            const commitRes = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/commits/${baseCommitSha}`, {
+              headers: ghHeaders(true)
+            });
+            if (!commitRes.ok) throw new Error('获取提交树失败');
+            const baseTreeSha = (await commitRes.json()).tree.sha;
+
+            const treeItems = [];
+            for (let i = 0; i < newImages.length; i++) {
+              btn.textContent = `⏳ 上传图片 (${i + 1}/${newImages.length})...`;
+              const imgItem = newImages[i];
+              const blobSha = await createGitBlob(imgItem.base64);
+              treeItems.push({ path: imgItem.path, mode: '100644', type: 'blob', sha: blobSha });
+              await setCachedImage(imgItem.path, imgItem.dataUrl);
+            }
+
+            btn.textContent = '⏳ 写入笔记本数据...';
+            newNotesSha = await createGitBlob(utf8ToBase64(jsonStr));
+            treeItems.push({ path: GH_CONFIG.filePath, mode: '100644', type: 'blob', sha: newNotesSha });
+
+            const treeRes = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/trees`, {
+              method: 'POST',
+              headers: { ...ghHeaders(true), 'Content-Type': 'application/json' },
+              body: JSON.stringify({ base_tree: baseTreeSha, tree: treeItems })
+            });
+            if (!treeRes.ok) throw new Error('创建 Git Tree 失败');
+            const newTreeSha = (await treeRes.json()).sha;
+
+            const msg = commitMsg || (newImages.length > 0
+              ? `更新笔记并上传 ${newImages.length} 张图片到 笔记本/images`
+              : `更新笔记本数据 (${new Date().toLocaleString('zh-CN')})`);
+
+            const newCommitRes = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/commits`, {
+              method: 'POST',
+              headers: { ...ghHeaders(true), 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: msg, tree: newTreeSha, parents: [baseCommitSha] })
+            });
+            if (!newCommitRes.ok) throw new Error('创建 Commit 失败');
+            const newCommitSha = (await newCommitRes.json()).sha;
+
+            const patchRes = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+              method: 'PATCH',
+              headers: { ...ghHeaders(true), 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sha: newCommitSha, force: false })
+            });
+            if (!patchRes.ok) {
+              const err = await patchRes.json().catch(() => ({}));
+              throw new Error(err.message || '推送分支引用失败（可能有远端冲突）');
+            }
+          } else {
+            for (let i = 0; i < newImages.length; i++) {
+              btn.textContent = `⏳ 上传图片 (${i + 1}/${newImages.length})...`;
+              const imgItem = newImages[i];
+              const putImgRes = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${encodeRepoPath(imgItem.path)}`, {
+                method: 'PUT',
+                headers: { ...ghHeaders(true), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `上传图片 ${imgItem.path}`, content: imgItem.base64, branch })
+              });
+              if (!putImgRes.ok) throw new Error(`上传图片失败: ${imgItem.path}`);
+              await setCachedImage(imgItem.path, imgItem.dataUrl);
+            }
+
+            btn.textContent = '⏳ 写入笔记本数据...';
+            const putBody = {
+              message: commitMsg || `更新笔记本数据 (${new Date().toLocaleString('zh-CN')})`,
+              content: utf8ToBase64(jsonStr),
+              branch
+            };
+            if (remoteMeta && remoteMeta.sha) putBody.sha = remoteMeta.sha;
+            const putRes = await fetch(`https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${encodeRepoPath(GH_CONFIG.filePath)}`, {
+              method: 'PUT',
+              headers: { ...ghHeaders(true), 'Content-Type': 'application/json' },
+              body: JSON.stringify(putBody)
+            });
+            if (!putRes.ok) throw new Error(`上传 notes.json 失败 (${putRes.status})`);
+            const putResult = await putRes.json();
+            newNotesSha = putResult.content ? putResult.content.sha : null;
+          }
+
+          appData.notes = cleanNotes;
+          appData.remoteSha = newNotesSha;
+          appData.lastSyncedAt = now;
+          appData.hasUnsavedChanges = false;
+          await saveLocalState(appData);
+
+          if (uiState.viewMode === 'editor' && getActiveNote()) {
+            elRichEditor.innerHTML = getActiveNote().content || '';
+            hydrateImagesInContainer(elRichEditor);
+          } else {
+            renderOverview();
+          }
+
+          updateSyncUI();
+          showToast(newImages.length > 0
+            ? `✅ 已同步到 GitHub！(${newImages.length} 张图片已存入 笔记本/images/)`
+            : '✅ 已成功保存到 GitHub 仓库！');
+          return true;
+        } catch (err) {
+          showToast('❌ 保存到 GitHub 失败：' + err.message);
+          return false;
+        } finally {
+          btn.disabled = false;
+          updateSyncUI();
+        }
+      }
+
+      // ==========================================
+      // 5. Utilities & Image Compression
+      // ==========================================
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      function ensureUrl(url) {
+        const t = (url || '').trim();
+        if (!t) return '';
+        if (/^(https?:\/\/|file:\/\/|mailto:|ms-settings:)/i.test(t)) return t;
+        return 'https://' + t;
+      }
+
+      function stripHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+      }
+
+      function extractFirstImageInfo(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        const img = tmp.querySelector('img');
+        if (!img) return null;
+        return {
+          src: img.getAttribute('src'),
+          ghPath: img.getAttribute('data-gh-path')
+        };
+      }
+
+      function formatTime(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+
+      function showToast(msg) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.2s';
+          setTimeout(() => toast.remove(), 220);
+        }, 3000);
+      }
+
+      function processImageFile(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            if (file.size < 350 * 1024) return resolve(dataUrl);
+            const img = new Image();
+            img.onload = () => {
+              const MAX_W = 1600;
+              let w = img.width, h = img.height;
+              if (w <= MAX_W && file.size < 700 * 1024) return resolve(dataUrl);
+              if (w > MAX_W) { h = Math.round((h * MAX_W) / w); w = MAX_W; }
+              const canvas = document.createElement('canvas');
+              canvas.width = w; canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              let out = canvas.toDataURL('image/webp', 0.86);
+              if (!out.startsWith('data:image/webp')) out = canvas.toDataURL('image/jpeg', 0.86);
+              resolve(out);
+            };
+            img.onerror = () => resolve(dataUrl);
+            img.src = dataUrl;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // ==========================================
+      // 6. Auth Guard & Sync UI
+      // ==========================================
+      function requireAuth(actionLabel = '操作') {
+        if (authState.verified) return true;
+        showToast(`🔒 只读模式：${actionLabel}需要先验证 GitHub Token`);
+        openAuthModal();
+        return false;
+      }
+
+      function updateAuthUI() {
+        const badge = document.getElementById('auth-badge');
+        const authBtn = document.getElementById('btn-auth-action');
+        const roBanner = document.getElementById('readonly-banner');
+        const unlocked = authState.verified;
+
+        if (unlocked) {
+          badge.className = 'status-badge verified';
+          badge.textContent = '🔓 已验证可编辑';
+          authBtn.textContent = '🔒 锁定 / 退出';
+          roBanner.classList.remove('visible');
+        } else {
+          badge.className = 'status-badge readonly';
+          badge.textContent = '🔒 只读浏览模式';
+          authBtn.textContent = '🔑 验证 Token';
+          roBanner.classList.add('visible');
+        }
+
+        elTitleInput.readOnly = !unlocked;
+        elRichEditor.contentEditable = unlocked ? 'true' : 'false';
+        elTagInput.style.display = unlocked ? 'inline-block' : 'none';
+        document.getElementById('btn-toggle-add-link').style.display = unlocked ? 'inline-flex' : 'none';
+        document.getElementById('rich-toolbar').style.display = unlocked ? 'flex' : 'none';
+        document.getElementById('btn-pin-note').disabled = !unlocked;
+        document.getElementById('btn-delete-note').disabled = !unlocked;
+
+        const active = getActiveNote();
+        if (active && uiState.viewMode === 'editor') {
+          renderEditorTags(active);
+          renderEditorLinks(active);
+        }
+        updateSyncUI();
+      }
+
+      function updateSyncUI() {
+        const syncBadge = document.getElementById('sync-badge');
+        const pushBtn = document.getElementById('btn-push-github');
+        const localHint = document.getElementById('local-save-hint');
+
+        if (appData.hasUnsavedChanges) {
+          syncBadge.style.display = 'inline-flex';
+          syncBadge.className = 'status-badge dirty';
+          syncBadge.textContent = '🟡 本地有未上传修改';
+          pushBtn.classList.add('needs-push');
+          pushBtn.textContent = '☁️ 保存到 GitHub *';
+          localHint.textContent = '已暂存在浏览器（未上传 GitHub）';
+        } else {
+          syncBadge.style.display = 'inline-flex';
+          syncBadge.className = 'status-badge readonly';
+          syncBadge.textContent = appData.lastSyncedAt ? `✅ 已同步 (${formatTime(appData.lastSyncedAt)})` : '⚪ 尚未连接云端';
+          pushBtn.classList.remove('needs-push');
+          pushBtn.textContent = '☁️ 保存到 GitHub';
+          localHint.textContent = '与云端一致';
+        }
+      }
+
+      // ==========================================
+      // 7. DOM Elements & Rendering
+      // ==========================================
+      const elSidebar = document.getElementById('sidebar');
+      const elSearchInput = document.getElementById('search-input');
+      const elSearchClear = document.getElementById('search-clear');
+      const elTagFilterBar = document.getElementById('tag-filter-bar');
+      const elNoteList = document.getElementById('note-list');
+      const elOverviewView = document.getElementById('overview-view');
+      const elOverviewContent = document.getElementById('overview-content');
+      const elOverviewHeading = document.getElementById('overview-heading');
+      const elEditorView = document.getElementById('editor-view');
+      const elTitleInput = document.getElementById('note-title-input');
+      const elTagsContainer = document.getElementById('tags-container');
+      const elTagInput = document.getElementById('tag-input');
+      const elLinksList = document.getElementById('links-list');
+      const elAddLinkForm = document.getElementById('add-link-form');
+      const elRichEditor = document.getElementById('rich-editor');
+      const elPinBtn = document.getElementById('btn-pin-note');
+      const elPinBtnText = document.getElementById('pin-btn-text');
+      const elLinkPopover = document.getElementById('link-popover');
+      const elImgPopover = document.getElementById('img-popover');
+      const elTablePopover = document.getElementById('table-popover');
+      const elLightbox = document.getElementById('lightbox');
+      const elLightboxImg = document.getElementById('lightbox-img');
+
+      function getFilteredNotes() {
+        const q = uiState.searchQuery.trim().toLowerCase();
+        return appData.notes
+          .filter(note => {
+            if (uiState.selectedTag === 'PINNED' && !note.pinned) return false;
+            if (uiState.selectedTag !== 'ALL' && uiState.selectedTag !== 'PINNED') {
+              if (!note.tags.includes(uiState.selectedTag)) return false;
+            }
+            if (!q) return true;
+            const text = [
+              note.title,
+              (note.tags || []).join(' '),
+              (note.links || []).map(l => l.label + ' ' + l.url).join(' '),
+              stripHtml(note.content)
+            ].join(' ').toLowerCase();
+            return text.includes(q);
+          })
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return (b.updatedAt || 0) - (a.updatedAt || 0);
+          });
+      }
+
+      function renderAll() {
+        renderTagFilterBar();
+        renderSidebarList();
+        if (uiState.viewMode === 'overview' || !getActiveNote()) {
+          elOverviewView.style.display = 'block';
+          elEditorView.classList.remove('active');
+          renderOverview();
+        } else {
+          elOverviewView.style.display = 'none';
+          elEditorView.classList.add('active');
+        }
+        updateSyncUI();
+      }
+
+      function renderTagFilterBar() {
+        const counts = {};
+        let pinnedCount = 0;
+        appData.notes.forEach(n => {
+          if (n.pinned) pinnedCount++;
+          (n.tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+        });
+        const tags = Object.keys(counts).sort();
+        if (uiState.selectedTag !== 'ALL' && uiState.selectedTag !== 'PINNED' && !counts[uiState.selectedTag]) {
+          uiState.selectedTag = 'ALL';
+        }
+        let html = `<button class="filter-pill ${uiState.selectedTag === 'ALL' ? 'active' : ''}" data-tag="ALL">全部 (${appData.notes.length})</button>`;
+        if (pinnedCount > 0) {
+          html += `<button class="filter-pill ${uiState.selectedTag === 'PINNED' ? 'active' : ''}" data-tag="PINNED">★ 置顶 (${pinnedCount})</button>`;
+        }
+        tags.forEach(t => {
+          html += `<button class="filter-pill ${uiState.selectedTag === t ? 'active' : ''}" data-tag="${escapeHtml(t)}">${escapeHtml(t)} (${counts[t]})</button>`;
+        });
+        elTagFilterBar.innerHTML = html;
+      }
+
+      function renderSidebarList() {
+        const list = getFilteredNotes();
+        if (list.length === 0) {
+          elNoteList.innerHTML = `<div class="empty-state" style="padding:28px 10px; font-size:13px;">暂无匹配记录</div>`;
+          return;
+        }
+        elNoteList.innerHTML = list.map(note => {
+          const isActive = uiState.viewMode === 'editor' && note.id === uiState.activeNoteId;
+          const tagsHtml = (note.tags || []).slice(0, 2).map(t => `<span class="mini-tag">${escapeHtml(t)}</span>`).join('');
+          const linkCount = (note.links || []).length ? `🔗${note.links.length}` : '';
+          return `
+            <div class="note-item ${isActive ? 'active' : ''}" data-id="${note.id}">
+              <div class="note-item-title">
+                ${note.pinned ? '<span class="pin-badge">★</span>' : ''}
+                <span>${escapeHtml(note.title || '无标题笔记')}</span>
+              </div>
+              <div class="note-item-meta">
+                <div class="note-item-tags">${tagsHtml}</div>
+                <span>${linkCount} ${formatTime(note.updatedAt)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderOverview() {
+        const list = getFilteredNotes();
+        const label = uiState.selectedTag === 'ALL' ? '全部笔记与工具'
+          : uiState.selectedTag === 'PINNED' ? '★ 置顶内容'
+          : `标签：${uiState.selectedTag}`;
+        elOverviewHeading.textContent = `${label} (${list.length})`;
+
+        if (list.length === 0) {
+          elOverviewContent.innerHTML = `<div class="empty-state">暂无记录。${authState.verified ? '点击右上角「+ 新建」开始记录！' : '可点击右上角「验证 Token」后创建记录。'}</div>`;
+          return;
+        }
+
+        if (uiState.overviewLayout === 'card') {
+          elOverviewContent.innerHTML = `<div class="cards-grid">` + list.map(note => {
+            const thumb = extractFirstImageInfo(note.content);
+            const excerpt = stripHtml(note.content) || '暂无文字内容...';
+            const tagsHtml = (note.tags || []).map(t => `<span class="mini-tag">${escapeHtml(t)}</span>`).join('');
+            const linksHtml = (note.links || []).map(l => `
+              <a class="card-link-pill" href="${escapeHtml(ensureUrl(l.url))}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="${escapeHtml(l.url)}">
+                <span>↗ ${escapeHtml(l.label || l.url)}</span>
+              </a>
+            `).join('');
+            const thumbHtml = thumb
+              ? `<img class="card-thumb" src="${escapeHtml(thumb.src)}" ${thumb.ghPath ? `data-gh-path="${escapeHtml(thumb.ghPath)}"` : ''} alt="">`
+              : '';
+            return `
+              <div class="tool-card" data-id="${note.id}">
+                <div class="card-title">${note.pinned ? '<span class="pin-badge">★</span>' : ''}<span>${escapeHtml(note.title || '无标题笔记')}</span></div>
+                ${thumbHtml}
+                <div class="card-excerpt">${escapeHtml(excerpt)}</div>
+                ${linksHtml ? `<div class="card-links">${linksHtml}</div>` : ''}
+                <div class="card-footer">
+                  <div class="note-item-tags">${tagsHtml || '<span style="color:var(--text-muted)">无标签</span>'}</div>
+                  <span>${formatTime(note.updatedAt)}</span>
+                </div>
+              </div>
+            `;
+          }).join('') + `</div>`;
+          hydrateImagesInContainer(elOverviewContent);
+        } else {
+          elOverviewContent.innerHTML = `
+            <div class="compact-table-wrap">
+              <table class="compact-table">
+                <thead>
+                  <tr><th>标题 / 名称</th><th>标签</th><th>快捷链接</th><th>更新时间</th></tr>
+                </thead>
+                <tbody>
+                  ${list.map(note => {
+                    const tagsHtml = (note.tags || []).map(t => `<span class="mini-tag">${escapeHtml(t)}</span>`).join(' ');
+                    const linksHtml = (note.links || []).map(l => `
+                      <a class="card-link-pill" href="${escapeHtml(ensureUrl(l.url))}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
+                        <span>↗ ${escapeHtml(l.label || '链接')}</span>
+                      </a>
+                    `).join(' ');
+                    return `
+                      <tr data-id="${note.id}">
+                        <td style="font-weight:600;">${note.pinned ? '<span class="pin-badge">★</span> ' : ''}${escapeHtml(note.title || '无标题笔记')}</td>
+                        <td><div style="display:flex; gap:4px; flex-wrap:wrap;">${tagsHtml || '<span style="color:var(--text-muted)">-</span>'}</div></td>
+                        <td><div style="display:flex; gap:4px; flex-wrap:wrap;">${linksHtml || '<span style="color:var(--text-muted)">-</span>'}</div></td>
+                        <td style="color:var(--text-muted); white-space:nowrap;">${formatTime(note.updatedAt)}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+      }
+
+      // ==========================================
+      // 8. Editor Logic & Local Memory Auto-Save
+      // ==========================================
+      function getActiveNote() {
+        return appData.notes.find(n => n.id === uiState.activeNoteId) || null;
+      }
+
+      function openNoteInEditor(id) {
+        const note = appData.notes.find(n => n.id === id);
+        if (!note) return;
+        uiState.activeNoteId = id;
+        uiState.viewMode = 'editor';
+
+        elTitleInput.value = note.title || '';
+        elRichEditor.innerHTML = note.content || '';
+        elAddLinkForm.classList.remove('open');
+        renderEditorTags(note);
+        renderEditorLinks(note);
+        updatePinButton(note);
+        updateAuthUI();
+        renderAll();
+        hydrateImagesInContainer(elRichEditor);
+        elSidebar.classList.remove('open');
+      }
+
+      function updatePinButton(note) {
+        elPinBtn.classList.toggle('active-pin', !!note.pinned);
+        elPinBtnText.textContent = note.pinned ? '已置顶' : '置顶';
+      }
+
+      function renderEditorTags(note) {
+        elTagsContainer.querySelectorAll('.tag-chip').forEach(el => el.remove());
+        (note.tags || []).forEach(tag => {
+          const chip = document.createElement('span');
+          chip.className = 'tag-chip';
+          chip.innerHTML = `${escapeHtml(tag)}${authState.verified ? ' <button type="button" title="移除">×</button>' : ''}`;
+          const btn = chip.querySelector('button');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              if (!requireAuth('修改标签')) return;
+              note.tags = note.tags.filter(t => t !== tag);
+              renderEditorTags(note);
+              scheduleLocalSave();
+            });
+          }
+          elTagsContainer.insertBefore(chip, elTagInput);
+        });
+      }
+
+      function renderEditorLinks(note) {
+        const links = note.links || [];
+        if (links.length === 0) {
+          elLinksList.innerHTML = `<div style="font-size:12px; color:var(--text-muted);">暂未添加快捷链接</div>`;
+          return;
+        }
+        elLinksList.innerHTML = links.map(l => `
+          <div class="link-row" data-link-id="${l.id}">
+            <div class="link-row-info">
+              <span class="link-row-label">${escapeHtml(l.label || '链接')}</span>
+              <a class="link-row-url" href="${escapeHtml(ensureUrl(l.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.url)}</a>
+            </div>
+            <div class="link-row-actions">
+              <button class="btn-ghost" style="padding:3px 7px; font-size:12px;" data-action="copy">复制</button>
+              ${authState.verified ? `<button class="btn-ghost btn-danger-ghost" style="padding:3px 7px; font-size:12px;" data-action="remove">删除</button>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      function sanitizeEditorHtmlForLocalSave(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        tmp.querySelectorAll('img[data-gh-path]').forEach(img => {
+          img.classList.remove('selected-img');
+          img.setAttribute('src', './' + img.getAttribute('data-gh-path'));
+        });
+        return tmp.innerHTML;
+      }
+
+      function scheduleLocalSave() {
+        if (!authState.verified) return;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(commitLocalSave, 250);
+      }
+
+      async function commitLocalSave() {
+        if (!authState.verified) return;
+        const note = getActiveNote();
+        if (note && uiState.viewMode === 'editor') {
+          note.title = elTitleInput.value;
+          note.content = sanitizeEditorHtmlForLocalSave(elRichEditor.innerHTML);
+          note.updatedAt = Date.now();
+        }
+        appData.localUpdatedAt = Date.now();
+        appData.hasUnsavedChanges = true;
+        await saveLocalState(appData);
+        updateSyncUI();
+        renderTagFilterBar();
+        renderSidebarList();
+      }
+
+      function createNewNote() {
+        if (!requireAuth('新建笔记')) return;
+        const now = Date.now();
+        const defaultTags = (uiState.selectedTag !== 'ALL' && uiState.selectedTag !== 'PINNED') ? [uiState.selectedTag] : [];
+        const newNote = {
+          id: uuid(), title: '', tags: defaultTags, pinned: false, links: [], content: '',
+          createdAt: now, updatedAt: now
+        };
+        appData.notes.unshift(newNote);
+        openNoteInEditor(newNote.id);
+        commitLocalSave();
+        setTimeout(() => elTitleInput.focus(), 50);
+      }
+
+      // ==========================================
+      // 9. Rich Text, Color, Table, Resizable Image
+      // ==========================================
+      function saveSelection() {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+          const r = sel.getRangeAt(0);
+          if (elRichEditor.contains(r.commonAncestorContainer)) savedRange = r.cloneRange();
+        }
+      }
+
+      function restoreSelection() {
+        elRichEditor.focus();
+        if (savedRange) {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(savedRange);
+        }
+      }
+
+      function insertNodeAtCursor(node) {
+        elRichEditor.focus();
+        const sel = window.getSelection();
+        let range;
+        if (sel.rangeCount > 0 && elRichEditor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+          range = sel.getRangeAt(0);
+        } else {
+          range = document.createRange();
+          range.selectNodeContents(elRichEditor);
+          range.collapse(false);
+        }
+        range.deleteContents();
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        scheduleLocalSave();
+      }
+
+      async function insertImageFiles(files) {
+        if (!requireAuth('插入图片')) return;
+        for (const file of files) {
+          if (!file.type.startsWith('image/')) continue;
+          try {
+            const dataUrl = await processImageFile(file);
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.style.width = '100%';
+            insertNodeAtCursor(img);
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            img.after(p);
+          } catch (e) {
+            showToast('图片读取失败');
+          }
+        }
+      }
+
+      document.getElementById('rich-toolbar').addEventListener('mousedown', (e) => {
+        if (e.target.closest('button')) {
+          e.preventDefault();
+          saveSelection();
+        }
+      });
+
+      document.getElementById('rich-toolbar').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const cmd = btn.dataset.cmd;
+        if (cmd) {
+          restoreSelection();
+          document.execCommand(cmd, false, btn.dataset.val || null);
+          scheduleLocalSave();
+        }
+      });
+
+      const elForePalette = document.getElementById('forecolor-palette');
+      const elHilitePalette = document.getElementById('hilite-palette');
+
+      document.getElementById('tb-forecolor-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        elHilitePalette.classList.remove('open');
+        elForePalette.classList.toggle('open');
+      });
+      document.getElementById('tb-hilite-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        elForePalette.classList.remove('open');
+        elHilitePalette.classList.toggle('open');
+      });
+
+      elForePalette.addEventListener('click', (e) => {
+        const swatch = e.target.closest('.swatch-btn');
+        if (!swatch) return;
+        restoreSelection();
+        if (swatch.dataset.color === 'inherit') document.execCommand('removeFormat', false, null);
+        else document.execCommand('foreColor', false, swatch.dataset.color);
+        elForePalette.classList.remove('open');
+        scheduleLocalSave();
+      });
+
+      elHilitePalette.addEventListener('click', (e) => {
+        const swatch = e.target.closest('.swatch-btn');
+        if (!swatch) return;
+        restoreSelection();
+        document.execCommand('hiliteColor', false, swatch.dataset.color);
+        elHilitePalette.classList.remove('open');
+        scheduleLocalSave();
+      });
+
+      document.getElementById('tb-todo').addEventListener('click', () => {
+        restoreSelection();
+        const div = document.createElement('div');
+        div.className = 'todo-line';
+        div.innerHTML = `<input type="checkbox"><span class="todo-text">待办事项</span>`;
+        insertNodeAtCursor(div);
+        const span = div.querySelector('.todo-text');
+        const range = document.createRange();
+        range.selectNodeContents(span);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      });
+
+      document.getElementById('tb-code').addEventListener('click', () => {
+        restoreSelection();
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        code.textContent = '// 代码或数据分析脚本';
+        pre.appendChild(code);
+        insertNodeAtCursor(pre);
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        pre.after(p);
+      });
+
+      const elTableModal = document.getElementById('table-modal');
+      document.getElementById('tb-table').addEventListener('click', () => { saveSelection(); elTableModal.classList.add('open'); });
+      document.getElementById('table-modal-cancel').addEventListener('click', () => elTableModal.classList.remove('open'));
+      document.getElementById('table-modal-ok').addEventListener('click', () => {
+        const rows = Math.max(2, Math.min(30, parseInt(document.getElementById('tbl-rows-input').value, 10) || 3));
+        const cols = Math.max(1, Math.min(15, parseInt(document.getElementById('tbl-cols-input').value, 10) || 3));
+        elTableModal.classList.remove('open');
+        restoreSelection();
+
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const hr = document.createElement('tr');
+        for (let c = 0; c < cols; c++) {
+          const th = document.createElement('th');
+          th.textContent = `列 ${c + 1}`;
+          hr.appendChild(th);
+        }
+        thead.appendChild(hr);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (let r = 1; r < rows; r++) {
+          const tr = document.createElement('tr');
+          for (let c = 0; c < cols; c++) {
+            const td = document.createElement('td');
+            td.innerHTML = '<br>';
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        insertNodeAtCursor(table);
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        table.after(p);
+      });
+
+      document.getElementById('tb-image').addEventListener('click', () => {
+        saveSelection();
+        document.getElementById('image-upload-input').click();
+      });
+      document.getElementById('image-upload-input').addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          restoreSelection();
+          insertImageFiles(e.target.files);
+          e.target.value = '';
+        }
+      });
+
+      const elLinkModal = document.getElementById('link-modal');
+      document.getElementById('tb-link').addEventListener('click', () => {
+        saveSelection();
+        document.getElementById('modal-link-text').value = savedRange ? savedRange.toString() : '';
+        document.getElementById('modal-link-url').value = '';
+        elLinkModal.classList.add('open');
+        setTimeout(() => (document.getElementById('modal-link-text').value
+          ? document.getElementById('modal-link-url')
+          : document.getElementById('modal-link-text')).focus(), 50);
+      });
+      document.getElementById('modal-link-cancel').addEventListener('click', () => elLinkModal.classList.remove('open'));
+      document.getElementById('modal-link-ok').addEventListener('click', () => {
+        const url = ensureUrl(document.getElementById('modal-link-url').value);
+        if (!url) return showToast('请输入有效网址');
+        const text = document.getElementById('modal-link-text').value.trim() || url;
+        elLinkModal.classList.remove('open');
+        restoreSelection();
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = text;
+        insertNodeAtCursor(a);
+      });
+      document.getElementById('modal-link-url').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('modal-link-ok').click();
+      });
+
+      elRichEditor.addEventListener('input', scheduleLocalSave);
+      elRichEditor.addEventListener('change', (e) => {
+        if (e.target.matches('input[type="checkbox"]')) {
+          if (!authState.verified) {
+            e.preventDefault();
+            e.target.checked = !e.target.checked;
+            requireAuth('勾选待办');
+            return;
+          }
+          const line = e.target.closest('.todo-line');
+          if (e.target.checked) {
+            e.target.setAttribute('checked', 'checked');
+            if (line) line.classList.add('checked');
+          } else {
+            e.target.removeAttribute('checked');
+            if (line) line.classList.remove('checked');
+          }
+          scheduleLocalSave();
+        }
+      });
+
+      elRichEditor.addEventListener('paste', async (e) => {
+        if (!authState.verified) return;
+        const dt = e.clipboardData;
+        if (!dt) return;
+        const imgFiles = [];
+        if (dt.items) {
+          for (const item of dt.items) {
+            if (item.type.startsWith('image/')) {
+              const f = item.getAsFile();
+              if (f) imgFiles.push(f);
+            }
+          }
+        }
+        if (imgFiles.length > 0) {
+          e.preventDefault();
+          await insertImageFiles(imgFiles);
+          return;
+        }
+        const plain = dt.getData('text/plain');
+        if (plain) {
+          e.preventDefault();
+          if (/^https?:\/\/\S+$/i.test(plain.trim())) {
+            const a = document.createElement('a');
+            a.href = plain.trim(); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = plain.trim();
+            insertNodeAtCursor(a);
+          } else {
+            document.execCommand('insertText', false, plain);
+          }
+        }
+      });
+
+      elRichEditor.addEventListener('dragover', (e) => {
+        if (!authState.verified) return;
+        e.preventDefault();
+        elRichEditor.classList.add('drag-over');
+      });
+      elRichEditor.addEventListener('dragleave', () => elRichEditor.classList.remove('drag-over'));
+      elRichEditor.addEventListener('drop', async (e) => {
+        if (!authState.verified) return;
+        e.preventDefault();
+        elRichEditor.classList.remove('drag-over');
+        if (e.dataTransfer && e.dataTransfer.files.length) await insertImageFiles(e.dataTransfer.files);
+      });
+
+      function hidePopovers() {
+        elLinkPopover.classList.remove('visible');
+        elImgPopover.classList.remove('visible');
+        elTablePopover.classList.remove('visible');
+        elRichEditor.querySelectorAll('img.selected-img').forEach(i => i.classList.remove('selected-img'));
+        activeLinkEl = null;
+        activeImgEl = null;
+        activeTableCell = null;
+      }
+
+      elRichEditor.addEventListener('click', (e) => {
+        hidePopovers();
+        const link = e.target.closest('a');
+        if (link) {
+          e.preventDefault();
+          if (!authState.verified) {
+            window.open(ensureUrl(link.getAttribute('href')), '_blank', 'noopener,noreferrer');
+            return;
+          }
+          activeLinkEl = link;
+          const rect = link.getBoundingClientRect();
+          elLinkPopover.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+          elLinkPopover.style.top = (rect.bottom + 6) + 'px';
+          elLinkPopover.classList.add('visible');
+          return;
+        }
+
+        if (e.target.tagName === 'IMG') {
+          if (!authState.verified) {
+            elLightboxImg.src = e.target.src;
+            elLightbox.classList.add('open');
+            return;
+          }
+          activeImgEl = e.target;
+          activeImgEl.classList.add('selected-img');
+          const curW = parseInt(activeImgEl.style.width, 10) || 100;
+          document.getElementById('img-width-slider').value = Math.min(100, Math.max(15, curW));
+          const rect = e.target.getBoundingClientRect();
+          elImgPopover.style.left = Math.min(rect.left + 8, window.innerWidth - 360) + 'px';
+          elImgPopover.style.top = Math.max(rect.top + 8, 56) + 'px';
+          elImgPopover.classList.add('visible');
+          return;
+        }
+
+        const cell = e.target.closest('td, th');
+        if (cell && authState.verified) {
+          activeTableCell = cell;
+          const table = cell.closest('table');
+          const rect = table.getBoundingClientRect();
+          elTablePopover.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+          elTablePopover.style.top = Math.max(rect.top - 36, 54) + 'px';
+          elTablePopover.classList.add('visible');
+          return;
+        }
+
+        if (!authState.verified && !e.target.closest('input[type="checkbox"]')) {
+          showToast('🔒 当前为只读模式，验证 Token 后才可编辑');
+        }
+      });
+
+      elRichEditor.addEventListener('dblclick', (e) => {
+        if (e.target.tagName === 'IMG') {
+          elLightboxImg.src = e.target.src;
+          elLightbox.classList.add('open');
+          hidePopovers();
+        }
+      });
+
+      document.getElementById('pop-open-link').addEventListener('click', () => {
+        if (activeLinkEl) window.open(ensureUrl(activeLinkEl.getAttribute('href')), '_blank', 'noopener,noreferrer');
+        hidePopovers();
+      });
+      document.getElementById('pop-unlink').addEventListener('click', () => {
+        if (activeLinkEl) {
+          activeLinkEl.replaceWith(document.createTextNode(activeLinkEl.textContent));
+          scheduleLocalSave();
+        }
+        hidePopovers();
+      });
+
+      elImgPopover.addEventListener('click', (e) => {
+        const wBtn = e.target.closest('button[data-w]');
+        if (wBtn && activeImgEl) {
+          activeImgEl.style.width = wBtn.dataset.w;
+          activeImgEl.style.height = 'auto';
+          document.getElementById('img-width-slider').value = parseInt(wBtn.dataset.w, 10);
+          scheduleLocalSave();
+        }
+      });
+      document.getElementById('img-width-slider').addEventListener('input', (e) => {
+        if (activeImgEl) {
+          activeImgEl.style.width = e.target.value + '%';
+          activeImgEl.style.height = 'auto';
+          scheduleLocalSave();
+        }
+      });
+      document.getElementById('pop-zoom-img').addEventListener('click', () => {
+        if (activeImgEl) { elLightboxImg.src = activeImgEl.src; elLightbox.classList.add('open'); }
+        hidePopovers();
+      });
+      document.getElementById('pop-del-img').addEventListener('click', () => {
+        if (activeImgEl) { activeImgEl.remove(); scheduleLocalSave(); }
+        hidePopovers();
+      });
+
+      document.getElementById('tbl-add-row').addEventListener('click', () => {
+        if (!activeTableCell) return;
+        const tr = activeTableCell.closest('tr');
+        const table = activeTableCell.closest('table');
+        const newTr = document.createElement('tr');
+        for (let i = 0; i < tr.children.length; i++) {
+          const td = document.createElement('td'); td.innerHTML = '<br>'; newTr.appendChild(td);
+        }
+        if (tr.parentElement.tagName === 'THEAD') {
+          const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+          tbody.prepend(newTr);
+        } else {
+          tr.after(newTr);
+        }
+        scheduleLocalSave();
+      });
+      document.getElementById('tbl-add-col').addEventListener('click', () => {
+        if (!activeTableCell) return;
+        const colIdx = Array.from(activeTableCell.parentElement.children).indexOf(activeTableCell);
+        const table = activeTableCell.closest('table');
+        table.querySelectorAll('tr').forEach((row) => {
+          const cell = document.createElement(row.parentElement.tagName === 'THEAD' ? 'th' : 'td');
+          cell.innerHTML = row.parentElement.tagName === 'THEAD' ? '新列' : '<br>';
+          const ref = row.children[colIdx];
+          if (ref) ref.after(cell); else row.appendChild(cell);
+        });
+        scheduleLocalSave();
+      });
+      document.getElementById('tbl-del-row').addEventListener('click', () => {
+        if (!activeTableCell) return;
+        const tr = activeTableCell.closest('tr');
+        const table = activeTableCell.closest('table');
+        if (tr.parentElement.tagName === 'THEAD') return showToast('表头行不可直接删除');
+        tr.remove();
+        if (table.querySelectorAll('tr').length === 0) table.remove();
+        hidePopovers();
+        scheduleLocalSave();
+      });
+      document.getElementById('tbl-del-col').addEventListener('click', () => {
+        if (!activeTableCell) return;
+        const colIdx = Array.from(activeTableCell.parentElement.children).indexOf(activeTableCell);
+        const table = activeTableCell.closest('table');
+        if (activeTableCell.parentElement.children.length <= 1) table.remove();
+        else table.querySelectorAll('tr').forEach(r => { if (r.children[colIdx]) r.children[colIdx].remove(); });
+        hidePopovers();
+        scheduleLocalSave();
+      });
+      document.getElementById('tbl-del-table').addEventListener('click', () => {
+        if (!activeTableCell) return;
+        activeTableCell.closest('table').remove();
+        hidePopovers();
+        scheduleLocalSave();
+      });
+
+      elLightbox.addEventListener('click', () => elLightbox.classList.remove('open'));
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.tb-dropdown-wrap')) {
+          elForePalette.classList.remove('open');
+          elHilitePalette.classList.remove('open');
+        }
+        if (!e.target.closest('#rich-editor') && !e.target.closest('.floating-popover')) hidePopovers();
+        if (!e.target.closest('.export-menu-wrapper')) document.getElementById('export-dropdown').classList.remove('open');
+      });
+
+      // ==========================================
+      // 10. Zero-Dependency Real Word (.docx) Generator + Other Exports
+      // ==========================================
+      function downloadBlob(filename, blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      function downloadFile(filename, content, mime) {
+        downloadBlob(filename, new Blob([content], { type: mime }));
+      }
+
+      function dateTag() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      // --- Minimal Pure-JS ZIP Builder (STORE mode, UTF-8) ---
+      const crcTable = (() => {
+        const t = new Uint32Array(256);
+        for (let i = 0; i < 256; i++) {
+          let c = i;
+          for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+          t[i] = c >>> 0;
+        }
+        return t;
+      })();
+
+      function crc32(bytes) {
+        let c = 0xffffffff;
+        for (let i = 0; i < bytes.length; i++) c = crcTable[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+        return (c ^ 0xffffffff) >>> 0;
+      }
+
+      function buildZipBlob(entries) {
+        // entries: [{ name: string, data: Uint8Array }]
+        const te = new TextEncoder();
+        const localParts = [];
+        const cdParts = [];
+        let offset = 0;
+
+        for (const entry of entries) {
+          const nameBytes = te.encode(entry.name);
+          const data = entry.data;
+          const crc = crc32(data);
+          const len = data.length;
+
+          // Local File Header (30 bytes + name)
+          const lh = new Uint8Array(30 + nameBytes.length);
+          const lv = new DataView(lh.buffer);
+          lv.setUint32(0, 0x04034b50, true);
+          lv.setUint16(4, 20, true);      // version needed
+          lv.setUint16(6, 0x0800, true);  // UTF-8 flag
+          lv.setUint16(8, 0, true);       // compression: STORE
+          lv.setUint16(10, 0, true);
+          lv.setUint16(12, 0, true);
+          lv.setUint32(14, crc, true);
+          lv.setUint32(18, len, true);
+          lv.setUint32(22, len, true);
+          lv.setUint16(26, nameBytes.length, true);
+          lv.setUint16(28, 0, true);
+          lh.set(nameBytes, 30);
+
+          localParts.push(lh, data);
+
+          // Central Directory Header (46 bytes + name)
+          const cd = new Uint8Array(46 + nameBytes.length);
+          const cv = new DataView(cd.buffer);
+          cv.setUint32(0, 0x02014b50, true);
+          cv.setUint16(4, 20, true);
+          cv.setUint16(6, 20, true);
+          cv.setUint16(8, 0x0800, true);
+          cv.setUint16(10, 0, true);
+          cv.setUint16(12, 0, true);
+          cv.setUint16(14, 0, true);
+          cv.setUint32(16, crc, true);
+          cv.setUint32(20, len, true);
+          cv.setUint32(24, len, true);
+          cv.setUint16(28, nameBytes.length, true);
+          cv.setUint16(30, 0, true);
+          cv.setUint16(32, 0, true);
+          cv.setUint16(34, 0, true);
+          cv.setUint16(36, 0, true);
+          cv.setUint32(38, 0, true);
+          cv.setUint32(42, offset, true);
+          cd.set(nameBytes, 46);
+
+          cdParts.push(cd);
+          offset += lh.length + len;
+        }
+
+        const cdSize = cdParts.reduce((s, p) => s + p.length, 0);
+        const eocd = new Uint8Array(22);
+        const ev = new DataView(eocd.buffer);
+        ev.setUint32(0, 0x06054b50, true);
+        ev.setUint16(4, 0, true);
+        ev.setUint16(6, 0, true);
+        ev.setUint16(8, entries.length, true);
+        ev.setUint16(10, entries.length, true);
+        ev.setUint32(12, cdSize, true);
+        ev.setUint32(16, offset, true);
+        ev.setUint16(20, 0, true);
+
+        return new Blob([...localParts, ...cdParts, eocd], {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+      }
+
+      // --- XML & CSS Color Helpers for Word ---
+      function escapeXml(str) {
+        return String(str || '')
+          .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+      }
+
+      function cssColorToWordHex(colorStr, blendOnWhite = false) {
+        if (!colorStr || colorStr === 'inherit' || colorStr === 'transparent') return null;
+        const s = colorStr.trim().toLowerCase();
+        if (s.startsWith('#')) {
+          let hex = s.slice(1);
+          if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+          return /^[0-9a-f]{6}$/i.test(hex) ? hex.toUpperCase() : null;
+        }
+        const m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i.exec(s);
+        if (m) {
+          let r = parseFloat(m[1]), g = parseFloat(m[2]), b = parseFloat(m[3]);
+          const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
+          if (a === 0) return null;
+          if (blendOnWhite && a < 1) {
+            r = Math.round(r * a + 255 * (1 - a));
+            g = Math.round(g * a + 255 * (1 - a));
+            b = Math.round(b * a + 255 * (1 - a));
+          }
+          const toHex = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+          return (toHex(r) + toHex(g) + toHex(b)).toUpperCase();
+        }
+        const named = { red: 'DC2626', blue: '2563EB', green: '16A34A', orange: 'D97706', purple: '9333EA', black: '1F2328', yellow: 'FEF08A' };
+        return named[s] || null;
+      }
+
+      // Convert any dataUrl (png/jpg/webp/gif/svg) into Word-safe PNG/JPEG Uint8Array + dimensions
+      function imageToWordBinary(dataUrl) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const w = img.naturalWidth || 400;
+            const h = img.naturalHeight || 300;
+            const parsed = parseDataUrl(dataUrl);
+            if (parsed && (parsed.mime === 'image/png' || parsed.mime === 'image/jpeg' || parsed.mime === 'image/jpg')) {
+              return resolve({
+                ext: parsed.ext === 'jpg' ? 'jpg' : 'png',
+                bytes: base64ToUint8Array(parsed.base64),
+                width: w,
+                height: h
+              });
+            }
+            // Convert WebP/GIF/SVG -> PNG via canvas so all Word & WPS versions support it natively
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const pngUrl = canvas.toDataURL('image/png');
+            const p = parseDataUrl(pngUrl);
+            resolve({
+              ext: 'png',
+              bytes: base64ToUint8Array(p.base64),
+              width: w,
+              height: h
+            });
+          };
+          img.onerror = () => resolve(null);
+          img.src = dataUrl;
+        });
+      }
+
+      function buildRunPropertiesXml(st) {
+        const parts = [];
+        if (st.bold) parts.push('<w:b/>');
+        if (st.italic) parts.push('<w:i/>');
+        if (st.strike) parts.push('<w:strike/>');
+        if (st.underline) parts.push('<w:u w:val="single"/>');
+        if (st.size) parts.push(`<w:sz w:val="${st.size}"/><w:szCs w:val="${st.size}"/>`);
+        if (st.color) parts.push(`<w:color w:val="${st.color}"/>`);
+        if (st.code) {
+          parts.push('<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>');
+          if (!st.fill) parts.push('<w:shd w:val="clear" w:color="auto" w:fill="F1F3F5"/>');
+        }
+        if (st.fill) parts.push(`<w:shd w:val="clear" w:color="auto" w:fill="${st.fill}"/>`);
+        return parts.length ? `<w:rPr>${parts.join('')}</w:rPr>` : '';
+      }
+
+      function makeTextRun(text, st = {}) {
+        if (!text) return '';
+        return `<w:r>${buildRunPropertiesXml(st)}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>`;
+      }
+
+      function makeParagraph(runsXml, pPrXml = '') {
+        const inner = Array.isArray(runsXml) ? runsXml.join('') : runsXml;
+        return `<w:p>${pPrXml ? `<w:pPr>${pPrXml}</w:pPr>` : ''}${inner}</w:p>`;
+      }
+
+      async function resolveImagesInHtmlToDataUrls(html) {
+        const root = document.createElement('div');
+        root.innerHTML = html || '';
+        const imgs = Array.from(root.querySelectorAll('img'));
+        for (const img of imgs) {
+          const curSrc = img.getAttribute('src') || '';
+          const ghPath = img.getAttribute('data-gh-path');
+          if (!curSrc.startsWith('data:image/') && ghPath) {
+            const dataUrl = await fetchGitHubImageAsDataUrl(ghPath);
+            if (dataUrl) img.setAttribute('src', dataUrl);
+          }
+        }
+        return root;
+      }
+
+      async function htmlToDocxXmlBlocks(html, ctx) {
+        const root = await resolveImagesInHtmlToDataUrls(html);
+        const BLOCK_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'P', 'DIV', 'BLOCKQUOTE', 'PRE', 'UL', 'OL', 'TABLE', 'HR']);
+
+        function hasBlockChild(el) {
+          return Array.from(el.children).some(c => BLOCK_TAGS.has(c.tagName) || c.classList.contains('todo-line'));
+        }
+
+        async function inlineNodesToRuns(nodeList, st = {}) {
+          const runs = [];
+          for (const node of Array.from(nodeList)) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              const txt = node.nodeValue.replace(/\r?\n/g, '');
+              if (txt) runs.push(makeTextRun(txt, st));
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const tag = node.tagName;
+              if (tag === 'BR') {
+                runs.push('<w:r><w:br/></w:r>');
+              } else if (tag === 'IMG') {
+                const src = node.getAttribute('src') || '';
+                if (src.startsWith('data:image/')) {
+                  const bin = await imageToWordBinary(src);
+                  if (bin) {
+                    const idx = ++ctx.mediaSeq;
+                    const mediaName = `image${idx}.${bin.ext}`;
+                    const rId = `rId${++ctx.relSeq}`;
+                    ctx.mediaFiles.push({ name: `word/media/${mediaName}`, data: bin.bytes });
+                    ctx.rels.push({
+                      id: rId,
+                      type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
+                      target: `media/${mediaName}`
+                    });
+
+                    const maxEmu = 5486400; // ~15.2 cm fits A4 nicely
+                    let pct = 100;
+                    const wStyle = node.style && node.style.width;
+                    if (wStyle && wStyle.endsWith('%')) pct = Math.max(10, Math.min(100, parseFloat(wStyle) || 100));
+                    const naturalEmu = bin.width * 9525;
+                    const targetMax = Math.round(maxEmu * (pct / 100));
+                    const cx = Math.min(targetMax, pct === 100 ? naturalEmu : targetMax);
+                    const cy = Math.max(9525, Math.round(cx * (bin.height / bin.width)));
+                    const docId = ++ctx.docPrSeq;
+
+                    runs.push(`<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${docId}" name="Picture ${docId}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${docId}" name="${mediaName}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`);
+                  }
+                }
+              } else if (tag === 'A') {
+                const href = ensureUrl(node.getAttribute('href') || '');
+                const childRuns = await inlineNodesToRuns(node.childNodes, { ...st, color: '2563EB', underline: true });
+                if (href) {
+                  const rId = `rId${++ctx.relSeq}`;
+                  ctx.rels.push({
+                    id: rId,
+                    type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink',
+                    target: href,
+                    external: true
+                  });
+                  runs.push(`<w:hyperlink r:id="${rId}">${childRuns.join('')}</w:hyperlink>`);
+                } else {
+                  runs.push(...childRuns);
+                }
+              } else {
+                const nextSt = { ...st };
+                if (tag === 'B' || tag === 'STRONG') nextSt.bold = true;
+                if (tag === 'I' || tag === 'EM') nextSt.italic = true;
+                if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') nextSt.strike = true;
+                if (tag === 'U') nextSt.underline = true;
+                if (tag === 'CODE') nextSt.code = true;
+                const c = cssColorToWordHex(node.style?.color || node.getAttribute('color'));
+                if (c) nextSt.color = c;
+                const bg = cssColorToWordHex(node.style?.backgroundColor, true);
+                if (bg) nextSt.fill = bg;
+                runs.push(...await inlineNodesToRuns(node.childNodes, nextSt));
+              }
+            }
+          }
+          return runs;
+        }
+
+        async function walkBlocks(container, defaultStyle = {}) {
+          const blocks = [];
+          let pending = [];
+
+          const flush = () => {
+            if (pending.length) {
+              blocks.push(makeParagraph(pending, '<w:spacing w:after="120" w:line="320" w:lineRule="auto"/>'));
+              pending = [];
+            }
+          };
+
+          for (const node of Array.from(container.childNodes)) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              if (node.nodeValue.trim()) pending.push(...await inlineNodesToRuns([node], defaultStyle));
+              continue;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+            const tag = node.tagName;
+            if (node.classList.contains('todo-line')) {
+              flush();
+              const cb = node.querySelector('input[type="checkbox"]');
+              const checked = cb && (cb.checked || cb.hasAttribute('checked'));
+              const textEl = node.querySelector('.todo-text');
+              const prefix = makeTextRun(checked ? '☑ ' : '☐ ', { color: checked ? '16A34A' : '59636E', bold: true });
+              const bodyRuns = textEl ? await inlineNodesToRuns(textEl.childNodes, checked ? { ...defaultStyle, strike: true, color: '8B949E' } : defaultStyle) : [];
+              blocks.push(makeParagraph([prefix, ...bodyRuns], '<w:ind w:left="240"/><w:spacing w:after="80"/>'));
+            } else if (tag === 'H1' || tag === 'H2' || tag === 'H3' || tag === 'H4') {
+              flush();
+              const sizeMap = { H1: '34', H2: '30', H3: '26', H4: '24' };
+              const runs = await inlineNodesToRuns(node.childNodes, { ...defaultStyle, bold: true, size: sizeMap[tag] });
+              blocks.push(makeParagraph(runs, '<w:spacing w:before="200" w:after="100"/>'));
+            } else if (tag === 'HR') {
+              flush();
+              blocks.push(makeParagraph('', '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D1D5DB"/></w:pBdr><w:spacing w:before="120" w:after="120"/>'));
+            } else if (tag === 'BLOCKQUOTE') {
+              flush();
+              const runs = await inlineNodesToRuns(node.childNodes, { ...defaultStyle, color: '59636E' });
+              blocks.push(makeParagraph(runs, '<w:pBdr><w:left w:val="single" w:sz="18" w:space="10" w:color="2563EB"/></w:pBdr><w:shd w:val="clear" w:color="auto" w:fill="F6F7F9"/><w:ind w:left="360"/><w:spacing w:before="100" w:after="120"/>'));
+            } else if (tag === 'PRE') {
+              flush();
+              const lines = node.textContent.replace(/\r\n/g, '\n').split('\n');
+              const runs = [];
+              lines.forEach((ln, idx) => {
+                if (idx > 0) runs.push('<w:r><w:br/></w:r>');
+                runs.push(makeTextRun(ln || ' ', { code: true, size: '20', fill: 'F1F3F5' }));
+              });
+              blocks.push(makeParagraph(runs, '<w:shd w:val="clear" w:color="auto" w:fill="F1F3F5"/><w:ind w:left="200" w:right="200"/><w:spacing w:before="100" w:after="140"/>'));
+            } else if (tag === 'UL' || tag === 'OL') {
+              flush();
+              const items = Array.from(node.children).filter(c => c.tagName === 'LI');
+              for (let i = 0; i < items.length; i++) {
+                const bullet = tag === 'OL' ? `${i + 1}. ` : '• ';
+                const runs = [makeTextRun(bullet, { bold: true }), ...await inlineNodesToRuns(items[i].childNodes, defaultStyle)];
+                blocks.push(makeParagraph(runs, '<w:ind w:left="420" w:hanging="220"/><w:spacing w:after="80"/>'));
+              }
+            } else if (tag === 'TABLE') {
+              flush();
+              const trs = Array.from(node.querySelectorAll('tr'));
+              if (trs.length > 0) {
+                const maxCols = Math.max(...trs.map(tr => tr.children.length), 1);
+                const colWidth = Math.floor(9000 / maxCols);
+                const gridCols = Array(maxCols).fill(`<w:gridCol w:w="${colWidth}"/>`).join('');
+                let rowsXml = '';
+                for (const tr of trs) {
+                  let cellsXml = '';
+                  const cells = Array.from(tr.children);
+                  for (const cell of cells) {
+                    const isTh = cell.tagName === 'TH' || tr.parentElement?.tagName === 'THEAD';
+                    const cellBlocks = await walkBlocks(cell, isTh ? { bold: true } : {});
+                    const innerXml = cellBlocks.length ? cellBlocks.join('') : '<w:p/>';
+                    const shd = isTh ? '<w:shd w:val="clear" w:color="auto" w:fill="F3F4F6"/>' : '';
+                    cellsXml += `<w:tc><w:tcPr><w:tcW w:w="${colWidth}" w:type="dxa"/>${shd}<w:tcMar><w:top w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar></w:tcPr>${innerXml}</w:tc>`;
+                  }
+                  rowsXml += `<w:tr>${cellsXml}</w:tr>`;
+                }
+                blocks.push(`<w:tbl><w:tblPr><w:tblW w:w="9000" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:left w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:right w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/></w:tblBorders></w:tblPr><w:tblGrid>${gridCols}</w:tblGrid>${rowsXml}</w:tbl><w:p/>`);
+              }
+            } else if (tag === 'P' || tag === 'DIV') {
+              flush();
+              if (hasBlockChild(node)) {
+                blocks.push(...await walkBlocks(node, defaultStyle));
+              } else {
+                const runs = await inlineNodesToRuns(node.childNodes, defaultStyle);
+                if (runs.length) blocks.push(makeParagraph(runs, '<w:spacing w:after="120" w:line="320" w:lineRule="auto"/>'));
+              }
+            } else {
+              pending.push(...await inlineNodesToRuns([node], defaultStyle));
+            }
+          }
+          flush();
+          return blocks;
+        }
+
+        return await walkBlocks(root);
+      }
+
+      async function buildDocxForNotes(notesList) {
+        const ctx = {
+          mediaSeq: 0,
+          relSeq: 0,
+          docPrSeq: 0,
+          mediaFiles: [],
+          rels: []
+        };
+        const bodyParts = [];
+
+        for (let i = 0; i < notesList.length; i++) {
+          const note = notesList[i];
+          if (i > 0) bodyParts.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+
+          // Title
+          bodyParts.push(makeParagraph(
+            makeTextRun(note.title || '无标题笔记', { bold: true, size: '38', color: '111827' }),
+            '<w:spacing w:after="120"/>'
+          ));
+
+          // Tags & Updated Time
+          const metaParts = [];
+          if (note.tags && note.tags.length) metaParts.push(`标签：${note.tags.join(' / ')}`);
+          if (note.updatedAt) metaParts.push(`更新：${new Date(note.updatedAt).toLocaleString('zh-CN')}`);
+          if (metaParts.length) {
+            bodyParts.push(makeParagraph(
+              makeTextRun(metaParts.join('    |    '), { size: '19', color: '6B7280' }),
+              '<w:spacing w:after="160"/>'
+            ));
+          }
+
+          // Quick Links
+          if (note.links && note.links.length) {
+            bodyParts.push(makeParagraph(
+              makeTextRun('相关链接：', { bold: true, size: '22', color: '374151' }),
+              '<w:spacing w:after="60"/>'
+            ));
+            for (const l of note.links) {
+              const url = ensureUrl(l.url);
+              const rId = `rId${++ctx.relSeq}`;
+              ctx.rels.push({
+                id: rId,
+                type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink',
+                target: url,
+                external: true
+              });
+              const linkRun = `<w:hyperlink r:id="${rId}">${makeTextRun(`${l.label || '链接'} (${url})`, { color: '2563EB', underline: true, size: '21' })}</w:hyperlink>`;
+              bodyParts.push(makeParagraph([makeTextRun('• ', { bold: true }), linkRun], '<w:ind w:left="280"/><w:spacing w:after="60"/>'));
+            }
+          }
+
+          bodyParts.push(makeParagraph('', '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E5E7EB"/></w:pBdr><w:spacing w:before="80" w:after="180"/>'));
+
+          // Main Content
+          const contentBlocks = await htmlToDocxXmlBlocks(note.content, ctx);
+          if (contentBlocks.length) bodyParts.push(...contentBlocks);
+          else bodyParts.push('<w:p/>');
+        }
+
+        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>
+    ${bodyParts.join('\n')}
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+        const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${ctx.rels.map(r => `  <Relationship Id="${r.id}" Type="${r.type}" Target="${escapeXml(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`).join('\n')}
+</Relationships>`;
+
+        const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="png" ContentType="image/png"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Default Extension="jpeg" ContentType="image/jpeg"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+        const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+        const te = new TextEncoder();
+        const zipEntries = [
+          { name: '[Content_Types].xml', data: te.encode(contentTypesXml) },
+          { name: '_rels/.rels', data: te.encode(rootRelsXml) },
+          { name: 'word/_rels/document.xml.rels', data: te.encode(relsXml) },
+          { name: 'word/document.xml', data: te.encode(documentXml) },
+          ...ctx.mediaFiles
+        ];
+        return buildZipBlob(zipEntries);
+      }
+
+      async function exportDocxOne() {
+        syncEditorToActiveNote();
+        const note = getActiveNote();
+        if (!note) return showToast('请先打开一篇笔记再导出 Word');
+        showToast('正在生成 Word (.docx) 文档...');
+        try {
+          const blob = await buildDocxForNotes([note]);
+          const safeName = (note.title || '无标题笔记').replace(/[\\/:*?"<>|]/g, '_');
+          downloadBlob(`${safeName}.docx`, blob);
+          showToast('✅ 已导出 Word 文档 (.docx)，图文均已内嵌');
+        } catch (err) {
+          showToast('导出 Word 失败：' + err.message);
+        }
+      }
+
+      async function exportDocxAll() {
+        syncEditorToActiveNote();
+        if (!appData.notes.length) return showToast('当前没有可导出的笔记');
+        showToast('正在打包全部笔记与图片到 Word (.docx)，请稍候...');
+        try {
+          const blob = await buildDocxForNotes(appData.notes);
+          downloadBlob(`云端笔记本汇总_${dateTag()}.docx`, blob);
+          showToast('✅ 已导出全部笔记为 Word 文档 (.docx)');
+        } catch (err) {
+          showToast('导出 Word 失败：' + err.message);
+        }
+      }
+
+      function exportBookmarksHtml() {
+        syncEditorToActiveNote();
+        let itemsHtml = '';
+        appData.notes.forEach(note => {
+          const links = [...(note.links || [])];
+          const tmp = document.createElement('div');
+          tmp.innerHTML = note.content || '';
+          tmp.querySelectorAll('a[href]').forEach(a => {
+            const href = ensureUrl(a.getAttribute('href'));
+            if (href && !links.some(l => l.url === href)) links.push({ label: a.textContent.trim() || href, url: href });
+          });
+          if (links.length > 0) {
+            itemsHtml += `    <DT><H3>${escapeHtml(note.title || '未命名笔记')}</H3>\n    <DL><p>\n`;
+            links.forEach(l => { itemsHtml += `      <DT><A HREF="${escapeHtml(ensureUrl(l.url))}">${escapeHtml(l.label || l.url)}</A>\n`; });
+            itemsHtml += `    </DL><p>\n`;
+          }
+        });
+        const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>云端笔记本网址书签</TITLE>\n<H1>云端笔记本网址书签</H1>\n<DL><p>\n  <DT><H3>云端笔记本导出 (${dateTag()})</H3>\n  <DL><p>\n${itemsHtml}  </DL><p>\n</DL><p>`;
+        downloadFile(`笔记本网址书签_${dateTag()}.html`, html, 'text/html;charset=utf-8');
+        showToast('书签已导出，可直接导入浏览器收藏夹！');
+      }
+
+      async function exportStandaloneHtml() {
+        syncEditorToActiveNote();
+        showToast('正在打包图文资源，请稍候...');
+        const notesClone = JSON.parse(JSON.stringify(appData.notes));
+        for (const note of notesClone) {
+          if (!note.content) continue;
+          const root = await resolveImagesInHtmlToDataUrls(note.content);
+          note.content = root.innerHTML;
+        }
+
+        const clone = document.documentElement.cloneNode(true);
+        clone.classList.remove('dark');
+        const q = (sel) => clone.querySelector(sel);
+        if (q('#sidebar')) q('#sidebar').classList.remove('open');
+        if (q('#search-input')) q('#search-input').setAttribute('value', '');
+        if (q('#tag-filter-bar')) q('#tag-filter-bar').innerHTML = '';
+        if (q('#note-list')) q('#note-list').innerHTML = '';
+        if (q('#overview-content')) q('#overview-content').innerHTML = '';
+        if (q('#overview-view')) q('#overview-view').style.display = '';
+        if (q('#editor-view')) q('#editor-view').classList.remove('active');
+        if (q('#rich-editor')) q('#rich-editor').innerHTML = '';
+        if (q('#links-list')) q('#links-list').innerHTML = '';
+        if (q('#toast-container')) q('#toast-container').innerHTML = '';
+        if (q('#token-input')) q('#token-input').setAttribute('value', '');
+
+        const payload = { exportedAt: Date.now(), notes: notesClone };
+        const safeJson = JSON.stringify(payload).replace(/<\/script/gi, '<\\/script');
+        if (q('#embedded-data')) q('#embedded-data').textContent = safeJson;
+
+        downloadFile(`云端笔记本离线打包_${dateTag()}.html`, '<!DOCTYPE html>\n' + clone.outerHTML, 'text/html;charset=utf-8');
+        showToast('已导出独立离线 HTML（图片已内嵌，不含 Token）');
+      }
+
+      // ==========================================
+      // 11. Event Bindings
+      // ==========================================
+      document.getElementById('btn-export-menu').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('export-dropdown').classList.toggle('open');
+      });
+      document.getElementById('exp-docx-one').addEventListener('click', exportDocxOne);
+      document.getElementById('exp-docx-all').addEventListener('click', exportDocxAll);
+      document.getElementById('exp-html').addEventListener('click', exportStandaloneHtml);
+      document.getElementById('exp-bookmarks').addEventListener('click', exportBookmarksHtml);
+      document.getElementById('exp-json').addEventListener('click', () => {
+        syncEditorToActiveNote();
+        downloadFile(`笔记本备份_${dateTag()}.json`, JSON.stringify({ exportedAt: Date.now(), notes: appData.notes }, null, 2), 'application/json');
+        showToast('JSON 备份已下载');
+      });
+      document.getElementById('btn-export-current-docx').addEventListener('click', exportDocxOne);
+
+      document.getElementById('btn-import-json').addEventListener('click', () => {
+        if (!requireAuth('导入数据')) return;
+        document.getElementById('import-json-input').click();
+      });
+      document.getElementById('import-json-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            if (!Array.isArray(parsed.notes)) throw new Error('Invalid');
+            const merge = confirm(`文件含 ${parsed.notes.length} 条记录。\n「确定」= 合并追加，「取消」= 替换当前全部内容`);
+            if (merge) {
+              const map = new Map(appData.notes.map(n => [n.id, n]));
+              parsed.notes.forEach(n => map.set(n.id, n));
+              appData.notes = Array.from(map.values());
+            } else {
+              appData.notes = parsed.notes;
+            }
+            uiState.activeNoteId = null;
+            uiState.viewMode = 'overview';
+            await commitLocalSave();
+            renderAll();
+            showToast('已导入浏览器草稿（请点击「保存到 GitHub」同步）');
+          } catch (err) {
+            showToast('JSON 格式有误');
+          }
+          e.target.value = '';
+        };
+        reader.readAsText(file);
+      });
+
+      const elAuthModal = document.getElementById('auth-modal');
+      function openAuthModal() {
+        document.getElementById('token-input').value = authState.token || '';
+        elAuthModal.classList.add('open');
+        setTimeout(() => document.getElementById('token-input').focus(), 50);
+      }
+
+      document.getElementById('btn-auth-action').addEventListener('click', () => {
+        if (authState.verified) {
+          if (confirm('确定退出验证并锁定为只读模式吗？（本地草稿不会丢失）')) {
+            authState.verified = false;
+            authState.token = '';
+            localStorage.removeItem('gh_notebook_token');
+            updateAuthUI();
+            showToast('已切换回只读浏览模式');
+          }
+        } else {
+          openAuthModal();
+        }
+      });
+
+      document.getElementById('btn-banner-auth').addEventListener('click', openAuthModal);
+      document.getElementById('auth-cancel').addEventListener('click', () => elAuthModal.classList.remove('open'));
+      document.getElementById('token-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('auth-confirm').click();
+      });
+
+      document.getElementById('auth-confirm').addEventListener('click', async () => {
+        const token = document.getElementById('token-input').value.trim();
+        if (!token) return showToast('请输入 GitHub Token');
+        const btn = document.getElementById('auth-confirm');
+        btn.disabled = true;
+        btn.textContent = '验证中...';
+
+        try {
+          const branch = await detectRepoInfo(token);
+          authState.token = token;
+          authState.branch = branch;
+          authState.verified = true;
+          if (document.getElementById('remember-token').checked) localStorage.setItem('gh_notebook_token', token);
+          else localStorage.removeItem('gh_notebook_token');
+
+          elAuthModal.classList.remove('open');
+          updateAuthUI();
+          showToast('🔓 Token 验证成功，已解锁编辑！');
+
+          const remote = await fetchRemoteNotes();
+          if (!remote.exists) {
+            if (appData.notes.length === 0) appData.notes = createStarterNotes();
+            await pushNotesToGitHub('首次初始化「笔记本」目录与数据');
+            showToast('🎉 已首次自动在仓库创建「笔记本」目录！');
+            renderAll();
+          } else if (!appData.hasUnsavedChanges && remote.data && Array.isArray(remote.data.notes)) {
+            appData.notes = remote.data.notes;
+            appData.remoteSha = remote.sha;
+            appData.lastSyncedAt = remote.data.updatedAt || Date.now();
+            await saveLocalState(appData);
+            renderAll();
+          }
+        } catch (err) {
+          showToast('❌ ' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '验证并连接';
+        }
+      });
+
+      document.getElementById('btn-push-github').addEventListener('click', () => {
+        if (!requireAuth('保存到 GitHub')) return;
+        pushNotesToGitHub();
+      });
+
+      document.getElementById('btn-pull-github').addEventListener('click', async () => {
+        if (appData.hasUnsavedChanges) {
+          if (!confirm('你本地有尚未上传到 GitHub 的修改，拉取云端将覆盖本地未保存内容！确定要拉取吗？')) return;
+        }
+        const btn = document.getElementById('btn-pull-github');
+        btn.disabled = true;
+        btn.textContent = '⏳ 拉取中...';
+        try {
+          const remote = await fetchRemoteNotes();
+          if (!remote.exists) {
+            showToast('仓库中尚无「笔记本/notes.json」文件');
+          } else {
+            appData.notes = remote.data.notes || [];
+            appData.remoteSha = remote.sha;
+            appData.lastSyncedAt = remote.data.updatedAt || Date.now();
+            appData.hasUnsavedChanges = false;
+            await saveLocalState(appData);
+            if (uiState.viewMode === 'editor') {
+              if (getActiveNote()) openNoteInEditor(uiState.activeNoteId);
+              else uiState.viewMode = 'overview';
+            }
+            renderAll();
+            showToast('✅ 已从 GitHub 拉取最新数据');
+          }
+        } catch (err) {
+          showToast('拉取失败：' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '🔄 拉取云端';
+        }
+      });
+
+      elTitleInput.addEventListener('input', scheduleLocalSave);
+      elTitleInput.addEventListener('click', () => { if (!authState.verified) requireAuth('编辑标题'); });
+
+      elTagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          if (!requireAuth('添加标签')) return;
+          const val = elTagInput.value.replace(/,/g, '').trim();
+          const note = getActiveNote();
+          if (val && note && !note.tags.includes(val)) {
+            note.tags.push(val);
+            renderEditorTags(note);
+            scheduleLocalSave();
+          }
+          elTagInput.value = '';
+        }
+      });
+
+      document.getElementById('btn-toggle-add-link').addEventListener('click', () => {
+        if (!requireAuth('添加链接')) return;
+        elAddLinkForm.classList.toggle('open');
+        if (elAddLinkForm.classList.contains('open')) document.getElementById('new-link-label').focus();
+      });
+      document.getElementById('btn-cancel-add-link').addEventListener('click', () => elAddLinkForm.classList.remove('open'));
+      document.getElementById('btn-confirm-add-link').addEventListener('click', () => {
+        if (!requireAuth('添加链接')) return;
+        const label = document.getElementById('new-link-label').value.trim() || '相关链接';
+        const url = ensureUrl(document.getElementById('new-link-url').value);
+        if (!url) return showToast('请输入有效链接');
+        const note = getActiveNote();
+        if (note) {
+          note.links.push({ id: uuid(), label, url });
+          renderEditorLinks(note);
+          scheduleLocalSave();
+          document.getElementById('new-link-label').value = '';
+          document.getElementById('new-link-url').value = '';
+          elAddLinkForm.classList.remove('open');
+        }
+      });
+      document.getElementById('new-link-url').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('btn-confirm-add-link').click();
+      });
+
+      elLinksList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const row = btn.closest('.link-row');
+        const note = getActiveNote();
+        if (!note) return;
+        const link = note.links.find(l => l.id === row.dataset.linkId);
+        if (!link) return;
+        if (btn.dataset.action === 'copy') {
+          navigator.clipboard?.writeText(link.url).then(() => showToast('网址已复制'));
+        } else if (btn.dataset.action === 'remove') {
+          if (!requireAuth('删除链接')) return;
+          note.links = note.links.filter(l => l.id !== row.dataset.linkId);
+          renderEditorLinks(note);
+          scheduleLocalSave();
+        }
+      });
+
+      elPinBtn.addEventListener('click', () => {
+        if (!requireAuth('置顶操作')) return;
+        const note = getActiveNote();
+        if (!note) return;
+        note.pinned = !note.pinned;
+        updatePinButton(note);
+        commitLocalSave();
+      });
+
+      document.getElementById('btn-delete-note').addEventListener('click', () => {
+        if (!requireAuth('删除笔记')) return;
+        const note = getActiveNote();
+        if (!note) return;
+        if (!confirm(`确定删除「${note.title || '无标题笔记'}」吗？`)) return;
+        appData.notes = appData.notes.filter(n => n.id !== note.id);
+        uiState.activeNoteId = null;
+        uiState.viewMode = 'overview';
+        commitLocalSave();
+        renderAll();
+        showToast('已从本地草稿删除（需点击「保存到 GitHub」生效到云端）');
+      });
+
+      elSearchInput.addEventListener('input', () => {
+        uiState.searchQuery = elSearchInput.value;
+        elSearchClear.classList.toggle('visible', !!uiState.searchQuery);
+        renderSidebarList();
+        if (uiState.viewMode === 'overview') renderOverview();
+      });
+      elSearchClear.addEventListener('click', () => {
+        elSearchInput.value = ''; uiState.searchQuery = '';
+        elSearchClear.classList.remove('visible');
+        renderAll();
+      });
+
+      elTagFilterBar.addEventListener('click', (e) => {
+        const pill = e.target.closest('.filter-pill');
+        if (!pill) return;
+        uiState.selectedTag = pill.dataset.tag;
+        renderAll();
+      });
+
+      elNoteList.addEventListener('click', (e) => {
+        const item = e.target.closest('.note-item');
+        if (item) openNoteInEditor(item.dataset.id);
+      });
+
+      elOverviewContent.addEventListener('click', (e) => {
+        const card = e.target.closest('.tool-card, tbody tr');
+        if (card && card.dataset.id) openNoteInEditor(card.dataset.id);
+      });
+
+      function setOverviewLayout(mode) {
+        uiState.overviewLayout = mode;
+        localStorage.setItem('toolbox_overview_layout', mode);
+        document.getElementById('mode-card').classList.toggle('active', mode === 'card');
+        document.getElementById('mode-compact').classList.toggle('active', mode === 'compact');
+        renderOverview();
+      }
+      document.getElementById('mode-card').addEventListener('click', () => setOverviewLayout('card'));
+      document.getElementById('mode-compact').addEventListener('click', () => setOverviewLayout('compact'));
+
+      function goOverview() {
+        uiState.viewMode = 'overview';
+        renderAll();
+        elSidebar.classList.remove('open');
+      }
+      document.getElementById('btn-home').addEventListener('click', goOverview);
+      document.getElementById('btn-overview').addEventListener('click', goOverview);
+      document.getElementById('btn-back-overview').addEventListener('click', goOverview);
+      document.getElementById('btn-new-note').addEventListener('click', createNewNote);
+      document.getElementById('btn-new-overview').addEventListener('click', createNewNote);
+      document.getElementById('btn-toggle-sidebar').addEventListener('click', () => elSidebar.classList.toggle('open'));
+
+      function applyTheme(dark) {
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('icon-sun').style.display = dark ? 'block' : 'none';
+        document.getElementById('icon-moon').style.display = dark ? 'none' : 'block';
+        localStorage.setItem('toolbox_theme', dark ? 'dark' : 'light');
+      }
+      document.getElementById('btn-theme').addEventListener('click', () => applyTheme(!document.documentElement.classList.contains('dark')));
+
+      // ==========================================
+      // 12. Initialization
+      // ==========================================
+      async function init() {
+        applyTheme(localStorage.getItem('toolbox_theme') === 'dark');
+        setOverviewLayout(localStorage.getItem('toolbox_overview_layout') || 'card');
+
+        const savedToken = localStorage.getItem('gh_notebook_token');
+        if (savedToken) {
+          try {
+            authState.branch = await detectRepoInfo(savedToken);
+            authState.token = savedToken;
+            authState.verified = true;
+          } catch (e) {
+            localStorage.removeItem('gh_notebook_token');
+          }
+        }
+        updateAuthUI();
+
+        const local = await loadLocalState();
+        if (local && Array.isArray(local.notes)) {
+          appData = local;
+        } else {
+          try {
+            const rawEmb = document.getElementById('embedded-data').textContent.trim();
+            if (rawEmb) {
+              const emb = JSON.parse(rawEmb);
+              if (Array.isArray(emb.notes)) appData.notes = emb.notes;
+            }
+          } catch (e) {}
+        }
+        renderAll();
+
+        const remote = await fetchRemoteNotes();
+        if (remote.exists && remote.data && Array.isArray(remote.data.notes)) {
+          if (!appData.hasUnsavedChanges) {
+            appData.notes = remote.data.notes;
+            appData.remoteSha = remote.sha;
+            appData.lastSyncedAt = remote.data.updatedAt || Date.now();
+            await saveLocalState(appData);
+            renderAll();
+          } else if (remote.sha && appData.remoteSha && remote.sha !== appData.remoteSha) {
+            showToast('提示：GitHub 云端有更新版本，同时你本地有未上传修改');
+          }
+        } else if (!local && appData.notes.length === 0) {
+          appData.notes = createStarterNotes();
+          await saveLocalState(appData);
+          renderAll();
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
