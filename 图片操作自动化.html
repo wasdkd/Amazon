@@ -413,7 +413,7 @@
 <div class="container">
 <div class="nav-bar" id="navBar">
 <!-- 导航按钮将由Python生成 -->
-<button class="nav-btn" onclick="navigateToReport(0)">1. A 图片下载&amp;插入excel表</button><button class="nav-btn" onclick="navigateToReport(1)">2. B 导出excel表图片</button><button class="nav-btn" onclick="navigateToReport(2)">3. C Excel数据合并</button><button class="nav-btn" onclick="navigateToReport(3)">4. D 数据提取 分组统计</button><button class="nav-btn" onclick="navigateToReport(4)">5. E 数据批量分组</button><button class="nav-btn" onclick="navigateToReport(5)">6. F 筛选爆品</button><button class="nav-btn" onclick="navigateToReport(6)">7. G 创建 修改excel表</button><button class="nav-btn" onclick="navigateToReport(7)">8. H 创建文件夹</button><button class="nav-btn" onclick="navigateToReport(8)">9. I excel表转线上表</button><button class="nav-btn" onclick="navigateToReport(9)">10. J 修改图片名称</button><button class="nav-btn" onclick="navigateToReport(10)">11. K 文件提取</button></div>
+<button class="nav-btn" onclick="navigateToReport(0)">1. A 图片下载&amp;插入excel表</button><button class="nav-btn" onclick="navigateToReport(1)">2. B 导出excel表图片</button><button class="nav-btn" onclick="navigateToReport(2)">3. C Excel数据合并</button><button class="nav-btn" onclick="navigateToReport(3)">4. D 数据提取 分组统计</button><button class="nav-btn" onclick="navigateToReport(4)">5. E 数据批量分组</button><button class="nav-btn" onclick="navigateToReport(5)">6. F 筛选爆品</button><button class="nav-btn" onclick="navigateToReport(6)">7. G 创建 修改excel表</button><button class="nav-btn" onclick="navigateToReport(7)">8. H 创建文件夹</button><button class="nav-btn" onclick="navigateToReport(8)">9. I excel表转线上表</button><button class="nav-btn" onclick="navigateToReport(9)">10. J 修改图片名称</button><button class="nav-btn" onclick="navigateToReport(10)">11. K 文件提取</button><button class="nav-btn" onclick="navigateToReport(11)">12. L数据拆分与拼接</button></div>
 <div id="visualizationsContainer">
 <!-- 可视化iframe将由Python生成 -->
 <div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
@@ -24896,7 +24896,1933 @@ old
 &lt;!--&lt;/body&gt;--&gt;
 &lt;!--&lt;/html&gt;--&gt;
 
-"></iframe></div></div></div>
+"></iframe></div></div><div class="visualization-section"><div class="iframe-container"><iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot; /&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+  &lt;title&gt;数据分组拼接与拆分工具 (Excel / CSV)&lt;/title&gt;
+  &lt;!-- 读取 Excel/CSV (支持 xlsx/xls/csv 及合并单元格解析) --&gt;
+  &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js&quot;&gt;&lt;/script&gt;
+  &lt;!-- 导出带样式的 Excel (自动换行/置顶对齐/列宽行高/冻结首行) --&gt;
+  &lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #059669;
+      --success-hover: #047857;
+      --danger: #dc2626;
+      --warn: #d97706;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 16px 20px 32px;
+    }
+
+    /* 顶部栏 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header .sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* 卡片 */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* 按钮 */
+    button, .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    button:hover { background: #f8fafc; border-color: #cbd5e1; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn-success:hover { background: var(--success-hover); border-color: var(--success-hover); }
+    .btn-danger { color: var(--danger); border-color: #fecaca; background: #fff; }
+    .btn-danger:hover { background: #fef2f2; }
+    .btn-sm { padding: 4px 8px; font-size: 12px; }
+
+    /* 表单控件 */
+    input[type=&quot;text&quot;], input[type=&quot;number&quot;], select, textarea {
+      padding: 6px 9px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    input:disabled, select:disabled { background: #f1f5f9; color: var(--muted); }
+    label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+
+    /* 拖拽上传区 */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1.8fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+    @media (max-width: 900px) {
+      .upload-grid { grid-template-columns: 1fr; }
+    }
+    .drop-zone {
+      border: 2px dashed #94a3b8;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .drop-zone strong { color: var(--primary); }
+
+    .source-options {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .opt-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+
+    /* 选项卡 */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      padding: 9px 18px;
+      border: none;
+      background: transparent;
+      border-radius: 8px 8px 0 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover { color: var(--text); background: #f8fafc; }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* 左右分栏工作区 */
+    .workspace {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+    .sub-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fcfcfd;
+    }
+    .sub-title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 可多选列列表 */
+    .col-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      padding: 4px;
+    }
+    .col-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .col-item:hover { background: #f1f5f9; }
+    .col-item.selected { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+    .col-search { width: 100%; margin-bottom: 6px; }
+
+    /* 规则表单 */
+    .rule-builder {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 10px;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 600; cursor: default; }
+    .field-inline { flex-direction: row; align-items: center; gap: 8px; }
+
+    /* 规则表格 */
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid #f1f5f9;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+      border-bottom: 2px solid var(--border);
+    }
+    tr:hover td { background: #f8fafc; }
+
+    /* 分隔符标签多选 */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 6px 0 10px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12.5px;
+      user-select: none;
+    }
+    .chip input { margin: 0; }
+    .chip:has(input:checked) {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* 执行与预览区 */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .preview-table-wrap {
+      max-height: 430px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .cell-multiline {
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 340px;
+      min-width: 70px;
+    }
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* 弹窗 (粘贴数据) */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 720px;
+      padding: 18px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+    }
+    .modal textarea { width: 100%; height: 240px; font-family: monospace; font-size: 12px; margin: 10px 0; }
+    .alert-offline {
+      display: none;
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      color: #92400e;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 12.5px;
+    }
+    .hidden { display: none !important; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;container&quot;&gt;
+  &lt;!-- 顶部标题栏 --&gt;
+  &lt;div class=&quot;header&quot;&gt;
+    &lt;div&gt;
+      &lt;h1&gt;📊 通用数据分组拼接 &amp; 拆分展开工具&lt;/h1&gt;
+      &lt;div class=&quot;sub&quot;&gt;纯本地浏览器运行 · 支持 Excel (.xlsx / .xls) &amp; CSV · 多行合并进单元格 / 单元格拆成多行并补全其他列&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;header-actions&quot;&gt;
+      &lt;button onclick=&quot;loadDemoData()&quot;&gt;✨ 加载示例数据体验&lt;/button&gt;
+      &lt;button onclick=&quot;openPasteModal()&quot;&gt;📋 粘贴表格数据&lt;/button&gt;
+      &lt;button onclick=&quot;exportConfig()&quot;&gt;💾 保存规则配置&lt;/button&gt;
+      &lt;button onclick=&quot;document.getElementById('configFileInput').click()&quot;&gt;📥 导入规则配置&lt;/button&gt;
+      &lt;input type=&quot;file&quot; id=&quot;configFileInput&quot; accept=&quot;.json&quot; class=&quot;hidden&quot; onchange=&quot;importConfig(event)&quot; /&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div id=&quot;offlineAlert&quot; class=&quot;alert-offline&quot;&gt;
+    ⚠️ 检测到当前未能加载外部 Excel 解析库（可能是离线环境）。您仍可直接点击上方 &lt;strong&gt;「粘贴表格数据」&lt;/strong&gt;（从 Excel 复制粘贴）或上传 &lt;strong&gt;CSV&lt;/strong&gt; 文件进行处理！
+  &lt;/div&gt;
+
+  &lt;!-- 1. 数据源卡片 --&gt;
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;div class=&quot;card-title&quot;&gt;
+      &lt;span&gt;1. 导入数据源与预处理&lt;/span&gt;
+      &lt;span id=&quot;dataStatusBadge&quot; class=&quot;badge&quot;&gt;尚未加载数据&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;upload-grid&quot;&gt;
+      &lt;div id=&quot;dropZone&quot; class=&quot;drop-zone&quot; onclick=&quot;document.getElementById('fileInput').click()&quot;&gt;
+        &lt;div&gt;📁 &lt;strong&gt;点击选择文件&lt;/strong&gt; 或将 Excel / CSV 拖拽到这里&lt;/div&gt;
+        &lt;div style=&quot;color: var(--muted); font-size: 12px;&quot;&gt;支持 .xlsx / .xls / .xlsm / .csv（所有数据仅在本地处理）&lt;/div&gt;
+        &lt;input type=&quot;file&quot; id=&quot;fileInput&quot; accept=&quot;.xlsx,.xls,.xlsm,.csv&quot; class=&quot;hidden&quot; /&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;source-options&quot;&gt;
+        &lt;div class=&quot;opt-row&quot;&gt;
+          &lt;label&gt;工作表(Sheet):
+            &lt;select id=&quot;sheetSelect&quot; disabled onchange=&quot;reparseWorkbook()&quot; style=&quot;min-width: 160px;&quot;&gt;&lt;/select&gt;
+          &lt;/label&gt;
+          &lt;label&gt;表头所在行:
+            &lt;input type=&quot;number&quot; id=&quot;headerRowInput&quot; value=&quot;1&quot; min=&quot;1&quot; max=&quot;50&quot; style=&quot;width: 66px;&quot; onchange=&quot;reparseWorkbook()&quot; /&gt;
+          &lt;/label&gt;
+          &lt;button class=&quot;btn-sm&quot; onclick=&quot;reparseWorkbook()&quot;&gt;🔄 重新读取&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;opt-row&quot;&gt;
+          &lt;label title=&quot;强烈建议开启：防止 00123 变成 123，或长订单号变成科学计数法&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;asTextCheck&quot; checked onchange=&quot;reparseWorkbook()&quot; /&gt;
+            纯文本读取 (防 0 开头编号/长数字/日期变形)
+          &lt;/label&gt;
+          &lt;label title=&quot;若上传的 Excel 包含合并单元格，将自动拆开并把左上角内容填满整个合并区域&quot;&gt;
+            &lt;input type=&quot;checkbox&quot; id=&quot;unmergeCheck&quot; checked onchange=&quot;reparseWorkbook()&quot; /&gt;
+            自动还原并填充 Excel 合并单元格
+          &lt;/label&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;opt-row&quot; style=&quot;justify-content: space-between;&quot;&gt;
+          &lt;span id=&quot;fileMetaText&quot; style=&quot;color: var(--muted); font-size: 12px;&quot;&gt;提示：可直接点右上角「加载示例数据体验」快速试用全部功能。&lt;/span&gt;
+          &lt;button class=&quot;btn-sm&quot; onclick=&quot;switchPreview('raw')&quot;&gt;👁️ 预览原始数据&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 2. 核心功能区 --&gt;
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;div class=&quot;tabs&quot;&gt;
+      &lt;button class=&quot;tab-btn active&quot; data-tab=&quot;group&quot; onclick=&quot;switchTab('group')&quot;&gt;🔗 模式一：分组拼接（多行合并进一个单元格）&lt;/button&gt;
+      &lt;button class=&quot;tab-btn&quot; data-tab=&quot;split&quot; onclick=&quot;switchTab('split')&quot;&gt;✂️ 模式二：拆分展开（单元格拆成多行，补全其他列）&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 模式一：分组拼接 --&gt;
+    &lt;div id=&quot;tab-group&quot; class=&quot;tab-panel active&quot;&gt;
+      &lt;div class=&quot;workspace&quot;&gt;
+        &lt;!-- 左侧分组列 --&gt;
+        &lt;div class=&quot;sub-box&quot;&gt;
+          &lt;div class=&quot;sub-title&quot;&gt;
+            &lt;span&gt;① 选择分组依据列 (Key)&lt;/span&gt;
+            &lt;span id=&quot;groupKeyCount&quot; class=&quot;badge badge-blue&quot;&gt;已选 0 列&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;input type=&quot;text&quot; class=&quot;col-search&quot; placeholder=&quot;搜索列名...&quot; oninput=&quot;filterColList('groupColsList', this.value)&quot; /&gt;
+          &lt;div id=&quot;groupColsList&quot; class=&quot;col-list&quot;&gt;
+            &lt;div style=&quot;color: var(--muted); padding: 12px; text-align: center;&quot;&gt;请先加载数据&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div style=&quot;margin-top: 10px; display: flex; flex-direction: column; gap: 7px;&quot;&gt;
+            &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;sortGroupsCheck&quot; /&gt; 按分组键升序排列结果&lt;/label&gt;
+            &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;dropEmptyKeysCheck&quot; checked /&gt; 过滤分组键为空的行&lt;/label&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;未配置规则的其他列如何处理:&lt;/label&gt;
+              &lt;select id=&quot;otherColsPolicy&quot;&gt;
+                &lt;option value=&quot;drop&quot;&gt;丢弃（仅保留分组列与配置列）&lt;/option&gt;
+                &lt;option value=&quot;first&quot;&gt;保留每组首个非空值&lt;/option&gt;
+                &lt;option value=&quot;last&quot;&gt;保留每组末个非空值&lt;/option&gt;
+                &lt;option value=&quot;concat_dedup&quot;&gt;全部去重换行拼接&lt;/option&gt;
+              &lt;/select&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 右侧规则配置 --&gt;
+        &lt;div class=&quot;sub-box&quot;&gt;
+          &lt;div class=&quot;sub-title&quot;&gt;
+            &lt;span&gt;② 添加并配置合并/聚合规则（可对不同列设置不同连接符与算法）&lt;/span&gt;
+            &lt;div style=&quot;display: flex; gap: 6px;&quot;&gt;
+              &lt;button class=&quot;btn-sm btn-danger&quot; onclick=&quot;clearRules()&quot;&gt;清空规则&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;rule-builder&quot;&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;目标列&lt;/label&gt;
+              &lt;select id=&quot;ruleCol&quot; onchange=&quot;onRuleColChange()&quot;&gt;&lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;输出列名 (可自定义)&lt;/label&gt;
+              &lt;input type=&quot;text&quot; id=&quot;ruleOutCol&quot; placeholder=&quot;默认同目标列&quot; /&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;聚合/拼接方式&lt;/label&gt;
+              &lt;select id=&quot;ruleMode&quot; onchange=&quot;onRuleModeChange()&quot;&gt;
+                &lt;option value=&quot;concat&quot;&gt;文本拼接 (支持去重/排序)&lt;/option&gt;
+                &lt;option value=&quot;top_n_sum&quot;&gt;TOP N 数值统计拼接&lt;/option&gt;
+                &lt;option value=&quot;sum&quot;&gt;数值求和 (Sum)&lt;/option&gt;
+                &lt;option value=&quot;count&quot;&gt;计数 (Count)&lt;/option&gt;
+                &lt;option value=&quot;nunique&quot;&gt;去重计数 (Nunique)&lt;/option&gt;
+                &lt;option value=&quot;first&quot;&gt;取首个值 (First)&lt;/option&gt;
+                &lt;option value=&quot;last&quot;&gt;取末个值 (Last)&lt;/option&gt;
+                &lt;option value=&quot;max&quot;&gt;最大值 (Max)&lt;/option&gt;
+                &lt;option value=&quot;min&quot;&gt;最小值 (Min)&lt;/option&gt;
+                &lt;option value=&quot;mean&quot;&gt;平均值 (Mean)&lt;/option&gt;
+              &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;连接符预设&lt;/label&gt;
+              &lt;select id=&quot;ruleDelimPreset&quot; onchange=&quot;onDelimPresetChange()&quot;&gt;
+                &lt;option value=&quot;\n&quot;&gt;换行符 (\n)&lt;/option&gt;
+                &lt;option value=&quot;,&quot;&gt;英文逗号 (,)&lt;/option&gt;
+                &lt;option value=&quot;，&quot;&gt;中文逗号 (，)&lt;/option&gt;
+                &lt;option value=&quot;、&quot;&gt;顿号 (、)&lt;/option&gt;
+                &lt;option value=&quot;;&quot;&gt;分号 (;)&lt;/option&gt;
+                &lt;option value=&quot;；&quot;&gt;中文分号 (；)&lt;/option&gt;
+                &lt;option value=&quot;|&quot;&gt;竖线 (|)&lt;/option&gt;
+                &lt;option value=&quot; / &quot;&gt;斜杠 ( / )&lt;/option&gt;
+                &lt;option value=&quot; &quot;&gt;空格&lt;/option&gt;
+                &lt;option value=&quot;__CUSTOM__&quot;&gt;自定义...&lt;/option&gt;
+              &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;实际连接符 (可用 \n 代表换行)&lt;/label&gt;
+              &lt;input type=&quot;text&quot; id=&quot;ruleCustomDelim&quot; value=&quot;\n&quot; disabled /&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;field&quot;&gt;
+              &lt;label&gt;组内排序方式&lt;/label&gt;
+              &lt;select id=&quot;ruleSortMode&quot; onchange=&quot;onSortModeChange()&quot;&gt;
+                &lt;option value=&quot;none&quot;&gt;不排序 (保持原出现顺序)&lt;/option&gt;
+                &lt;option value=&quot;asc&quot;&gt;升序 (A→Z / 小→大)&lt;/option&gt;
+                &lt;option value=&quot;desc&quot;&gt;降序 (Z→A / 大→小)&lt;/option&gt;
+                &lt;option value=&quot;size&quot;&gt;服装/通用尺码智能排序&lt;/option&gt;
+                &lt;option value=&quot;custom&quot;&gt;自定义顺序&lt;/option&gt;
+              &lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div id=&quot;customOrderField&quot; class=&quot;field hidden&quot;&gt;
+              &lt;label&gt;自定义顺序 (逗号隔开)&lt;/label&gt;
+              &lt;input type=&quot;text&quot; id=&quot;ruleCustomOrder&quot; placeholder=&quot;如: S,M,L,XL&quot; /&gt;
+            &lt;/div&gt;
+            &lt;div id=&quot;topnValField&quot; class=&quot;field hidden&quot;&gt;
+              &lt;label&gt;统计依据数值列&lt;/label&gt;
+              &lt;select id=&quot;ruleValCol&quot;&gt;&lt;/select&gt;
+            &lt;/div&gt;
+            &lt;div id=&quot;topnNField&quot; class=&quot;field hidden&quot;&gt;
+              &lt;label&gt;取前 N 项 (0=全部)&lt;/label&gt;
+              &lt;input type=&quot;number&quot; id=&quot;ruleTopN&quot; value=&quot;3&quot; min=&quot;0&quot; /&gt;
+            &lt;/div&gt;
+            &lt;div id=&quot;topnFmtField&quot; class=&quot;field hidden&quot;&gt;
+              &lt;label&gt;显示格式模板&lt;/label&gt;
+              &lt;input type=&quot;text&quot; id=&quot;ruleFmt&quot; value=&quot;{item}({val})&quot; /&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;field field-inline&quot; style=&quot;align-self: end; padding-bottom: 4px;&quot;&gt;
+              &lt;label id=&quot;dedupLabel&quot;&gt;&lt;input type=&quot;checkbox&quot; id=&quot;ruleDedup&quot; checked /&gt; 去重&lt;/label&gt;
+              &lt;button id=&quot;addRuleBtn&quot; class=&quot;btn-primary&quot; onclick=&quot;addOrUpdateRule()&quot; style=&quot;margin-left: auto;&quot;&gt;+ 添加规则&lt;/button&gt;
+              &lt;button id=&quot;cancelEditBtn&quot; class=&quot;btn-sm hidden&quot; onclick=&quot;cancelEditRule()&quot;&gt;取消编辑&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;table-wrap&quot; style=&quot;max-height: 195px;&quot;&gt;
+            &lt;table&gt;
+              &lt;thead&gt;
+                &lt;tr&gt;
+                  &lt;th style=&quot;width: 44px;&quot;&gt;序号&lt;/th&gt;
+                  &lt;th&gt;目标列&lt;/th&gt;
+                  &lt;th&gt;输出列名&lt;/th&gt;
+                  &lt;th&gt;处理方式&lt;/th&gt;
+                  &lt;th&gt;连接符&lt;/th&gt;
+                  &lt;th&gt;去重&lt;/th&gt;
+                  &lt;th&gt;排序 / 附加参数&lt;/th&gt;
+                  &lt;th style=&quot;width: 145px;&quot;&gt;操作&lt;/th&gt;
+                &lt;/tr&gt;
+              &lt;/thead&gt;
+              &lt;tbody id=&quot;rulesTableBody&quot;&gt;
+                &lt;tr&gt;&lt;td colspan=&quot;8&quot; style=&quot;text-align: center; color: var(--muted); padding: 16px;&quot;&gt;暂无规则，请在上方配置后点击「+ 添加规则」&lt;/td&gt;&lt;/tr&gt;
+              &lt;/tbody&gt;
+            &lt;/table&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 模式二：拆分展开 --&gt;
+    &lt;div id=&quot;tab-split&quot; class=&quot;tab-panel&quot;&gt;
+      &lt;div class=&quot;workspace&quot;&gt;
+        &lt;!-- 左侧选择要拆分的列 --&gt;
+        &lt;div class=&quot;sub-box&quot;&gt;
+          &lt;div class=&quot;sub-title&quot;&gt;
+            &lt;span&gt;① 选择需要拆分的列&lt;/span&gt;
+            &lt;span id=&quot;splitColCount&quot; class=&quot;badge badge-blue&quot;&gt;已选 0 列&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;input type=&quot;text&quot; class=&quot;col-search&quot; placeholder=&quot;搜索列名...&quot; oninput=&quot;filterColList('splitColsList', this.value)&quot; /&gt;
+          &lt;div id=&quot;splitColsList&quot; class=&quot;col-list&quot;&gt;
+            &lt;div style=&quot;color: var(--muted); padding: 12px; text-align: center;&quot;&gt;请先加载数据&lt;/div&gt;
+          &lt;/div&gt;
+
+          &lt;div style=&quot;margin-top: 10px; display: flex; flex-direction: column; gap: 6px;&quot;&gt;
+            &lt;div style=&quot;font-weight: 600; font-size: 12px; color: var(--muted);&quot;&gt;当同时选中多列拆分时：&lt;/div&gt;
+            &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;multiColMode&quot; value=&quot;zip&quot; checked /&gt; 同步对齐拆分（一一对应，如材质+数量）&lt;/label&gt;
+            &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;multiColMode&quot; value=&quot;cartesian&quot; /&gt; 逐列交叉展开（笛卡尔积，如颜色×尺码）&lt;/label&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- 右侧分隔符与填充设置 --&gt;
+        &lt;div class=&quot;sub-box&quot;&gt;
+          &lt;div class=&quot;sub-title&quot;&gt;&lt;span&gt;② 分隔符、清洗与补全设置&lt;/span&gt;&lt;/div&gt;
+
+          &lt;div style=&quot;font-weight: 600; font-size: 12px; color: var(--muted);&quot;&gt;勾选分隔符（支持多选，遇到任意一个即拆开）：&lt;/div&gt;
+          &lt;div class=&quot;chip-group&quot; id=&quot;splitDelimChips&quot;&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;\n&quot; checked /&gt; 换行符 (\n)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;,&quot; /&gt; 英文逗号 (,)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;，&quot; /&gt; 中文逗号 (，)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;、&quot; /&gt; 顿号 (、)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;;&quot; /&gt; 英文分号 (;)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;；&quot; /&gt; 中文分号 (；)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;|&quot; /&gt; 竖线 (|)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;/&quot; /&gt; 斜杠 (/)&lt;/label&gt;
+            &lt;label class=&quot;chip&quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot; &quot; /&gt; 空格&lt;/label&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;opt-row&quot; style=&quot;margin-bottom: 12px;&quot;&gt;
+            &lt;label&gt;额外自定义分隔符 / 正则表达式:
+              &lt;input type=&quot;text&quot; id=&quot;splitCustomDelim&quot; placeholder=&quot;如: + 或 \s*[,;]\s*&quot; style=&quot;width: 210px;&quot; /&gt;
+            &lt;/label&gt;
+            &lt;label&gt;
+              &lt;input type=&quot;checkbox&quot; id=&quot;splitUseRegex&quot; /&gt; 启用正则表达式模式（仅使用此输入框）
+            &lt;/label&gt;
+          &lt;/div&gt;
+
+          &lt;hr style=&quot;border: none; border-top: 1px solid var(--border); margin: 12px 0;&quot; /&gt;
+
+          &lt;div class=&quot;opt-row&quot; style=&quot;margin-bottom: 12px;&quot;&gt;
+            &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;splitStrip&quot; checked /&gt; 去除拆分项首尾空格&lt;/label&gt;
+            &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;splitDropEmpty&quot; checked /&gt; 忽略拆分产生的空白项&lt;/label&gt;
+            &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;splitDedup&quot; /&gt; 同一单元格内去重&lt;/label&gt;
+            &lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;splitDropEmptyRow&quot; /&gt; 若拆出全为空则删除该行&lt;/label&gt;
+          &lt;/div&gt;
+
+          &lt;div class=&quot;opt-row&quot; style=&quot;background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border);&quot;&gt;
+            &lt;strong style=&quot;font-size: 12.5px;&quot;&gt;其他列数据补充方式：&lt;/strong&gt;
+            &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;fillOtherCols&quot; value=&quot;full&quot; checked /&gt; 完整填充所有拆出来的行（推荐，每行信息完整）&lt;/label&gt;
+            &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;fillOtherCols&quot; value=&quot;first&quot; /&gt; 仅首行保留其他列，其余行留空&lt;/label&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 3. 执行、预览与导出区 --&gt;
+  &lt;div class=&quot;card&quot;&gt;
+    &lt;div class=&quot;action-bar&quot;&gt;
+      &lt;div style=&quot;display: flex; align-items: center; gap: 8px; flex-wrap: wrap;&quot;&gt;
+        &lt;button class=&quot;btn-primary&quot; onclick=&quot;runProcess()&quot;&gt;▶ 运行处理并预览结果&lt;/button&gt;
+        &lt;button class=&quot;btn-success&quot; id=&quot;exportXlsxBtn&quot; onclick=&quot;exportExcel()&quot; disabled&gt;📥 导出 Excel (.xlsx)&lt;/button&gt;
+        &lt;button id=&quot;exportCsvBtn&quot; onclick=&quot;exportCsv()&quot; disabled&gt;📄 导出 CSV (.csv)&lt;/button&gt;
+        &lt;button id=&quot;copyTsvBtn&quot; onclick=&quot;copyResultToClipboard()&quot; disabled&gt;📋 复制结果 (可直接粘贴进Excel)&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div style=&quot;display: flex; align-items: center; gap: 10px; flex-wrap: wrap;&quot;&gt;
+        &lt;span id=&quot;processSummary&quot; class=&quot;badge hidden&quot;&gt;&lt;/span&gt;
+        &lt;div style=&quot;display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 6px;&quot;&gt;
+          &lt;button id=&quot;btnViewResult&quot; class=&quot;btn-sm btn-primary&quot; onclick=&quot;switchPreview('result')&quot;&gt;查看处理结果&lt;/button&gt;
+          &lt;button id=&quot;btnViewRaw&quot; class=&quot;btn-sm&quot; onclick=&quot;switchPreview('raw')&quot;&gt;查看原始数据&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;opt-row&quot; style=&quot;margin-bottom: 8px; justify-content: space-between;&quot;&gt;
+      &lt;input type=&quot;text&quot; id=&quot;previewSearch&quot; placeholder=&quot;🔍 在当前预览数据中搜索关键词...&quot; style=&quot;width: 280px;&quot; oninput=&quot;onPreviewSearch()&quot; /&gt;
+      &lt;div style=&quot;display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted);&quot;&gt;
+        &lt;label&gt;每页显示:
+          &lt;select id=&quot;pageSizeSelect&quot; onchange=&quot;changePageSize()&quot;&gt;
+            &lt;option value=&quot;50&quot; selected&gt;50 行&lt;/option&gt;
+            &lt;option value=&quot;100&quot;&gt;100 行&lt;/option&gt;
+            &lt;option value=&quot;200&quot;&gt;200 行&lt;/option&gt;
+          &lt;/select&gt;
+        &lt;/label&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;preview-table-wrap&quot;&gt;
+      &lt;table id=&quot;previewTable&quot;&gt;
+        &lt;thead&gt;&lt;tr&gt;&lt;th&gt;数据预览区&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+        &lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;text-align: center; color: var(--muted); padding: 28px;&quot;&gt;尚未加载数据，请先上传文件或点击右上角「加载示例数据体验」&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;pagination&quot;&gt;
+      &lt;span id=&quot;pageInfo&quot;&gt;共 0 行&lt;/span&gt;
+      &lt;div style=&quot;display: flex; gap: 6px; align-items: center;&quot;&gt;
+        &lt;button class=&quot;btn-sm&quot; onclick=&quot;goPage(-1)&quot;&gt;上一页&lt;/button&gt;
+        &lt;span id=&quot;pageNumberText&quot;&gt;1 / 1&lt;/span&gt;
+        &lt;button class=&quot;btn-sm&quot; onclick=&quot;goPage(1)&quot;&gt;下一页&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- 粘贴数据弹窗 --&gt;
+&lt;div id=&quot;pasteModal&quot; class=&quot;modal-backdrop&quot;&gt;
+  &lt;div class=&quot;modal&quot;&gt;
+    &lt;div class=&quot;card-title&quot;&gt;
+      &lt;span&gt;📋 粘贴表格数据（可直接从 Excel / WPS 复制区域粘贴，或粘贴 CSV）&lt;/span&gt;
+      &lt;button class=&quot;btn-sm&quot; onclick=&quot;closePasteModal()&quot;&gt;✕&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div style=&quot;font-size: 12px; color: var(--muted);&quot;&gt;第 1 行为列名表头。从 Excel/WPS 复制粘贴时会自动按制表符 (Tab) 分列（支持单元格内带换行符）。&lt;/div&gt;
+    &lt;textarea id=&quot;pasteTextarea&quot; placeholder=&quot;请在此 Ctrl+V 粘贴表格内容...&quot;&gt;&lt;/textarea&gt;
+    &lt;div style=&quot;display: flex; justify-content: flex-end; gap: 8px;&quot;&gt;
+      &lt;button onclick=&quot;closePasteModal()&quot;&gt;取消&lt;/button&gt;
+      &lt;button class=&quot;btn-primary&quot; onclick=&quot;parsePastedText()&quot;&gt;确认导入&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+/* =====================================================================
+ * 全局状态与基础工具函数
+ * ===================================================================== */
+const state = {
+  workbook: null,
+  fileName: '',
+  rawRows: [],       // 原始对象数组 [{col: val, ...}]
+  rawCols: [],       // 原始列名数组
+  resultRows: null,  // 结果对象数组
+  resultCols: [],    // 结果列名数组
+  rules: [],         // 模式一规则列表
+  editingRuleIndex: -1,
+  activeTab: 'group',
+  previewTarget: 'raw', // 'raw' | 'result'
+  page: 1,
+  pageSize: 50,
+  searchTerm: ''
+};
+
+// 检测外部库是否成功加载
+window.addEventListener('DOMContentLoaded', () =&gt; {
+  if (typeof XLSX === 'undefined') {
+    document.getElementById('offlineAlert').style.display = 'block';
+  }
+  initDragAndDrop();
+  onRuleModeChange();
+});
+
+const SIZE_MAP = {
+  '4XS': 0.5, 'XXXXS': 0.5,
+  '3XS': 1, 'XXXS': 1,
+  '2XS': 2, 'XXS': 2,
+  'XS': 3,
+  'S': 4,
+  'M': 5,
+  'L': 6,
+  'XL': 7, '1XL': 7,
+  'XXL': 8, '2XL': 8,
+  'XXXL': 9, '3XL': 9,
+  '4XL': 10, 'XXXXL': 10,
+  '5XL': 11, 'XXXXXL': 11,
+  '6XL': 12,
+  'FREE': 900, 'F': 900, '均码': 900, 'ONESIZE': 900, 'ONE SIZE': 900
+};
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&amp;/g, '&amp;amp;')
+    .replace(/&lt;/g, '&amp;lt;')
+    .replace(/&gt;/g, '&amp;gt;')
+    .replace(/&quot;/g, '&amp;quot;');
+}
+
+function unescapeText(str) {
+  return String(str ?? '')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\r/g, '\r');
+}
+
+function cleanStr(val) {
+  if (val === null || val === undefined) return '';
+  return String(val).trim();
+}
+
+function parseNumeric(val) {
+  if (typeof val === 'number') return isNaN(val) ? NaN : val;
+  const s = String(val ?? '').replace(/,/g, '').trim();
+  if (!s) return NaN;
+  const n = Number(s);
+  return isNaN(n) ? NaN : n;
+}
+
+function formatNum(n) {
+  if (!isFinite(n)) return '0';
+  if (Number.isInteger(n)) return String(n);
+  return Number(n.toFixed(4)).toString();
+}
+
+function smartSizeKey(val) {
+  const u = String(val).trim().toUpperCase();
+  if (Object.prototype.hasOwnProperty.call(SIZE_MAP, u)) {
+    return [0, SIZE_MAP[u], ''];
+  }
+  const m = u.match(/^(\d+(?:\.\d+)?)\s*(码|号|CM|MM)?$/);
+  if (m) {
+    return [1, parseFloat(m[1]), u];
+  }
+  return [2, 0, u];
+}
+
+function sortItems(items, sortMode, customOrder = []) {
+  if (sortMode === 'none' || !items.length) return items;
+  const arr = [...items];
+  if (sortMode === 'asc') {
+    return arr.sort((a, b) =&gt; String(a).localeCompare(String(b), 'zh-Hans-CN', { numeric: true }));
+  }
+  if (sortMode === 'desc') {
+    return arr.sort((a, b) =&gt; String(b).localeCompare(String(a), 'zh-Hans-CN', { numeric: true }));
+  }
+  if (sortMode === 'size') {
+    return arr.sort((a, b) =&gt; {
+      const ka = smartSizeKey(a), kb = smartSizeKey(b);
+      if (ka[0] !== kb[0]) return ka[0] - kb[0];
+      if (ka[1] !== kb[1]) return ka[1] - kb[1];
+      return ka[2].localeCompare(kb[2], 'zh-Hans-CN');
+    });
+  }
+  if (sortMode === 'custom') {
+    const map = new Map();
+    customOrder.forEach((v, idx) =&gt; { if (v) map.set(v, idx); });
+    return arr.sort((a, b) =&gt; {
+      const hasA = map.has(a), hasB = map.has(b);
+      if (hasA &amp;&amp; hasB) return map.get(a) - map.get(b);
+      if (hasA) return -1;
+      if (hasB) return 1;
+      return String(a).localeCompare(String(b), 'zh-Hans-CN');
+    });
+  }
+  return arr;
+}
+
+/* =====================================================================
+ * 文件导入与解析（支持 Excel / CSV / 合并单元格填充 / 粘贴）
+ * ===================================================================== */
+function initDragAndDrop() {
+  const dz = document.getElementById('dropZone');
+  const fi = document.getElementById('fileInput');
+
+  fi.addEventListener('change', e =&gt; {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  dz.addEventListener('dragover', e =&gt; {
+    e.preventDefault();
+    dz.classList.add('dragover');
+  });
+  dz.addEventListener('dragleave', () =&gt; dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e =&gt; {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+async function handleFile(file) {
+  state.fileName = file.name.replace(/\.[^.]+$/, '');
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  try {
+    const buffer = await file.arrayBuffer();
+
+    if (ext === 'csv') {
+      let text = '';
+      try {
+        text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+      } catch {
+        text = new TextDecoder('gb18030').decode(buffer);
+      }
+      if (typeof XLSX !== 'undefined') {
+        state.workbook = XLSX.read(text, { type: 'string', raw: true });
+        populateSheets(state.workbook.SheetNames);
+        reparseWorkbook();
+      } else {
+        // 离线纯 JS 解析 CSV
+        state.workbook = null;
+        const matrix = parseDelimitedText(text, ',');
+        loadMatrix(matrix, file.name);
+      }
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+      alert('当前处于离线状态且未加载到 SheetJS 库，请将 Excel 内容复制后通过右上角「粘贴表格数据」导入，或另存为 CSV 后上传。');
+      return;
+    }
+
+    state.workbook = XLSX.read(buffer, { type: 'array', cellDates: false, cellText: true });
+    populateSheets(state.workbook.SheetNames);
+    reparseWorkbook();
+  } catch (err) {
+    alert('文件读取失败：' + err.message);
+  }
+}
+
+function populateSheets(names) {
+  const sel = document.getElementById('sheetSelect');
+  sel.innerHTML = '';
+  names.forEach(name =&gt; {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.disabled = names.length === 0;
+}
+
+function reparseWorkbook() {
+  if (!state.workbook) return;
+  const sheetName = document.getElementById('sheetSelect').value || state.workbook.SheetNames[0];
+  const origWs = state.workbook.Sheets[sheetName];
+  if (!origWs || !origWs['!ref']) {
+    loadMatrix([], sheetName);
+    return;
+  }
+
+  const asText = document.getElementById('asTextCheck').checked;
+  const unmerge = document.getElementById('unmergeCheck').checked;
+
+  // 浅拷贝单元格引用映射，避免破坏原 workbook
+  const ws = { ...origWs };
+  if (unmerge &amp;&amp; origWs['!merges']) {
+    for (const m of origWs['!merges']) {
+      const tlRef = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+      const tlCell = ws[tlRef];
+      for (let r = m.s.r; r &lt;= m.e.r; r++) {
+        for (let c = m.s.c; c &lt;= m.e.c; c++) {
+          const ref = XLSX.utils.encode_cell({ r, c });
+          if (tlCell) ws[ref] = { ...tlCell };
+        }
+      }
+    }
+  }
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const matrix = [];
+  for (let r = range.s.r; r &lt;= range.e.r; r++) {
+    const row = [];
+    let hasValue = false;
+    for (let c = range.s.c; c &lt;= range.e.c; c++) {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      const cell = ws[ref];
+      let val = '';
+      if (cell) {
+        if (asText) {
+          if (cell.t === 's' || cell.t === 'str') val = cell.v != null ? String(cell.v) : '';
+          else if (cell.w !== undefined) val = String(cell.w);
+          else val = cell.v != null ? String(cell.v) : '';
+        } else {
+          val = cell.v != null ? cell.v : '';
+        }
+      }
+      if (val !== '') hasValue = true;
+      row.push(val);
+    }
+    if (hasValue || r &lt;= range.e.r) matrix.push(row);
+  }
+
+  loadMatrix(matrix, `${state.fileName} (${sheetName})`);
+}
+
+function loadMatrix(matrix, sourceDesc) {
+  const headerIdx = Math.max(0, (parseInt(document.getElementById('headerRowInput').value, 10) || 1) - 1);
+  if (!matrix || matrix.length &lt;= headerIdx) {
+    state.rawRows = [];
+    state.rawCols = [];
+    updateAfterDataLoad(sourceDesc);
+    return;
+  }
+
+  // 构建唯一表头
+  const rawHeaders = matrix[headerIdx];
+  const seen = {};
+  const cols = rawHeaders.map((h, i) =&gt; {
+    let name = cleanStr(h) || `未命名列_${i + 1}`;
+    if (Object.prototype.hasOwnProperty.call(seen, name)) {
+      seen[name] += 1;
+      name = `${name}_${seen[name]}`;
+    } else {
+      seen[name] = 0;
+    }
+    return name;
+  });
+
+  // 过滤完全空白的尾行
+  const rows = [];
+  for (let r = headerIdx + 1; r &lt; matrix.length; r++) {
+    const arr = matrix[r];
+    const isBlank = !arr || arr.every(v =&gt; cleanStr(v) === '');
+    if (isBlank) continue;
+    const obj = {};
+    cols.forEach((col, cIdx) =&gt; {
+      obj[col] = arr[cIdx] !== undefined &amp;&amp; arr[cIdx] !== null ? arr[cIdx] : '';
+    });
+    rows.push(obj);
+  }
+
+  state.rawCols = cols;
+  state.rawRows = rows;
+  state.resultRows = null;
+  state.resultCols = [];
+  updateAfterDataLoad(sourceDesc);
+}
+
+function updateAfterDataLoad(sourceDesc) {
+  const badge = document.getElementById('dataStatusBadge');
+  const meta = document.getElementById('fileMetaText');
+  badge.textContent = `已加载: ${state.rawRows.length} 行 × ${state.rawCols.length} 列`;
+  badge.className = 'badge badge-blue';
+  meta.textContent = `当前来源: ${sourceDesc}`;
+
+  renderColumnCheckboxes('groupColsList', state.rawCols, 'groupKeyCount');
+  renderColumnCheckboxes('splitColsList', state.rawCols, 'splitColCount');
+
+  const ruleCol = document.getElementById('ruleCol');
+  const ruleValCol = document.getElementById('ruleValCol');
+  ruleCol.innerHTML = '';
+  ruleValCol.innerHTML = '';
+  state.rawCols.forEach(c =&gt; {
+    ruleCol.add(new Option(c, c));
+    ruleValCol.add(new Option(c, c));
+  });
+  if (state.rawCols.length) {
+    ruleCol.value = state.rawCols[0];
+    document.getElementById('ruleOutCol').value = state.rawCols[0];
+    ruleValCol.value = state.rawCols[state.rawCols.length - 1];
+  }
+
+  document.getElementById('exportXlsxBtn').disabled = true;
+  document.getElementById('exportCsvBtn').disabled = true;
+  document.getElementById('copyTsvBtn').disabled = true;
+  document.getElementById('processSummary').classList.add('hidden');
+
+  switchPreview('raw');
+}
+
+/* 离线兼容的 CSV / TSV 解析器（支持引号内换行） */
+function parseDelimitedText(text, sep = '\t') {
+  const rows = [];
+  let row = [];
+  let val = '';
+  let inQuotes = false;
+  for (let i = 0; i &lt; text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (inQuotes) {
+      if (ch === '&quot;' &amp;&amp; next === '&quot;') {
+        val += '&quot;';
+        i++;
+      } else if (ch === '&quot;') {
+        inQuotes = false;
+      } else {
+        val += ch;
+      }
+    } else {
+      if (ch === '&quot;') {
+        inQuotes = true;
+      } else if (ch === sep) {
+        row.push(val);
+        val = '';
+      } else if (ch === '\r' &amp;&amp; next === '\n') {
+        row.push(val);
+        rows.push(row);
+        row = [];
+        val = '';
+        i++;
+      } else if (ch === '\n' || ch === '\r') {
+        row.push(val);
+        rows.push(row);
+        row = [];
+        val = '';
+      } else {
+        val += ch;
+      }
+    }
+  }
+  if (val !== '' || row.length &gt; 0) {
+    row.push(val);
+    rows.push(row);
+  }
+  return rows;
+}
+
+/* 粘贴弹窗逻辑 */
+function openPasteModal() {
+  document.getElementById('pasteModal').classList.add('open');
+  document.getElementById('pasteTextarea').focus();
+}
+function closePasteModal() {
+  document.getElementById('pasteModal').classList.remove('open');
+}
+function parsePastedText() {
+  const txt = document.getElementById('pasteTextarea').value;
+  if (!txt.trim()) {
+    alert('请先粘贴表格内容！');
+    return;
+  }
+  const sep = txt.includes('\t') ? '\t' : ',';
+  const matrix = parseDelimitedText(txt, sep);
+  state.workbook = null;
+  state.fileName = '粘贴数据';
+  document.getElementById('sheetSelect').innerHTML = '';
+  document.getElementById('sheetSelect').disabled = true;
+  document.getElementById('headerRowInput').value = 1;
+  loadMatrix(matrix, '剪贴板粘贴导入');
+  closePasteModal();
+}
+
+/* 示例数据 */
+function loadDemoData() {
+  const demoCols = ['SKU/SPU', '产品材质', '采购数量', '在售尺码', '供应商'];
+  const demoRows = [
+    { 'SKU/SPU': 'SPU-1001', '产品材质': '纯棉', '采购数量': '120', '在售尺码': 'L', '供应商': '华盛制衣' },
+    { 'SKU/SPU': 'SPU-1001', '产品材质': '纯棉', '采购数量': '80', '在售尺码': 'S', '供应商': '华盛制衣' },
+    { 'SKU/SPU': 'SPU-1001', '产品材质': '涤纶', '采购数量': '150', '在售尺码': 'M', '供应商': '华盛制衣' },
+    { 'SKU/SPU': 'SPU-1001', '产品材质': '氨纶', '采购数量': '40', '在售尺码': 'XS', '供应商': '华盛制衣' },
+    { 'SKU/SPU': 'SPU-1001', '产品材质': '亚麻', '采购数量': '25', '在售尺码': 'XL', '供应商': '华盛制衣' },
+    { 'SKU/SPU': 'SPU-1002', '产品材质': '莫代尔', '采购数量': '300', '在售尺码': 'M', '供应商': '锦绣纺织' },
+    { 'SKU/SPU': 'SPU-1002', '产品材质': '桑蚕丝', '采购数量': '90', '在售尺码': '2XL', '供应商': '锦绣纺织' },
+    { 'SKU/SPU': 'SPU-1002', '产品材质': '莫代尔', '采购数量': '100', '在售尺码': 'L', '供应商': '锦绣纺织' }
+  ];
+  state.workbook = null;
+  state.fileName = 'ERP采购示例';
+  state.rawCols = demoCols;
+  state.rawRows = demoRows;
+  updateAfterDataLoad('内置 ERP 示例数据');
+
+  // 预设几条经典规则方便直接点击运行体验
+  selectColumnsInList('groupColsList', ['SKU/SPU'], 'groupKeyCount');
+  document.getElementById('otherColsPolicy').value = 'first';
+  state.rules = [
+    { col: '产品材质', outCol: '所有产品材质', mode: 'concat', delim: '\\n', dedup: true, sortMode: 'none', customOrder: [], valCol: '', topN: 0, fmt: '' },
+    { col: '产品材质', outCol: 'TOP3产品材质(采购数量总和)', mode: 'top_n_sum', delim: '\\n', dedup: true, sortMode: 'none', customOrder: [], valCol: '采购数量', topN: 3, fmt: '{item}({val})' },
+    { col: '在售尺码', outCol: '在售尺码(已排序)', mode: 'concat', delim: ',', dedup: true, sortMode: 'size', customOrder: [], valCol: '', topN: 0, fmt: '' }
+  ];
+  renderRulesTable();
+}
+
+/* =====================================================================
+ * 列选择 UI 与规则配置 UI
+ * ===================================================================== */
+function renderColumnCheckboxes(containerId, cols, countBadgeId) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = '';
+  if (!cols.length) {
+    box.innerHTML = '&lt;div style=&quot;color: var(--muted); padding: 12px; text-align: center;&quot;&gt;暂无列&lt;/div&gt;';
+    document.getElementById(countBadgeId).textContent = '已选 0 列';
+    return;
+  }
+  cols.forEach(c =&gt; {
+    const label = document.createElement('label');
+    label.className = 'col-item';
+    label.dataset.col = c.toLowerCase();
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = c;
+    cb.addEventListener('change', () =&gt; {
+      label.classList.toggle('selected', cb.checked);
+      updateColCountBadge(containerId, countBadgeId);
+    });
+    const span = document.createElement('span');
+    span.textContent = c;
+    label.appendChild(cb);
+    label.appendChild(span);
+    box.appendChild(label);
+  });
+  updateColCountBadge(containerId, countBadgeId);
+}
+
+function getSelectedColumns(containerId) {
+  return Array.from(document.querySelectorAll(`#${containerId} input[type=&quot;checkbox&quot;]:checked`)).map(cb =&gt; cb.value);
+}
+
+function selectColumnsInList(containerId, targetCols, countBadgeId) {
+  const set = new Set(targetCols);
+  document.querySelectorAll(`#${containerId} input[type=&quot;checkbox&quot;]`).forEach(cb =&gt; {
+    cb.checked = set.has(cb.value);
+    cb.parentElement.classList.toggle('selected', cb.checked);
+  });
+  updateColCountBadge(containerId, countBadgeId);
+}
+
+function updateColCountBadge(containerId, badgeId) {
+  const n = getSelectedColumns(containerId).length;
+  document.getElementById(badgeId).textContent = `已选 ${n} 列`;
+}
+
+function filterColList(containerId, kw) {
+  const q = kw.trim().toLowerCase();
+  document.querySelectorAll(`#${containerId} .col-item`).forEach(el =&gt; {
+    el.style.display = !q || el.dataset.col.includes(q) ? 'flex' : 'none';
+  });
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b =&gt; b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p =&gt; p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function onRuleColChange() {
+  if (state.editingRuleIndex === -1) {
+    document.getElementById('ruleOutCol').value = document.getElementById('ruleCol').value;
+  }
+}
+
+function onRuleModeChange() {
+  const mode = document.getElementById('ruleMode').value;
+  const isTopN = mode === 'top_n_sum';
+  const isConcat = mode === 'concat';
+  document.getElementById('topnValField').classList.toggle('hidden', !isTopN);
+  document.getElementById('topnNField').classList.toggle('hidden', !isTopN);
+  document.getElementById('topnFmtField').classList.toggle('hidden', !isTopN);
+  document.getElementById('dedupLabel').style.visibility = isConcat ? 'visible' : 'hidden';
+}
+
+function onDelimPresetChange() {
+  const preset = document.getElementById('ruleDelimPreset').value;
+  const input = document.getElementById('ruleCustomDelim');
+  if (preset === '__CUSTOM__') {
+    input.disabled = false;
+    input.value = '';
+    input.focus();
+  } else {
+    input.disabled = true;
+    input.value = preset;
+  }
+}
+
+function onSortModeChange() {
+  const sm = document.getElementById('ruleSortMode').value;
+  document.getElementById('customOrderField').classList.toggle('hidden', sm !== 'custom');
+}
+
+function addOrUpdateRule() {
+  const col = document.getElementById('ruleCol').value;
+  if (!col) { alert('请先加载数据并选择目标列！'); return; }
+  const mode = document.getElementById('ruleMode').value;
+  const valCol = document.getElementById('ruleValCol').value;
+  if (mode === 'top_n_sum' &amp;&amp; !valCol) {
+    alert('TOP N 统计拼接模式需要选择对应的数值列！');
+    return;
+  }
+
+  const rule = {
+    col,
+    outCol: cleanStr(document.getElementById('ruleOutCol').value) || col,
+    mode,
+    delim: document.getElementById('ruleCustomDelim').value,
+    dedup: document.getElementById('ruleDedup').checked,
+    sortMode: document.getElementById('ruleSortMode').value,
+    customOrder: document.getElementById('ruleCustomOrder').value.split(/[,，]/).map(s =&gt; s.trim()).filter(Boolean),
+    valCol,
+    topN: parseInt(document.getElementById('ruleTopN').value, 10) || 0,
+    fmt: document.getElementById('ruleFmt').value || '{item}({val})'
+  };
+
+  if (state.editingRuleIndex &gt;= 0) {
+    state.rules[state.editingRuleIndex] = rule;
+    cancelEditRule();
+  } else {
+    state.rules.push(rule);
+  }
+  renderRulesTable();
+}
+
+function editRule(idx) {
+  const r = state.rules[idx];
+  state.editingRuleIndex = idx;
+  document.getElementById('ruleCol').value = r.col;
+  document.getElementById('ruleOutCol').value = r.outCol;
+  document.getElementById('ruleMode').value = r.mode;
+  onRuleModeChange();
+
+  const presetSel = document.getElementById('ruleDelimPreset');
+  const hasPreset = Array.from(presetSel.options).some(o =&gt; o.value === r.delim &amp;&amp; o.value !== '__CUSTOM__');
+  if (hasPreset) {
+    presetSel.value = r.delim;
+    document.getElementById('ruleCustomDelim').disabled = true;
+  } else {
+    presetSel.value = '__CUSTOM__';
+    document.getElementById('ruleCustomDelim').disabled = false;
+  }
+  document.getElementById('ruleCustomDelim').value = r.delim;
+  document.getElementById('ruleDedup').checked = r.dedup;
+  document.getElementById('ruleSortMode').value = r.sortMode;
+  onSortModeChange();
+  document.getElementById('ruleCustomOrder').value = (r.customOrder || []).join(',');
+  if (r.valCol) document.getElementById('ruleValCol').value = r.valCol;
+  document.getElementById('ruleTopN').value = r.topN || 0;
+  document.getElementById('ruleFmt').value = r.fmt || '{item}({val})';
+
+  document.getElementById('addRuleBtn').textContent = '✓ 保存修改';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+}
+
+function cancelEditRule() {
+  state.editingRuleIndex = -1;
+  document.getElementById('addRuleBtn').textContent = '+ 添加规则';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+}
+
+function moveRule(idx, delta) {
+  const target = idx + delta;
+  if (target &lt; 0 || target &gt;= state.rules.length) return;
+  [state.rules[idx], state.rules[target]] = [state.rules[target], state.rules[idx]];
+  renderRulesTable();
+}
+
+function deleteRule(idx) {
+  if (state.editingRuleIndex === idx) cancelEditRule();
+  state.rules.splice(idx, 1);
+  renderRulesTable();
+}
+
+function clearRules() {
+  cancelEditRule();
+  state.rules = [];
+  renderRulesTable();
+}
+
+const MODE_NAME = {
+  concat: '文本拼接',
+  top_n_sum: 'TOP N 统计拼接',
+  sum: '求和',
+  count: '计数',
+  nunique: '去重计数',
+  first: '取首个',
+  last: '取末个',
+  max: '最大值',
+  min: '最小值',
+  mean: '平均值'
+};
+const SORT_NAME = {
+  none: '原顺序',
+  asc: '升序',
+  desc: '降序',
+  size: '尺码智能排序',
+  custom: '自定义顺序'
+};
+
+function renderRulesTable() {
+  const tbody = document.getElementById('rulesTableBody');
+  if (!state.rules.length) {
+    tbody.innerHTML = '&lt;tr&gt;&lt;td colspan=&quot;8&quot; style=&quot;text-align: center; color: var(--muted); padding: 16px;&quot;&gt;暂无规则，请在上方配置后点击「+ 添加规则」&lt;/td&gt;&lt;/tr&gt;';
+    return;
+  }
+  tbody.innerHTML = state.rules.map((r, idx) =&gt; {
+    let extra = SORT_NAME[r.sortMode] || '';
+    if (r.mode === 'top_n_sum') {
+      extra = `按[${r.valCol}]求和 · ${r.topN ? 'Top' + r.topN : '全部'} · ${r.fmt}`;
+    } else if (r.sortMode === 'custom') {
+      extra = `自定义: ${r.customOrder.join(',')}`;
+    }
+    const showDelim = (r.mode === 'concat' || r.mode === 'top_n_sum') ? escapeHtml(r.delim) : '-';
+    return `
+      &lt;tr&gt;
+        &lt;td&gt;${idx + 1}&lt;/td&gt;
+        &lt;td&gt;&lt;strong&gt;${escapeHtml(r.col)}&lt;/strong&gt;&lt;/td&gt;
+        &lt;td&gt;${escapeHtml(r.outCol)}&lt;/td&gt;
+        &lt;td&gt;${MODE_NAME[r.mode] || r.mode}&lt;/td&gt;
+        &lt;td&gt;&lt;code&gt;${showDelim}&lt;/code&gt;&lt;/td&gt;
+        &lt;td&gt;${r.mode === 'concat' ? (r.dedup ? '是' : '否') : '-'}&lt;/td&gt;
+        &lt;td&gt;${escapeHtml(extra)}&lt;/td&gt;
+        &lt;td style=&quot;white-space: nowrap;&quot;&gt;
+          &lt;button class=&quot;btn-sm&quot; onclick=&quot;moveRule(${idx}, -1)&quot; title=&quot;上移&quot;&gt;↑&lt;/button&gt;
+          &lt;button class=&quot;btn-sm&quot; onclick=&quot;moveRule(${idx}, 1)&quot; title=&quot;下移&quot;&gt;↓&lt;/button&gt;
+          &lt;button class=&quot;btn-sm&quot; onclick=&quot;editRule(${idx})&quot;&gt;编辑&lt;/button&gt;
+          &lt;button class=&quot;btn-sm btn-danger&quot; onclick=&quot;deleteRule(${idx})&quot;&gt;删&lt;/button&gt;
+        &lt;/td&gt;
+      &lt;/tr&gt;`;
+  }).join('');
+}
+
+/* =====================================================================
+ * 核心数据处理算法（模式一：分组拼接 &amp; 模式二：拆分展开）
+ * ===================================================================== */
+function runProcess() {
+  if (!state.rawRows.length) {
+    alert('请先加载数据！');
+    return;
+  }
+
+  try {
+    let output;
+    let summaryText = '';
+
+    if (state.activeTab === 'group') {
+      output = processGroupConcat();
+      summaryText = `分组拼接完成：${state.rawRows.length} 行 ➔ ${output.rows.length} 行`;
+    } else {
+      output = processSplitExplode();
+      summaryText = `拆分展开完成：${state.rawRows.length} 行 ➔ ${output.rows.length} 行`;
+      if (output.mismatchRows &gt; 0) {
+        summaryText += `（注意：${output.mismatchRows} 行多列项数不等，已补空对齐）`;
+      }
+    }
+
+    state.resultCols = output.cols;
+    state.resultRows = output.rows;
+
+    const badge = document.getElementById('processSummary');
+    badge.textContent = summaryText;
+    badge.className = output.mismatchRows ? 'badge badge-warn' : 'badge badge-green';
+    badge.classList.remove('hidden');
+
+    document.getElementById('exportXlsxBtn').disabled = false;
+    document.getElementById('exportCsvBtn').disabled = false;
+    document.getElementById('copyTsvBtn').disabled = false;
+
+    switchPreview('result');
+  } catch (err) {
+    alert('处理出错：' + err.message);
+  }
+}
+
+function processGroupConcat() {
+  const groupCols = getSelectedColumns('groupColsList');
+  if (!groupCols.length) throw new Error('请至少选择一个【分组依据列】！');
+  if (!state.rules.length) throw new Error('请至少添加一条【聚合与拼接规则】！');
+
+  const sortGroups = document.getElementById('sortGroupsCheck').checked;
+  const dropEmptyKeys = document.getElementById('dropEmptyKeysCheck').checked;
+  const otherPolicy = document.getElementById('otherColsPolicy').value;
+
+  // 确定未配置列
+  const ruleColSet = new Set(state.rules.map(r =&gt; r.col));
+  const groupColSet = new Set(groupCols);
+  const extraCols = state.rawCols.filter(c =&gt; !groupColSet.has(c) &amp;&amp; !ruleColSet.has(c));
+
+  // 使用 Map 保持分组出现顺序，key 使用 JSON.stringify 保证多列绝对不冲突
+  const groups = new Map();
+  for (const row of state.rawRows) {
+    const keyVals = groupCols.map(c =&gt; cleanStr(row[c]));
+    if (dropEmptyKeys &amp;&amp; keyVals.some(v =&gt; v === '')) continue;
+
+    const mapKey = JSON.stringify(keyVals);
+    if (!groups.has(mapKey)) {
+      groups.set(mapKey, { keyVals, rows: [] });
+    }
+    groups.get(mapKey).rows.push(row);
+  }
+
+  let groupEntries = Array.from(groups.values());
+  if (sortGroups) {
+    groupEntries.sort((a, b) =&gt; {
+      for (let i = 0; i &lt; groupCols.length; i++) {
+        const cmp = a.keyVals[i].localeCompare(b.keyVals[i], 'zh-Hans-CN', { numeric: true });
+        if (cmp !== 0) return cmp;
+      }
+      return 0;
+    });
+  }
+
+  // 构建输出列名（防止重名覆盖）
+  const outCols = [...groupCols];
+  const ruleOutColNames = state.rules.map(r =&gt; {
+    let name = r.outCol || r.col;
+    while (outCols.includes(name)) name += '_结果';
+    outCols.push(name);
+    return name;
+  });
+  if (otherPolicy !== 'drop') {
+    extraCols.forEach(ec =&gt; {
+      if (!outCols.includes(ec)) outCols.push(ec);
+    });
+  }
+
+  const outRows = groupEntries.map(({ keyVals, rows }) =&gt; {
+    const outObj = {};
+    groupCols.forEach((c, i) =&gt; { outObj[c] = keyVals[i]; });
+
+    state.rules.forEach((r, rIdx) =&gt; {
+      const targetKey = ruleOutColNames[rIdx];
+      const delim = unescapeText(r.delim);
+      const rawVals = rows.map(row =&gt; cleanStr(row[r.col]));
+      const validVals = rawVals.filter(v =&gt; v !== '');
+
+      if (r.mode === 'concat') {
+        let items = r.dedup ? Array.from(new Set(validVals)) : validVals;
+        items = sortItems(items, r.sortMode, r.customOrder);
+        outObj[targetKey] = items.join(delim);
+      } else if (r.mode === 'top_n_sum') {
+        const sumMap = new Map();
+        for (const row of rows) {
+          const itemStr = cleanStr(row[r.col]);
+          if (!itemStr) continue;
+          const num = parseNumeric(row[r.valCol]);
+          const addVal = isNaN(num) ? 0 : num;
+          sumMap.set(itemStr, (sumMap.get(itemStr) || 0) + addVal);
+        }
+        let pairs = Array.from(sumMap.entries()).sort((a, b) =&gt; b[1] - a[1]);
+        if (r.topN &gt; 0) pairs = pairs.slice(0, r.topN);
+        const fmt = r.fmt || '{item}({val})';
+        outObj[targetKey] = pairs
+          .map(([item, total]) =&gt; fmt.replace(/\{item\}/g, item).replace(/\{val\}/g, formatNum(total)))
+          .join(delim);
+      } else if (r.mode === 'count') {
+        outObj[targetKey] = validVals.length;
+      } else if (r.mode === 'nunique') {
+        outObj[targetKey] = new Set(validVals).size;
+      } else if (r.mode === 'first') {
+        outObj[targetKey] = validVals.length ? validVals[0] : '';
+      } else if (r.mode === 'last') {
+        outObj[targetKey] = validVals.length ? validVals[validVals.length - 1] : '';
+      } else {
+        const nums = rows.map(row =&gt; parseNumeric(row[r.col])).filter(n =&gt; !isNaN(n));
+        if (!nums.length) {
+          outObj[targetKey] = '';
+        } else if (r.mode === 'sum') {
+          outObj[targetKey] = Number(formatNum(nums.reduce((a, b) =&gt; a + b, 0)));
+        } else if (r.mode === 'mean') {
+          outObj[targetKey] = Number(formatNum(nums.reduce((a, b) =&gt; a + b, 0) / nums.length));
+        } else if (r.mode === 'max') {
+          outObj[targetKey] = Math.max(...nums);
+        } else if (r.mode === 'min') {
+          outObj[targetKey] = Math.min(...nums);
+        }
+      }
+    });
+
+    if (otherPolicy !== 'drop') {
+      extraCols.forEach(ec =&gt; {
+        const vals = rows.map(row =&gt; cleanStr(row[ec])).filter(v =&gt; v !== '');
+        if (otherPolicy === 'first') outObj[ec] = vals.length ? vals[0] : '';
+        else if (otherPolicy === 'last') outObj[ec] = vals.length ? vals[vals.length - 1] : '';
+        else if (otherPolicy === 'concat_dedup') outObj[ec] = Array.from(new Set(vals)).join('\n');
+      });
+    }
+
+    return outObj;
+  });
+
+  return { cols: outCols, rows: outRows, mismatchRows: 0 };
+}
+
+function processSplitExplode() {
+  const splitCols = getSelectedColumns('splitColsList');
+  if (!splitCols.length) throw new Error('请至少选择一个【需要拆分的列】！');
+
+  const useRegex = document.getElementById('splitUseRegex').checked;
+  const customDelim = document.getElementById('splitCustomDelim').value;
+  let splitter;
+
+  if (useRegex) {
+    if (!customDelim) throw new Error('启用正则表达式模式时，输入框不能为空！');
+    splitter = new RegExp(customDelim);
+  } else {
+    const checkedDelims = Array.from(document.querySelectorAll('#splitDelimChips input:checked')).map(cb =&gt; cb.value);
+    if (customDelim) checkedDelims.push(customDelim);
+    const realDelims = Array.from(new Set(checkedDelims.map(unescapeText).filter(d =&gt; d !== '')));
+    if (!realDelims.length) throw new Error('请至少勾选或输入一个分隔符！');
+    realDelims.sort((a, b) =&gt; b.length - a.length);
+    const pattern = realDelims.map(d =&gt; d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;')).join('|');
+    splitter = new RegExp(pattern);
+  }
+
+  const stripItems = document.getElementById('splitStrip').checked;
+  const dropEmpty = document.getElementById('splitDropEmpty').checked;
+  const dedupCell = document.getElementById('splitDedup').checked;
+  const dropEmptyRow = document.getElementById('splitDropEmptyRow').checked;
+  const multiMode = document.querySelector('input[name=&quot;multiColMode&quot;]:checked').value;
+  const fillOther = document.querySelector('input[name=&quot;fillOtherCols&quot;]:checked').value === 'full';
+
+  const splitSet = new Set(splitCols);
+  const otherCols = state.rawCols.filter(c =&gt; !splitSet.has(c));
+  const outRows = [];
+  let mismatchRows = 0;
+
+  for (const row of state.rawRows) {
+    const lists = splitCols.map(c =&gt; {
+      const raw = row[c];
+      let parts = raw === null || raw === undefined ? [''] : String(raw).split(splitter);
+      if (stripItems) parts = parts.map(p =&gt; p.trim());
+      if (dropEmpty) parts = parts.filter(p =&gt; p !== '');
+      if (dedupCell) parts = Array.from(new Set(parts));
+      return parts;
+    });
+
+    if (multiMode === 'zip' || splitCols.length === 1) {
+      const lens = lists.map(l =&gt; l.length);
+      const maxLen = Math.max(...lens, 0);
+
+      if (maxLen === 0) {
+        if (dropEmptyRow) continue;
+        const emptyObj = {};
+        state.rawCols.forEach(c =&gt; { emptyObj[c] = splitSet.has(c) ? '' : (row[c] ?? ''); });
+        outRows.push(emptyObj);
+        continue;
+      }
+
+      if (new Set(lens).size &gt; 1) mismatchRows++;
+
+      for (let i = 0; i &lt; maxLen; i++) {
+        const newObj = {};
+        for (const oc of otherCols) {
+          newObj[oc] = (fillOther || i === 0) ? (row[oc] ?? '') : '';
+        }
+        splitCols.forEach((sc, cIdx) =&gt; {
+          newObj[sc] = i &lt; lists[cIdx].length ? lists[cIdx][i] : '';
+        });
+        outRows.push(newObj);
+      }
+    } else {
+      // 笛卡尔积交叉展开
+      const anyNonEmpty = lists.some(l =&gt; l.length &gt; 0);
+      if (!anyNonEmpty &amp;&amp; dropEmptyRow) continue;
+      const norm = lists.map(l =&gt; (l.length ? l : ['']));
+      const combos = cartesianProduct(norm);
+      combos.forEach((combo, i) =&gt; {
+        const newObj = {};
+        for (const oc of otherCols) {
+          newObj[oc] = (fillOther || i === 0) ? (row[oc] ?? '') : '';
+        }
+        splitCols.forEach((sc, cIdx) =&gt; {
+          newObj[sc] = combo[cIdx];
+        });
+        outRows.push(newObj);
+      });
+    }
+  }
+
+  return { cols: [...state.rawCols], rows: outRows, mismatchRows };
+}
+
+function cartesianProduct(arrays) {
+  return arrays.reduce((acc, curr) =&gt; {
+    const res = [];
+    for (const a of acc) {
+      for (const b of curr) {
+        res.push([...a, b]);
+      }
+    }
+    return res;
+  }, [[]]);
+}
+
+/* =====================================================================
+ * 数据预览与分页搜索
+ * ===================================================================== */
+function switchPreview(target) {
+  state.previewTarget = target;
+  state.page = 1;
+  document.getElementById('btnViewResult').className = target === 'result' ? 'btn-sm btn-primary' : 'btn-sm';
+  document.getElementById('btnViewRaw').className = target === 'raw' ? 'btn-sm btn-primary' : 'btn-sm';
+  renderPreviewTable();
+}
+
+function onPreviewSearch() {
+  state.searchTerm = document.getElementById('previewSearch').value.trim().toLowerCase();
+  state.page = 1;
+  renderPreviewTable();
+}
+
+function changePageSize() {
+  state.pageSize = parseInt(document.getElementById('pageSizeSelect').value, 10) || 50;
+  state.page = 1;
+  renderPreviewTable();
+}
+
+function goPage(delta) {
+  const { totalPages } = getFilteredPreviewData();
+  state.page = Math.min(Math.max(1, state.page + delta), totalPages);
+  renderPreviewTable();
+}
+
+function getFilteredPreviewData() {
+  const isResult = state.previewTarget === 'result';
+  const cols = isResult ? state.resultCols : state.rawCols;
+  const rows = isResult ? (state.resultRows || []) : state.rawRows;
+
+  let filtered = rows;
+  if (state.searchTerm &amp;&amp; rows.length) {
+    filtered = rows.filter(r =&gt; cols.some(c =&gt; String(r[c] ?? '').toLowerCase().includes(state.searchTerm)));
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize));
+  if (state.page &gt; totalPages) state.page = totalPages;
+  return { cols, filtered, totalPages };
+}
+
+function renderPreviewTable() {
+  const table = document.getElementById('previewTable');
+  const { cols, filtered, totalPages } = getFilteredPreviewData();
+
+  if (!cols.length) {
+    table.innerHTML = '&lt;thead&gt;&lt;tr&gt;&lt;th&gt;数据预览区&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;text-align: center; color: var(--muted); padding: 28px;&quot;&gt;暂无数据可预览&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;';
+    document.getElementById('pageInfo').textContent = '共 0 行';
+    document.getElementById('pageNumberText').textContent = '1 / 1';
+    return;
+  }
+
+  const start = (state.page - 1) * state.pageSize;
+  const pageRows = filtered.slice(start, start + state.pageSize);
+
+  const thead = `&lt;thead&gt;&lt;tr&gt;&lt;th style=&quot;width: 50px; color: var(--muted);&quot;&gt;#&lt;/th&gt;${cols.map(c =&gt; `&lt;th&gt;${escapeHtml(c)}&lt;/th&gt;`).join('')}&lt;/tr&gt;&lt;/thead&gt;`;
+  const tbody = pageRows.length
+    ? `&lt;tbody&gt;${pageRows.map((r, idx) =&gt; `&lt;tr&gt;&lt;td style=&quot;color: var(--muted);&quot;&gt;${start + idx + 1}&lt;/td&gt;${cols.map(c =&gt; `&lt;td class=&quot;cell-multiline&quot;&gt;${escapeHtml(r[c] ?? '')}&lt;/td&gt;`).join('')}&lt;/tr&gt;`).join('')}&lt;/tbody&gt;`
+    : `&lt;tbody&gt;&lt;tr&gt;&lt;td colspan=&quot;${cols.length + 1}&quot; style=&quot;text-align: center; color: var(--muted); padding: 20px;&quot;&gt;没有匹配的结果&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;`;
+
+  table.innerHTML = thead + tbody;
+  document.getElementById('pageInfo').textContent = `共 ${filtered.length} 行（显示第 ${filtered.length ? start + 1 : 0} - ${start + pageRows.length} 行）`;
+  document.getElementById('pageNumberText').textContent = `${state.page} / ${totalPages}`;
+}
+
+/* =====================================================================
+ * 导出 Excel (.xlsx 含换行与置顶样式) / CSV / 剪贴板 / JSON 配置
+ * ===================================================================== */
+function getDisplayWidth(str) {
+  let w = 0;
+  for (const ch of String(str)) w += ch.charCodeAt(0) &gt; 127 ? 2 : 1;
+  return w;
+}
+
+async function exportExcel() {
+  if (!state.resultRows || !state.resultCols.length) return;
+  const baseName = state.fileName ? `${state.fileName}_处理结果` : '数据处理结果';
+
+  // 优先使用 ExcelJS 生成带完美换行、置顶、冻结表头和自动列宽行高的文件
+  if (typeof ExcelJS !== 'undefined') {
+    try {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('处理结果', { views: [{ state: 'frozen', ySplit: 1 }] });
+
+      ws.addRow(state.resultCols);
+      const headerRow = ws.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      headerRow.eachCell(cell =&gt; {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EEF5' } };
+      });
+
+      const colWidths = state.resultCols.map(c =&gt; Math.max(10, getDisplayWidth(c) + 4));
+
+      for (const rowObj of state.resultRows) {
+        const rowVals = state.resultCols.map(c =&gt; rowObj[c] ?? '');
+        const excelRow = ws.addRow(rowVals);
+        let maxLines = 1;
+
+        rowVals.forEach((val, idx) =&gt; {
+          const cell = excelRow.getCell(idx + 1);
+          cell.alignment = { wrapText: true, vertical: 'top' };
+          const s = String(val);
+          if (s) {
+            const lines = s.split('\n');
+            maxLines = Math.max(maxLines, lines.length);
+            const longest = Math.max(...lines.map(getDisplayWidth));
+            colWidths[idx] = Math.min(55, Math.max(colWidths[idx], longest + 3));
+          }
+        });
+
+        if (maxLines &gt; 1) {
+          excelRow.height = Math.min(300, maxLines * 15 + 6);
+        }
+      }
+
+      colWidths.forEach((w, idx) =&gt; {
+        ws.getColumn(idx + 1).width = w;
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      downloadBlob(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${baseName}.xlsx`);
+      return;
+    } catch (err) {
+      console.warn('ExcelJS 导出失败，降级为 SheetJS:', err);
+    }
+  }
+
+  // 降级使用 SheetJS
+  if (typeof XLSX !== 'undefined') {
+    const aoa = [state.resultCols, ...state.resultRows.map(r =&gt; state.resultCols.map(c =&gt; r[c] ?? ''))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    XLSX.writeFile(wb, `${baseName}.xlsx`);
+  } else {
+    alert('当前处于离线状态且未加载 Excel 导出库，请使用「导出 CSV」或「复制结果」粘贴到 Excel！');
+  }
+}
+
+function exportCsv() {
+  if (!state.resultRows || !state.resultCols.length) return;
+  const csvEscape = v =&gt; {
+    const s = String(v ?? '');
+    return /[&quot;,\n\r]/.test(s) ? `&quot;${s.replace(/&quot;/g, '&quot;&quot;')}&quot;` : s;
+  };
+  const lines = [
+    state.resultCols.map(csvEscape).join(','),
+    ...state.resultRows.map(r =&gt; state.resultCols.map(c =&gt; csvEscape(r[c])).join(','))
+  ];
+  const baseName = state.fileName ? `${state.fileName}_处理结果` : '数据处理结果';
+  // 加 UTF-8 BOM 确保 Excel 打开中文不乱码
+  downloadBlob(new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' }), `${baseName}.csv`);
+}
+
+async function copyResultToClipboard() {
+  if (!state.resultRows || !state.resultCols.length) return;
+  const tsvEscape = v =&gt; {
+    const s = String(v ?? '');
+    return /[\t\n\r&quot;]/.test(s) ? `&quot;${s.replace(/&quot;/g, '&quot;&quot;')}&quot;` : s;
+  };
+  const lines = [
+    state.resultCols.map(tsvEscape).join('\t'),
+    ...state.resultRows.map(r =&gt; state.resultCols.map(c =&gt; tsvEscape(r[c])).join('\t'))
+  ];
+  try {
+    await navigator.clipboard.writeText(lines.join('\n'));
+    alert('已复制全部处理结果！现在可以直接打开 Excel / WPS 按 Ctrl+V 粘贴（单元格内换行会自动保留）。');
+  } catch {
+    alert('浏览器未授予剪贴板权限，请使用「导出 Excel」或「导出 CSV」。');
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() =&gt; URL.revokeObjectURL(url), 1000);
+}
+
+/* 配置方案导入/导出 */
+function exportConfig() {
+  const cfg = {
+    activeTab: state.activeTab,
+    asText: document.getElementById('asTextCheck').checked,
+    unmerge: document.getElementById('unmergeCheck').checked,
+    groupCols: getSelectedColumns('groupColsList'),
+    sortGroups: document.getElementById('sortGroupsCheck').checked,
+    dropEmptyKeys: document.getElementById('dropEmptyKeysCheck').checked,
+    otherColsPolicy: document.getElementById('otherColsPolicy').value,
+    rules: state.rules,
+    splitCols: getSelectedColumns('splitColsList'),
+    multiColMode: document.querySelector('input[name=&quot;multiColMode&quot;]:checked').value,
+    splitDelims: Array.from(document.querySelectorAll('#splitDelimChips input:checked')).map(c =&gt; c.value),
+    splitCustomDelim: document.getElementById('splitCustomDelim').value,
+    splitUseRegex: document.getElementById('splitUseRegex').checked,
+    splitStrip: document.getElementById('splitStrip').checked,
+    splitDropEmpty: document.getElementById('splitDropEmpty').checked,
+    splitDedup: document.getElementById('splitDedup').checked,
+    splitDropEmptyRow: document.getElementById('splitDropEmptyRow').checked,
+    fillOtherCols: document.querySelector('input[name=&quot;fillOtherCols&quot;]:checked').value
+  };
+  downloadBlob(new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' }), '数据处理规则配置.json');
+}
+
+function importConfig(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev =&gt; {
+    try {
+      const cfg = JSON.parse(ev.target.result);
+      if (cfg.activeTab) switchTab(cfg.activeTab);
+      if (cfg.asText !== undefined) document.getElementById('asTextCheck').checked = cfg.asText;
+      if (cfg.unmerge !== undefined) document.getElementById('unmergeCheck').checked = cfg.unmerge;
+      if (cfg.groupCols) selectColumnsInList('groupColsList', cfg.groupCols, 'groupKeyCount');
+      if (cfg.sortGroups !== undefined) document.getElementById('sortGroupsCheck').checked = cfg.sortGroups;
+      if (cfg.dropEmptyKeys !== undefined) document.getElementById('dropEmptyKeysCheck').checked = cfg.dropEmptyKeys;
+      if (cfg.otherColsPolicy) document.getElementById('otherColsPolicy').value = cfg.otherColsPolicy;
+      if (Array.isArray(cfg.rules)) { state.rules = cfg.rules; renderRulesTable(); }
+
+      if (cfg.splitCols) selectColumnsInList('splitColsList', cfg.splitCols, 'splitColCount');
+      if (cfg.multiColMode) document.querySelector(`input[name=&quot;multiColMode&quot;][value=&quot;${cfg.multiColMode}&quot;]`).checked = true;
+      if (Array.isArray(cfg.splitDelims)) {
+        const set = new Set(cfg.splitDelims);
+        document.querySelectorAll('#splitDelimChips input').forEach(cb =&gt; { cb.checked = set.has(cb.value); });
+      }
+      if (cfg.splitCustomDelim !== undefined) document.getElementById('splitCustomDelim').value = cfg.splitCustomDelim;
+      if (cfg.splitUseRegex !== undefined) document.getElementById('splitUseRegex').checked = cfg.splitUseRegex;
+      if (cfg.splitStrip !== undefined) document.getElementById('splitStrip').checked = cfg.splitStrip;
+      if (cfg.splitDropEmpty !== undefined) document.getElementById('splitDropEmpty').checked = cfg.splitDropEmpty;
+      if (cfg.splitDedup !== undefined) document.getElementById('splitDedup').checked = cfg.splitDedup;
+      if (cfg.splitDropEmptyRow !== undefined) document.getElementById('splitDropEmptyRow').checked = cfg.splitDropEmptyRow;
+      if (cfg.fillOtherCols) document.querySelector(`input[name=&quot;fillOtherCols&quot;][value=&quot;${cfg.fillOtherCols}&quot;]`).checked = true;
+
+      alert('规则配置导入成功！');
+    } catch (err) {
+      alert('配置文件格式错误：' + err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+  e.target.value = '';
+}
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe></div></div></div>
 </div>
 <!-- 视频教程管理弹窗 -->
 <div class="modal-overlay" id="videoMgrModal">
